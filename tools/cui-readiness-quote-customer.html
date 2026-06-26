@@ -1,0 +1,1284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RainTech CUI Readiness & Quote Estimate</title>
+<meta name="description" content="Customer-facing RainTech CUI readiness scoring, project routing, and quote estimate tool.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0b1e3f;
+    --navy-2: #17345d;
+    --green: #8bc53f;
+    --green-2: #5f902e;
+    --amber: #d9902f;
+    --red: #bf3529;
+    --blue: #2563eb;
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --border: #d9dee7;
+    --text: #182230;
+    --muted: #637083;
+    --faint: #97a1af;
+    --offwhite: #f9fafb;
+    --radius: 8px;
+    --shadow: 0 1px 2px rgba(11,30,63,.05), 0 5px 18px rgba(11,30,63,.07);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Lato, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+  h1, h2, h3 { color: var(--navy); margin: 0 0 8px; line-height: 1.15; font-weight: 900; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 19px; margin-top: 22px; }
+  h3 { font-size: 16px; }
+  p { margin: 0 0 12px; }
+  a { color: var(--green-2); }
+  .muted { color: var(--muted); }
+  .faint { color: var(--faint); }
+
+  header.app-bar {
+    background: var(--navy);
+    color: #fff;
+    border-bottom: 4px solid var(--green);
+    padding: 12px 20px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .brand { font-weight: 900; letter-spacing: .02em; font-size: 16px; }
+  .brand small { font-weight: 400; opacity: .72; margin-left: 8px; font-size: 12px; }
+  .spacer { flex: 1; }
+  .header-link {
+    color: #10243d;
+    background: var(--green);
+    text-decoration: none;
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-weight: 900;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .header-link:hover { background: #fff; }
+  .notice {
+    border-left: 4px solid var(--green);
+    background: #eef7e6;
+    color: #20331a;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  nav { display: flex; gap: 8px; flex-wrap: wrap; }
+  nav button {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.25);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  nav button:hover { background: rgba(255,255,255,.08); }
+  .badge-offline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    background: rgba(255,255,255,.1);
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .dot.off { background: var(--amber); }
+
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 20px 80px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+  }
+  .stepper { display: flex; gap: 7px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .pill {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #e9edf3;
+    font-weight: 900;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .pill.active { background: var(--navy); color: #fff; }
+  .pill.done { background: var(--green); color: #10243d; }
+  .sep { color: var(--faint); }
+
+  label { display: block; font-weight: 900; font-size: 13px; color: var(--navy); margin: 14px 0 6px; }
+  .req { color: var(--red); margin-left: 3px; }
+  input[type=text], input[type=email], input[type=tel], select, textarea {
+    width: 100%;
+    font: inherit;
+    padding: 10px 12px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--green);
+    outline-offset: 1px;
+    border-color: var(--green);
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 760px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  .helper { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 18px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    font: inherit;
+    font-weight: 900;
+    font-size: 14px;
+    cursor: pointer;
+    min-height: 42px;
+  }
+  .btn.primary { background: var(--green); color: #10243d; }
+  .btn.primary:hover { background: var(--green-2); color: #fff; }
+  .btn.secondary { background: #fff; color: var(--navy); border-color: var(--border); }
+  .btn.secondary:hover { background: #f0f3f7; }
+  .btn.navy { background: var(--navy); color: #fff; }
+  .row-actions { display: flex; gap: 10px; justify-content: space-between; margin-top: 22px; flex-wrap: wrap; }
+  .right { display: flex; gap: 10px; margin-left: auto; flex-wrap: wrap; }
+
+  .section-label {
+    margin: 18px 0 8px;
+    color: var(--navy);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .qrow {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: #fff;
+    margin-bottom: 10px;
+    padding: 14px;
+  }
+  .qhead { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; }
+  .qn {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--navy);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .qtext { font-weight: 900; color: var(--navy); }
+  .qwhy { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .qans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0 44px; }
+  .qans button {
+    min-height: 44px;
+    text-align: left;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--offwhite);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .qans button:hover { border-color: var(--navy-2); background: #f2f6fb; }
+  .qans button.active { border-color: var(--green-2); background: #eaf6dc; color: #17320d; box-shadow: inset 0 0 0 1px var(--green-2); }
+  @media (max-width: 760px) { .qans { grid-template-columns: 1fr; margin-left: 0; } }
+
+  .results-grid { display: grid; grid-template-columns: 220px 1fr; gap: 18px; align-items: stretch; }
+  @media (max-width: 760px) { .results-grid { grid-template-columns: 1fr; } }
+  .score-tile {
+    background: var(--navy);
+    color: #fff;
+    border-radius: var(--radius);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 210px;
+  }
+  .score-tile .num { font-size: 62px; font-weight: 900; line-height: 1; }
+  .score-tile .denom { opacity: .8; font-size: 17px; margin-top: 4px; }
+  .band {
+    margin-top: 12px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .band-high { background: var(--green); color: #10243d; }
+  .band-mid { background: var(--amber); color: #fff; }
+  .band-low { background: #e46f2f; color: #fff; }
+  .band-foundation { background: var(--red); color: #fff; }
+  .reco-block {
+    border-left: 4px solid var(--green);
+    background: var(--offwhite);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .reco-block.blue { border-left-color: var(--blue); }
+  .reco-block.amber { border-left-color: var(--amber); }
+  .label {
+    color: var(--green-2);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .blue .label { color: var(--blue); }
+  .amber .label { color: #8a590f; }
+  .quote-title { font-size: 18px; font-weight: 900; color: var(--navy); }
+  .quote-range { font-size: 22px; font-weight: 900; color: var(--navy); margin-top: 2px; }
+  .mini-list { margin: 7px 0 0 18px; padding: 0; }
+  .mini-list li { margin: 3px 0; }
+
+  .email-preview {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 18px;
+    white-space: pre-wrap;
+    max-height: 420px;
+    overflow: auto;
+    font-size: 14px;
+  }
+  .email-meta {
+    background: var(--offwhite);
+    border-radius: 7px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  .email-meta .k { display: inline-block; width: 64px; color: var(--muted); font-weight: 900; }
+
+  table.leads { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.leads th, table.leads td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.leads th { background: var(--navy); color: #fff; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+  table.leads tr:nth-child(even) td { background: var(--offwhite); }
+  .empty-state { text-align: center; padding: 34px; color: var(--muted); }
+  details.advanced { margin-top: 14px; }
+  details.advanced summary { cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 900; }
+  .copy-row { display: flex; gap: 8px; }
+
+  @media print {
+    header.app-bar, .row-actions, .stepper, nav, button { display: none !important; }
+    body { background: #fff; }
+    main { padding: 0; }
+    .card { box-shadow: none; border: 0; }
+  }
+</style>
+</head>
+<body>
+<header class="app-bar">
+  <div class="brand">RAIN<span style="color:var(--green)">TECH</span><small>CUI Readiness & Quote Estimate</small></div>
+  <div class="spacer"></div>
+  <a class="header-link" id="headerBooking" href="https://outlook.office.com/book/RainTechCompliance@rain.tech/s/Nlew825FvESN7HdzdnVwIg2?ismsaljsauthenabled" target="_blank" rel="noopener">Book validation call</a>
+</header>
+
+<main>
+  <section id="viewAssess">
+    <div class="card" id="step1Card">
+      <div class="stepper">
+        <span class="pill active">1 - Contact</span><span class="sep">&gt;</span>
+        <span class="pill">2 - Environment</span><span class="sep">&gt;</span>
+        <span class="pill">3 - Estimate</span>
+      </div>
+      <h1>Get a quick CUI readiness estimate</h1>
+      <p class="muted">Answer a focused set of questions about your CUI environment. You will get a readiness score, likely implementation path, budget range, and next steps.</p>
+      <p class="notice">This is a planning estimate, not a final statement of work. RainTech will validate your CUI type, contract requirements, user count, tenant, and architecture before final pricing.</p>
+
+      <div class="grid-2">
+        <div>
+          <label for="lName">Full name<span class="req">*</span></label>
+          <input id="lName" type="text" autocomplete="name" data-testid="input-name">
+        </div>
+        <div>
+          <label for="lEmail">Email<span class="req">*</span></label>
+          <input id="lEmail" type="email" autocomplete="email" data-testid="input-email" placeholder="name@company.com">
+        </div>
+        <div>
+          <label for="lCompany">Company<span class="req">*</span></label>
+          <input id="lCompany" type="text" autocomplete="organization" data-testid="input-company">
+        </div>
+        <div>
+          <label for="lRole">Your role / title</label>
+          <input id="lRole" type="text" autocomplete="organization-title" data-testid="input-role" placeholder="IT Director, CISO, Owner">
+        </div>
+        <div>
+          <label for="lPhone">Phone</label>
+          <input id="lPhone" type="tel" autocomplete="tel" data-testid="input-phone">
+        </div>
+        <div>
+          <label for="lCompanySize">Company size</label>
+          <select id="lCompanySize" data-testid="select-company-size">
+            <option value="">Unknown</option>
+            <option value="1-25">1-25 employees</option>
+            <option value="26-100">26-100 employees</option>
+            <option value="101-500">101-500 employees</option>
+            <option value="500+">500+ employees</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <label for="lNotes">Anything you want RainTech to know?</label>
+          <textarea id="lNotes" rows="3" data-testid="input-notes" placeholder="Contract deadline, prime/customer request, current concern, or preferred follow-up time."></textarea>
+        </div>
+      </div>
+
+      <div class="row-actions">
+        <button class="btn secondary" id="btnReset" data-testid="button-reset">Reset</button>
+        <div class="right">
+          <button class="btn primary" id="btnStartScore" data-testid="button-start">Start estimate</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="step2Card" hidden>
+      <div class="stepper">
+        <span class="pill done">1 - Contact</span><span class="sep">&gt;</span>
+        <span class="pill active">2 - Environment</span><span class="sep">&gt;</span>
+        <span class="pill">3 - Estimate</span>
+      </div>
+      <h1>Your CUI environment</h1>
+      <p class="muted">Every question below affects the readiness score, recommended implementation path, quote range, or confidence level.</p>
+      <div id="qList"></div>
+      <div class="row-actions">
+        <button class="btn secondary" id="btnBackTo1" data-testid="button-back-1">Back</button>
+        <div class="right">
+          <span class="muted" style="align-self:center; font-size:13px;" id="answered">0 / 22 answered</span>
+          <button class="btn primary" id="btnSeeScore" data-testid="button-see-score">Generate estimate</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="step3Card" hidden>
+      <div class="stepper">
+        <span class="pill done">1 - Contact</span><span class="sep">&gt;</span>
+        <span class="pill done">2 - Environment</span><span class="sep">&gt;</span>
+        <span class="pill active">3 - Estimate</span>
+      </div>
+      <h1>Your readiness estimate</h1>
+
+      <div class="results-grid">
+        <div class="score-tile">
+          <div class="num" id="scoreNum">0</div>
+          <div class="denom">/ 100</div>
+          <div class="band" id="scoreBand">-</div>
+        </div>
+        <div>
+          <div class="reco-block">
+            <div class="label">Readiness readout</div>
+            <div id="readinessSummary"></div>
+          </div>
+          <div class="reco-block blue">
+            <div class="label">Recommended package</div>
+            <div class="quote-title" id="quotePackage"></div>
+            <div class="quote-range" id="quoteRange"></div>
+            <div id="quoteRationale" class="muted" style="margin-top:5px;"></div>
+          </div>
+          <div class="reco-block amber">
+            <div class="label">Pricing confidence and assumptions</div>
+            <div id="quoteAssumptions"></div>
+          </div>
+        </div>
+      </div>
+
+      <h2>Summary for RainTech</h2>
+      <div class="email-meta">
+        <div><span class="k">To:</span> <span id="emTo"></span></div>
+        <div><span class="k">From:</span> <span id="emFrom"></span></div>
+        <div><span class="k">Subject:</span> <span id="emSubject"></span></div>
+      </div>
+      <div class="email-preview" id="emBody" contenteditable="true" data-testid="text-email-body" spellcheck="true"></div>
+      <p class="helper">You can copy this summary, email it to RainTech, or download it for your records.</p>
+
+      <div class="row-actions">
+        <button class="btn secondary" id="btnBackTo2" data-testid="button-back-2">Back to questions</button>
+        <div class="right">
+          <button class="btn secondary" id="btnCopyEmail" data-testid="button-copy">Copy summary</button>
+          <button class="btn navy" id="btnMailto" data-testid="button-mailto">Email RainTech</button>
+          <button class="btn primary" id="btnSaveLead" data-testid="button-save">Download results</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="viewLeads" hidden></section>
+
+  <section id="viewSettings" hidden></section>
+</main>
+
+<script>
+"use strict";
+
+const QUESTIONS = [
+  {
+    section: "Contract driver",
+    id: "driver",
+    text: "What is driving your compliance need?",
+    why: "This helps us understand whether you have an active requirement, a bid opportunity, or are planning ahead.",
+    options: [
+      { value: "active_cui", label: "We have an active DoD contract or flowdown involving CUI / CMMC Level 2", score: 4 },
+      { value: "bid_cui", label: "We are bidding or responding to a customer request involving CUI / CMMC Level 2", score: 3 },
+      { value: "dod_unclear", label: "We have DoD work, but our CUI or CMMC requirement is unclear", score: 1 },
+      { value: "exploring", label: "We are exploring future DoD work", score: 0 }
+    ]
+  },
+  {
+    section: "Contract driver",
+    id: "timeline",
+    text: "When do you need to be ready?",
+    why: "Your timeline affects the recommended project pace and quote confidence.",
+    options: [
+      { value: "lt6", label: "Less than 6 months", score: 1 },
+      { value: "6to12", label: "6-12 months", score: 3 },
+      { value: "gt12", label: "More than 12 months", score: 4 },
+      { value: "unknown", label: "Unknown / exploratory", score: 0 }
+    ]
+  },
+  {
+    section: "CUI profile",
+    id: "cuiType",
+    text: "What kind of information will be in scope?",
+    why: "This helps determine whether GCC, GCC High, or a more controlled access model may be needed.",
+    options: [
+      { value: "fci", label: "FCI only, no CUI expected", score: 3 },
+      { value: "basic", label: "CUI Basic, no export-controlled / ITAR data known", score: 3 },
+      { value: "specified", label: "ITAR, export-controlled, CUI Specified, NOFORN, or customer-required GCC High", score: 2 },
+      { value: "unknown", label: "Not sure what type of CUI", score: 0 }
+    ]
+  },
+  {
+    section: "Environment",
+    id: "environmentShape",
+    text: "What type of CUI environment do you believe you need?",
+    why: "This is the main enclave vs full tenant decision.",
+    options: [
+      { value: "enclave", label: "Small CUI workspace / enclave for limited users", score: 4 },
+      { value: "full_tenant", label: "Full tenant migration for most or all users", score: 3 },
+      { value: "customer_directed", label: "Our customer or prime already told us what to use", score: 3 },
+      { value: "unknown", label: "Not sure yet", score: 0 }
+    ]
+  },
+  {
+    section: "Environment",
+    id: "requiredCloud",
+    text: "What cloud or compliance environment is required?",
+    why: "This determines whether the estimate should be based on GCC, GCC High, or controlled access.",
+    options: [
+      { value: "gcc", label: "GCC is acceptable", score: 4 },
+      { value: "gcc_high", label: "GCC High is required", score: 4 },
+      { value: "controlled_access", label: "Controlled external access / VDI is likely needed", score: 2 },
+      { value: "unknown", label: "Not sure / our customer has not confirmed", score: 0 }
+    ]
+  },
+  {
+    section: "CUI profile",
+    id: "cuiFlow",
+    text: "Can you describe where CUI enters, is stored, is shared, and leaves your environment?",
+    why: "A clear CUI flow makes the estimate more reliable.",
+    options: [
+      { value: "mapped", label: "Yes, data flow and repositories are mapped", score: 5 },
+      { value: "rough", label: "Rough idea, but not formally mapped", score: 2 },
+      { value: "no", label: "No clear CUI flow yet", score: 0 },
+      { value: "not_applicable", label: "No CUI expected", score: 3 }
+    ]
+  },
+  {
+    section: "Environment",
+    id: "cloud",
+    text: "Where does your company email and collaboration live today?",
+    why: "Your current tenant affects the amount of migration and configuration work.",
+    options: [
+      { value: "commercial_m365", label: "Commercial Microsoft 365", score: 1 },
+      { value: "gcc", label: "Microsoft 365 GCC", score: 3 },
+      { value: "gcc_high", label: "Microsoft 365 GCC High", score: 4 },
+      { value: "mixed", label: "Google, on-prem, AWS/Azure, or mixed", score: 1 }
+    ]
+  },
+  {
+    section: "Environment",
+    id: "cuiLocation",
+    text: "Where is CUI today?",
+    why: "Scattered CUI usually means cleanup and migration effort before the environment is ready.",
+    options: [
+      { value: "not_started", label: "Not received yet / new opportunity", score: 3 },
+      { value: "contained", label: "Contained in a known repository or enclave", score: 5 },
+      { value: "scattered", label: "Scattered across email, Teams, file shares, or endpoints", score: 0 },
+      { value: "unknown", label: "Unknown", score: 0 }
+    ]
+  },
+  {
+    section: "Environment",
+    id: "scopeShape",
+    text: "Who needs access to the CUI environment?",
+    why: "A limited project team usually points to an enclave; broad access usually points to a tenant migration.",
+    options: [
+      { value: "limited_team", label: "Limited project team or business unit", score: 4 },
+      { value: "whole_org", label: "Most or all employees need access", score: 2 },
+      { value: "multi_site", label: "Multiple divisions, locations, or networks", score: 1 },
+      { value: "unknown", label: "Unknown", score: 0 }
+    ]
+  },
+  {
+    section: "Environment",
+    id: "cuiUsers",
+    text: "How many users need CUI access?",
+    why: "User count is one of the clearest quote modifiers.",
+    options: [
+      { value: "1_10", label: "1-10 users", score: 4 },
+      { value: "11_50", label: "11-50 users", score: 3 },
+      { value: "51_150", label: "51-150 users", score: 2 },
+      { value: "151_plus", label: "151+ users or unknown enterprise scope", score: 0 }
+    ]
+  },
+  {
+    section: "Environment",
+    id: "externalAccess",
+    text: "Will subcontractors, MSPs, or external users access CUI?",
+    why: "External access can change the safest architecture and may require controlled access.",
+    options: [
+      { value: "none", label: "No external CUI access expected", score: 4 },
+      { value: "msp_only", label: "MSP/MSSP supports the environment", score: 2 },
+      { value: "subs_controlled", label: "Subcontractors access through a controlled workspace", score: 2 },
+      { value: "subs_byod", label: "External users may use personal or unmanaged devices/browsers", score: 0 }
+    ]
+  },
+  {
+    section: "Controls",
+    id: "mfa",
+    text: "Is MFA enforced for privileged, remote, and CUI access?",
+    why: "MFA is a basic readiness signal for CUI environments.",
+    options: [
+      { value: "yes", label: "Yes, enforced consistently", score: 5 },
+      { value: "partial", label: "Partially enforced", score: 2 },
+      { value: "no", label: "No", score: 0 },
+      { value: "unknown", label: "Not sure", score: 0 }
+    ]
+  },
+  {
+    section: "Controls",
+    id: "endpoints",
+    text: "Are devices that access CUI centrally managed with EDR and device policy?",
+    why: "Unmanaged devices can materially increase implementation effort.",
+    options: [
+      { value: "yes", label: "Yes: managed devices, EDR, and policy", score: 5 },
+      { value: "partial", label: "Some managed, some unmanaged", score: 2 },
+      { value: "no", label: "Mostly unmanaged or BYOD", score: 0 },
+      { value: "unknown", label: "Not sure", score: 0 }
+    ]
+  },
+  {
+    section: "Controls",
+    id: "logging",
+    text: "Are logs, vulnerability scans, and patching managed on a cadence?",
+    why: "This affects both readiness and ongoing compliance workload.",
+    options: [
+      { value: "yes", label: "Yes, logs/scans/patching are operational", score: 5 },
+      { value: "partial", label: "Some pieces exist, but not complete", score: 2 },
+      { value: "no", label: "No defined cadence", score: 0 },
+      { value: "unknown", label: "Not sure", score: 0 }
+    ]
+  },
+  {
+    section: "Controls",
+    id: "encryption",
+    text: "Is CUI encrypted at rest and in transit using approved/FIPS-capable services?",
+    why: "Encryption gaps can change the technical architecture.",
+    options: [
+      { value: "yes", label: "Yes", score: 5 },
+      { value: "partial", label: "Partially / depends on system", score: 2 },
+      { value: "no", label: "No", score: 0 },
+      { value: "unknown", label: "Not sure", score: 0 }
+    ]
+  },
+  {
+    section: "CMMC readiness",
+    id: "assetBoundary",
+    text: "Do you have a CMMC asset inventory and boundary diagram?",
+    why: "A defined boundary makes the quote and timeline more reliable.",
+    options: [
+      { value: "yes", label: "Yes, current and mapped to asset categories", score: 5 },
+      { value: "partial", label: "Inventory exists, but CMMC categories are incomplete", score: 2 },
+      { value: "no", label: "No", score: 0 },
+      { value: "unknown", label: "Not sure", score: 0 }
+    ]
+  },
+  {
+    section: "CMMC readiness",
+    id: "sspPoam",
+    text: "What is the SSP and POA&M status?",
+    why: "SSP and POA&M maturity is a major readiness and services-effort driver.",
+    options: [
+      { value: "current", label: "Current SSP and POA&M mapped to 110 controls", score: 6 },
+      { value: "draft", label: "Draft or outdated SSP/POA&M", score: 3 },
+      { value: "none", label: "No SSP/POA&M", score: 0 },
+      { value: "unknown", label: "Not sure", score: 0 }
+    ]
+  },
+  {
+    section: "CMMC readiness",
+    id: "sprsGap",
+    text: "Have you completed a gap assessment and submitted an SPRS score?",
+    why: "This shows whether you know your current CMMC starting point.",
+    options: [
+      { value: "current", label: "Current gap assessment and SPRS score submitted", score: 6 },
+      { value: "partial", label: "Gap assessment or SPRS exists, but outdated/partial", score: 3 },
+      { value: "none", label: "No", score: 0 },
+      { value: "unknown", label: "Not sure", score: 0 }
+    ]
+  },
+  {
+    section: "CMMC readiness",
+    id: "evidence",
+    text: "Is evidence mapped to the 110 controls / 320 assessment objectives?",
+    why: "Evidence maturity separates policy work from assessment readiness.",
+    options: [
+      { value: "mapped", label: "Yes, evidence is mapped and current", score: 6 },
+      { value: "some", label: "Some evidence exists, but not mapped completely", score: 3 },
+      { value: "none", label: "No structured evidence yet", score: 0 },
+      { value: "unknown", label: "Not sure", score: 0 }
+    ]
+  },
+  {
+    section: "CMMC readiness",
+    id: "irTraining",
+    text: "Are incident response, CUI training, and policies operational?",
+    why: "Operational processes are stronger than paper-only policies during readiness review.",
+    options: [
+      { value: "operational", label: "Operational and exercised/tracked", score: 5 },
+      { value: "docs_only", label: "Documents exist, but not exercised/tracked", score: 2 },
+      { value: "no", label: "Not in place", score: 0 },
+      { value: "unknown", label: "Not sure", score: 0 }
+    ]
+  },
+  {
+    section: "Delivery fit",
+    id: "internalOwner",
+    text: "Who can work with RainTech during the project?",
+    why: "A clear internal owner helps keep implementation and evidence work moving.",
+    options: [
+      { value: "owner_it", label: "Executive owner plus IT/security lead", score: 4 },
+      { value: "part_time", label: "Part-time business or IT contact", score: 2 },
+      { value: "none", label: "No clear owner", score: 0 },
+      { value: "unknown", label: "Unknown", score: 0 }
+    ]
+  },
+  {
+    section: "Delivery fit",
+    id: "ongoing",
+    text: "After implementation, would you want vCISO + ongoing compliance support?",
+    why: "This determines whether to include the recurring $6,000/month recommendation.",
+    options: [
+      { value: "yes", label: "Yes, likely need ongoing ownership", score: 1 },
+      { value: "maybe", label: "Maybe, depends on internal capacity", score: 1 },
+      { value: "no", label: "No, we have internal compliance ownership", score: 2 },
+      { value: "unknown", label: "Unknown", score: 0 }
+    ]
+  }
+];
+
+const SCORE_MAX = QUESTIONS.reduce((sum, q) => sum + Math.max(...q.options.map(o => o.score || 0)), 0);
+
+const PACKAGES = {
+  fci: {
+    name: "Level 1 / FCI Starter",
+    range: "$0-$15k",
+    rationale: "This appears to be FCI-only or early DoD pursuit, so the first move is basic safeguarding, requirement validation, and light policy/process setup."
+  },
+  readiness: {
+    name: "CMMC L2 Readiness Only",
+    range: "$15k-$45k",
+    rationale: "Your environment appears mostly in place, but you still need gap analysis, SSP/POA&M, evidence mapping, and assessment prep."
+  },
+  audit: {
+    name: "Audit-Ready Sprint",
+    range: "$20k-$50k",
+    rationale: "You appear close to assessment-ready. Focus on mock assessment, evidence polish, SSP cleanup, and C3PAO scheduling support."
+  },
+  gccHardening: {
+    name: "Existing GCC Hardening + L2 Prep",
+    range: "$30k-$65k",
+    rationale: "You already appear to be in GCC, so the likely work is boundary hardening, controls, documentation, evidence, and readiness support."
+  },
+  gccEnclave: {
+    name: "GCC Enclave + CMMC L2 Prep",
+    range: "$40k-$75k",
+    rationale: "CUI Basic appears likely, and a limited CUI user population can probably be handled through a focused GCC enclave plus full L2 prep."
+  },
+  gccMigration: {
+    name: "Full GCC Tenant Migration + CMMC L2 Prep",
+    range: "$60k-$120k",
+    rationale: "The CUI scope appears broad enough that an org-wide GCC migration may be cleaner than a small enclave."
+  },
+  gcchEnclave: {
+    name: "GCC High Enclave + CMMC L2 Prep",
+    range: "$70k-$150k",
+    rationale: "ITAR, export-controlled CUI, CUI Specified, or a customer mandate points toward GCC High rather than standard GCC."
+  },
+  gcchMigration: {
+    name: "Full GCC High Migration + CMMC L2 Prep",
+    range: "$120k-$250k+",
+    rationale: "The combination of GCC High data requirements and broad user scope points toward a full GCC High migration."
+  },
+  vdi: {
+    name: "Controlled Access / VDI CUI Environment + CMMC L2 Prep",
+    range: "$95k-$250k+",
+    rationale: "External users, BYOD, or complex access paths mean the safer design may be a controlled CUI workspace or VDI-style access model."
+  }
+};
+
+const defaultSettings = {
+  senderName: "Johnathan",
+  senderTitle: "Compliance Success Partner, RainTech",
+  senderEmail: "johnathan@rain.tech",
+  senderPhone: "844.TEL.RAIN",
+  calLink: "https://outlook.office.com/book/RainTechCompliance@rain.tech/s/Nlew825FvESN7HdzdnVwIg2?ismsaljsauthenabled",
+  tagline: "RainTech - 844.TEL.RAIN - cmmc@rain.tech - www.rain.tech"
+};
+
+const LS_LEADS = "rt_cui_quote_customer_results_v1";
+const LS_SETTINGS = "rt_cui_quote_customer_settings_v1";
+
+let settings = loadSettings();
+let leads = loadLeads();
+let draft = freshDraft();
+
+function freshDraft() {
+  return {
+    id: null,
+    name: "",
+    email: "",
+    company: "",
+    role: "",
+    phone: "",
+    companySize: "",
+    notes: "",
+    answers: {},
+    emailBodyEdited: null
+  };
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(LS_SETTINGS);
+    return raw ? { ...defaultSettings, ...JSON.parse(raw) } : { ...defaultSettings };
+  } catch {
+    return { ...defaultSettings };
+  }
+}
+
+function saveSettings() {
+  localStorage.setItem(LS_SETTINGS, JSON.stringify(settings));
+}
+
+function loadLeads() {
+  try {
+    const raw = localStorage.getItem(LS_LEADS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistLeads() {
+  localStorage.setItem(LS_LEADS, JSON.stringify(leads));
+  document.getElementById("leadCount").textContent = leads.length;
+}
+
+function optionFor(q, value) {
+  return q.options.find(o => o.value === value) || null;
+}
+
+function answerLabel(id, value) {
+  const q = QUESTIONS.find(item => item.id === id);
+  const opt = q ? optionFor(q, value) : null;
+  return opt ? opt.label : "";
+}
+
+function computeReadiness(d) {
+  let raw = 0;
+  let answered = 0;
+  for (const q of QUESTIONS) {
+    const value = d.answers[q.id];
+    if (value) answered++;
+    const opt = optionFor(q, value);
+    raw += opt ? opt.score || 0 : 0;
+  }
+  const score = Math.round((raw / SCORE_MAX) * 100);
+  return { score, raw, answered, total: QUESTIONS.length, band: bandFor(score) };
+}
+
+function bandFor(score) {
+  if (score >= 80) return {
+    label: "Audit-ready",
+    cls: "band-high",
+    title: "Close to assessment-ready",
+    desc: "You likely need validation, evidence polish, and assessment preparation more than a ground-up rebuild."
+  };
+  if (score >= 60) return {
+    label: "Mid-readiness",
+    cls: "band-mid",
+    title: "Foundations exist, gaps remain",
+    desc: "You have pieces in place, but scope, evidence, technical controls, or documentation still need structured close-out."
+  };
+  if (score >= 40) return {
+    label: "Early stage",
+    cls: "band-low",
+    title: "CMMC-specific lift ahead",
+    desc: "You may have general IT hygiene, but the CUI boundary, controls, documentation, and evidence program still need real work."
+  };
+  return {
+    label: "Foundation",
+    cls: "band-foundation",
+    title: "Start with scope and architecture",
+    desc: "You are not ready to price only assessment prep. The first work is environment validation, remediation, documentation, and evidence build-out."
+  };
+}
+
+function determinePackage(d) {
+  const a = d.answers;
+  const readiness = computeReadiness(d);
+  let key = "gccEnclave";
+  const notes = [];
+  const highRequired = a.requiredCloud === "gcc_high" || a.cuiType === "specified" || a.cloud === "gcc_high";
+  const controlledAccess = a.requiredCloud === "controlled_access" || a.externalAccess === "subs_byod";
+  const broadFallback = a.scopeShape === "whole_org" || a.scopeShape === "multi_site" || a.cuiUsers === "51_150" || a.cuiUsers === "151_plus";
+  const fullTenant = a.environmentShape === "full_tenant" || (a.environmentShape !== "enclave" && broadFallback);
+
+  if (a.cuiType === "fci") {
+    key = "fci";
+  } else if (controlledAccess) {
+    key = "vdi";
+  } else if (highRequired) {
+    key = fullTenant ? "gcchMigration" : "gcchEnclave";
+  } else if (a.requiredCloud === "gcc" && fullTenant) {
+    key = "gccMigration";
+  } else if (a.requiredCloud === "gcc" && a.environmentShape === "enclave") {
+    key = "gccEnclave";
+  } else if (a.cloud === "gcc" && a.cuiLocation === "contained") {
+    key = readiness.score >= 80 ? "audit" : "gccHardening";
+  } else if (fullTenant) {
+    key = "gccMigration";
+  } else {
+    key = "gccEnclave";
+  }
+
+  if (a.environmentShape === "unknown") notes.push("You were not sure whether you need an enclave or full tenant; validate this before SOW.");
+  if (a.requiredCloud === "unknown") notes.push("Required cloud was not confirmed; validate GCC vs GCC High with the customer or prime.");
+  if (a.environmentShape === "customer_directed") notes.push("Customer-directed environment should be confirmed against the solicitation or prime instruction.");
+  if (a.cuiType === "unknown") notes.push("CUI type is unknown; confirm whether this is CUI Basic, CUI Specified, ITAR, or FCI only.");
+  if (a.driver === "dod_unclear") notes.push("The CUI/CMMC requirement is unclear; confirm customer and prime expectations before final pricing.");
+  if (a.cuiFlow === "no" || a.cuiFlow === "unknown") notes.push("CUI flow is not mapped; expect discovery and cleanup during implementation.");
+  if (a.timeline === "lt6") notes.push("Accelerated timeline may move the estimate toward the upper end.");
+  if (a.cuiUsers === "51_150") notes.push("51-150 CUI users usually pushes implementation toward the upper half of the range.");
+  if (a.cuiUsers === "151_plus") notes.push("151+ users should be treated as custom until the scope is validated.");
+  if (a.cuiLocation === "scattered") notes.push("Scattered CUI usually adds discovery, cleanup, and migration effort.");
+  if (a.endpoints === "no" || a.endpoints === "partial") notes.push("Endpoint management gaps can increase technical remediation.");
+  if (a.sspPoam === "none" || a.evidence === "none") notes.push("Missing SSP/POA&M or evidence means the L2 prep portion is a major workstream.");
+  if (a.internalOwner === "none") notes.push("No internal owner increases delivery risk and may require more managed support.");
+
+  const confidence = quoteConfidence(d);
+  const ongoing = a.ongoing === "yes" || a.ongoing === "maybe" || a.internalOwner === "none" || a.evidence === "none";
+  return { ...PACKAGES[key], key, notes, confidence, ongoing };
+}
+
+function quoteConfidence(d) {
+  const a = d.answers;
+  const unknowns = ["driver","cuiType","environmentShape","requiredCloud","cuiFlow","cloud","cuiLocation","scopeShape","cuiUsers"]
+    .filter(id => !a[id] || a[id] === "unknown").length;
+  if (unknowns >= 3) return "Low";
+  if (unknowns >= 1 || a.cuiLocation === "scattered" || a.externalAccess === "subs_byod") return "Medium";
+  return "High";
+}
+
+function topRisks(d) {
+  const a = d.answers;
+  const risks = [];
+  if (a.cuiType === "unknown") risks.push("CUI type is unknown");
+  if (a.cuiType === "specified") risks.push("CUI may require GCC High or customer-specific handling");
+  if (a.cuiLocation === "scattered") risks.push("CUI appears scattered across systems");
+  if (a.externalAccess === "subs_byod") risks.push("External/BYOD access may pull outside endpoints into scope");
+  if (a.endpoints === "no" || a.endpoints === "partial") risks.push("Endpoint management is incomplete");
+  if (a.assetBoundary === "no" || a.assetBoundary === "partial") risks.push("Boundary and asset categorization need work");
+  if (a.sspPoam === "none") risks.push("SSP/POA&M does not exist yet");
+  if (a.evidence === "none") risks.push("Assessment evidence is not mapped");
+  if (a.timeline === "lt6") risks.push("Timeline is compressed");
+  return risks.slice(0, 5);
+}
+
+function buildEmail(d) {
+  const readiness = computeReadiness(d);
+  const quote = determinePackage(d);
+  const risks = topRisks(d);
+  const riskList = risks.length ? risks.map(r => `  - ${r}`).join("\n") : "  - No major blockers came through in the quick screen.";
+  const booking = settings.calLink
+    ? `I can book a validation call here: ${settings.calLink}`
+    : "Please contact me to schedule a validation call.";
+  const ongoingLine = quote.ongoing
+    ? "\nRecurring support estimate: vCISO + Ongoing Compliance at $6,000/month."
+    : "";
+
+  const subject = `CUI readiness estimate - ${d.company || d.name} - ${readiness.score}/100 - ${quote.name}`;
+  const body = `RainTech team,
+
+I completed the CUI/CMMC readiness estimate and would like to validate the recommended path.
+
+Contact:
+${d.name}
+${d.email}
+${d.phone || "No phone provided"}
+${d.company}${d.role ? " - " + d.role : ""}
+
+Readiness score: ${readiness.score}/100 (${readiness.band.label})
+
+Recommended RainTech package:
+${quote.name}
+Estimated implementation range: ${quote.range}${ongoingLine}
+
+Why this package:
+${quote.rationale}
+
+Key assumptions and risks from the quick screen:
+${riskList}
+
+Notes I provided:
+${d.notes || "None"}
+
+This is a planning estimate, not a final SOW. The next step is a 30-minute validation call where RainTech confirms CUI type, customer requirements, user count, current tenant, and whether the right path is an enclave, migration, or controlled-access environment.
+
+${booking}
+`;
+  return { subject, body, readiness, quote };
+}
+
+function show(view) {
+  for (const id of ["viewAssess", "viewLeads", "viewSettings"]) {
+    document.getElementById(id).hidden = id !== view;
+  }
+  
+}
+
+const $ = sel => document.querySelector(sel);
+
+
+
+function fillStep1() {
+  $("#lName").value = draft.name;
+  $("#lEmail").value = draft.email;
+  $("#lCompany").value = draft.company;
+  $("#lRole").value = draft.role;
+  $("#lPhone").value = draft.phone;
+  $("#lCompanySize").value = draft.companySize;
+  $("#lNotes").value = draft.notes;
+}
+
+function readStep1() {
+  draft.name = $("#lName").value.trim();
+  draft.email = $("#lEmail").value.trim();
+  draft.company = $("#lCompany").value.trim();
+  draft.role = $("#lRole").value.trim();
+  draft.phone = $("#lPhone").value.trim();
+  draft.companySize = $("#lCompanySize").value;
+  draft.notes = $("#lNotes").value.trim();
+}
+
+document.getElementById("btnReset").addEventListener("click", () => {
+  if (!confirm("Clear the current lead and start over?")) return;
+  draft = freshDraft();
+  fillStep1();
+  goStep(1);
+});
+
+document.getElementById("btnStartScore").addEventListener("click", () => {
+  readStep1();
+  if (!draft.name) { alert("Name is required."); $("#lName").focus(); return; }
+  if (!draft.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(draft.email)) {
+    alert("Email is required."); $("#lEmail").focus(); return;
+  }
+  if (!draft.company) { alert("Company is required."); $("#lCompany").focus(); return; }
+  renderQuestions();
+  goStep(2);
+});
+
+function renderQuestions() {
+  const wrap = document.getElementById("qList");
+  wrap.innerHTML = "";
+  let lastSection = "";
+  QUESTIONS.forEach((q, idx) => {
+    if (q.section !== lastSection) {
+      const heading = document.createElement("div");
+      heading.className = "section-label";
+      heading.textContent = q.section;
+      wrap.appendChild(heading);
+      lastSection = q.section;
+    }
+    const row = document.createElement("div");
+    row.className = "qrow";
+    row.innerHTML = `
+      <div class="qhead">
+        <div class="qn">${idx + 1}</div>
+        <div>
+          <div class="qtext">${escapeHtml(q.text)}</div>
+          <div class="qwhy">${escapeHtml(q.why)}</div>
+        </div>
+      </div>
+      <div class="qans" data-qid="${q.id}">
+        ${q.options.map(opt => `<button type="button" data-v="${escapeHtml(opt.value)}">${escapeHtml(opt.label)}</button>`).join("")}
+      </div>
+    `;
+    wrap.appendChild(row);
+  });
+  Object.entries(draft.answers).forEach(([id, value]) => highlightAnswer(id, value));
+  wrap.querySelectorAll(".qans").forEach(group => {
+    group.addEventListener("click", ev => {
+      const btn = ev.target.closest("button");
+      if (!btn) return;
+      const id = group.dataset.qid;
+      draft.answers[id] = btn.dataset.v;
+      highlightAnswer(id, btn.dataset.v);
+      updateAnsweredCount();
+    });
+  });
+  updateAnsweredCount();
+}
+
+function highlightAnswer(id, value) {
+  const group = document.querySelector(`.qans[data-qid="${id}"]`);
+  if (!group) return;
+  group.querySelectorAll("button").forEach(btn => btn.classList.toggle("active", btn.dataset.v === value));
+}
+
+function updateAnsweredCount() {
+  const answered = QUESTIONS.filter(q => draft.answers[q.id]).length;
+  document.getElementById("answered").textContent = `${answered} / ${QUESTIONS.length} answered`;
+}
+
+document.getElementById("btnBackTo1").addEventListener("click", () => goStep(1));
+document.getElementById("btnSeeScore").addEventListener("click", () => {
+  const missing = QUESTIONS.filter(q => !draft.answers[q.id]);
+  if (missing.length && !confirm(`${missing.length} question(s) are unanswered. Continue and treat them as unknown?`)) return;
+  for (const q of missing) {
+    const unknown = q.options.find(o => o.value === "unknown") || q.options[q.options.length - 1];
+    draft.answers[q.id] = unknown.value;
+  }
+  draft.emailBodyEdited = null;
+  renderResults();
+  goStep(3);
+});
+
+function renderResults() {
+  const { subject, body, readiness, quote } = buildEmail(draft);
+  document.getElementById("scoreNum").textContent = readiness.score;
+  const band = document.getElementById("scoreBand");
+  band.textContent = readiness.band.label;
+  band.className = `band ${readiness.band.cls}`;
+
+  document.getElementById("readinessSummary").innerHTML =
+    `<strong>${escapeHtml(readiness.band.title)}</strong><br><span class="muted">${escapeHtml(readiness.band.desc)}</span>`;
+  document.getElementById("quotePackage").textContent = quote.name;
+  document.getElementById("quoteRange").textContent = quote.range;
+  document.getElementById("quoteRationale").textContent = quote.rationale;
+  const assumptions = [
+    `Pricing confidence: ${quote.confidence}`,
+    quote.ongoing ? "Recommend vCISO + Ongoing Compliance at $6,000/month." : "Ongoing support not required based on the quick screen, but can be offered.",
+    ...quote.notes
+  ];
+  document.getElementById("quoteAssumptions").innerHTML =
+    `<ul class="mini-list">${assumptions.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+
+  document.getElementById("emTo").textContent = `RainTech <${settings.senderEmail}>`;
+  document.getElementById("emFrom").textContent = `${draft.name} <${draft.email}>`;
+  document.getElementById("emSubject").textContent = subject;
+  document.getElementById("emBody").textContent = draft.emailBodyEdited || body;
+}
+
+document.getElementById("btnBackTo2").addEventListener("click", () => goStep(2));
+document.getElementById("emBody").addEventListener("input", ev => {
+  draft.emailBodyEdited = ev.target.innerText;
+});
+document.getElementById("btnCopyEmail").addEventListener("click", async () => {
+  const text = document.getElementById("emBody").innerText;
+  try { await navigator.clipboard.writeText(text); flash("Copied email."); }
+  catch { fallbackCopy(text); }
+});
+document.getElementById("btnMailto").addEventListener("click", () => {
+  const subj = document.getElementById("emSubject").textContent;
+  const body = document.getElementById("emBody").innerText;
+  const to = settings.senderEmail || "cmmc@rain.tech";
+  window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+});
+document.getElementById("btnSaveLead").addEventListener("click", () => {
+  const { subject, body, readiness, quote } = buildEmail(draft);
+  const result = {
+    createdAt: new Date().toISOString(),
+    name: draft.name,
+    email: draft.email,
+    company: draft.company,
+    role: draft.role,
+    phone: draft.phone,
+    companySize: draft.companySize,
+    notes: draft.notes,
+    answers: { ...draft.answers },
+    score: readiness.score,
+    band: readiness.band.label,
+    packageName: quote.name,
+    quoteRange: quote.range,
+    confidence: quote.confidence,
+    ongoing: quote.ongoing,
+    summarySubject: subject,
+    summaryBody: draft.emailBodyEdited || body
+  };
+  const text = buildCustomerDownload(result);
+  downloadBlob(text, `raintech_cui_readiness_estimate_${dateStamp()}.txt`, "text/plain");
+  flash("Downloaded your readiness estimate.");
+});
+
+function buildCustomerDownload(result) {
+  const answerLines = QUESTIONS.map(q => `- ${q.text}: ${answerLabel(q.id, result.answers[q.id]) || "Not answered"}`).join("\n");
+  return `RainTech CUI Readiness & Quote Estimate
+Generated: ${fmtDate(result.createdAt)}
+
+Contact
+Name: ${result.name}
+Email: ${result.email}
+Phone: ${result.phone || "-"}
+Company: ${result.company}
+Role: ${result.role || "-"}
+Company size: ${result.companySize || "-"}
+Notes: ${result.notes || "-"}
+
+Readiness
+Score: ${result.score}/100
+Band: ${result.band}
+Recommended package: ${result.packageName}
+Estimated range: ${result.quoteRange}
+Pricing confidence: ${result.confidence}
+Recurring support: ${result.ongoing ? "$6,000/month vCISO + Ongoing Compliance recommended" : "Not automatically recommended"}
+
+Summary
+${result.summaryBody}
+
+Answers
+${answerLines}
+`;
+}
+
+function renderLeadsTable() {}
+function fillSettingsForm() {}
+
+function goStep(n) {
+  document.getElementById("step1Card").hidden = n !== 1;
+  document.getElementById("step2Card").hidden = n !== 2;
+  document.getElementById("step3Card").hidden = n !== 3;
+  show("viewAssess");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function escapeHtml(s) {
+  return (s ?? "").toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function csvCell(value) {
+  const s = (value ?? "").toString();
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function downloadBlob(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 50);
+}
+
+function dateStamp() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); flash("Copied."); }
+  catch { alert("Copy failed."); }
+  ta.remove();
+}
+
+let flashTimer;
+function flash(msg) {
+  let el = document.getElementById("flash");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "flash";
+    el.style.cssText = "position:fixed; left:50%; bottom:30px; transform:translateX(-50%); background:#0b1e3f; color:#fff; padding:10px 18px; border-radius:8px; font-weight:900; box-shadow:0 8px 24px rgba(0,0,0,.2); z-index:9999;";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = "1";
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => { el.style.transition = "opacity .4s"; el.style.opacity = "0"; }, 2200);
+}
+
+document.getElementById("headerBooking").href = settings.calLink || "https://www.rain.tech";
+fillStep1();
+goStep(1);
+</script>
+</body>
+</html>
