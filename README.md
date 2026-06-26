@@ -51,15 +51,31 @@ The app stores its working database and evidence files under `data/`, which is i
 
 This repository includes GitHub issue templates and backlog seed files under `.github/`.
 
-After GitHub CLI is installed and authenticated:
+If GitHub CLI is available:
 
 ```powershell
 gh auth login
 .\scripts\bootstrap-github.ps1 -CreateRepo -Push -SeedBacklog
 ```
 
-If the private repository already exists and the remote is set:
+If GitHub CLI is not available, create a GitHub token with private repo access and use the REST bootstrap script:
+
+```powershell
+.\scripts\bootstrap-github-rest.ps1 -CreateRepo -Push -SeedBacklog
+```
+
+The REST script prompts for the token and does not write it to disk. You can also set it temporarily for the current PowerShell session:
+
+```powershell
+$env:GITHUB_TOKEN = "paste-token-here"
+.\scripts\bootstrap-github-rest.ps1 -CreateRepo -Push -SeedBacklog
+Remove-Item Env:\GITHUB_TOKEN
+```
+
+If the private repository already exists and the remote is set, either bootstrap script can seed the backlog:
 
 ```powershell
 .\scripts\bootstrap-github.ps1 -SeedBacklog
+# or
+.\scripts\bootstrap-github-rest.ps1 -SeedBacklog
 ```
