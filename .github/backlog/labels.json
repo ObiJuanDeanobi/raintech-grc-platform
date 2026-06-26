@@ -1,0 +1,18 @@
+[
+  {"name": "feature", "color": "1d76db", "description": "Product or engineering feature"},
+  {"name": "bug", "color": "d73a4a", "description": "Defect or regression"},
+  {"name": "decision-needed", "color": "fbca04", "description": "Requires product, compliance, or architecture decision"},
+  {"name": "frontend", "color": "c2e0c6", "description": "User interface work"},
+  {"name": "backend", "color": "bfd4f2", "description": "API, services, persistence, or server logic"},
+  {"name": "data-model", "color": "5319e7", "description": "Schema, types, validation, or migrations"},
+  {"name": "internal", "color": "0e8a16", "description": "RainTech internal workflow"},
+  {"name": "customer-facing", "color": "006b75", "description": "Public or customer-visible workflow"},
+  {"name": "security", "color": "b60205", "description": "Authentication, authorization, data protection, or audit"},
+  {"name": "v1-profile", "color": "0052cc", "description": "V1 profile, readiness, and quote"},
+  {"name": "v2-gap-analysis", "color": "0052cc", "description": "V2 internal workspace and gap analysis"},
+  {"name": "evidence", "color": "5319e7", "description": "Evidence capture, mapping, lifecycle, or export"},
+  {"name": "reports", "color": "5319e7", "description": "Readiness, gap, POA&M, and evidence reports"},
+  {"name": "documents", "color": "5319e7", "description": "SSP, policy, procedure, and diagram generation"},
+  {"name": "hosting", "color": "fef2c0", "description": "Hosted platform, deployment, and operations"},
+  {"name": "automation", "color": "fef2c0", "description": "Automated evidence and external integrations"}
+]

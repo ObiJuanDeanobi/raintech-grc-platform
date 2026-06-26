@@ -1,0 +1,110 @@
+[
+  {
+    "title": "Define V1 InitialProfile schema and question justification map",
+    "milestone": "V1 - Profile, Quote, Readiness",
+    "labels": ["feature", "data-model", "v1-profile"],
+    "body": "Outcome: define the V1 intake data contract and prove every question drives score, quote, implementation path, profile, evidence guidance, or documents.\n\nData objects: InitialProfile, ReadinessScore, QuoteRecommendation.\n\nAcceptance criteria:\n- InitialProfile fields are documented.\n- Each intake question has a justification.\n- Fields that only belong after gap analysis are marked for ImplementationProfile.\n- Example profiles exist for enclave, full tenant, GCC High, and readiness-only cases.\n\nVerification:\n- Review ROADMAP and docs/PROJECT_OPERATING_MODEL.md alignment.\n- Add schema tests once implementation starts."
+  },
+  {
+    "title": "Build clean guided intake flow",
+    "milestone": "V1 - Profile, Quote, Readiness",
+    "labels": ["feature", "frontend", "customer-facing", "internal", "v1-profile"],
+    "body": "Outcome: create a simple guided form usable at a booth or by a customer online later.\n\nData objects: Customer, InitialProfile.\n\nAcceptance criteria:\n- Form captures only justified V1 questions.\n- Customer-facing wording is clear and non-technical where possible.\n- Internal user can complete the same flow with a lead at a booth.\n- Review step shows all answers before save.\n- Saved profile can be reopened.\n\nVerification:\n- Manual desktop check.\n- Manual mobile-width check if UI is browser based.\n- Screenshot attached to PR."
+  },
+  {
+    "title": "Implement deterministic readiness scoring",
+    "milestone": "V1 - Profile, Quote, Readiness",
+    "labels": ["feature", "backend", "v1-profile"],
+    "body": "Outcome: calculate a readiness score and confidence level from InitialProfile answers.\n\nData objects: InitialProfile, ReadinessScore.\n\nAcceptance criteria:\n- Score is deterministic for the same input.\n- Missing or unknown answers affect confidence without creating a dead-end result.\n- Scoring categories are documented.\n- Tests cover representative customer profiles.\n\nVerification:\n- Automated tests for low, medium, and high readiness examples."
+  },
+  {
+    "title": "Implement RainTech quote and package recommendation logic",
+    "milestone": "V1 - Profile, Quote, Readiness",
+    "labels": ["feature", "backend", "v1-profile"],
+    "body": "Outcome: recommend package, quote range, and recurring option from InitialProfile.\n\nData objects: InitialProfile, QuoteRecommendation.\n\nAcceptance criteria:\n- Supports GCC enclave, full GCC tenant migration, GCC High enclave, full GCC High migration, controlled access, readiness-only, audit sprint, existing GCC hardening, and Level 1 starter.\n- Supports vCISO plus ongoing compliance at $6,000/month.\n- Unknowns lower confidence but still produce a recommendation.\n- Pricing rules are centralized and testable.\n\nVerification:\n- Automated tests for each package."
+  },
+  {
+    "title": "Create V1 profile summary page",
+    "milestone": "V1 - Profile, Quote, Readiness",
+    "labels": ["feature", "frontend", "v1-profile"],
+    "body": "Outcome: show score, recommended package, quote range, confidence, and next steps after intake.\n\nData objects: InitialProfile, ReadinessScore, QuoteRecommendation.\n\nAcceptance criteria:\n- Summary is easy to walk through with a lead.\n- Quote range and recurring option are visible.\n- Confidence and assumptions are visible.\n- Internal action can convert profile to a customer workspace in V2.\n\nVerification:\n- Screenshot attached to PR.\n- Manual smoke test using one enclave example and one full tenant example."
+  },
+  {
+    "title": "Create internal customer workspace shell",
+    "milestone": "V2 - Internal Workspace and Gap Analysis",
+    "labels": ["feature", "frontend", "internal", "v2-gap-analysis"],
+    "body": "Outcome: create the internal customer record where profile, quote, assessment, evidence, reports, and documents will live.\n\nData objects: Customer, InitialProfile, ImplementationProfile, GapAssessment.\n\nAcceptance criteria:\n- Customer list and customer detail exist.\n- Customer detail shows profile summary, readiness/quote, assessment status, and next actions.\n- Navigation is simple and does not resemble a generic dashboard blob.\n- Workspace can be extended by V3-V5 without redesign.\n\nVerification:\n- Manual navigation check.\n- Screenshot attached to PR."
+  },
+  {
+    "title": "Build CMMC Level 2 gap analysis workflow",
+    "milestone": "V2 - Internal Workspace and Gap Analysis",
+    "labels": ["feature", "backend", "frontend", "v2-gap-analysis"],
+    "body": "Outcome: allow RainTech to assess CMMC Level 2 objectives for a customer.\n\nData objects: GapAssessment, ControlObjectiveResult, POAMItem.\n\nAcceptance criteria:\n- Uses 14 domains, 110 requirements, and 320 objectives.\n- Supports statuses such as not assessed, not met, partial, met/captured, and escalating.\n- Supports notes, owner, due date, and POA&M flag.\n- Objective navigation is fast and clear.\n\nVerification:\n- Automated seed count test.\n- Manual update/status check."
+  },
+  {
+    "title": "Enrich ImplementationProfile from gap analysis",
+    "milestone": "V2 - Internal Workspace and Gap Analysis",
+    "labels": ["feature", "data-model", "v2-gap-analysis"],
+    "body": "Outcome: capture environment details discovered during gap analysis into the final implementation profile.\n\nData objects: ImplementationProfile, GapAssessment, ControlObjectiveResult.\n\nAcceptance criteria:\n- InitialProfile remains separate from ImplementationProfile.\n- Gap analysis can update final profile fields such as tools, CUI flow, identity model, endpoint model, backup model, incident process, evidence maturity, and implementation exceptions.\n- Final profile has a clear reviewed/approved state.\n\nVerification:\n- Tests or fixtures show InitialProfile -> ImplementationProfile progression."
+  },
+  {
+    "title": "Integrate evidence upload and evidence library",
+    "milestone": "V3 - Evidence Capture",
+    "labels": ["feature", "evidence", "frontend", "backend"],
+    "body": "Outcome: integrate manual evidence capture into the customer workspace.\n\nData objects: EvidenceItem, EvidenceMapping, ControlObjectiveResult.\n\nAcceptance criteria:\n- File picker upload works.\n- Windows Explorer drag/drop upload works.\n- Evidence metadata is captured without asking for data the system already knows.\n- Evidence library is searchable.\n- Evidence can be mapped to one or many objectives.\n\nVerification:\n- Manual drag/drop check.\n- Automated mapping tests."
+  },
+  {
+    "title": "Implement evidence replace, delete, detach, and reuse behavior",
+    "milestone": "V3 - Evidence Capture",
+    "labels": ["feature", "evidence", "backend"],
+    "body": "Outcome: preserve the important evidence lifecycle behavior from the existing tracker.\n\nData objects: EvidenceItem, EvidenceMapping, ControlObjectiveResult.\n\nAcceptance criteria:\n- Replace keeps objective mappings intact.\n- Delete removes mappings and updates now-empty objective status correctly.\n- Detach removes one mapping without deleting the evidence item.\n- Reuse does not duplicate stored files unnecessarily.\n\nVerification:\n- Automated tests cover replace, delete, detach, and reuse."
+  },
+  {
+    "title": "Build SharePoint-ready evidence ZIP export",
+    "milestone": "V3 - Evidence Capture",
+    "labels": ["feature", "evidence", "reports"],
+    "body": "Outcome: export objective-organized evidence packages for client or SharePoint use.\n\nData objects: EvidenceItem, EvidenceMapping, GapAssessment.\n\nAcceptance criteria:\n- ZIP contains objective-specific evidence copies.\n- ZIP includes manifest.csv.\n- Objective filenames remain predictable.\n- Export does not break many-to-many evidence reuse.\n\nVerification:\n- Automated ZIP export test.\n- Manual inspection of sample ZIP."
+  },
+  {
+    "title": "Generate readiness and gap reports",
+    "milestone": "V4 - Reports",
+    "labels": ["feature", "reports", "backend"],
+    "body": "Outcome: produce exportable reports that summarize profile, readiness, and gap analysis.\n\nData objects: InitialProfile, ImplementationProfile, ReadinessScore, GapAssessment.\n\nAcceptance criteria:\n- Readiness report uses V1 profile and score data.\n- Gap report uses objective status and notes.\n- Reports can be exported.\n- Reports are linked to customer and assessment.\n\nVerification:\n- Generate reports for sample customer.\n- Validate key counts and summary fields."
+  },
+  {
+    "title": "Generate POA&M and evidence capture reports",
+    "milestone": "V4 - Reports",
+    "labels": ["feature", "reports", "evidence"],
+    "body": "Outcome: produce operational reports for remediation and evidence capture.\n\nData objects: POAMItem, EvidenceItem, EvidenceMapping, ControlObjectiveResult.\n\nAcceptance criteria:\n- POA&M/status report includes owner, due date, objective, status, and notes.\n- Evidence capture report shows captured and missing evidence by objective/domain.\n- Counts match assessment data.\n- Reports are exportable.\n\nVerification:\n- Automated report count tests.\n- Manual export check."
+  },
+  {
+    "title": "Create document template registry",
+    "milestone": "V5 - Documents",
+    "labels": ["feature", "documents", "data-model"],
+    "body": "Outcome: manage RainTech-provided document templates before generating SSPs, policies, procedures, and diagrams.\n\nData objects: GeneratedDocument, ImplementationProfile.\n\nAcceptance criteria:\n- Templates are listed and versioned.\n- Template placeholders are documented.\n- Generated drafts remain editable before export.\n- Template-bound AI assist is treated as optional support, not freeform replacement.\n\nVerification:\n- Add one sample template and generate a draft."
+  },
+  {
+    "title": "Generate SSP from final ImplementationProfile",
+    "milestone": "V5 - Documents",
+    "labels": ["feature", "documents", "backend"],
+    "body": "Outcome: generate SSP draft sections from the final implementation profile, assessment data, and evidence status.\n\nData objects: ImplementationProfile, GapAssessment, EvidenceItem, GeneratedDocument.\n\nAcceptance criteria:\n- SSP generation uses ImplementationProfile, not InitialProfile alone.\n- Customer environment details populate the correct sections.\n- Generated draft is editable and linked to customer.\n- Export format is defined.\n\nVerification:\n- Generate SSP draft from sample completed gap analysis."
+  },
+  {
+    "title": "Design hosted platform security and RBAC",
+    "milestone": "V6 - Hosted Platform and RBAC",
+    "labels": ["decision-needed", "security", "hosting"],
+    "body": "Outcome: decide hosted architecture, authentication, RBAC, tenant separation, audit logging, backup, and file security model.\n\nAcceptance criteria:\n- Hosting model is documented.\n- RBAC roles are defined.\n- Customer tenant boundary model is defined.\n- Evidence file storage/security model is defined.\n- Migration from local-first storage is addressed.\n\nVerification:\n- ADR created for selected approach."
+  },
+  {
+    "title": "Design customer portal scope",
+    "milestone": "V7 - Customer Portal",
+    "labels": ["decision-needed", "customer-facing", "security"],
+    "body": "Outcome: define the first customer portal capabilities after hosted security foundations exist.\n\nAcceptance criteria:\n- Portal read/write boundaries are defined.\n- Customer-visible reports are defined.\n- Evidence request/upload behavior is defined.\n- Internal approval/review behavior is defined.\n\nVerification:\n- ADR or product spec created."
+  },
+  {
+    "title": "Spike automated evidence sources",
+    "milestone": "V8 - Automated Evidence",
+    "labels": ["decision-needed", "automation", "evidence"],
+    "body": "Outcome: identify the first automation candidates and data requirements.\n\nAcceptance criteria:\n- Candidate sources include M365, Entra, Intune, Defender, Huntress, Autotask, and SharePoint.\n- Each source lists authentication, permissions, evidence produced, control mappings, and risk.\n- First automation target is recommended.\n\nVerification:\n- Spike notes committed under docs/."
+  }
+]

@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}RainTech GRC Platform{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/platform.css">
+
+<div class="platform-shell">
+  <aside class="platform-sidebar">
+    <div class="platform-brand">RainTech GRC</div>
+    <button class="platform-nav active" data-panel="workspace">Workspace</button>
+    <button class="platform-nav" data-panel="documents">Documents</button>
+    <button class="platform-nav" data-panel="exports">Reports & Exports</button>
+    <a class="platform-link" href="/">Legacy tracker</a>
+  </aside>
+
+  <section class="platform-main">
+    <div class="platform-topbar">
+      <div>
+        <h1>CMMC Level 2 GRC Platform</h1>
+        <p>Customer profile, quote, evidence capture, control mapping, generated documents, and reports.</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn secondary" id="refresh-app">Refresh</button>
+        <button class="btn primary" id="new-client">New client</button>
+      </div>
+    </div>
+
+    <div class="platform-grid">
+      <section class="panel client-panel">
+        <div class="panel-head">
+          <h2>Customers</h2>
+        </div>
+        <div id="client-list" class="client-list"></div>
+      </section>
+
+      <section class="panel profile-panel">
+        <div class="panel-head">
+          <h2>Implementation Profile</h2>
+          <button class="btn primary" id="save-profile">Save + quote</button>
+        </div>
+        <form id="profile-form" class="profile-form">
+          <div class="form-row two">
+            <label>Client name<input name="name"></label>
+            <label>Primary contact<input name="primary_contact_name"></label>
+          </div>
+          <div class="form-row two">
+            <label>Email<input name="primary_contact_email"></label>
+            <label>Phone<input name="primary_contact_phone"></label>
+          </div>
+          <div class="form-row two">
+            <label>System name<input name="system_name" placeholder="Client CUI Enclave"></label>
+            <label>CUI users<input name="cui_users" type="number" min="0"></label>
+          </div>
+          <div class="form-row two">
+            <label>Environment shape
+              <select name="environment_shape">
+                <option value="">Unknown</option>
+                <option value="enclave">Small enclave / limited workspace</option>
+                <option value="full_tenant">Full tenant migration</option>
+                <option value="customer_directed">Customer-directed</option>
+              </select>
+            </label>
+            <label>Required cloud
+              <select name="required_cloud">
+                <option value="">Unknown</option>
+                <option value="gcc">GCC</option>
+                <option value="gcc_high">GCC High</option>
+                <option value="controlled_access">Controlled access / VDI</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row two">
+            <label>CUI type
+              <select name="cui_type">
+                <option value="">Unknown</option>
+                <option value="fci">FCI only</option>
+                <option value="basic">CUI Basic</option>
+                <option value="specified">ITAR / CUI Specified / GCC High required</option>
+              </select>
+            </label>
+            <label>Current cloud
+              <select name="current_cloud">
+                <option value="">Unknown</option>
+                <option value="commercial_m365">Commercial M365</option>
+                <option value="gcc">GCC</option>
+                <option value="gcc_high">GCC High</option>
+                <option value="mixed">Mixed / on-prem / other</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row two">
+            <label>Endpoint management
+              <select name="endpoint_management">
+                <option value="">Unknown</option>
+                <option value="managed">Managed with EDR/policy</option>
+                <option value="partial">Partial</option>
+                <option value="no">Mostly unmanaged/BYOD</option>
+              </select>
+            </label>
+            <label>External access
+              <select name="external_access">
+                <option value="">None / unknown</option>
+                <option value="none">No external CUI access</option>
+                <option value="msp_only">MSP/MSSP support</option>
+                <option value="subs_controlled">Subcontractors in controlled workspace</option>
+                <option value="subs_byod">External unmanaged devices/browsers</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row two">
+            <label>MFA status
+              <select name="mfa_status">
+                <option value="">Unknown</option>
+                <option value="yes">Enforced</option>
+                <option value="partial">Partial</option>
+                <option value="no">Not enforced</option>
+              </select>
+            </label>
+            <label>Timeline
+              <select name="timeline">
+                <option value="">Unknown</option>
+                <option value="lt6">Less than 6 months</option>
+                <option value="6to12">6-12 months</option>
+                <option value="gt12">More than 12 months</option>
+              </select>
+            </label>
+          </div>
+          <label>CUI flow<textarea name="cui_flow" rows="3" placeholder="Where CUI enters, is stored, is processed, is shared, and exits."></textarea></label>
+          <label>External service providers<textarea name="external_service_providers" rows="2"></textarea></label>
+        </form>
+      </section>
+
+      <section class="panel quote-panel">
+        <div class="panel-head">
+          <h2>Quote & Readiness</h2>
+          <button class="btn secondary" id="create-assessment">New assessment</button>
+        </div>
+        <div id="quote-card" class="quote-card empty">Select or save a client profile.</div>
+        <label class="assessment-picker">Assessment
+          <select id="assessment-select"></select>
+        </label>
+        <div id="score-cards" class="score-cards"></div>
+      </section>
+    </div>
+
+    <section class="panel workspace-panel" data-platform-panel="workspace">
+      <div class="panel-head">
+        <div>
+          <h2>Control & Evidence Workspace</h2>
+          <p>Capture evidence manually with the customer and map it to the proper CMMC objectives.</p>
+        </div>
+        <div class="filters">
+          <select id="family-filter"></select>
+          <select id="status-filter">
+            <option value="">All statuses</option>
+            <option value="not_assessed">Not assessed</option>
+            <option value="met">Met</option>
+            <option value="partial">Partial</option>
+            <option value="not_met">Not met</option>
+            <option value="escalating">Escalating</option>
+            <option value="na">N/A</option>
+          </select>
+          <label class="inline-check"><input type="checkbox" id="missing-filter"> Missing evidence</label>
+          <input id="search-filter" placeholder="Search controls or objectives">
+        </div>
+      </div>
+      <div id="controls-table" class="controls-table"></div>
+    </section>
+
+    <section class="panel docs-panel hidden" data-platform-panel="documents">
+      <div class="panel-head">
+        <div>
+          <h2>Generated SSP, Policies, Procedures & Diagrams</h2>
+          <p>Template-first drafts generated from the customer profile, assessment status, and evidence coverage.</p>
+        </div>
+        <button class="btn primary" id="generate-documents">Generate drafts</button>
+      </div>
+      <div id="documents-list" class="documents-list"></div>
+    </section>
+
+    <section class="panel exports-panel hidden" data-platform-panel="exports">
+      <div class="panel-head">
+        <h2>Reports & Exports</h2>
+      </div>
+      <div class="export-actions">
+        <a class="btn secondary" id="evidence-report" href="#">Evidence capture report</a>
+        <a class="btn secondary" id="poam-report" href="#">POA&M report</a>
+        <a class="btn primary" id="package-export" href="#">Client-ready ZIP package</a>
+      </div>
+      <div id="poam-list" class="poam-list"></div>
+    </section>
+  </section>
+</div>
+
+<dialog id="result-dialog" class="result-dialog">
+  <form method="dialog">
+    <button class="dialog-close">Close</button>
+  </form>
+  <div id="result-detail"></div>
+</dialog>
+
+<script src="/static/platform.js"></script>
+{% endblock %}

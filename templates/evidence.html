@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Evidence - CMMC L2 Evidence Tracker{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Evidence Library</h1>
+    <p>Upload each artifact once, then map it to as many objectives as needed.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Upload Evidence</h2>
+  <form method="post" action="/evidence/upload" enctype="multipart/form-data" class="grid form-grid">
+    <label>File
+      <input type="file" name="evidence_file" required>
+    </label>
+    <label>Evidence Title
+      <input name="title" placeholder="SSP, Access Review, MFA Policy">
+    </label>
+    <label>Source
+      <input name="source" placeholder="M365, Sentinel, policy repository">
+    </label>
+    <label class="wide">Map to Objectives
+      <select name="objective_ids" multiple size="10">
+        {% for objective in objectives %}
+        <option value="{{ objective.id }}">{{ objective.id }} - {{ objective.requirement_name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="wide">Notes
+      <textarea name="notes" rows="4"></textarea>
+    </label>
+    <div class="wide"><button type="submit">Upload Evidence</button></div>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Stored Evidence</h2>
+  {% if evidence %}
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Captured</th>
+        <th>Original File</th>
+        <th>Mapped Objectives</th>
+        <th>Hash</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in evidence %}
+      <tr>
+        <td>{{ item.title }}<div class="muted">{{ item.source }}</div></td>
+        <td>{{ item.capture_date }}</td>
+        <td><a href="/evidence/{{ item.id }}/download">{{ item.original_filename }}</a></td>
+        <td>{{ item.mapped_count }}</td>
+        <td><code>{{ item.sha256[:12] }}</code></td>
+        <td class="evidence-actions">
+          <form method="post" action="/evidence/{{ item.id }}/replace" enctype="multipart/form-data" class="replace-form">
+            <input type="file" name="evidence_file" required>
+            <input name="title" placeholder="Optional new title">
+            <input name="source" placeholder="Optional source">
+            <input name="notes" placeholder="Optional notes">
+            <button class="small" type="submit">Replace</button>
+          </form>
+          <form method="post" action="/evidence/{{ item.id }}/delete" onsubmit="return confirm('Delete this evidence and remove its objective mappings?');">
+            <button class="small danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No evidence uploaded yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - CMMC L2 Evidence Tracker{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Assessment Dashboard</h1>
+    <p>Track readiness across all 320 CMMC Level 2 assessment objectives.</p>
+  </div>
+  <div class="actions">
+    <a class="button primary" href="/exports/zip">Export ZIP</a>
+    <a class="button" href="/reports/completion">Completion XLSX</a>
+    <a class="button" href="/reports/completion?format=csv">CSV</a>
+  </div>
+</section>
+
+<section class="metrics">
+  <div class="metric"><span>{{ overall.total }}</span><label>Objectives</label></div>
+  <div class="metric"><span>{{ overall.captured or 0 }}</span><label>Captured</label></div>
+  <div class="metric"><span>{{ overall.not_captured or 0 }}</span><label>Not Captured</label></div>
+  <div class="metric"><span>{{ overall.escalating or 0 }}</span><label>Escalating</label></div>
+  <div class="metric"><span>{{ overall.with_evidence or 0 }}</span><label>With Evidence</label></div>
+  <div class="metric"><span>{{ percent }}%</span><label>Captured Complete</label></div>
+</section>
+
+<section class="panel">
+  <h2>Domain Progress</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>Total</th>
+        <th>Captured</th>
+        <th>Not Captured</th>
+        <th>Escalating</th>
+        <th>With Evidence</th>
+        <th>Progress</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for domain in domains %}
+      {% set pct = ((domain.captured or 0) / domain.total * 100) | round(1) %}
+      <tr>
+        <td><a href="/objectives?domain={{ domain.code }}">{{ domain.name }}</a></td>
+        <td>{{ domain.total }}</td>
+        <td>{{ domain.captured or 0 }}</td>
+        <td>{{ domain.not_captured or 0 }}</td>
+        <td>{{ domain.escalating or 0 }}</td>
+        <td>{{ domain.with_evidence or 0 }}</td>
+        <td>
+          <div class="bar"><span style="width: {{ pct }}%"></span></div>
+          {{ pct }}%
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

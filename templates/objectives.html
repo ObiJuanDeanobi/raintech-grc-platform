@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Objectives - CMMC L2 Evidence Tracker{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Objectives</h1>
+    <p>Filter, review, and open objective records.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <form class="filters" method="get" action="/objectives">
+    <label>Domain
+      <select name="domain">
+        <option value="">All domains</option>
+        {% for item in domains %}
+        <option value="{{ item.code }}" {% if filters.domain == item.code %}selected{% endif %}>{{ item.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Status
+      <select name="status">
+        <option value="">All statuses</option>
+        {% for item in statuses %}
+        <option value="{{ item }}" {% if filters.status == item %}selected{% endif %}>{{ item }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Search
+      <input name="q" value="{{ filters.q }}" placeholder="AC.L2, access, audit">
+    </label>
+    <label class="check">
+      <input type="checkbox" name="missing" value="1" {% if filters.missing == "1" %}checked{% endif %}>
+      Missing evidence
+    </label>
+    <button type="submit">Apply</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="table-head">{{ rows | length }} objective records</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Objective</th>
+        <th>Domain</th>
+        <th>Requirement</th>
+        <th>Status</th>
+        <th>Evidence</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td><a href="/objectives/{{ row.objective_id }}">{{ row.objective_id }}</a><div class="muted">{{ row.objective_text }}</div></td>
+        <td>{{ row.domain }}</td>
+        <td>{{ row.requirement_id }}<div class="muted">{{ row.requirement_name }}</div></td>
+        <td><span class="status">{{ row.status }}</span></td>
+        <td>{{ row.evidence_count }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

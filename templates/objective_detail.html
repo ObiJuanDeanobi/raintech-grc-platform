@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}{{ objective.objective_id }} - CMMC L2 Evidence Tracker{% endblock %}
+{% block content %}
+<div class="objective-detail-layout">
+  <div class="objective-nav-slot">
+    {% if previous_objective %}
+    <a class="objective-nav-arrow objective-nav-arrow-left" href="/objectives/{{ previous_objective }}" aria-label="Previous objective {{ previous_objective }}">&lsaquo;</a>
+    {% endif %}
+  </div>
+
+  <div class="objective-detail-main">
+<section class="page-head">
+  <div>
+    <h1>{{ objective.objective_id }}</h1>
+    <p>{{ objective.domain }} / {{ objective.requirement_id }} - {{ objective.requirement_name }}</p>
+  </div>
+  <div class="actions">
+    {% if previous_objective %}
+    <a class="button" href="/objectives/{{ previous_objective }}">&larr; {{ previous_objective }}</a>
+    {% endif %}
+    {% if next_objective %}
+    <a class="button" href="/objectives/{{ next_objective }}">{{ next_objective }} &rarr;</a>
+    {% endif %}
+    <a class="button" href="/objectives">Back to Objectives</a>
+  </div>
+</section>
+
+<section class="grid two">
+  <div class="panel">
+    <h2>Requirement</h2>
+    <p>{{ objective.requirement_text }}</p>
+    <h2>Objective</h2>
+    <p>{{ objective.objective_text }}</p>
+    <h2>Potential Assessment Methods and Objects</h2>
+    <div class="guide-text">{{ objective.potential_methods }}</div>
+    <details class="guide-disclosure">
+      <summary>Discussion</summary>
+      <div class="guide-text">{{ objective.discussion }}</div>
+    </details>
+    <details class="guide-disclosure">
+      <summary>Further Discussion</summary>
+      <div class="guide-text">{{ objective.further_discussion }}</div>
+    </details>
+  </div>
+
+  <div class="panel">
+    <h2>Status</h2>
+    <form method="post" action="/objectives/{{ objective.objective_id }}/status" class="stack" data-autosave-status>
+      <label>Status
+        <select name="status">
+          {% for item in statuses %}
+          <option value="{{ item }}" {% if objective.status == item %}selected{% endif %}>{{ item }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Notes
+        <textarea name="notes" rows="8">{{ objective.notes }}</textarea>
+      </label>
+      <div class="save-state" data-autosave-state>Saved</div>
+    </form>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Attached Evidence</h2>
+  {% if attached %}
+  <table>
+    <thead><tr><th>Title</th><th>Captured</th><th>Original File</th><th>Hash</th><th></th></tr></thead>
+    <tbody>
+      {% for item in attached %}
+      <tr>
+        <td>{{ item.title }}</td>
+        <td>{{ item.capture_date }}</td>
+        <td><a href="/evidence/{{ item.id }}/download">{{ item.original_filename }}</a></td>
+        <td><code>{{ item.sha256[:12] }}</code></td>
+        <td>
+          <form method="post" action="/objectives/{{ objective.objective_id }}/detach">
+            <input type="hidden" name="evidence_id" value="{{ item.id }}">
+            <button class="small" type="submit">Detach</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No evidence attached yet.</p>
+  {% endif %}
+</section>
+
+<section class="grid two">
+  <div class="panel">
+    <h2>Reuse Existing Evidence</h2>
+    <form method="post" action="/objectives/{{ objective.objective_id }}/attach" class="stack">
+      <label>Evidence Library
+        <select name="evidence_id" required>
+          {% for item in available %}
+          <option value="{{ item.id }}">{{ item.title }} (mapped to {{ item.mapped_count }} objectives)</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit" {% if not available %}disabled{% endif %}>Attach Selected Evidence</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2>Upload New Evidence</h2>
+    <div
+      class="drop-zone"
+      data-drop-upload
+      data-upload-url="/objectives/{{ objective.objective_id }}/upload"
+      tabindex="0"
+      role="button"
+      aria-label="Drop evidence files here or click to choose files"
+    >
+      <input type="file" data-drop-file-input multiple>
+      <strong>Drop evidence files here</strong>
+      <span>or click to choose files from Windows Explorer</span>
+      <small data-drop-status>Files dropped here attach directly to {{ objective.objective_id }}.</small>
+    </div>
+    <form method="post" action="/objectives/{{ objective.objective_id }}/upload" enctype="multipart/form-data" class="stack">
+      <label>File
+        <input type="file" name="evidence_file" required>
+      </label>
+      <label>Evidence Title
+        <input name="title" placeholder="SSP, Access Review, MFA Policy">
+      </label>
+      <label>Source
+        <input name="source" placeholder="M365, Sentinel, policy repository">
+      </label>
+      <label>Notes
+        <textarea name="notes" rows="4"></textarea>
+      </label>
+      <button type="submit">Upload and Attach</button>
+    </form>
+  </div>
+</section>
+  </div>
+
+  <div class="objective-nav-slot">
+    {% if next_objective %}
+    <a class="objective-nav-arrow objective-nav-arrow-right" href="/objectives/{{ next_objective }}" aria-label="Next objective {{ next_objective }}">&rsaquo;</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/drag_upload.js"></script>
+<script src="/static/status_autosave.js"></script>
+{% endblock %}

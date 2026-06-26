@@ -1,0 +1,45 @@
+name: Feature
+description: Track a product or engineering feature
+title: "[Feature]: "
+labels: ["feature"]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: What should be true when this is done?
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Data Objects Touched
+      description: Customer, InitialProfile, ImplementationProfile, GapAssessment, EvidenceItem, etc.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: Use concrete inputs and expected outputs.
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: Commands, manual checks, screenshots, or exported files required.
+      value: |
+        - [ ] Tests added or updated
+        - [ ] Manual workflow checked
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Decisions, assumptions, or follow-up risks.

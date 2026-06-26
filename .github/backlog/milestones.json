@@ -1,0 +1,10 @@
+[
+  {"title": "V1 - Profile, Quote, Readiness", "description": "Clean intake flow that creates an initial profile, readiness score, quote range, confidence level, and recommended package."},
+  {"title": "V2 - Internal Workspace and Gap Analysis", "description": "Internal RainTech customer workspace for profile review, editing, and CMMC Level 2 gap analysis."},
+  {"title": "V3 - Evidence Capture", "description": "Integrated manual evidence capture, evidence library, many-to-many objective mapping, lifecycle actions, and ZIP export."},
+  {"title": "V4 - Reports", "description": "Readiness, gap, POA&M/status, and evidence capture reports."},
+  {"title": "V5 - Documents", "description": "SSP, policies, procedures, and diagrams generated from templates and the final implementation profile."},
+  {"title": "V6 - Hosted Platform and RBAC", "description": "Hosted platform security, authentication, authorization, tenant boundaries, and operations."},
+  {"title": "V7 - Customer Portal", "description": "Customer-facing login for reports, tasks, requests, and limited collaboration."},
+  {"title": "V8 - Automated Evidence", "description": "Evidence automation from common systems such as M365, Huntress, Autotask, SharePoint, Entra, Intune, and Defender."}
+]
