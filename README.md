@@ -64,6 +64,8 @@ If GitHub CLI is not available, create a GitHub token with private repo access a
 .\scripts\bootstrap-github-rest.ps1 -CreateRepo -Push -SeedBacklog
 ```
 
+See [docs/GITHUB_NO_CLI_SETUP.md](docs/GITHUB_NO_CLI_SETUP.md) for the no-install setup path.
+
 The REST script prompts for the token and does not write it to disk. You can also set it temporarily for the current PowerShell session:
 
 ```powershell
