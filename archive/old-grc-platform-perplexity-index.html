@@ -1,0 +1,4028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CMMC GRC Platform</title>
+  <style>
+:root {
+  --navy: #1F3864;
+  --navy-light: #2E4F9C;
+  --accent: #2563EB;
+  --accent-hover: #1D4ED8;
+  --bg: #F0F4F9;
+  --card: #FFFFFF;
+  --border: #D1D5DB;
+  --text: #1F2937;
+  --text-muted: #6B7280;
+  --met: #16A34A;
+  --met-bg: #DCFCE7;
+  --not-met: #DC2626;
+  --not-met-bg: #FEE2E2;
+  --partial: #D97706;
+  --partial-bg: #FEF3C7;
+  --na: #6B7280;
+  --na-bg: #F3F4F6;
+  --unassessed: #9CA3AF;
+  --unassessed-bg: #F9FAFB;
+  --critical: #9333EA;
+  --critical-bg: #F3E8FF;
+  --surface: #FFFFFF;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* ── Dark Mode Variables ───────────────────────────── */
+[data-theme="dark"] {
+  --navy: #0F1E36;
+  --navy-light: #162B52;
+  --accent: #3B82F6;
+  --accent-hover: #2563EB;
+  --bg: #0D1117;
+  --surface: #161B22;
+  --card: #1C2333;
+  --border: #30363D;
+  --text: #E6EDF3;
+  --text-muted: #8B949E;
+  --met: #3FB950;
+  --met-bg: #0D2818;
+  --not-met: #F85149;
+  --not-met-bg: #2D0F0F;
+  --partial: #D29922;
+  --partial-bg: #2D1F00;
+  --na: #8B949E;
+  --na-bg: #1C2333;
+  --unassessed: #6B7280;
+  --unassessed-bg: #1C2333;
+  --critical: #BC8CFF;
+  --critical-bg: #2A1A40;
+  --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.5);
+}
+
+[data-theme="dark"] .ev-considerations {
+  background: #1A1400;
+  border-color: #4A3800;
+}
+[data-theme="dark"] .ev-considerations-label { color: #D29922; }
+[data-theme="dark"] .ev-consideration-item { color: #C9A227; }
+[data-theme="dark"] .likely-evidence-details { background: #0D1B2E; border-color: #1E3A5F; }
+[data-theme="dark"] .likely-evidence-summary { background: #162B52; color: #93C5FD; }
+[data-theme="dark"] .likely-evidence-list li { color: #BAE0FF; border-bottom-color: #1E3A5F; }
+[data-theme="dark"] .lib-picker-linked { background: #0D2818; border-color: #1A5C33; }
+[data-theme="dark"] .remediation-box { background: #12200E; border-color: #1A4A12; }
+[data-theme="dark"] .evidence-guide-panel { background: var(--card); }
+[data-theme="dark"] .sprs-banner { background: linear-gradient(135deg, #0F1E36, #162B52); }
+
+/* Dark mode toggle button */
+#dark-toggle {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+#dark-toggle:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.4); }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Layout ─────────────────────────────────────────── */
+#app { display: flex; min-height: 100vh; }
+
+#sidebar {
+  width: 240px; min-width: 240px;
+  background: var(--navy);
+  color: #fff;
+  display: flex; flex-direction: column;
+  padding: 0;
+  position: fixed; top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+#main {
+  margin-left: 240px;
+  flex: 1;
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Sidebar ────────────────────────────────────────── */
+.sidebar-logo {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-logo h1 {
+  font-size: 15px; font-weight: 700;
+  color: #fff; letter-spacing: -0.3px;
+  line-height: 1.3;
+}
+
+.sidebar-logo span {
+  font-size: 11px; color: rgba(255,255,255,0.6);
+  display: block; margin-top: 2px;
+}
+
+.sidebar-section { padding: 12px 0; }
+
+.sidebar-section-label {
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: rgba(255,255,255,0.4);
+  padding: 0 16px 6px;
+}
+
+.sidebar-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.15s;
+  font-size: 13px; color: rgba(255,255,255,0.75);
+  border-left: 3px solid transparent;
+  text-decoration: none;
+}
+
+.sidebar-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.sidebar-item.active { background: rgba(255,255,255,0.12); color: #fff; border-left-color: #60A5FA; font-weight: 600; }
+
+.sidebar-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+/* ── Topbar ─────────────────────────────────────────── */
+#topbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+.topbar-title { font-size: 16px; font-weight: 600; color: var(--text); }
+
+.client-selector {
+  display: flex; align-items: center; gap: 8px;
+}
+
+.client-selector label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+select, input {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  background: var(--card);
+  color: var(--text);
+  outline: none;
+}
+
+select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+
+/* ── Content ────────────────────────────────────────── */
+#content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── SPRS Score Banner ──────────────────────────────── */
+.sprs-banner {
+  background: linear-gradient(135deg, var(--navy), var(--navy-light));
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  display: flex; align-items: center; gap: 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-md);
+}
+
+.sprs-score-circle {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  border: 3px solid rgba(255,255,255,0.3);
+}
+
+.sprs-score-circle .score-num { font-size: 26px; font-weight: 700; line-height: 1; }
+.sprs-score-circle .score-label { font-size: 10px; opacity: 0.75; margin-top: 2px; }
+
+.sprs-details h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.sprs-details p { font-size: 13px; opacity: 0.85; }
+
+.sprs-threshold {
+  margin-left: auto;
+  text-align: right;
+}
+
+.threshold-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.threshold-badge.pass { background: #16A34A; color: #fff; }
+.threshold-badge.fail { background: #DC2626; color: #fff; }
+.threshold-badge.warn { background: #D97706; color: #fff; }
+
+/* ── Stats Grid ─────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex; flex-direction: column;
+  box-shadow: var(--shadow);
+}
+
+.stat-card .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-card .stat-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+.stat-card .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.stat-card.met .stat-value { color: var(--met); }
+.stat-card.not-met .stat-value { color: var(--not-met); }
+.stat-card.partial .stat-value { color: var(--partial); }
+.stat-card.unassessed .stat-value { color: var(--unassessed); }
+
+/* ── Section Headers ────────────────────────────────── */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-title { font-size: 15px; font-weight: 700; color: var(--text); }
+
+/* ── Heatmap ────────────────────────────────────────── */
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.family-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+
+.family-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+.family-card .fam-abbr {
+  font-size: 20px; font-weight: 800;
+  color: var(--text);
+}
+
+.family-card .fam-name {
+  font-size: 10px; color: var(--text-muted);
+  margin-top: 2px; margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.family-bar {
+  height: 6px; border-radius: 3px;
+  background: var(--border);
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.family-bar-fill {
+  height: 100%; border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.family-bar-fill.met { background: var(--met); }
+.family-bar-fill.mixed { background: var(--partial); }
+.family-bar-fill.not-met { background: var(--not-met); }
+
+.family-stats { font-size: 10px; color: var(--text-muted); }
+
+.family-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 4px; height: 100%;
+}
+
+.family-card.all-met::before { background: var(--met); }
+.family-card.some-not-met::before { background: var(--not-met); }
+.family-card.some-partial::before { background: var(--partial); }
+.family-card.unassessed::before { background: var(--unassessed); }
+
+/* ── Controls Table ─────────────────────────────────── */
+.controls-table-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.controls-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.controls-table th {
+  background: var(--navy);
+  color: #fff;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.controls-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.controls-table tr:last-child td { border-bottom: none; }
+.controls-table tr:hover td { background: #F8FAFD; cursor: pointer; }
+
+/* ── Status Badges ──────────────────────────────────── */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+
+.status-badge.met { background: var(--met-bg); color: var(--met); }
+.status-badge.not_met, .status-badge.not-met { background: var(--not-met-bg); color: var(--not-met); }
+.status-badge.partial { background: var(--partial-bg); color: var(--partial); }
+.status-badge.na { background: var(--na-bg); color: var(--na); }
+.status-badge.not_assessed { background: var(--unassessed-bg); color: var(--unassessed); }
+.status-badge.critical { background: var(--critical-bg); color: var(--critical); }
+
+.critical-flag {
+  display: inline-block;
+  background: var(--critical-bg); color: var(--critical);
+  font-size: 10px; font-weight: 700;
+  padding: 1px 6px; border-radius: 3px;
+  margin-left: 4px;
+}
+
+/* ── Modals / Drawers ───────────────────────────────── */
+.overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 200;
+}
+
+.overlay.open { display: block; }
+
+.drawer {
+  position: fixed; top: 0; right: -700px;
+  width: 680px; height: 100vh;
+  background: var(--card);
+  z-index: 201;
+  overflow-y: auto;
+  transition: right 0.25s ease;
+  box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+}
+
+.drawer.open { right: 0; }
+
+.drawer-header {
+  background: var(--navy);
+  color: #fff;
+  padding: 16px 20px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px;
+  position: sticky; top: 0; z-index: 10;
+}
+
+.drawer-header h3 { font-size: 15px; font-weight: 700; line-height: 1.3; }
+.drawer-header p { font-size: 12px; opacity: 0.75; margin-top: 3px; }
+
+.drawer-close {
+  background: rgba(255,255,255,0.15); border: none;
+  color: #fff; cursor: pointer; border-radius: 4px;
+  width: 28px; height: 28px; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.drawer-close:hover { background: rgba(255,255,255,0.25); }
+
+.drawer-body { padding: 20px; }
+
+.objective-card {
+  background: #F8FAFD;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.obj-id { font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.obj-statement { font-size: 13px; margin-bottom: 12px; color: var(--text); }
+
+.obj-methods { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.method-tag {
+  padding: 2px 8px; border-radius: 12px;
+  font-size: 10px; font-weight: 600;
+  background: #DBEAFE; color: #1D4ED8;
+}
+
+.obj-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.status-select {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  background: var(--card);
+}
+
+.status-select.met { border-color: var(--met); color: var(--met); }
+.status-select.not_met { border-color: var(--not-met); color: var(--not-met); }
+.status-select.partial { border-color: var(--partial); color: var(--partial); }
+.status-select.na { border-color: var(--na); color: var(--na); }
+.status-select.not_assessed { border-color: var(--border); color: var(--text-muted); }
+
+.evidence-indicator {
+  font-size: 11px; color: var(--text-muted);
+  display: flex; align-items: center; gap: 4px;
+}
+
+.notes-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  resize: vertical; min-height: 56px;
+  margin-top: 8px;
+  font-family: inherit;
+}
+
+.remediation-box {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #92400E;
+  margin-top: 8px;
+}
+
+.remediation-box strong { display: block; margin-bottom: 4px; color: #78350F; }
+
+/* ── Evidence Upload ────────────────────────────────── */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 12px; color: var(--text-muted);
+}
+
+.upload-zone:hover { border-color: var(--accent); background: #EFF6FF; }
+
+.evidence-list { margin-top: 8px; }
+.evidence-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 6px; margin-top: 4px;
+  font-size: 12px;
+}
+
+.evidence-item .ev-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evidence-item .ev-size { color: var(--text-muted); font-size: 11px; }
+.ev-del { background: none; border: none; cursor: pointer; color: var(--not-met); font-size: 14px; padding: 0 4px; }
+
+/* ── Buttons ────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 6px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none;
+  transition: background 0.15s;
+  text-decoration: none;
+}
+
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-outline {
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--accent);
+}
+.btn-outline:hover { background: #EFF6FF; }
+
+.btn-ghost { background: transparent; color: var(--text-muted); }
+.btn-ghost:hover { background: var(--bg); }
+
+.btn-danger { background: var(--not-met); color: #fff; }
+.btn-danger:hover { background: #B91C1C; }
+
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+/* ── Filters ────────────────────────────────────────── */
+.filter-bar {
+  display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filter-bar input[type="text"] { min-width: 200px; }
+
+/* ── POA&M page ─────────────────────────────────────── */
+.poam-export-bar {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+
+/* ── Critical Controls Panel ────────────────────────── */
+.critical-panel {
+  background: #FDF4FF;
+  border: 1px solid #E9D5FF;
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+
+.critical-panel h4 { color: var(--critical); font-size: 13px; margin-bottom: 10px; }
+.critical-list { display: flex; gap: 8px; flex-wrap: wrap; }
+.critical-item {
+  background: var(--critical-bg); color: var(--critical);
+  padding: 4px 10px; border-radius: 4px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+}
+.critical-item:hover { background: #E9D5FF; }
+
+/* ── Toast ──────────────────────────────────────────── */
+#toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: #1F2937; color: #fff;
+  padding: 10px 16px; border-radius: 8px;
+  font-size: 13px; font-weight: 500;
+  opacity: 0; transition: opacity 0.25s;
+  z-index: 999;
+  max-width: 320px;
+}
+
+#toast.visible { opacity: 1; }
+#toast.error { background: var(--not-met); }
+#toast.success { background: var(--met); }
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  #sidebar { width: 200px; }
+  #main { margin-left: 200px; }
+  .drawer { width: 100%; right: -100%; }
+  .sprs-banner { flex-direction: column; text-align: center; }
+  .sprs-threshold { margin-left: 0; text-align: center; }
+}
+
+/* ── Progress bar ───────────────────────────────────── */
+.progress-bar-wrap {
+  background: rgba(255,255,255,0.2);
+  border-radius: 4px; height: 8px;
+  margin-top: 8px; overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%; border-radius: 4px;
+  background: #60A5FA;
+  transition: width 0.6s ease;
+}
+
+/* ── Loading ────────────────────────────────────────── */
+.loading { text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px; }
+.spinner {
+  display: inline-block; width: 20px; height: 20px;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+  margin-right: 8px; vertical-align: middle;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Evidence Actions Row ─────────────────────────── */
+.ev-actions {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  margin-top: 8px;
+}
+
+.ev-actions .upload-zone {
+  flex: 1;
+  margin-top: 0;
+  padding: 7px 12px;
+  font-size: 12px;
+}
+
+.ev-link-btn {
+  white-space: nowrap;
+  font-size: 12px;
+  padding: 0 12px;
+}
+
+/* Multi-objective link badge */
+.ev-multi-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  background: #DBEAFE;
+  color: #1D4ED8;
+  border-radius: 8px;
+  padding: 1px 6px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Library Picker Modal Rows ───────────────────── */
+.lib-picker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+  background: var(--surface);
+  transition: background 0.15s;
+}
+
+.lib-picker-row:hover { background: var(--bg); }
+
+.lib-picker-linked {
+  background: #F0FDF4;
+  border-color: #86EFAC;
+}
+
+.lib-picker-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lib-picker-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lib-picker-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.lib-picker-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Document Library Page ─────────────────────────── */
+.lib-page-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  align-items: center;
+}
+
+.lib-page-filters .form-select,
+.lib-page-filters .form-input {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.lib-page-filters .form-select { min-width: 240px; }
+.lib-page-filters .form-input  { flex: 1; }
+
+.lib-page-summary {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.lib-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lib-file-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: box-shadow .15s;
+}
+
+.lib-file-row:hover {
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+}
+
+.lib-file-icon {
+  font-size: 22px;
+  line-height: 1;
+  min-width: 28px;
+  margin-top: 2px;
+}
+
+.lib-file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-file-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lib-file-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+}
+
+.lib-file-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.lib-file-size {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.lib-file-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.lib-tag {
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(96,165,250,0.15);
+  color: #1D4ED8;
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+
+[data-theme="dark"] .lib-tag {
+  background: rgba(96,165,250,0.2);
+  color: #93C5FD;
+}
+
+.lib-assmt-tag {
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(139,92,246,0.12);
+  color: #6D28D9;
+  border-radius: 8px;
+  padding: 1px 7px;
+}
+
+[data-theme="dark"] .lib-assmt-tag {
+  background: rgba(167,139,250,0.2);
+  color: #C4B5FD;
+}
+
+.lib-file-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.btn-danger {
+  background: rgba(220,38,38,0.1);
+  color: #DC2626;
+  border: 1px solid rgba(220,38,38,0.2);
+}
+
+.btn-danger:hover {
+  background: rgba(220,38,38,0.2);
+}
+
+.lib-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.lib-empty-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+/* ── Per-Objective Likely Evidence ─────────────────── */
+.likely-evidence-details {
+  margin: 8px 0 6px 0;
+  border: 1px solid #BFDBFE;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #EFF6FF;
+}
+
+.likely-evidence-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1D4ED8;
+  user-select: none;
+  list-style: none;
+  background: #DBEAFE;
+}
+
+.likely-evidence-summary::-webkit-details-marker { display: none; }
+
+.likely-evidence-summary::before {
+  content: '▶';
+  font-size: 9px;
+  margin-right: 6px;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+
+details[open] .likely-evidence-summary::before {
+  transform: rotate(90deg);
+}
+
+.likely-ev-count {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(29,78,216,0.15);
+  border-radius: 10px;
+  padding: 1px 7px;
+  color: #1E40AF;
+}
+
+.tailored-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(5,150,105,0.15);
+  border-radius: 10px;
+  padding: 1px 7px;
+  color: #047857;
+  margin-left: 4px;
+}
+
+[data-theme="dark"] .tailored-badge {
+  background: rgba(52,211,153,0.2);
+  color: #6EE7B7;
+}
+
+.likely-evidence-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 12px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.likely-evidence-list li {
+  font-size: 12px;
+  color: #1E3A5F;
+  line-height: 1.5;
+  padding: 3px 0 3px 16px;
+  position: relative;
+  border-bottom: 1px solid #BFDBFE;
+}
+
+.likely-evidence-list li:last-child { border-bottom: none; }
+
+.likely-evidence-list li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: #3B82F6;
+  font-size: 11px;
+  top: 4px;
+}
+
+/* ── Evidence Guide Panel (control-level) ────────────── */
+.evidence-guide-panel {
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.evidence-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #1E3A5F 0%, #1D4ED8 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.evidence-guide-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ev-type-group {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.ev-type-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.ev-type-count {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(0,0,0,0.12);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.ev-item-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 12px 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--bg);
+}
+
+.ev-item-list li {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.5;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.ev-item-list li:last-child {
+  border-bottom: none;
+}
+
+.ev-method-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ev-considerations {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.ev-considerations-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400E;
+  margin-bottom: 6px;
+}
+
+.ev-consideration-item {
+  font-size: 12px;
+  color: #78350F;
+  line-height: 1.5;
+  padding: 3px 0 3px 12px;
+  position: relative;
+}
+
+.ev-consideration-item::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #B45309;
+}
+
+/* ── Client Detail / Onboarding ─────────────────────────────── */
+.client-detail-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 20px 0;
+}
+.client-back-btn {
+  background: none; border: none; color: var(--accent);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  padding: 4px 0; display: flex; align-items: center; gap: 4px;
+}
+.client-back-btn:hover { text-decoration: underline; }
+.client-detail-name { font-size: 20px; font-weight: 700; color: var(--text); }
+.client-detail-cage { font-size: 12px; color: var(--text-muted); margin-left: 4px; }
+
+/* Tabs */
+.onboard-tabs {
+  display: flex; gap: 0;
+  border-bottom: 2px solid var(--border);
+  margin: 16px 20px 0;
+}
+.onboard-tab {
+  padding: 8px 18px; font-size: 13px; font-weight: 600;
+  color: var(--text-muted); cursor: pointer;
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+  user-select: none;
+}
+.onboard-tab:hover { color: var(--text); }
+.onboard-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.onboard-tab-content { display: none; padding: 20px; }
+.onboard-tab-content.active { display: block; }
+
+/* Questionnaire steps */
+.q-step {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; margin-bottom: 16px; overflow: hidden;
+}
+.q-step-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: var(--card);
+  cursor: pointer; user-select: none;
+}
+.q-step-title { font-size: 14px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.q-step-badge { font-size: 11px; background: var(--accent); color: #fff; border-radius: 10px; padding: 1px 8px; }
+.q-step-body { padding: 16px; display: none; }
+.q-step-body.open { display: block; }
+
+/* Form grid */
+.q-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.q-grid.q-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.q-grid.q-grid-1 { grid-template-columns: 1fr; }
+.q-field { display: flex; flex-direction: column; gap: 4px; }
+.q-field label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.q-field input, .q-field select, .q-field textarea {
+  padding: 7px 10px; border: 1px solid var(--border);
+  border-radius: 6px; font-size: 13px; color: var(--text);
+  background: var(--bg); transition: border-color 0.15s;
+  font-family: inherit;
+}
+.q-field input:focus, .q-field select:focus, .q-field textarea:focus {
+  outline: none; border-color: var(--accent);
+}
+.q-field textarea { resize: vertical; min-height: 72px; }
+.q-field-span2 { grid-column: span 2; }
+.q-field-span3 { grid-column: span 3; }
+
+/* Tech stack grid */
+.tech-stack-grid { display: flex; flex-direction: column; gap: 8px; }
+.tech-row {
+  display: grid; grid-template-columns: 180px 1fr 1fr;
+  gap: 8px; align-items: center;
+  padding: 8px 10px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 7px;
+}
+.tech-row-label { font-size: 12px; font-weight: 700; color: var(--text); }
+.tech-row select, .tech-row input {
+  padding: 5px 8px; border: 1px solid var(--border); border-radius: 5px;
+  font-size: 12px; color: var(--text); background: var(--surface);
+  font-family: inherit;
+}
+.tech-row select:focus, .tech-row input:focus { outline: none; border-color: var(--accent); }
+
+/* Q save bar */
+.q-save-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0 0; margin-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.q-complete-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 700;
+  color: var(--met); background: var(--met-bg);
+  border-radius: 20px; padding: 3px 10px;
+}
+
+/* Policy library */
+.policy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.policy-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px; cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.policy-card:hover { border-color: var(--accent); box-shadow: var(--shadow-md); }
+.policy-card-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.policy-card-meta { font-size: 11px; color: var(--text-muted); }
+.policy-card-status {
+  display: inline-block; margin-top: 8px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; border-radius: 4px; padding: 2px 7px;
+}
+.policy-card-status.draft { background: var(--partial-bg); color: var(--partial); }
+.policy-card-status.approved { background: var(--met-bg); color: var(--met); }
+.policy-card-status.reviewed { background: #DBEAFE; color: #1D4ED8; }
+
+/* Policy editor */
+.policy-editor-wrap { display: none; }
+.policy-editor-wrap.open { display: block; }
+.policy-editor-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px;
+}
+.policy-editor-title { font-size: 16px; font-weight: 700; flex: 1; }
+.policy-body-editor {
+  width: 100%; min-height: 520px; padding: 14px;
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: 13px; line-height: 1.7; color: var(--text);
+  background: var(--surface); font-family: 'Courier New', monospace;
+  resize: vertical;
+}
+.policy-body-editor:focus { outline: none; border-color: var(--accent); }
+.policy-meta-row {
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.policy-meta-row select, .policy-meta-row input {
+  padding: 5px 8px; border: 1px solid var(--border); border-radius: 5px;
+  font-size: 12px; color: var(--text); background: var(--bg);
+  font-family: inherit;
+}
+
+/* SSP sections */
+.ssp-section-list { display: flex; flex-direction: column; gap: 10px; }
+.ssp-section-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden;
+}
+.ssp-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; cursor: pointer; background: var(--card);
+}
+.ssp-section-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.ssp-section-type { font-size: 10px; color: var(--text-muted); background: var(--bg); border-radius: 4px; padding: 2px 6px; }
+.ssp-section-body-wrap { display: none; padding: 12px 14px; }
+.ssp-section-body-wrap.open { display: block; }
+.ssp-body-editor {
+  width: 100%; min-height: 200px; padding: 10px;
+  border: 1px solid var(--border); border-radius: 6px;
+  font-size: 12px; line-height: 1.7; color: var(--text);
+  background: var(--bg); font-family: 'Courier New', monospace;
+  resize: vertical; margin-bottom: 8px;
+}
+.ssp-body-editor:focus { outline: none; border-color: var(--accent); }
+
+/* Generate banner */
+.generate-banner {
+  background: linear-gradient(135deg, #1E3A5F, #1D4ED8);
+  color: #fff; border-radius: 10px; padding: 16px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.generate-banner h3 { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.generate-banner p { font-size: 12px; opacity: 0.8; }
+.generate-banner .btn { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+.generate-banner .btn:hover { background: rgba(255,255,255,0.25); }
+
+/* ── Client Detail / Onboarding ─────────────────────────────── */
+.client-detail-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px 0; }
+.client-back-btn { background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 0; display: flex; align-items: center; gap: 4px; }
+.client-back-btn:hover { text-decoration: underline; }
+.client-detail-name { font-size: 20px; font-weight: 700; color: var(--text); }
+.client-detail-cage { font-size: 12px; color: var(--text-muted); margin-left: 4px; }
+
+.onboard-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin: 16px 20px 0; }
+.onboard-tab { padding: 8px 18px; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: color 0.15s, border-color 0.15s; user-select: none; }
+.onboard-tab:hover { color: var(--text); }
+.onboard-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.onboard-tab-content { display: none; padding: 20px; }
+.onboard-tab-content.active { display: block; }
+
+.q-step { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+.q-step-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--card); cursor: pointer; user-select: none; }
+.q-step-title { font-size: 14px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.q-step-badge { font-size: 11px; background: var(--accent); color: #fff; border-radius: 10px; padding: 1px 8px; }
+.q-step-body { padding: 16px; display: none; }
+.q-step-body.open { display: block; }
+
+.q-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.q-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.q-grid-1 { grid-template-columns: 1fr; }
+.q-field { display: flex; flex-direction: column; gap: 4px; }
+.q-field label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.q-field input, .q-field select, .q-field textarea { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--text); background: var(--bg); transition: border-color 0.15s; font-family: inherit; }
+.q-field input:focus, .q-field select:focus, .q-field textarea:focus { outline: none; border-color: var(--accent); }
+.q-field textarea { resize: vertical; min-height: 72px; }
+.q-span2 { grid-column: span 2; }
+.q-span3 { grid-column: span 3; }
+
+.tech-stack-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.tech-row { display: grid; grid-template-columns: 200px 1fr 1fr; gap: 8px; align-items: center; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; }
+.tech-row-label { font-size: 12px; font-weight: 700; color: var(--text); }
+.tech-row select, .tech-row input { padding: 5px 8px; border: 1px solid var(--border); border-radius: 5px; font-size: 12px; color: var(--text); background: var(--surface); font-family: inherit; }
+.tech-row select:focus, .tech-row input:focus { outline: none; border-color: var(--accent); }
+
+.q-save-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 0 0; margin-top: 8px; border-top: 1px solid var(--border); }
+.q-complete-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--met); background: var(--met-bg); border-radius: 20px; padding: 3px 10px; }
+
+.policy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.policy-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+.policy-card:hover { border-color: var(--accent); box-shadow: var(--shadow-md); }
+.policy-card-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.policy-card-meta { font-size: 11px; color: var(--text-muted); }
+.policy-card-status { display: inline-block; margin-top: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-radius: 4px; padding: 2px 7px; }
+.policy-status-draft { background: var(--partial-bg); color: var(--partial); }
+.policy-status-approved { background: var(--met-bg); color: var(--met); }
+.policy-status-reviewed { background: #DBEAFE; color: #1D4ED8; }
+
+.policy-editor-wrap { display: none; }
+.policy-editor-wrap.open { display: block; }
+.policy-editor-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.policy-editor-title { font-size: 16px; font-weight: 700; flex: 1; }
+.policy-body-editor { width: 100%; min-height: 520px; padding: 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; line-height: 1.7; color: var(--text); background: var(--surface); font-family: 'Courier New', monospace; resize: vertical; }
+.policy-body-editor:focus { outline: none; border-color: var(--accent); }
+.policy-meta-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.policy-meta-row select, .policy-meta-row input { padding: 5px 8px; border: 1px solid var(--border); border-radius: 5px; font-size: 12px; color: var(--text); background: var(--bg); font-family: inherit; }
+
+.ssp-section-list { display: flex; flex-direction: column; gap: 10px; }
+.ssp-section-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.ssp-section-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; background: var(--card); }
+.ssp-section-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.ssp-section-type { font-size: 10px; color: var(--text-muted); background: var(--bg); border-radius: 4px; padding: 2px 6px; }
+.ssp-section-body-wrap { display: none; padding: 12px 14px; }
+.ssp-section-body-wrap.open { display: block; }
+.ssp-body-editor { width: 100%; min-height: 200px; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; line-height: 1.7; color: var(--text); background: var(--bg); font-family: 'Courier New', monospace; resize: vertical; margin-bottom: 8px; }
+.ssp-body-editor:focus { outline: none; border-color: var(--accent); }
+
+.generate-banner { background: linear-gradient(135deg, #1E3A5F, #1D4ED8); color: #fff; border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.generate-banner h3 { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.generate-banner p { font-size: 12px; opacity: 0.8; }
+.generate-banner .btn { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+.generate-banner .btn:hover { background: rgba(255,255,255,0.25); }
+
+/* ── CMMC Assistant ──────────────────────────────────────────────────────── */
+
+/* Floating action button */
+#assistant-fab {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px 10px 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(29,78,216,0.35);
+  transition: transform .15s, box-shadow .15s, background .15s;
+  letter-spacing: 0.01em;
+}
+#assistant-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(29,78,216,0.45);
+  background: #1E40AF;
+}
+#assistant-fab.open {
+  background: #374151;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+
+/* Panel */
+.assistant-panel {
+  position: fixed;
+  bottom: 88px;
+  right: 28px;
+  z-index: 1099;
+  width: 420px;
+  max-width: calc(100vw - 40px);
+  height: 560px;
+  max-height: calc(100vh - 120px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(16px) scale(0.97);
+  transform-origin: bottom right;
+  transition: opacity .2s, transform .2s;
+}
+.assistant-panel.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+/* Header */
+.assistant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, #1E3A5F 0%, #1D4ED8 100%);
+  color: #fff;
+  flex-shrink: 0;
+  border-radius: 16px 16px 0 0;
+}
+.assistant-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.assistant-icon { font-size: 22px; line-height: 1; }
+.assistant-title { font-size: 14px; font-weight: 700; letter-spacing: 0.01em; }
+.assistant-subtitle { font-size: 10px; opacity: 0.7; margin-top: 1px; }
+.assistant-close {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.assistant-close:hover { background: rgba(255,255,255,0.3); }
+
+/* Messages area */
+.assistant-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 14px 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scroll-behavior: smooth;
+}
+.assistant-messages::-webkit-scrollbar { width: 4px; }
+.assistant-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Welcome state */
+.assistant-welcome {
+  text-align: center;
+  padding: 20px 10px 10px;
+  color: var(--text-muted);
+}
+.assistant-welcome-icon { font-size: 36px; margin-bottom: 8px; }
+.assistant-welcome-text { font-size: 13px; line-height: 1.5; }
+
+/* Suggestion chips */
+.assistant-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 4px;
+}
+.assistant-chip {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  background: rgba(29,78,216,0.08);
+  border: 1px solid rgba(29,78,216,0.2);
+  border-radius: 20px;
+  color: #1D4ED8;
+  cursor: pointer;
+  transition: background .12s, transform .1s;
+  white-space: nowrap;
+}
+.assistant-chip:hover {
+  background: rgba(29,78,216,0.15);
+  transform: translateY(-1px);
+}
+[data-theme="dark"] .assistant-chip {
+  background: rgba(96,165,250,0.1);
+  border-color: rgba(96,165,250,0.25);
+  color: #93C5FD;
+}
+
+/* Message bubbles */
+.assistant-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: msgIn .2s ease;
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.assistant-msg.user { align-items: flex-end; }
+.assistant-msg.bot  { align-items: flex-start; }
+
+.assistant-bubble {
+  max-width: 90%;
+  padding: 10px 13px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.assistant-msg.user .assistant-bubble {
+  background: #1D4ED8;
+  color: #fff;
+  border-radius: 12px 12px 3px 12px;
+}
+.assistant-msg.bot .assistant-bubble {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px 12px 12px 12px;
+}
+
+/* Markdown inside bot bubble */
+.assistant-bubble h2 { font-size: 13px; font-weight: 700; margin: 8px 0 4px; color: var(--text); }
+.assistant-bubble h3 { font-size: 12px; font-weight: 700; margin: 6px 0 3px; color: #1D4ED8; }
+[data-theme="dark"] .assistant-bubble h3 { color: #93C5FD; }
+.assistant-bubble p  { margin: 3px 0; }
+.assistant-bubble ul { margin: 4px 0 4px 14px; padding: 0; }
+.assistant-bubble li { margin: 2px 0; }
+.assistant-bubble strong { font-weight: 700; }
+.assistant-bubble em { font-style: italic; color: var(--text-muted); }
+.assistant-bubble blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 8px;
+  margin: 6px 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.assistant-bubble hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+
+/* Source chips row */
+.assistant-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+.assistant-src-chip {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  background: rgba(29,78,216,0.1);
+  border: 1px solid rgba(29,78,216,0.25);
+  border-radius: 12px;
+  color: #1D4ED8;
+  cursor: pointer;
+  transition: background .12s;
+}
+.assistant-src-chip:hover { background: rgba(29,78,216,0.2); }
+[data-theme="dark"] .assistant-src-chip {
+  background: rgba(96,165,250,0.12);
+  border-color: rgba(96,165,250,0.3);
+  color: #93C5FD;
+}
+
+/* Follow-up chips */
+.assistant-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+  padding-bottom: 8px;
+}
+
+/* Typing indicator */
+.assistant-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 13px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px 12px 12px 12px;
+  width: fit-content;
+}
+.assistant-typing span {
+  width: 6px; height: 6px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  animation: typingDot 1.2s infinite;
+}
+.assistant-typing span:nth-child(2) { animation-delay: .2s; }
+.assistant-typing span:nth-child(3) { animation-delay: .4s; }
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%            { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Input row */
+.assistant-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.assistant-input {
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color .15s;
+}
+.assistant-input:focus { border-color: var(--accent); }
+.assistant-input::placeholder { color: var(--text-muted); }
+.assistant-send {
+  width: 36px; height: 36px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background .15s, transform .1s;
+}
+.assistant-send:hover { background: #1E40AF; transform: scale(1.05); }
+
+</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="app">
+  <!-- ── Sidebar ─────────────────────────────────────── -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <h1>CMMC GRC</h1>
+      <span>Level 2 Gap Analysis</span>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <a class="sidebar-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <span class="icon">📊</span> Dashboard
+      </a>
+      <a class="sidebar-item" data-page="controls" onclick="navigate('controls')">
+        <span class="icon">🛡️</span> Gap Analysis
+      </a>
+      <a class="sidebar-item" data-page="poam" onclick="navigate('poam')">
+        <span class="icon">📋</span> POA&amp;M
+      </a>
+      <a class="sidebar-item" data-page="library" onclick="navigate('library')">
+        <span class="icon">📚</span> Document Library
+      </a>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Manage</div>
+      <a class="sidebar-item" data-page="customers" onclick="navigate('customers')">
+        <span class="icon">🏢</span> Customers
+      </a>
+      <a class="sidebar-item" data-page="assessments" onclick="navigate('assessments')">
+        <span class="icon">📁</span> Assessments
+      </a>
+    </div>
+
+    <div style="margin-top: auto; padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+      <button id="dark-toggle" onclick="toggleDark()">
+        <span id="dark-icon">🌙</span>
+        <span id="dark-label">Dark Mode</span>
+      </button>
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:10px;">CMMC GRC Platform v1.0</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.3);">Local Mode</div>
+    </div>
+  </nav>
+
+  <!-- ── Main ─────────────────────────────────────────── -->
+  <div id="main">
+    <!-- Topbar -->
+    <div id="topbar">
+      <div class="topbar-left">
+        <span class="topbar-title" id="page-title">Dashboard</span>
+      </div>
+      <div class="client-selector">
+        <label>Assessment:</label>
+        <select id="assessment-select" onchange="onAssessmentChange()">
+          <option value="">— Select —</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div id="content">
+
+      <!-- ── Dashboard Page ──────────────────────────── -->
+      <div id="page-dashboard" class="page active">
+        <!-- SPRS Banner -->
+        <div class="sprs-banner" id="sprs-banner">
+          <div class="sprs-score-circle">
+            <span class="score-num" id="sprs-score">—</span>
+            <span class="score-label">SPRS</span>
+          </div>
+          <div class="sprs-details">
+            <h2 id="sprs-assessment-name">Select an assessment</h2>
+            <p id="sprs-client-name">No assessment selected</p>
+            <div class="progress-bar-wrap" style="max-width:200px;">
+              <div class="progress-bar-fill" id="sprs-bar" style="width:0%"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card met"><div class="stat-label">Met</div><div class="stat-value" id="stat-met">—</div><div class="stat-sub">controls</div></div>
+          <div class="stat-card not-met"><div class="stat-label">Not Met</div><div class="stat-value" id="stat-not-met">—</div><div class="stat-sub">controls</div></div>
+          <div class="stat-card partial"><div class="stat-label">Partial</div><div class="stat-value" id="stat-partial">—</div><div class="stat-sub">controls</div></div>
+          <div class="stat-card unassessed"><div class="stat-label">Not Assessed</div><div class="stat-value" id="stat-na">—</div><div class="stat-sub">controls</div></div>
+        </div>
+
+        <!-- Critical Controls Panel -->
+        <div class="critical-panel" id="critical-panel" style="display:none">
+          <h4>⚠️ Critical Controls Not Met — These must be implemented for CMMC certification</h4>
+          <div class="critical-list" id="critical-list"></div>
+        </div>
+
+        <!-- Family Heatmap -->
+        <div class="section-header">
+          <span class="section-title">Control Family Overview</span>
+          <button class="btn btn-outline btn-sm" onclick="navigate('controls')">View All Controls →</button>
+        </div>
+        <div class="heatmap-grid" id="heatmap-grid">
+          <div class="loading"><span class="spinner"></span>Loading...</div>
+        </div>
+      </div>
+
+      <!-- ── Gap Analysis Page ───────────────────────── -->
+      <div id="page-controls" class="page">
+        <div class="filter-bar">
+          <select id="family-filter" onchange="applyFilters()">
+            <option value="">All Families</option>
+          </select>
+          <select id="status-filter" onchange="applyFilters()">
+            <option value="">All Statuses</option>
+            <option value="not_assessed">Not Assessed</option>
+            <option value="met">Met</option>
+            <option value="not_met">Not Met</option>
+            <option value="partial">Partial</option>
+            <option value="na">N/A</option>
+          </select>
+          <input type="text" id="search-input" placeholder="Search controls..." oninput="applyFilters()">
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;">
+            <input type="checkbox" id="critical-only" onchange="applyFilters()"> Critical only
+          </label>
+        </div>
+        <div class="controls-table-wrap">
+          <table class="controls-table" id="controls-table">
+            <thead>
+              <tr>
+                <th style="width:130px">Control ID</th>
+                <th>Title</th>
+                <th style="width:80px">Family</th>
+                <th style="width:80px">SPRS</th>
+                <th style="width:120px">Status</th>
+                <th style="width:70px">Objectives</th>
+              </tr>
+            </thead>
+            <tbody id="controls-tbody">
+              <tr><td colspan="6" class="loading"><span class="spinner"></span>Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── POA&M Page ──────────────────────────────── -->
+      <div id="page-poam" class="page">
+        <div class="poam-export-bar">
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;">Plan of Action &amp; Milestones</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Export a DoD-formatted Excel POA&amp;M for Not Met and Partial controls.</div>
+          </div>
+          <button class="btn btn-primary" onclick="downloadPoam()">⬇ Download Excel POA&amp;M</button>
+        </div>
+        <div id="poam-table-wrap">
+          <div class="loading">Select an assessment to view POA&M items.</div>
+        </div>
+      </div>
+
+      <!-- ── Customers Page ──────────────────────────── -->
+      <div id="page-customers" class="page">
+        <div class="section-header">
+          <span class="section-title">Customers</span>
+          <button class="btn btn-primary btn-sm" onclick="showNewClientModal()">+ New Customer</button>
+        </div>
+        <div class="controls-table-wrap">
+          <table class="controls-table">
+            <thead><tr><th>Name</th><th>CAGE Code</th><th>Contact</th><th>Action</th></tr></thead>
+            <tbody id="clients-tbody">
+              <tr><td colspan="4" class="loading"><span class="spinner"></span>Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Client Detail / Onboarding Page ────────── -->
+      <div id="page-client-detail" class="page">
+        <div class="client-detail-header">
+          <button class="client-back-btn" onclick="navigate('customers')">&#8592; Customers</button>
+          <span style="color:var(--border)">|</span>
+          <span class="client-detail-name" id="cd-client-name"></span>
+          <span class="client-detail-cage" id="cd-client-cage"></span>
+        </div>
+        <div class="onboard-tabs">
+          <div class="onboard-tab active" onclick="switchOnboardTab('questionnaire',this)">&#128203; Questionnaire</div>
+          <div class="onboard-tab" onclick="switchOnboardTab('policies',this)">&#128196; Policy Library</div>
+          <div class="onboard-tab" onclick="switchOnboardTab('ssp',this)">&#128196; SSP</div>
+          <div class="onboard-tab" onclick="switchOnboardTab('assessments',this)">&#128202; Assessments</div>
+        </div>
+
+        <!-- Questionnaire Tab -->
+        <div id="tab-questionnaire" class="onboard-tab-content active">
+          <div id="questionnaire-body"><div class="loading"><span class="spinner"></span>Loading...</div></div>
+        </div>
+
+        <!-- Policy Library Tab -->
+        <div id="tab-policies" class="onboard-tab-content">
+          <div class="generate-banner">
+            <div>
+              <h3>&#129302; Auto-Generate Policy Library</h3>
+              <p>Generates all 14 CMMC policies pre-filled with this client's details and tech stack.</p>
+            </div>
+            <button class="btn" onclick="generatePolicies()">Generate All Policies</button>
+          </div>
+          <div id="policy-grid-wrap">
+            <div class="loading"><span class="spinner"></span>Loading policies...</div>
+          </div>
+          <div id="policy-editor-wrap" class="policy-editor-wrap">
+            <div class="policy-editor-header">
+              <button class="client-back-btn" onclick="closePolicyEditor()">&#8592; All Policies</button>
+              <span class="policy-editor-title" id="policy-editor-title"></span>
+              <div class="policy-meta-row">
+                <label style="font-size:11px;font-weight:700;color:var(--text-muted)">Version</label>
+                <input type="text" id="policy-version" style="width:70px" placeholder="1.0">
+                <label style="font-size:11px;font-weight:700;color:var(--text-muted)">Status</label>
+                <select id="policy-status">
+                  <option value="draft">Draft</option>
+                  <option value="reviewed">Reviewed</option>
+                  <option value="approved">Approved</option>
+                </select>
+                <label style="font-size:11px;font-weight:700;color:var(--text-muted)">Approved By</label>
+                <input type="text" id="policy-approved-by" style="width:160px" placeholder="Name">
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="savePolicy()">Save</button>
+            </div>
+            <textarea class="policy-body-editor" id="policy-body-editor"></textarea>
+          </div>
+        </div>
+
+        <!-- SSP Tab -->
+        <div id="tab-ssp" class="onboard-tab-content">
+          <div class="generate-banner">
+            <div>
+              <h3>&#128196; Auto-Generate System Security Plan</h3>
+              <p>Builds a full SSP from questionnaire data with editable implementation statements per control family.</p>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="generateSSP()">Generate SSP</button>
+              <button class="btn" onclick="exportSSP()">&#11015; Export Excel</button>
+            </div>
+          </div>
+          <div id="ssp-sections-wrap">
+            <div class="loading"><span class="spinner"></span>Loading SSP sections...</div>
+          </div>
+        </div>
+
+        <!-- Assessments sub-tab -->
+        <div id="tab-assessments" class="onboard-tab-content">
+          <div class="section-header" style="padding:0 0 12px 0">
+            <span class="section-title" style="font-size:15px">Assessments</span>
+            <button class="btn btn-primary btn-sm" id="cd-new-assessment-btn">+ New Assessment</button>
+          </div>
+          <div class="controls-table-wrap">
+            <table class="controls-table">
+              <thead><tr><th>Name</th><th>Status</th><th>Created</th><th>Action</th></tr></thead>
+              <tbody id="cd-assessments-tbody">
+                <tr><td colspan="4" class="loading"><span class="spinner"></span>Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Document Library Page ───────────────────── -->
+      <div id="page-library" class="page">
+        <div class="section-header">
+          <span class="section-title">Document Library</span>
+          <button class="btn btn-primary btn-sm" onclick="triggerGlobalLibUpload()">+ Upload Document</button>
+          <input type="file" id="global-lib-input" style="display:none" onchange="handleGlobalLibUpload(this)">
+        </div>
+        <div id="lib-page-filters" class="lib-page-filters">
+          <select id="lib-filter-assessment" onchange="loadLibraryPage()" class="form-select">
+            <option value="">All Assessments</option>
+          </select>
+          <input type="text" id="lib-search" class="form-input" placeholder="Search files..." oninput="filterLibraryPage()">
+        </div>
+        <div id="lib-page-content" class="lib-page-content">
+          <div class="loading"><span class="spinner"></span>Loading library...</div>
+        </div>
+      </div>
+
+      <!-- ── Assessments Page ────────────────────────── -->
+      <div id="page-assessments" class="page">
+        <div class="section-header">
+          <span class="section-title">Assessments</span>
+          <button class="btn btn-primary btn-sm" onclick="showNewAssessmentModal()">+ New Assessment</button>
+        </div>
+        <div class="controls-table-wrap">
+          <table class="controls-table">
+            <thead><tr><th>Name</th><th>Customer</th><th>Status</th><th>Created</th><th>Action</th></tr></thead>
+            <tbody id="assessments-tbody">
+              <tr><td colspan="5" class="loading"><span class="spinner"></span>Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ── Control Drawer ──────────────────────────────────── -->
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="control-drawer">
+  <div class="drawer-header">
+    <div>
+      <div style="font-size:11px;opacity:0.7;margin-bottom:2px;" id="drawer-family"></div>
+      <h3 id="drawer-title">Control Title</h3>
+      <p id="drawer-id"></p>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" id="drawer-description"></div>
+    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;" id="drawer-meta"></div>
+    <h4 style="font-size:13px;font-weight:700;margin-bottom:12px;">Assessment Objectives</h4>
+    <div id="drawer-objectives"></div>
+  </div>
+</div>
+
+<!-- ── New Assessment Modal ──────────────────────────── -->
+<div class="overlay" id="modal-overlay" onclick="closeModal()"></div>
+<div id="modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:var(--card);border-radius:10px;padding:24px;z-index:300;width:400px;max-width:95vw;
+  box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+  <h3 id="modal-title" style="font-size:16px;font-weight:700;margin-bottom:16px;"></h3>
+  <div id="modal-body"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" id="modal-submit" onclick="submitModal()">Create</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+const state = {
+  currentPage: 'dashboard',
+  currentAssessmentId: null,
+  currentAssessment: null,
+  controls: [],
+  controlResults: {},       // objectiveId -> result
+  families: [],
+  familySummary: {},
+  scoring: null,
+  clients: [],
+  assessments: [],
+  openControlId: null,
+  controlEvidence: {},      // resultId -> [files]
+  modalMode: null,
+};
+
+const API = 'port/8000'.startsWith('__') ? '' : 'port/8000';
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json', ...opts.headers },
+    ...opts,
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({ detail: r.statusText }));
+    throw new Error(err.detail || 'API error');
+  }
+  if (r.status === 204) return null;
+  return r.json();
+}
+
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `visible ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 3000);
+}
+
+function fmt(s) {
+  if (!s) return '—';
+  return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function statusBadge(status) {
+  const labels = {
+    met: '✓ Met', not_met: '✗ Not Met', partial: '~ Partial',
+    na: 'N/A', not_assessed: '○ Not Assessed',
+  };
+  return `<span class="status-badge ${status || 'not_assessed'}">${labels[status] || fmt(status)}</span>`;
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function navigate(page) {
+  state.currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  const el = document.getElementById(`page-${page}`);
+  if (el) el.classList.add('active');
+  const nav = document.querySelector(`[data-page="${page}"]`);
+  if (nav) nav.classList.add('active');
+
+  const titles = {
+    dashboard: 'Dashboard', controls: 'Gap Analysis',
+    poam: 'POA&M Export', customers: 'Customers', assessments: 'Assessments',
+    'client-detail': 'Client Detail', library: 'Document Library',
+  };
+  document.getElementById('page-title').textContent = titles[page] || page;
+
+  if (page === 'controls' && state.currentAssessmentId) loadControlsPage();
+  if (page === 'poam' && state.currentAssessmentId) loadPoamPage();
+  if (page === 'customers') loadClients();
+  if (page === 'assessments') loadAssessmentsPage();
+  if (page === 'library') loadLibraryPage();
+}
+
+// ── Dark Mode ────────────────────────────────────────────────────────────────
+function applyTheme(dark) {
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  const icon = document.getElementById('dark-icon');
+  const label = document.getElementById('dark-label');
+  if (icon) icon.textContent = dark ? '☀️' : '🌙';
+  if (label) label.textContent = dark ? 'Light Mode' : 'Dark Mode';
+}
+
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = !isDark;
+  applyTheme(next);
+  try { localStorage.setItem('cmmc-theme', next ? 'dark' : 'light'); } catch(e) {}
+}
+
+// ── Boot ────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  // Restore saved theme preference
+  try {
+    const saved = localStorage.getItem('cmmc-theme');
+    applyTheme(saved === 'dark');
+  } catch(e) { applyTheme(false); }
+  await loadAssessmentSelector();
+  await loadFamiliesDropdown();
+
+  // Auto-select the first assessment
+  const sel = document.getElementById('assessment-select');
+  if (sel.options.length > 1) {
+    sel.selectedIndex = 1;
+    await onAssessmentChange();
+  }
+});
+
+async function loadAssessmentSelector() {
+  const data = await api('/api/assessments').catch(() => []);
+  state.assessments = data;
+  const sel = document.getElementById('assessment-select');
+  sel.innerHTML = '<option value="">— Select Assessment —</option>';
+  data.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = `${a.client_name} — ${a.name}`;
+    sel.appendChild(opt);
+  });
+}
+
+async function onAssessmentChange() {
+  const sel = document.getElementById('assessment-select');
+  state.currentAssessmentId = sel.value || null;
+  if (!state.currentAssessmentId) return;
+
+  state.currentAssessment = await api(`/api/assessments/${state.currentAssessmentId}`);
+  await refreshScoring();
+
+  if (state.currentPage === 'controls') loadControlsPage();
+  if (state.currentPage === 'poam') loadPoamPage();
+}
+
+async function refreshScoring() {
+  if (!state.currentAssessmentId) return;
+  state.scoring = await api(`/api/assessments/${state.currentAssessmentId}/score`);
+  renderDashboard();
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  if (!state.scoring) return;
+  const s = state.scoring;
+
+  document.getElementById('sprs-score').textContent = s.score;
+  document.getElementById('sprs-bar').style.width = `${s.percent}%`;
+
+  if (state.currentAssessment) {
+    document.getElementById('sprs-assessment-name').textContent = state.currentAssessment.name;
+    document.getElementById('sprs-client-name').textContent = state.currentAssessment.client_name;
+  }
+
+  // Cert badge (element removed from UI — guard gracefully)
+  const badge = document.getElementById('cert-badge');
+  if (badge) {
+    if (s.certification_ready) {
+      badge.textContent = '✓ Certification Ready';
+      badge.className = 'threshold-badge pass';
+    } else if (s.score >= s.certification_threshold) {
+      badge.textContent = '⚠ Critical Controls Open';
+      badge.className = 'threshold-badge warn';
+    } else {
+      badge.textContent = `✗ ${s.certification_threshold - s.score} pts below threshold`;
+      badge.className = 'threshold-badge fail';
+    }
+  }
+  const threshLabel = document.getElementById('sprs-threshold-label');
+  if (threshLabel) threshLabel.textContent = `Threshold: ${s.certification_threshold}/${s.max_score}`;
+  const critCountLabel = document.getElementById('critical-count-label');
+  if (critCountLabel && s.critical_not_met.length) {
+    critCountLabel.textContent = `${s.critical_not_met.length} critical control(s) open`;
+  }
+
+  // Stats
+  const statuses = Object.values(s.control_statuses);
+  document.getElementById('stat-met').textContent = statuses.filter(c => c.status === 'met').length;
+  document.getElementById('stat-not-met').textContent = statuses.filter(c => c.status === 'not_met').length;
+  document.getElementById('stat-partial').textContent = statuses.filter(c => c.status === 'partial').length;
+  document.getElementById('stat-na').textContent = statuses.filter(c => c.status === 'not_assessed').length;
+
+  // Critical panel
+  if (s.critical_not_met.length) {
+    document.getElementById('critical-panel').style.display = 'block';
+    document.getElementById('critical-list').innerHTML = s.critical_not_met
+      .map(id => `<div class="critical-item" onclick="navigate('controls')">${id}</div>`).join('');
+  } else {
+    document.getElementById('critical-panel').style.display = 'none';
+  }
+
+  // Heatmap
+  renderHeatmap(s.family_summary);
+}
+
+function renderHeatmap(summary) {
+  const grid = document.getElementById('heatmap-grid');
+  if (!summary || !Object.keys(summary).length) {
+    grid.innerHTML = '<div class="loading">No data.</div>';
+    return;
+  }
+
+  const familyNames = {
+    AC: 'Access Control', AT: 'Awareness & Training', AU: 'Audit & Accountability',
+    CM: 'Config Mgmt', IA: 'Identification & Auth', IR: 'Incident Response',
+    MA: 'Maintenance', MP: 'Media Protection', PE: 'Physical Protection',
+    PS: 'Personnel Security', RA: 'Risk Assessment', CA: 'Security Assessment',
+    SC: 'Sys & Comms Protection', SI: 'Sys & Info Integrity',
+  };
+
+  grid.innerHTML = Object.entries(summary).map(([abbr, stats]) => {
+    const total = stats.total || 1;
+    const metPct = Math.round((stats.met / total) * 100);
+    let cardClass = 'unassessed';
+    if (stats.not_met > 0) cardClass = 'some-not-met';
+    else if (stats.partial > 0) cardClass = 'some-partial';
+    else if (stats.met === total) cardClass = 'all-met';
+
+    const barClass = stats.not_met > 0 ? 'not-met' : stats.partial > 0 ? 'mixed' : 'met';
+
+    return `
+      <div class="family-card ${cardClass}" onclick="filterByFamily('${abbr}')">
+        <div class="fam-abbr">${abbr}</div>
+        <div class="fam-name">${familyNames[abbr] || abbr}</div>
+        <div class="family-bar"><div class="family-bar-fill ${barClass}" style="width:${metPct}%"></div></div>
+        <div class="family-stats">
+          ${stats.met || 0} met · ${stats.not_met || 0} not met · ${stats.partial || 0} partial
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterByFamily(abbr) {
+  navigate('controls');
+  document.getElementById('family-filter').value = abbr;
+  applyFilters();
+}
+
+// ── Controls / Gap Analysis ───────────────────────────────────────────────────
+async function loadFamiliesDropdown() {
+  const families = await api('/api/controls/families').catch(() => []);
+  state.families = families;
+  const sel = document.getElementById('family-filter');
+  families.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.abbreviation;
+    opt.textContent = `${f.abbreviation} — ${f.name}`;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadControlsPage() {
+  if (!state.currentAssessmentId) {
+    document.getElementById('controls-tbody').innerHTML =
+      '<tr><td colspan="6" class="loading">Please select an assessment.</td></tr>';
+    return;
+  }
+
+  document.getElementById('controls-tbody').innerHTML =
+    '<tr><td colspan="6" class="loading"><span class="spinner"></span>Loading controls...</td></tr>';
+
+  const [controls, results] = await Promise.all([
+    api('/api/controls'),
+    api(`/api/assessments/${state.currentAssessmentId}/results`),
+  ]);
+
+  state.controls = controls;
+
+  // Build a map: objective_id -> result
+  state.controlResults = {};
+  results.forEach(r => { state.controlResults[r.objective_id] = r; });
+
+  // Compute per-control status from scoring if available
+  if (state.scoring) {
+    state.controlScoring = state.scoring.control_statuses;
+  }
+
+  applyFilters();
+}
+
+function applyFilters() {
+  const familyF = document.getElementById('family-filter').value;
+  const statusF = document.getElementById('status-filter').value;
+  const searchF = document.getElementById('search-input').value.toLowerCase();
+  const criticalOnly = document.getElementById('critical-only').checked;
+
+  let filtered = state.controls;
+  if (familyF) filtered = filtered.filter(c => c.family === familyF);
+  if (criticalOnly) filtered = filtered.filter(c => c.is_critical);
+  if (searchF) filtered = filtered.filter(c =>
+    c.cmmc_id.toLowerCase().includes(searchF) ||
+    c.title.toLowerCase().includes(searchF)
+  );
+
+  // status filter uses computed control status from scoring
+  if (statusF && state.controlScoring) {
+    filtered = filtered.filter(c => {
+      const cs = state.controlScoring[c.cmmc_id];
+      return cs && cs.status === statusF;
+    });
+  }
+
+  renderControlsTable(filtered);
+}
+
+function renderControlsTable(controls) {
+  const tbody = document.getElementById('controls-tbody');
+  if (!controls.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">No controls match the current filter.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = controls.map(c => {
+    const cs = state.controlScoring && state.controlScoring[c.cmmc_id];
+    const status = cs ? cs.status : 'not_assessed';
+    const critBadge = c.is_critical ? '<span class="critical-flag">CRITICAL</span>' : '';
+    return `
+      <tr onclick="openControl('${c.id}', '${c.cmmc_id}')">
+        <td><strong>${c.cmmc_id}</strong>${critBadge}</td>
+        <td>${c.title}</td>
+        <td><span style="font-weight:600;color:var(--navy)">${c.family}</span></td>
+        <td style="text-align:center;font-weight:700;">${c.sprs_value}</td>
+        <td>${statusBadge(status)}</td>
+        <td style="text-align:center;">${c.objective_count}</td>
+      </tr>`;
+  }).join('');
+}
+
+// ── Control Drawer ────────────────────────────────────────────────────────────
+async function openControl(controlId, cmmcId) {
+  state.openControlId = controlId;
+  const ctrl = await api(`/api/controls/${controlId}`);
+
+  document.getElementById('drawer-family').textContent = `${ctrl.family} — ${ctrl.family_name}`;
+  document.getElementById('drawer-title').textContent = ctrl.title;
+  document.getElementById('drawer-id').textContent = `${ctrl.cmmc_id}  ·  NIST ${ctrl.nist_id}`;
+  document.getElementById('drawer-description').textContent = ctrl.description || '';
+
+  // Meta
+  const critBadge = ctrl.is_critical
+    ? `<span class="status-badge critical">⚡ Critical Practice</span>` : '';
+  document.getElementById('drawer-meta').innerHTML = `
+    <span class="status-badge not_assessed">SPRS Weight: ${ctrl.sprs_value}</span>
+    ${critBadge}
+  `;
+
+  // Objectives
+  const objDiv = document.getElementById('drawer-objectives');
+  objDiv.innerHTML = '<div class="loading"><span class="spinner"></span>Loading objectives...</div>';
+
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('control-drawer').classList.add('open');
+
+  // Fetch per-objective evidence for all objectives in one batch
+  // If viewing from a client context, use tailored evidence (tool-specific substitutions)
+  const objEvidenceMap = {};
+  await Promise.all(ctrl.objectives.map(async (obj) => {
+    const nistObjId = obj.objective_id; // e.g. "3.1.1[a]"
+    if (_ob.clientId) {
+      // Tailored: substitutes generic items with client's actual tools
+      const tailored = await getTailoredEvidence(nistObjId);
+      if (tailored && tailored.evidence_items && tailored.evidence_items.length) {
+        objEvidenceMap[nistObjId] = { items: tailored.evidence_items, tailored: tailored.tailored };
+        return;
+      }
+    }
+    // Fallback to generic evidence guide
+    const data = await api(`/api/evidence-guide/objective/${encodeURIComponent(nistObjId)}`).catch(() => null);
+    if (data && data.evidence_items && data.evidence_items.length) {
+      objEvidenceMap[nistObjId] = { items: data.evidence_items, tailored: false };
+    }
+  }));
+
+  // Load results for this control's objectives
+  const objHtml = await Promise.all(ctrl.objectives.map(async (obj) => {
+    const result = state.controlResults[obj.id] || {};
+    const evidence = await api(`/api/evidence/result/${result.id || 'none'}`).catch(() => []);
+    if (result.id) state.controlEvidence[result.id] = evidence;
+
+    const methodTags = (obj.methods || []).map(m =>
+      `<span class="method-tag">${m}</span>`
+    ).join('');
+
+    const evCount = evidence.length;
+    const evList = evidence.map(e =>
+      `<div class="evidence-item">
+        <span>📎</span>
+        <span class="ev-name" title="${e.filename}">${e.filename}</span>
+        <span class="ev-size">${(e.size/1024).toFixed(1)} KB</span>
+        <button class="ev-del" onclick="deleteEvidence('${e.id}','${result.id}','${controlId}','${cmmcId}')">✕</button>
+      </div>`
+    ).join('');
+
+    // Likely evidence checklist for this specific objective
+    const evEntry = objEvidenceMap[obj.objective_id] || null;
+    const likelyItems = evEntry ? evEntry.items : [];
+    const isTailored = evEntry ? evEntry.tailored : false;
+    const tailoredBadge = isTailored
+      ? `<span class="tailored-badge" title="Evidence customized for your tech stack">🎯 Tailored</span>`
+      : '';
+    const likelyHtml = likelyItems.length ? `
+      <details class="likely-evidence-details">
+        <summary class="likely-evidence-summary">
+          <span>📋 Likely Evidence to Gather</span>
+          ${tailoredBadge}
+          <span class="likely-ev-count">${likelyItems.length} items</span>
+        </summary>
+        <ul class="likely-evidence-list">
+          ${likelyItems.map(item => `<li>${item}</li>`).join('')}
+        </ul>
+      </details>` : '';
+
+    // Library-linked files for this result
+    const libLinked = await api(`/api/library/result/${result.id}`).catch(() => []);
+    const libHtml = libLinked.map(f =>
+      `<div class="evidence-item" id="lib-item-${f.link_id}">
+        <span>📎</span>
+        <span class="ev-name" title="${f.filename}">${f.filename}</span>
+        <span class="ev-size">${((f.size||0)/1024).toFixed(1)} KB</span>
+        ${f.link_count > 1 ? `<span class="ev-multi-badge" title="Linked to ${f.link_count} objectives">×${f.link_count}</span>` : ''}
+        <button class="ev-del" onclick="unlinkEvidence('${f.link_id}','${result.id}','${controlId}','${cmmcId}')">✕</button>
+      </div>`
+    ).join('');
+    const totalFiles = evCount + libLinked.length;
+
+    return `
+      <div class="objective-card" id="obj-card-${result.id || obj.id}">
+        <div class="obj-id">${obj.objective_id}</div>
+        <div class="obj-statement">${obj.determination_statement}</div>
+        ${methodTags ? `<div class="obj-methods">${methodTags}</div>` : ''}
+        ${likelyHtml}
+        <div class="obj-controls">
+          <select class="status-select ${result.status || 'not_assessed'}"
+            onchange="updateResult('${result.id}','${controlId}','${cmmcId}',this)"
+            ${!result.id ? 'disabled' : ''}>
+            <option value="not_assessed" ${(result.status||'not_assessed')==='not_assessed'?'selected':''}>○ Not Assessed</option>
+            <option value="met" ${result.status==='met'?'selected':''}>✓ Met</option>
+            <option value="not_met" ${result.status==='not_met'?'selected':''}>✗ Not Met</option>
+            <option value="partial" ${result.status==='partial'?'selected':''}>~ Partial</option>
+            <option value="na" ${result.status==='na'?'selected':''}>N/A</option>
+          </select>
+          <span class="evidence-indicator" id="ev-count-${result.id}">📎 ${totalFiles} file${totalFiles !== 1 ? 's' : ''}</span>
+        </div>
+
+        ${obj.remediation_suggestion ? `
+        <div class="remediation-box">
+          <strong>💡 Remediation Guidance</strong>
+          ${obj.remediation_suggestion}
+        </div>` : ''}
+
+        <textarea class="notes-input" placeholder="Notes / findings..."
+          id="notes-${result.id}"
+          onblur="saveNotes('${result.id}','${controlId}','${cmmcId}')">${result.notes || ''}</textarea>
+
+        <div class="evidence-list" id="ev-list-${result.id}">${evList}${libHtml}</div>
+
+        ${result.id ? `
+        <div class="ev-actions">
+          <div class="upload-zone" onclick="triggerLibUpload('${result.id}','${controlId}','${cmmcId}')"
+            ondragover="event.preventDefault()" ondrop="handleLibDrop(event,'${result.id}','${controlId}','${cmmcId}')">
+            ⬆ Upload new file to library
+            <input type="file" id="lib-input-${result.id}" style="display:none"
+              accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,.txt,.json,.csv"
+              onchange="uploadToLibAndLink(this,'${result.id}','${controlId}','${cmmcId}')">
+          </div>
+          <button class="btn btn-outline btn-sm ev-link-btn"
+            onclick="openLibraryPicker('${result.id}','${controlId}','${cmmcId}')">📚 Link Existing</button>
+        </div>` : ''}
+      </div>`;
+  }));
+
+  objDiv.innerHTML = objHtml.join('');
+}
+
+function closeDrawer() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('control-drawer').classList.remove('open');
+}
+
+// ── Status Update ─────────────────────────────────────────────────────────────
+async function updateResult(resultId, controlId, cmmcId, selectEl) {
+  const newStatus = selectEl.value;
+  selectEl.className = `status-select ${newStatus}`;
+  try {
+    await api(`/api/assessments/${state.currentAssessmentId}/results/${resultId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: newStatus }),
+    });
+    state.controlResults = {};
+    toast(`Status updated to ${fmt(newStatus)}`, 'success');
+    await refreshScoring();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function saveNotes(resultId, controlId, cmmcId) {
+  if (!resultId || resultId === 'undefined') return;
+  const notes = document.getElementById(`notes-${resultId}`)?.value || '';
+  try {
+    await api(`/api/assessments/${state.currentAssessmentId}/results/${resultId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: undefined, notes }),
+    });
+  } catch (e) { /* silent */ }
+}
+
+// ── Evidence Library ─────────────────────────────────────────────────────────
+
+function triggerLibUpload(resultId) {
+  document.getElementById(`lib-input-${resultId}`)?.click();
+}
+
+async function uploadToLibAndLink(input, resultId, controlId, cmmcId) {
+  const file = input.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('assessment_id', state.currentAssessmentId);
+  fd.append('file', file);
+  fd.append('description', '');
+  fd.append('tags', '');
+  try {
+    const ef = await fetch('/api/library/upload', { method: 'POST', body: fd }).then(r => r.json());
+    if (!ef.id) { toast(ef.detail || 'Upload failed', 'error'); return; }
+    if (ef.duplicate) toast(`Already in library — linking: ${file.name}`, 'success');
+    else toast(`Uploaded to library: ${file.name}`, 'success');
+    // Link to this result
+    await api('/api/library/link', {
+      method: 'POST',
+      body: JSON.stringify({ evidence_file_id: ef.id, result_id: resultId }),
+    });
+    await refreshLibEvidence(resultId, controlId, cmmcId);
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+  input.value = '';
+}
+
+async function handleLibDrop(event, resultId, controlId, cmmcId) {
+  event.preventDefault();
+  const file = event.dataTransfer.files[0];
+  if (!file) return;
+  const fakeInput = { files: [file] };
+  await uploadToLibAndLink(fakeInput, resultId, controlId, cmmcId);
+}
+
+async function unlinkEvidence(linkId, resultId, controlId, cmmcId) {
+  try {
+    await api(`/api/library/link/${linkId}`, { method: 'DELETE' });
+    toast('Evidence unlinked', 'success');
+    await refreshLibEvidence(resultId, controlId, cmmcId);
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function refreshLibEvidence(resultId, controlId, cmmcId) {
+  const libLinked = await api(`/api/library/result/${resultId}`).catch(() => []);
+  const evList = document.getElementById(`ev-list-${resultId}`);
+  const evCount = document.getElementById(`ev-count-${resultId}`);
+  if (evList) {
+    // Keep legacy evidence rows (no lib-item- id), replace lib-item- rows
+    const legacyRows = [...evList.querySelectorAll('.evidence-item:not([id^="lib-item-"])')].map(el => el.outerHTML).join('');
+    const libRows = libLinked.map(f =>
+      `<div class="evidence-item" id="lib-item-${f.link_id}">
+        <span>📎</span>
+        <span class="ev-name" title="${f.filename}">${f.filename}</span>
+        <span class="ev-size">${((f.size||0)/1024).toFixed(1)} KB</span>
+        ${f.link_count > 1 ? `<span class="ev-multi-badge" title="Linked to ${f.link_count} objectives">×${f.link_count}</span>` : ''}
+        <button class="ev-del" onclick="unlinkEvidence('${f.link_id}','${resultId}','${controlId}','${cmmcId}')">✕</button>
+      </div>`
+    ).join('');
+    evList.innerHTML = legacyRows + libRows;
+  }
+  if (evCount) {
+    const total = libLinked.length;
+    evCount.textContent = `📎 ${total} file${total !== 1 ? 's' : ''}`;
+  }
+}
+
+// ── Document Library Page ───────────────────────────────────────────────────
+let _libPageFiles = []; // all files from API (used for client-side search)
+
+async function loadLibraryPage() {
+  const content = document.getElementById('lib-page-content');
+  const filterSel = document.getElementById('lib-filter-assessment');
+  if (!content) return;
+  content.innerHTML = '<div class="loading"><span class="spinner"></span>Loading library...</div>';
+
+  // Populate assessment filter dropdown
+  const assessments = await api('/api/assessments').catch(() => []);
+  const currentFilter = filterSel.value;
+  filterSel.innerHTML = '<option value="">All Assessments</option>';
+  (assessments || []).forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = a.name + (a.client_name ? ` — ${a.client_name}` : '');
+    opt.selected = a.id === currentFilter;
+    filterSel.appendChild(opt);
+  });
+
+  // Fetch all files (per assessment or all)
+  if (currentFilter) {
+    const files = await api(`/api/library/${currentFilter}`).catch(() => []);
+    _libPageFiles = files || [];
+  } else {
+    // Fetch from all assessments and merge
+    const all = await Promise.all(
+      (assessments || []).map(a =>
+        api(`/api/library/${a.id}`).catch(() => [])
+          .then(files => (files || []).map(f => ({ ...f, _assessmentName: a.name, _clientName: a.client_name || '' })))
+      )
+    );
+    // Deduplicate by file id
+    const seen = new Set();
+    _libPageFiles = all.flat().filter(f => { if (seen.has(f.id)) return false; seen.add(f.id); return true; });
+  }
+
+  renderLibraryPage();
+}
+
+function filterLibraryPage() {
+  renderLibraryPage();
+}
+
+function renderLibraryPage() {
+  const content = document.getElementById('lib-page-content');
+  const searchVal = (document.getElementById('lib-search')?.value || '').toLowerCase().trim();
+  if (!content) return;
+
+  const filtered = searchVal
+    ? _libPageFiles.filter(f =>
+        (f.filename || '').toLowerCase().includes(searchVal) ||
+        (f.description || '').toLowerCase().includes(searchVal) ||
+        (f.tags || '').toLowerCase().includes(searchVal) ||
+        (f._assessmentName || '').toLowerCase().includes(searchVal)
+      )
+    : _libPageFiles;
+
+  if (!filtered.length) {
+    content.innerHTML = `<div class="lib-empty">
+      <div class="lib-empty-icon">📭</div>
+      <div>${searchVal ? 'No files match your search.' : 'No documents uploaded yet. Click "+ Upload Document" to get started.'}</div>
+    </div>`;
+    return;
+  }
+
+  const TYPE_META = {
+    document:       { icon: '📄', label: 'Document', color: '#1D4ED8', bg: '#DBEAFE' },
+    artifact:       { icon: '⚙️', label: 'Artifact',  color: '#0369A1', bg: '#E0F2FE' },
+    screenshot:     { icon: '🖥️', label: 'Screenshot', color: '#6D28D9', bg: '#EDE9FE' },
+    interview:      { icon: '🎙️', label: 'Interview',  color: '#92400E', bg: '#FEF3C7' },
+    physical_review:{ icon: '🏢', label: 'Physical',   color: '#065F46', bg: '#D1FAE5' },
+  };
+
+  const rows = filtered.map(f => {
+    const ext = (f.filename || '').split('.').pop().toLowerCase();
+    const size = f.size ? `${(f.size / 1024).toFixed(1)} KB` : '—';
+    const tm = TYPE_META[f.file_type] || { icon: '📎', label: f.file_type || 'File', color: '#374151', bg: '#F3F4F6' };
+    const badge = `<span class="ev-type-badge" style="background:${tm.bg};color:${tm.color}">${tm.icon} ${tm.label}</span>`;
+    const links = f.link_count > 0
+      ? `<span class="ev-multi-badge" title="Linked to ${f.link_count} objective${f.link_count !== 1 ? 's' : ''}">×${f.link_count} linked</span>`
+      : `<span class="ev-multi-badge" style="background:rgba(0,0,0,0.06);color:#6B7280">Unlinked</span>`;
+    const assmt = f._assessmentName ? `<span class="lib-assmt-tag">${f._assessmentName}</span>` : '';
+    const desc = f.description ? `<div class="lib-file-desc">${f.description}</div>` : '';
+    const tags = f.tags ? f.tags.split(',').map(t => t.trim()).filter(Boolean)
+      .map(t => `<span class="lib-tag">${t}</span>`).join('') : '';
+    return `<div class="lib-file-row">
+      <div class="lib-file-icon">${tm.icon}</div>
+      <div class="lib-file-info">
+        <div class="lib-file-name">${f.filename || 'Unnamed'}</div>
+        ${desc}
+        <div class="lib-file-meta">${badge} ${links} ${assmt} <span class="lib-file-size">${size}</span></div>
+        ${tags ? `<div class="lib-file-tags">${tags}</div>` : ''}
+      </div>
+      <div class="lib-file-actions">
+        ${f.url ? `<a href="${f.url}" target="_blank" class="btn btn-sm">⬇ Download</a>` : ''}
+        <button class="btn btn-sm btn-danger" onclick="deleteLibraryFile('${f.id}')">🗑 Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const total = filtered.length;
+  content.innerHTML = `
+    <div class="lib-page-summary">${total} file${total !== 1 ? 's' : ''}</div>
+    <div class="lib-file-list">${rows}</div>
+  `;
+}
+
+async function deleteLibraryFile(fileId) {
+  if (!confirm('Delete this file from the library? It will be unlinked from all objectives.')) return;
+  try {
+    await api(`/api/library/file/${fileId}`, { method: 'DELETE' });
+    toast('File deleted', 'success');
+    loadLibraryPage();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function triggerGlobalLibUpload() {
+  document.getElementById('global-lib-input')?.click();
+}
+
+async function handleGlobalLibUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const filterSel = document.getElementById('lib-filter-assessment');
+  const assessmentId = filterSel?.value || '';
+  if (!assessmentId && !state.currentAssessmentId) {
+    toast('Please select an assessment first (use the filter dropdown)', 'error');
+    input.value = '';
+    return;
+  }
+  const fd = new FormData();
+  fd.append('assessment_id', assessmentId || state.currentAssessmentId);
+  fd.append('file', file);
+  fd.append('description', '');
+  fd.append('tags', '');
+  try {
+    const ef = await fetch(`${API}/api/library/upload`, { method: 'POST', body: fd }).then(r => r.json());
+    if (!ef.id) { toast(ef.detail || 'Upload failed', 'error'); return; }
+    toast(`Uploaded: ${file.name}`, 'success');
+    loadLibraryPage();
+  } catch (e) { toast(e.message, 'error'); }
+  input.value = '';
+}
+
+// ── Library Picker Modal ──────────────────────────────────────────────────────
+let _pickerState = {};
+
+async function openLibraryPicker(resultId, controlId, cmmcId) {
+  _pickerState = { resultId, controlId, cmmcId };
+  const files = await api(`/api/library/${state.currentAssessmentId}`).catch(() => []);
+  // Get already-linked file ids for this result
+  const linked = await api(`/api/library/result/${resultId}`).catch(() => []);
+  const linkedIds = new Set(linked.map(f => f.id));
+
+  const rows = files.length ? files.map(f => {
+    const alreadyLinked = linkedIds.has(f.id);
+    const multiTag = f.link_count > 0
+      ? `<span class="ev-multi-badge" style="margin-left:6px">linked to ${f.link_count} obj${f.link_count !== 1 ? 's' : ''}</span>` : '';
+    return `
+      <div class="lib-picker-row ${alreadyLinked ? 'lib-picker-linked' : ''}">
+        <div class="lib-picker-info">
+          <span class="lib-picker-name">📎 ${f.filename}</span>${multiTag}
+          <span class="lib-picker-meta">${((f.size||0)/1024).toFixed(1)} KB · ${new Date(f.uploaded_at).toLocaleDateString()}</span>
+          ${f.description ? `<span class="lib-picker-desc">${f.description}</span>` : ''}
+        </div>
+        <button class="btn btn-sm ${alreadyLinked ? 'btn-ghost' : 'btn-primary'}"
+          onclick="pickerLink('${f.id}','${alreadyLinked}')"
+          id="picker-btn-${f.id}">
+          ${alreadyLinked ? '✓ Linked' : 'Link'}
+        </button>
+      </div>`;
+  }).join('') : '<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No files in library yet. Upload a file first.</div>';
+
+  state.modalMode = 'library-picker';
+  document.getElementById('modal-title').textContent = '📚 Evidence Library — Link to this Objective';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">
+      Files uploaded to this assessment. Click Link to attach a file to this objective without re-uploading.
+    </div>
+    <div id="lib-picker-list" style="max-height:340px;overflow-y:auto">${rows}</div>
+  `;
+  document.getElementById('modal-submit').style.display = 'none';
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('modal').style.display = 'block';
+}
+
+async function pickerLink(fileId, alreadyLinked) {
+  const { resultId, controlId, cmmcId } = _pickerState;
+  if (alreadyLinked === 'true') {
+    toast('Already linked to this objective', '');
+    return;
+  }
+  try {
+    await api('/api/library/link', {
+      method: 'POST',
+      body: JSON.stringify({ evidence_file_id: fileId, result_id: resultId }),
+    });
+    const btn = document.getElementById(`picker-btn-${fileId}`);
+    if (btn) { btn.textContent = '✓ Linked'; btn.className = 'btn btn-sm btn-ghost'; }
+    toast('File linked to objective', 'success');
+    await refreshLibEvidence(resultId, controlId, cmmcId);
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+// Legacy single-link delete (for any old evidence rows still shown)
+async function deleteEvidence(evidenceId, resultId, controlId, cmmcId) {
+  if (!confirm('Delete this evidence file?')) return;
+  try {
+    await api(`/api/evidence/${evidenceId}`, { method: 'DELETE' });
+    toast('Evidence deleted', 'success');
+    const evidence = await api(`/api/evidence/result/${resultId}`).catch(() => []);
+    const evList = document.getElementById(`ev-list-${resultId}`);
+    if (evList) {
+      const libRows = [...evList.querySelectorAll('[id^="lib-item-"]')].map(el => el.outerHTML).join('');
+      evList.innerHTML = evidence.map(e =>
+        `<div class="evidence-item">
+          <span>📎</span>
+          <span class="ev-name">${e.filename}</span>
+          <span class="ev-size">${(e.size/1024).toFixed(1)} KB</span>
+          <button class="ev-del" onclick="deleteEvidence('${e.id}','${resultId}','${controlId}','${cmmcId}')">✕</button>
+        </div>`
+      ).join('') + libRows;
+    }
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+// ── POA&M ─────────────────────────────────────────────────────────────────────
+async function loadPoamPage() {
+  if (!state.currentAssessmentId || !state.scoring) return;
+  const s = state.scoring;
+  const openItems = Object.values(s.control_statuses).filter(c => ['not_met','partial'].includes(c.status));
+  const wrap = document.getElementById('poam-table-wrap');
+  if (!openItems.length) {
+    wrap.innerHTML = '<div class="loading" style="color:var(--met)">✓ No open findings. All assessed controls are Met or N/A.</div>';
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div class="controls-table-wrap">
+      <table class="controls-table">
+        <thead><tr>
+          <th>Control ID</th><th>Title</th><th>Family</th>
+          <th>Status</th><th>SPRS at Risk</th><th>Critical</th>
+        </tr></thead>
+        <tbody>${openItems.map(c => `
+          <tr>
+            <td><strong>${c.cmmc_id}</strong></td>
+            <td>${c.title}</td>
+            <td>${c.family}</td>
+            <td>${statusBadge(c.status)}</td>
+            <td style="text-align:center;font-weight:700;color:var(--not-met)">${c.sprs_value}</td>
+            <td>${c.is_critical ? '<span class="critical-flag">YES</span>' : '—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:12px;">
+      ${openItems.length} open finding(s) · ${openItems.reduce((a,c)=>a+c.sprs_value,0)} SPRS points at risk.
+      Download the Excel POA&M for full remediation details.
+    </p>`;
+}
+
+function downloadPoam() {
+  if (!state.currentAssessmentId) {
+    toast('Please select an assessment first.', 'error');
+    return;
+  }
+  window.location.href = `/api/reports/poam/${state.currentAssessmentId}`;
+}
+
+// ── Customers ─────────────────────────────────────────────────────────────────
+async function loadClients() {
+  const clients = await api('/api/clients').catch(() => []);
+  state.clients = clients;
+  const tbody = document.getElementById('clients-tbody');
+  if (!clients.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">No customers yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = clients.map(c => `
+    <tr>
+      <td><strong>${c.name}</strong></td>
+      <td>${c.cage_code || '—'}</td>
+      <td>${c.contact_name || '—'}</td>
+      <td>
+        <button class="btn btn-primary btn-sm" onclick="openClientDetail('${c.id}','${c.name}','${c.cage_code||''}')">📂 Open</button>
+        <button class="btn btn-outline btn-sm" onclick="newAssessmentForClient('${c.id}','${c.name}')">+ Assessment</button>
+      </td>
+    </tr>`).join('');
+}
+
+// ── Assessments List ──────────────────────────────────────────────────────────
+async function loadAssessmentsPage() {
+  const data = await api('/api/assessments').catch(() => []);
+  const tbody = document.getElementById('assessments-tbody');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">No assessments yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(a => `
+    <tr>
+      <td><strong>${a.name}</strong></td>
+      <td>${a.client_name || '—'}</td>
+      <td>${statusBadge(a.status)}</td>
+      <td>${new Date(a.created_at).toLocaleDateString()}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="selectAssessment('${a.id}')">Open</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function selectAssessment(id) {
+  const sel = document.getElementById('assessment-select');
+  sel.value = id;
+  await onAssessmentChange();
+  navigate('dashboard');
+}
+
+// ── Modals ────────────────────────────────────────────────────────────────────
+let modalHandler = null;
+
+function showNewClientModal() {
+  state.modalMode = 'client';
+  document.getElementById('modal-title').textContent = 'New Customer';
+  document.getElementById('modal-body').innerHTML = `
+    <label style="font-size:12px;font-weight:600">Customer Name *</label>
+    <input type="text" id="m-name" placeholder="Acme Defense Corp" style="width:100%;margin-bottom:10px;margin-top:4px">
+    <label style="font-size:12px;font-weight:600">CAGE Code</label>
+    <input type="text" id="m-cage" placeholder="1A2B3" style="width:100%;margin-bottom:10px;margin-top:4px">
+    <label style="font-size:12px;font-weight:600">Description</label>
+    <input type="text" id="m-desc" placeholder="Optional description" style="width:100%;margin-top:4px">
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('modal').style.display = 'block';
+  document.getElementById('modal-submit').textContent = 'Create Customer';
+}
+
+function showNewAssessmentModal() {
+  state.modalMode = 'assessment';
+  document.getElementById('modal-title').textContent = 'New Assessment';
+  document.getElementById('modal-body').innerHTML = `
+    <label style="font-size:12px;font-weight:600">Customer *</label>
+    <select id="m-client" style="width:100%;margin-bottom:10px;margin-top:4px">
+      <option value="">Select customer...</option>
+      ${state.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+    </select>
+    <label style="font-size:12px;font-weight:600">Assessment Name *</label>
+    <input type="text" id="m-aname" placeholder="Initial CMMC L2 Assessment" style="width:100%;margin-bottom:10px;margin-top:4px">
+    <label style="font-size:12px;font-weight:600">Description</label>
+    <input type="text" id="m-adesc" placeholder="Optional" style="width:100%;margin-top:4px">
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('modal').style.display = 'block';
+  document.getElementById('modal-submit').textContent = 'Create Assessment';
+}
+
+function newAssessmentForClient(clientId, clientName) {
+  loadClients().then(() => {
+    showNewAssessmentModal();
+    setTimeout(() => {
+      const sel = document.getElementById('m-client');
+      if (sel) sel.value = clientId;
+    }, 50);
+  });
+}
+
+async function submitModal() {
+  if (state.modalMode === 'client') {
+    const name = document.getElementById('m-name').value.trim();
+    if (!name) { toast('Name is required', 'error'); return; }
+    try {
+      await api('/api/clients', {
+        method: 'POST',
+        body: JSON.stringify({ name, cage_code: document.getElementById('m-cage').value, description: document.getElementById('m-desc').value }),
+      });
+      toast('Customer created', 'success');
+      closeModal();
+      await loadClients();
+      await loadAssessmentSelector();
+    } catch (e) { toast(e.message, 'error'); }
+  } else if (state.modalMode === 'assessment') {
+    const clientId = document.getElementById('m-client')?.value;
+    const name = document.getElementById('m-aname')?.value.trim();
+    if (!clientId || !name) { toast('Client and name required', 'error'); return; }
+    try {
+      const a = await api('/api/assessments', {
+        method: 'POST',
+        body: JSON.stringify({ client_id: clientId, name, description: document.getElementById('m-adesc')?.value }),
+      });
+      toast('Assessment created', 'success');
+      closeModal();
+      await loadAssessmentSelector();
+      document.getElementById('assessment-select').value = a.id;
+      await onAssessmentChange();
+      navigate('dashboard');
+    } catch (e) { toast(e.message, 'error'); }
+  }
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('modal').style.display = 'none';
+  // Restore submit button in case picker hid it
+  const sub = document.getElementById('modal-submit');
+  if (sub) sub.style.display = '';
+  state.modalMode = null;
+}
+
+// ── Evidence Guide ────────────────────────────────────────────────────────────
+function renderEvidenceGuide(guide, cmmcId) {
+  const TYPE_CONFIG = {
+    document:       { icon: '📄', label: 'Document / Record',       color: '#1D4ED8', bg: '#DBEAFE' },
+    artifact:       { icon: '⚙️',  label: 'System Artifact',         color: '#0369A1', bg: '#E0F2FE' },
+    screenshot:     { icon: '🖥️', label: 'Screenshot / Screen Demo', color: '#7C3AED', bg: '#EDE9FE' },
+    interview:      { icon: '🗣️', label: 'Personnel Interview',      color: '#047857', bg: '#D1FAE5' },
+    physical_review:{ icon: '🏢', label: 'Physical Review',          color: '#B45309', bg: '#FEF3C7' },
+  };
+
+  // Group by type
+  const byType = {};
+  for (const ei of guide.evidence_items) {
+    if (!byType[ei.type]) byType[ei.type] = [];
+    byType[ei.type].push(ei);
+  }
+
+  // Type order
+  const typeOrder = ['document', 'artifact', 'screenshot', 'interview', 'physical_review'];
+
+  let html = `<div class="evidence-guide-panel">
+    <div class="evidence-guide-header">
+      <span>📋 Evidence Requirements</span>
+      <span style="font-size:11px;color:rgba(255,255,255,0.7);font-weight:400;">From CMMC Assessment Guide L2 v2.13</span>
+    </div>
+    <div class="evidence-guide-body">`;
+
+  for (const type of typeOrder) {
+    const items = byType[type];
+    if (!items || !items.length) continue;
+    const cfg = TYPE_CONFIG[type] || { icon: '📄', label: type, color: '#374151', bg: '#F3F4F6' };
+
+    html += `<div class="ev-type-group">
+      <div class="ev-type-label" style="color:${cfg.color};background:${cfg.bg}">
+        ${cfg.icon} ${cfg.label}
+        <span class="ev-type-count">${items.length}</span>
+      </div>
+      <ul class="ev-item-list">`;
+
+    for (const ei of items) {
+      const methodTag = ei.method !== 'Examine'
+        ? `<span class="ev-method-tag" style="background:${cfg.bg};color:${cfg.color}">${ei.method}</span>` : '';
+      html += `<li>${ei.item}${methodTag}</li>`;
+    }
+    html += `</ul></div>`;
+  }
+
+  // Considerations
+  if (guide.considerations && guide.considerations.length) {
+    html += `<div class="ev-considerations">
+      <div class="ev-considerations-label">💡 Assessment Considerations</div>`;
+    for (const c of guide.considerations) {
+      // Strip objective references like [a,b,c]
+      const clean = c.replace(/\[\w,\s\]+\]/g, '').replace(/^[•\-\s]+/, '').trim();
+      if (clean.length > 10) html += `<div class="ev-consideration-item">${clean}</div>`;
+    }
+    html += `</div>`;
+  }
+
+  html += `</div></div>`;
+
+  // Inject before the objectives section
+  const objHeader = document.querySelector('#control-drawer .drawer-body h4');
+  if (objHeader) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    objHeader.parentNode.insertBefore(div, objHeader);
+  }
+}
+
+// ── Onboarding / Client Detail ────────────────────────────────────────────────
+
+const _ob = { clientId: null, clientName: null, meta: null, profile: null, currentPolicy: null };
+
+async function openClientDetail(clientId, clientName, cageCode) {
+  _ob.clientId = clientId;
+  _ob.clientName = clientName;
+  // Load meta once
+  if (!_ob.meta) {
+    _ob.meta = await api('/api/onboarding/meta').catch(() => null);
+  }
+  document.getElementById('cd-client-name').textContent = clientName;
+  document.getElementById('cd-client-cage').textContent = cageCode ? `CAGE: ${cageCode}` : '';
+  document.getElementById('cd-new-assessment-btn').onclick = () => newAssessmentForClient(clientId, clientName);
+  // Show page
+  state.currentPage = 'client-detail';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('page-client-detail').classList.add('active');
+  document.getElementById('page-title').textContent = clientName;
+  // Reset to questionnaire tab
+  switchOnboardTab('questionnaire', document.querySelector('.onboard-tab'));
+}
+
+function switchOnboardTab(tab, el) {
+  document.querySelectorAll('.onboard-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.onboard-tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  if (tab === 'questionnaire') loadQuestionnaire();
+  if (tab === 'policies') loadPolicies();
+  if (tab === 'ssp') loadSSP();
+  if (tab === 'assessments') loadClientAssessments();
+}
+
+// ── Questionnaire ─────────────────────────────────────────────────────────────
+
+async function loadQuestionnaire() {
+  const body = document.getElementById('questionnaire-body');
+  body.innerHTML = '<div class="loading"><span class="spinner"></span>Loading questionnaire...</div>';
+  _ob.profile = await api(`/api/onboarding/profile/${_ob.clientId}`).catch(() => null);
+  if (!_ob.profile) { body.innerHTML = '<div class="loading">Failed to load profile.</div>'; return; }
+  const p = _ob.profile;
+  const meta = _ob.meta || { tech_categories: [], tech_vendors: {} };
+  const techMap = {};
+  (p.tech_stack || []).forEach(t => { techMap[t.category] = t; });
+
+  const cuiCategories = ['Technical Data','Export Controlled (EAR/ITAR)','Controlled Technical Information (CTI)','Naval Nuclear Propulsion Information','Privacy / PII','Law Enforcement','Critical Infrastructure','Other'];
+
+  body.innerHTML = `
+    ${p.questionnaire_complete ? '<div class="q-complete-badge" style="margin-bottom:12px">&#10003; Questionnaire Complete</div>' : ''}
+
+    <div class="q-step">
+      <div class="q-step-header" onclick="toggleStep('step1')">
+        <span class="q-step-title">&#127974; Step 1 — Organization Profile <span class="q-step-badge">Org Details</span></span>
+        <span id="step1-arrow">&#9660;</span>
+      </div>
+      <div class="q-step-body open" id="step1-body">
+        <div class="q-grid">
+          <div class="q-field"><label>Legal Name</label><input id="q-legal_name" value="${p.legal_name||''}"></div>
+          <div class="q-field"><label>CAGE Code</label><input id="q-cage_code" value="${p.cage_code||''}"></div>
+          <div class="q-field"><label>SAM.gov UEI</label><input id="q-uei_number" value="${p.uei_number||''}"></div>
+          <div class="q-field"><label>Prime / Sub / Both</label>
+            <select id="q-prime_or_sub">
+              <option value="">-- Select --</option>
+              ${['prime','sub','both'].map(v => `<option value="${v}" ${p.prime_or_sub===v?'selected':''}>${v.charAt(0).toUpperCase()+v.slice(1)} Contractor</option>`).join('')}
+            </select>
+          </div>
+          <div class="q-field q-span2"><label>Address</label><input id="q-address" value="${p.address||''}"></div>
+          <div class="q-field"><label>ISSO Name</label><input id="q-isso_name" value="${p.isso_name||''}"></div>
+          <div class="q-field"><label>ISSO Email</label><input id="q-isso_email" value="${p.isso_email||''}"></div>
+          <div class="q-field"><label>Primary Contact Name</label><input id="q-primary_contact_name" value="${p.primary_contact_name||''}"></div>
+          <div class="q-field"><label>Primary Contact Email</label><input id="q-primary_contact_email" value="${p.primary_contact_email||''}"></div>
+          <div class="q-field"><label>Primary Contact Phone</label><input id="q-primary_contact_phone" value="${p.primary_contact_phone||''}"></div>
+          <div class="q-field q-span2"><label>DoD Contract Numbers</label><input id="q-dod_contracts" placeholder="e.g. W91QUZ-21-C-0001, FA8732-22-C-0055" value="${p.dod_contracts||''}"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-step">
+      <div class="q-step-header" onclick="toggleStep('step2')">
+        <span class="q-step-title">&#128101; Step 2 — Workforce &amp; CUI Scope <span class="q-step-badge">Users &amp; CUI</span></span>
+        <span id="step2-arrow">&#9660;</span>
+      </div>
+      <div class="q-step-body" id="step2-body">
+        <div class="q-grid q-grid-3">
+          <div class="q-field"><label>Total Employees</label><input type="number" id="q-total_employees" value="${p.total_employees||''}"></div>
+          <div class="q-field"><label>Total System Users</label><input type="number" id="q-total_system_users" value="${p.total_system_users||''}"></div>
+          <div class="q-field"><label>CUI-Authorized Users</label><input type="number" id="q-cui_authorized_users" value="${p.cui_authorized_users||''}"></div>
+          <div class="q-field"><label>Privileged / Admin Users</label><input type="number" id="q-privileged_users" value="${p.privileged_users||''}"></div>
+          <div class="q-field q-span2"></div>
+          <div class="q-field q-span3">
+            <label>CUI Categories Handled</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+              ${cuiCategories.map(cat => `
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;text-transform:none;letter-spacing:0">
+                  <input type="checkbox" value="${cat}" ${(p.cui_categories||'').includes(cat)?'checked':''}> ${cat}
+                </label>`).join('')}
+            </div>
+          </div>
+          <div class="q-field q-span3"><label>CUI Description (what CUI do you process?)</label>
+            <textarea id="q-cui_description" rows="3">${p.cui_description||''}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-step">
+      <div class="q-step-header" onclick="toggleStep('step3')">
+        <span class="q-step-title">&#127760; Step 3 — Technology Stack <span class="q-step-badge">Security Tools</span></span>
+        <span id="step3-arrow">&#9660;</span>
+      </div>
+      <div class="q-step-body" id="step3-body">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Select the primary vendor and enter the specific product/version. This tailors evidence suggestions and populates policies.</div>
+        <div class="tech-stack-grid">
+          ${meta.tech_categories.map(([slug, label]) => {
+            const existing = techMap[slug] || {};
+            const vendors = (meta.tech_vendors || {})[slug] || [];
+            return `
+              <div class="tech-row">
+                <span class="tech-row-label">${label}</span>
+                <select id="tech-${slug}-vendor">
+                  <option value="">-- Not in use --</option>
+                  ${vendors.map(v => `<option value="${v}" ${existing.vendor===v?'selected':''}>${v}</option>`).join('')}
+                  <option value="Other" ${existing.vendor==='Other'?'selected':''}>Other</option>
+                </select>
+                <input type="text" id="tech-${slug}-product" placeholder="Product name / version" value="${existing.product_name||''}">
+              </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="q-step">
+      <div class="q-step-header" onclick="toggleStep('step4')">
+        <span class="q-step-title">&#128421;&#65039; Step 4 — System Boundary <span class="q-step-badge">Environment</span></span>
+        <span id="step4-arrow">&#9660;</span>
+      </div>
+      <div class="q-step-body" id="step4-body">
+        <div class="q-grid">
+          <div class="q-field"><label>System Name</label><input id="q-system_name" value="${p.system_name||''}"></div>
+          <div class="q-field"><label>Total Endpoints</label><input type="number" id="q-total_endpoints" value="${p.total_endpoints||''}"></div>
+          <div class="q-field"><label>CUI-Scoped Systems</label><input type="number" id="q-cui_system_count" value="${p.cui_system_count||''}"></div>
+          <div class="q-field"></div>
+          <div class="q-field q-span2"><label>System Boundary Description</label>
+            <textarea id="q-system_boundary_description" rows="3">${p.system_boundary_description||''}</textarea>
+          </div>
+          <div class="q-field q-span2"><label>External Service Providers / Cloud Services</label>
+            <textarea id="q-external_service_providers" rows="2" placeholder="e.g. Azure GovCloud, AWS GovCloud, Salesforce Government Cloud">${p.external_service_providers||''}</textarea>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px">
+          ${[
+            ['air_gapped','Air-Gapped Network'],
+            ['cloud_hosted','Cloud-Hosted (primary)'],
+            ['portable_media_used','Portable Media in Use'],
+            ['controlled_maintenance','Controlled Maintenance Performed'],
+          ].map(([key,label]) => `
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+              <input type="checkbox" id="q-${key}" ${p[key]?'checked':''}> ${label}
+            </label>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="q-save-bar">
+      <div id="q-save-status" style="font-size:12px;color:var(--text-muted)"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="saveQuestionnaire(false)">Save Draft</button>
+        <button class="btn btn-primary btn-sm" onclick="saveQuestionnaire(true)">Save &amp; Mark Complete</button>
+      </div>
+    </div>
+  `;
+}
+
+function toggleStep(id) {
+  const body = document.getElementById(`${id}-body`);
+  const arrow = document.getElementById(`${id}-arrow`);
+  if (body) body.classList.toggle('open');
+  if (arrow) arrow.textContent = body.classList.contains('open') ? '▼' : '▶';
+}
+
+async function saveQuestionnaire(markComplete) {
+  const statusEl = document.getElementById('q-save-status');
+  statusEl.textContent = 'Saving...';
+
+  // Gather CUI checkboxes
+  const cuiChecked = [...document.querySelectorAll('#step2-body input[type="checkbox"][value]')]
+    .filter(cb => cb.checked).map(cb => cb.value).join(', ');
+
+  // Gather tech stack
+  const techStack = (_ob.meta?.tech_categories || []).map(([slug]) => ({
+    category: slug,
+    vendor: document.getElementById(`tech-${slug}-vendor`)?.value || '',
+    product_name: document.getElementById(`tech-${slug}-product`)?.value || '',
+    in_use: !!(document.getElementById(`tech-${slug}-vendor`)?.value),
+  })).filter(t => t.vendor);
+
+  const payload = {
+    legal_name: document.getElementById('q-legal_name')?.value,
+    cage_code: document.getElementById('q-cage_code')?.value,
+    uei_number: document.getElementById('q-uei_number')?.value,
+    prime_or_sub: document.getElementById('q-prime_or_sub')?.value,
+    address: document.getElementById('q-address')?.value,
+    isso_name: document.getElementById('q-isso_name')?.value,
+    isso_email: document.getElementById('q-isso_email')?.value,
+    primary_contact_name: document.getElementById('q-primary_contact_name')?.value,
+    primary_contact_email: document.getElementById('q-primary_contact_email')?.value,
+    primary_contact_phone: document.getElementById('q-primary_contact_phone')?.value,
+    dod_contracts: document.getElementById('q-dod_contracts')?.value,
+    total_employees: parseInt(document.getElementById('q-total_employees')?.value)||null,
+    total_system_users: parseInt(document.getElementById('q-total_system_users')?.value)||null,
+    cui_authorized_users: parseInt(document.getElementById('q-cui_authorized_users')?.value)||null,
+    privileged_users: parseInt(document.getElementById('q-privileged_users')?.value)||null,
+    cui_categories: cuiChecked,
+    cui_description: document.getElementById('q-cui_description')?.value,
+    system_name: document.getElementById('q-system_name')?.value,
+    total_endpoints: parseInt(document.getElementById('q-total_endpoints')?.value)||null,
+    cui_system_count: parseInt(document.getElementById('q-cui_system_count')?.value)||null,
+    system_boundary_description: document.getElementById('q-system_boundary_description')?.value,
+    external_service_providers: document.getElementById('q-external_service_providers')?.value,
+    air_gapped: document.getElementById('q-air_gapped')?.checked||false,
+    cloud_hosted: document.getElementById('q-cloud_hosted')?.checked||false,
+    portable_media_used: document.getElementById('q-portable_media_used')?.checked||false,
+    controlled_maintenance: document.getElementById('q-controlled_maintenance')?.checked||false,
+    questionnaire_complete: markComplete,
+    tech_stack: techStack,
+  };
+
+  try {
+    _ob.profile = await api(`/api/onboarding/profile/${_ob.clientId}`, {
+      method: 'PUT', body: JSON.stringify(payload),
+    });
+    statusEl.textContent = markComplete ? '✓ Saved & marked complete' : '✓ Draft saved';
+    toast(markComplete ? 'Questionnaire complete!' : 'Questionnaire saved', 'success');
+  } catch(e) {
+    statusEl.textContent = 'Save failed';
+    toast(e.message, 'error');
+  }
+}
+
+// ── Policy Library ────────────────────────────────────────────────────────────
+
+async function loadPolicies() {
+  const wrap = document.getElementById('policy-grid-wrap');
+  wrap.style.display = '';
+  document.getElementById('policy-editor-wrap').classList.remove('open');
+  wrap.innerHTML = '<div class="loading"><span class="spinner"></span>Loading...</div>';
+  const policies = await api(`/api/onboarding/policies/${_ob.clientId}`).catch(() => []);
+  if (!policies.length) {
+    wrap.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No policies yet. Click "Generate All Policies" above to create them from the questionnaire data.</div>';
+    return;
+  }
+  wrap.innerHTML = `<div class="policy-grid">
+    ${policies.map(p => `
+      <div class="policy-card" onclick="openPolicyEditor('${p.policy_type}','${escHtml(p.title)}')">
+        <div class="policy-card-title">${escHtml(p.title)}</div>
+        <div class="policy-card-meta">v${p.version||'1.0'} &middot; Updated ${new Date(p.updated_at).toLocaleDateString()}</div>
+        <div class="policy-card-status policy-status-${p.status||'draft'}">${p.status||'draft'}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">${escHtml((p.body_preview||'').substring(0,100))}...</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+async function generatePolicies() {
+  toast('Generating 14 policies — this may take a moment...', '');
+  try {
+    const result = await api(`/api/onboarding/policies/${_ob.clientId}/generate`, { method: 'POST' });
+    toast(`Generated ${result.generated} policies`, 'success');
+    await loadPolicies();
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function openPolicyEditor(policyType, title) {
+  document.getElementById('policy-grid-wrap').style.display = 'none';
+  const editorWrap = document.getElementById('policy-editor-wrap');
+  editorWrap.classList.add('open');
+  document.getElementById('policy-editor-title').textContent = title;
+  document.getElementById('policy-body-editor').value = 'Loading...';
+  _ob.currentPolicy = policyType;
+
+  const p = await api(`/api/onboarding/policies/${_ob.clientId}/${policyType}`).catch(() => null);
+  if (p) {
+    document.getElementById('policy-body-editor').value = p.body || '';
+    document.getElementById('policy-version').value = p.version || '1.0';
+    document.getElementById('policy-status').value = p.status || 'draft';
+    document.getElementById('policy-approved-by').value = p.approved_by || '';
+  }
+}
+
+function closePolicyEditor() {
+  document.getElementById('policy-editor-wrap').classList.remove('open');
+  document.getElementById('policy-grid-wrap').style.display = '';
+}
+
+async function savePolicy() {
+  if (!_ob.currentPolicy) return;
+  try {
+    await api(`/api/onboarding/policies/${_ob.clientId}/${_ob.currentPolicy}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        body: document.getElementById('policy-body-editor').value,
+        version: document.getElementById('policy-version').value,
+        status: document.getElementById('policy-status').value,
+        approved_by: document.getElementById('policy-approved-by').value,
+      }),
+    });
+    toast('Policy saved', 'success');
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+}
+
+// ── SSP ───────────────────────────────────────────────────────────────────────
+
+async function loadSSP() {
+  const wrap = document.getElementById('ssp-sections-wrap');
+  wrap.innerHTML = '<div class="loading"><span class="spinner"></span>Loading SSP...</div>';
+  const sections = await api(`/api/onboarding/ssp/${_ob.clientId}`).catch(() => []);
+  if (!sections.length) {
+    wrap.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:12px 0">No SSP sections yet. Click "Generate SSP" above to create from questionnaire data.</div>';
+    return;
+  }
+  wrap.innerHTML = `<div class="ssp-section-list">
+    ${sections.map(s => `
+      <div class="ssp-section-card">
+        <div class="ssp-section-header" onclick="toggleSSPSection('${s.id}')">
+          <span class="ssp-section-title">${escHtml(s.section_title)}</span>
+          <span class="ssp-section-type">${s.section_type === 'control_impl' ? 'Control Implementation' : 'Narrative'}</span>
+        </div>
+        <div class="ssp-section-body-wrap" id="ssp-body-${s.id}">
+          <textarea class="ssp-body-editor" id="ssp-editor-${s.id}">${escHtml(s.body||'')}</textarea>
+          <button class="btn btn-primary btn-sm" onclick="saveSSPSection('${s.id}','${s.section_key}')">Save Section</button>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function toggleSSPSection(id) {
+  document.getElementById(`ssp-body-${id}`)?.classList.toggle('open');
+}
+
+async function saveSSPSection(id, sectionKey) {
+  const body = document.getElementById(`ssp-editor-${id}`)?.value || '';
+  try {
+    await api(`/api/onboarding/ssp/${_ob.clientId}/${sectionKey}`, {
+      method: 'PUT',
+      body: JSON.stringify({ body }),
+    });
+    toast('Section saved', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function generateSSP() {
+  toast('Generating SSP — this may take a moment...', '');
+  try {
+    const r = await api(`/api/onboarding/ssp/${_ob.clientId}/generate`, { method: 'POST' });
+    toast(`Generated ${r.generated} SSP sections`, 'success');
+    await loadSSP();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function exportSSP() {
+  try {
+    const resp = await fetch(`/api/onboarding/ssp/${_ob.clientId}/export`);
+    if (!resp.ok) { toast('Export failed', 'error'); return; }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `SSP_${_ob.clientName.replace(/\s+/g,'_')}.xlsx`;
+    a.click(); URL.revokeObjectURL(url);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── Client Assessments sub-tab ────────────────────────────────────────────────
+
+async function loadClientAssessments() {
+  const tbody = document.getElementById('cd-assessments-tbody');
+  const all = await api('/api/assessments').catch(() => []);
+  const mine = all.filter(a => a.client_id === _ob.clientId || a.client_name === _ob.clientName);
+  if (!mine.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="loading">No assessments yet for this client.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = mine.map(a => `
+    <tr>
+      <td><strong>${escHtml(a.name)}</strong></td>
+      <td>${statusBadge(a.status)}</td>
+      <td>${new Date(a.created_at).toLocaleDateString()}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="selectAssessment('${a.id}')">Open</button></td>
+    </tr>`).join('');
+}
+
+// ── Tailored evidence integration ─────────────────────────────────────────────
+
+async function getTailoredEvidence(objId) {
+  if (!_ob.clientId) return null;
+  return api(`/api/tailored-evidence/${_ob.clientId}/${encodeURIComponent(objId)}`).catch(() => null);
+}
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── CMMC Assistant ────────────────────────────────────────────────────────────
+
+const _asst = {
+  open: false,
+  history: [],   // [{role:'user'|'bot', text, sources, suggestions}]
+  loading: false,
+};
+
+function toggleAssistant() {
+  _asst.open = !_asst.open;
+  const panel = document.getElementById('assistant-panel');
+  const fab   = document.getElementById('assistant-fab');
+  panel.classList.toggle('open', _asst.open);
+  fab.classList.toggle('open', _asst.open);
+
+  if (_asst.open) {
+    _updateAssistantContext();
+    if (_asst.history.length === 0) _loadAssistantSuggestions();
+    setTimeout(() => document.getElementById('assistant-input')?.focus(), 120);
+  }
+}
+
+function _updateAssistantContext() {
+  const label = document.getElementById('assistant-ctx-label');
+  if (!label) return;
+  const parts = [];
+  if (state.currentAssessmentId) {
+    const sel = document.getElementById('assessment-select');
+    const name = sel ? sel.options[sel.selectedIndex]?.text : state.currentAssessmentId;
+    parts.push(`Assessment: ${name}`);
+  }
+  if (_ob.clientId) parts.push(`Client: ${_ob.clientName || _ob.clientId}`);
+  label.textContent = parts.length ? parts.join(' · ') : 'General CMMC L2';
+}
+
+async function _loadAssistantSuggestions() {
+  const container = document.getElementById('assistant-suggestions');
+  if (!container) return;
+  container.innerHTML = '';
+  const data = await api('/api/assistant/suggestions').catch(() => ({ suggestions: [] }));
+  const suggestions = (data.suggestions || []).slice(0, 6);
+  suggestions.forEach(s => {
+    const chip = document.createElement('button');
+    chip.className = 'assistant-chip';
+    chip.textContent = s;
+    chip.onclick = () => _sendAssistantQuery(s);
+    container.appendChild(chip);
+  });
+}
+
+async function submitAssistant() {
+  const input = document.getElementById('assistant-input');
+  const question = (input?.value || '').trim();
+  if (!question || _asst.loading) return;
+  input.value = '';
+  await _sendAssistantQuery(question);
+}
+
+async function _sendAssistantQuery(question) {
+  if (_asst.loading) return;
+  _asst.loading = true;
+
+  // Hide welcome / suggestions on first message
+  const welcome = document.querySelector('.assistant-welcome');
+  if (welcome) welcome.style.display = 'none';
+  const sugg = document.getElementById('assistant-suggestions');
+  if (sugg) sugg.style.display = 'none';
+
+  // Append user bubble
+  _appendAssistantMsg('user', question);
+
+  // Typing indicator
+  const typingEl = _appendTypingIndicator();
+
+  // Call API
+  let result;
+  try {
+    result = await api('/api/assistant/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question,
+        assessment_id: state.currentAssessmentId || null,
+        client_id: _ob.clientId || null,
+      }),
+    });
+  } catch (e) {
+    result = { answer: 'Sorry, I couldn\'t reach the backend. Make sure the server is running.', sources: [], suggestions: [] };
+  }
+
+  typingEl.remove();
+  _asst.loading = false;
+
+  _appendAssistantMsg('bot', result.answer, result.sources || [], result.suggestions || []);
+  _asst.history.push({ role: 'user', text: question });
+  _asst.history.push({ role: 'bot', text: result.answer, sources: result.sources, suggestions: result.suggestions });
+}
+
+function _appendAssistantMsg(role, text, sources = [], suggestions = []) {
+  const container = document.getElementById('assistant-messages');
+  const msg = document.createElement('div');
+  msg.className = `assistant-msg ${role}`;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'assistant-bubble';
+  bubble.innerHTML = _renderAssistantMarkdown(text);
+  msg.appendChild(bubble);
+
+  // Source chips (bot messages only)
+  if (role === 'bot' && sources.length > 0) {
+    const sourceRow = document.createElement('div');
+    sourceRow.className = 'assistant-sources';
+    sources.forEach(src => {
+      const chip = document.createElement('button');
+      chip.className = 'assistant-src-chip';
+      chip.textContent = src.cmmc_id || src.nist_id;
+      chip.title = src.title || '';
+      chip.onclick = () => {
+        // Jump to the control if we're on the gap analysis page
+        if (state.currentAssessmentId) {
+          navigate('controls');
+          setTimeout(() => {
+            const el = document.querySelector(`[data-nist="${src.nist_id}"]`);
+            if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.click(); }
+          }, 300);
+          toggleAssistant();
+        }
+      };
+      sourceRow.appendChild(chip);
+    });
+    msg.appendChild(sourceRow);
+  }
+
+  // Follow-up suggestion chips (bot messages only)
+  if (role === 'bot' && suggestions.length > 0) {
+    const fuRow = document.createElement('div');
+    fuRow.className = 'assistant-followups';
+    suggestions.slice(0, 4).forEach(s => {
+      const chip = document.createElement('button');
+      chip.className = 'assistant-chip';
+      chip.textContent = s;
+      chip.onclick = () => _sendAssistantQuery(s);
+      fuRow.appendChild(chip);
+    });
+    msg.appendChild(fuRow);
+  }
+
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
+  return msg;
+}
+
+function _appendTypingIndicator() {
+  const container = document.getElementById('assistant-messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'assistant-msg bot';
+  const dots = document.createElement('div');
+  dots.className = 'assistant-typing';
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  wrap.appendChild(dots);
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+  return wrap;
+}
+
+function _renderAssistantMarkdown(md) {
+  if (!md) return '';
+  return md
+    // headings
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+    // bold + italic
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/_(.+?)_/g, '<em>$1</em>')
+    // horizontal rule
+    .replace(/^---$/gm, '<hr>')
+    // blockquote
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    // list items
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/gs, m => `<ul>${m}</ul>`)
+    // line breaks (double newline → paragraph break)
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^/, '<p>')
+    .replace(/$/, '</p>')
+    // clean up empty paragraphs
+    .replace(/<p><\/p>/g, '')
+    .replace(/<p>(<h[23]>)/g, '$1')
+    .replace(/(<\/h[23]>)<\/p>/g, '$1')
+    .replace(/<p>(<ul>)/g, '$1')
+    .replace(/(<\/ul>)<\/p>/g, '$1')
+    .replace(/<p>(<hr>)<\/p>/g, '$1')
+    .replace(/<p>(<blockquote>)/g, '$1')
+    .replace(/(<\/blockquote>)<\/p>/g, '$1');
+}
+
+</script>
+
+<!-- ── CMMC Assistant ─────────────────────────────────────────── -->
+<button id="assistant-fab" onclick="toggleAssistant()" title="CMMC Assistant" aria-label="Open CMMC Assistant">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  <span id="assistant-fab-label">Ask GRC</span>
+</button>
+
+<div id="assistant-panel" class="assistant-panel" aria-label="CMMC Assistant">
+  <div class="assistant-header">
+    <div class="assistant-header-left">
+      <span class="assistant-icon">🛡️</span>
+      <div>
+        <div class="assistant-title">CMMC Assistant</div>
+        <div class="assistant-subtitle" id="assistant-ctx-label">Context: none</div>
+      </div>
+    </div>
+    <button class="assistant-close" onclick="toggleAssistant()" aria-label="Close">✕</button>
+  </div>
+
+  <div id="assistant-messages" class="assistant-messages">
+    <div class="assistant-welcome">
+      <div class="assistant-welcome-icon">🛡️</div>
+      <div class="assistant-welcome-text">Ask me anything about CMMC Level 2 requirements, controls, evidence, or policies.</div>
+    </div>
+    <div id="assistant-suggestions" class="assistant-suggestions"></div>
+  </div>
+
+  <div class="assistant-input-row">
+    <input
+      type="text"
+      id="assistant-input"
+      class="assistant-input"
+      placeholder="e.g. What is the password complexity requirement?"
+      onkeydown="if(event.key==='Enter')submitAssistant()"
+      autocomplete="off"
+    >
+    <button class="assistant-send" onclick="submitAssistant()" aria-label="Send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<script data-pplx-inline-edit>
+(function () {
+  if (window === window.top) return;
+
+  const allowedParentOrigins = ["https://www.perplexity.ai","https://perplexity.ai","https://testing.perplexity.ai","https://staging.perplexity.ai","https://*.preview.i.perplexity.ai","http://localhost:3000","http://127.0.0.1:3000","http://localhost:5173","http://127.0.0.1:5173"];
+  const MAX_FONT_BYTES = 500 * 1024;
+  const MAX_TOTAL_FONT_BYTES = 2 * 1024 * 1024;
+  let scrollForwarding = false;
+  let scrollRaf = 0;
+  let trustedTopOrigin = null;
+
+  // Allow entries like "https://*.preview.i.perplexity.ai" — the wildcard
+  // matches a single DNS label (no dots), so "https://*.foo" cannot stretch
+  // across multiple labels.
+  function matchesAllowedOrigin(origin) {
+    if (!origin) return false;
+    for (const entry of allowedParentOrigins) {
+      if (!entry.includes("*")) {
+        if (entry === origin) return true;
+        continue;
+      }
+      const pattern = new RegExp(
+        "^" +
+          entry.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^.]+") +
+          "$",
+      );
+      if (pattern.test(origin)) return true;
+    }
+    return false;
+  }
+
+  // Trust decision: when the sender is same-origin-visible (event.origin is a
+  // real origin like https://www.perplexity.ai) we trust event.origin directly.
+  // When event.origin is "null" (opaque broker srcdoc), we fall back to the
+  // broker's stamped `parentOrigin` to identify the top window. The fallback
+  // is claim-only — we rely on the browser's native `targetOrigin` enforcement
+  // on the response path (see postToTrustedTop) to ensure replies can't be
+  // delivered to anyone but the actual top window of that claimed origin.
+  function getTrustedParentOrigin(event) {
+    const forwardedParentOrigin =
+      typeof event.data.parentOrigin === "string" ? event.data.parentOrigin : null;
+    const parentOrigin = event.origin === "null" ? forwardedParentOrigin : event.origin;
+    return matchesAllowedOrigin(parentOrigin) ? parentOrigin : null;
+  }
+
+  // All responses go to window.top with targetOrigin = the allowlisted origin.
+  // An attacker that iframes us inside their own null-origin broker can claim
+  // any parentOrigin they like, but the browser will drop the reply whenever
+  // the real top's origin doesn't match — so the screenshot never leaves.
+  function postToTrustedTop(message) {
+    if (!trustedTopOrigin) return;
+    try {
+      window.top.postMessage(message, trustedTopOrigin);
+    } catch (_error) {}
+  }
+
+  function inlineAll(original, clone) {
+    if (original.nodeType !== 1 || clone.nodeType !== 1) return;
+
+    try {
+      const computedStyle = getComputedStyle(original);
+      // cssText on a computed style is the serialized declaration in modern
+      // Chromium/Safari — a single read beats enumerating ~400 longhand
+      // properties. Firefox returns "" here, so we fall back on empty.
+      const serialized = computedStyle.cssText;
+      if (serialized) {
+        clone.style.cssText = serialized;
+      } else {
+        const parts = new Array(computedStyle.length);
+        for (let index = 0; index < computedStyle.length; index += 1) {
+          const property = computedStyle[index];
+          parts[index] = `${property}:${computedStyle.getPropertyValue(property)};`;
+        }
+        clone.style.cssText = parts.join("");
+      }
+    } catch (_error) {}
+
+    const originalChildren = original.children;
+    const clonedChildren = clone.children;
+    for (
+      let index = 0;
+      index < originalChildren.length && index < clonedChildren.length;
+      index += 1
+    ) {
+      inlineAll(originalChildren[index], clonedChildren[index]);
+    }
+  }
+
+  function extractFontUrl(srcValue) {
+    const matches = [
+      ...srcValue.matchAll(
+        /url\(["']?([^"')]+)["']?\)(?:\s*format\(["']?([^"')]+)["']?\))?/gi,
+      ),
+    ];
+    if (matches.length === 0) return null;
+    const woff2 = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff2"));
+    if (woff2) return woff2[1];
+    const woff = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff"));
+    if (woff) return woff[1];
+    return matches[0][1];
+  }
+
+  // Cache resolved font URL -> data URI across captures. Fonts on a page
+  // essentially never change, and a batch run emits multiple captures back to
+  // back — without this we'd refetch + re-base64 every time.
+  const fontDataUriCache = new Map();
+  const SRC_DECLARATION_RE = /src\s*:\s*[^;}]+/i;
+
+  async function fetchAsDataUri(url) {
+    if (fontDataUriCache.has(url)) return fontDataUriCache.get(url);
+    let dataUri = null;
+    try {
+      const response = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (response.ok) {
+        const blob = await response.blob();
+        if (blob.size <= MAX_FONT_BYTES) {
+          dataUri = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () =>
+              resolve(typeof reader.result === "string" ? reader.result : null);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+          });
+        }
+      }
+    } catch (_error) {
+      dataUri = null;
+    }
+    fontDataUriCache.set(url, dataUri);
+    return dataUri;
+  }
+
+  function collectFontFaceRuleTexts() {
+    const rules = [];
+    for (const sheet of document.styleSheets) {
+      let cssRules;
+      try {
+        cssRules = sheet.cssRules;
+      } catch (_error) {
+        continue;
+      }
+      if (!cssRules) continue;
+      for (const rule of cssRules) {
+        const cssText = rule.cssText || "";
+        if (cssText.startsWith("@font-face")) rules.push(cssText);
+      }
+    }
+    return rules;
+  }
+
+  async function buildInlinedFontCss() {
+    const ruleTexts = collectFontFaceRuleTexts();
+    if (ruleTexts.length === 0) return null;
+
+    const resolved = ruleTexts.map((cssText) => {
+      if (!SRC_DECLARATION_RE.test(cssText)) return null;
+      const srcMatch = cssText.match(/src\s*:\s*([^;}]+)[;}]/i);
+      if (!srcMatch) return null;
+      const url = extractFontUrl(srcMatch[1]);
+      if (!url) return null;
+      try {
+        return { cssText, url: new URL(url, document.baseURI).href };
+      } catch (_error) {
+        return null;
+      }
+    });
+
+    const dataUris = await Promise.all(
+      resolved.map((entry) => (entry ? fetchAsDataUri(entry.url) : Promise.resolve(null))),
+    );
+
+    const inlined = [];
+    let totalBytes = 0;
+    for (let index = 0; index < resolved.length; index += 1) {
+      const entry = resolved[index];
+      const dataUri = dataUris[index];
+      if (!entry || !dataUri) continue;
+      const approxBytes = dataUri.length * 0.75;
+      if (totalBytes + approxBytes > MAX_TOTAL_FONT_BYTES) break;
+      totalBytes += approxBytes;
+      inlined.push(entry.cssText.replace(SRC_DECLARATION_RE, `src: url("${dataUri}")`));
+    }
+    return inlined.length > 0 ? inlined.join("\n") : null;
+  }
+
+  function stripExternal(clone) {
+    const images = clone.querySelectorAll("img");
+    for (let index = 0; index < images.length; index += 1) {
+      const src = images[index].getAttribute("src");
+      if (src && !src.startsWith("data:")) images[index].removeAttribute("src");
+    }
+
+    const elements = clone.querySelectorAll("*");
+    for (let index = 0; index < elements.length; index += 1) {
+      const style = elements[index].style.cssText;
+      if (style && style.includes("url(")) {
+        elements[index].style.cssText = style.replace(
+          /url\(["']?(?!data:)[^)"']*["']?\)/gi,
+          "none",
+        );
+      }
+    }
+  }
+
+  function emitScroll() {
+    scrollRaf = 0;
+    if (!scrollForwarding) return;
+    postToTrustedTop({
+      type: "INLINE_EDIT_SCROLL",
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+    });
+  }
+
+  window.addEventListener(
+    "scroll",
+    function () {
+      if (!scrollForwarding || scrollRaf) return;
+      scrollRaf = requestAnimationFrame(emitScroll);
+    },
+    { passive: true, capture: true },
+  );
+
+  async function handleCaptureRequest(event) {
+    const requestId = event.data.requestId;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    function postResult(dataUrl) {
+      postToTrustedTop({
+        type: "INLINE_EDIT_SCREENSHOT_RESULT",
+        requestId,
+        dataUrl,
+        scrollX,
+        scrollY,
+      });
+    }
+
+    try {
+      // Wait for any pending web fonts to resolve so both inline metrics and
+      // the @font-face inlining below see the same loaded faces.
+      if (document.fonts && document.fonts.ready) {
+        try {
+          await document.fonts.ready;
+        } catch (_error) {}
+      }
+
+      const clone = document.documentElement.cloneNode(true);
+      inlineAll(document.documentElement, clone);
+
+      const removedNodes = clone.querySelectorAll("script,link[rel=\"stylesheet\"],style");
+      for (let index = 0; index < removedNodes.length; index += 1) {
+        removedNodes[index].remove();
+      }
+
+      stripExternal(clone);
+
+      // Re-embed web fonts as data-URI @font-face rules so the SVG rasterizer
+      // can resolve them — external font URLs aren't fetched during
+      // foreignObject rendering, which would otherwise force a fallback face
+      // and change text metrics.
+      const inlinedFontCss = await buildInlinedFontCss();
+      if (inlinedFontCss) {
+        const styleEl = document.createElement("style");
+        styleEl.textContent = inlinedFontCss;
+        const head = clone.querySelector("head");
+        if (head) head.appendChild(styleEl);
+        else clone.insertBefore(styleEl, clone.firstChild);
+      }
+
+      const html = new XMLSerializer().serializeToString(clone);
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+        '<foreignObject width="100%" height="100%">' +
+        `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;overflow:hidden">` +
+        `<div style="transform:translate(-${scrollX}px,-${scrollY}px);transform-origin:top left">` +
+        html +
+        "</div></div></foreignObject></svg>";
+      const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      const image = new Image();
+      image.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        postResult(canvas.toDataURL("image/png"));
+      };
+      image.onerror = function () {
+        postResult(null);
+      };
+      image.src = svgUrl;
+    } catch (_error) {
+      postResult(null);
+    }
+  }
+
+  window.addEventListener("message", function (event) {
+    if (!event.data) return;
+    // Only accept messages from the direct parent frame. Blocks sibling /
+    // unrelated-window postMessage senders that could otherwise reach us.
+    if (event.source !== window.parent) return;
+
+    const trustedParentOrigin = getTrustedParentOrigin(event);
+    if (!trustedParentOrigin) return;
+    trustedTopOrigin = trustedParentOrigin;
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_START") {
+      scrollForwarding = true;
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_STOP") {
+      scrollForwarding = false;
+      if (scrollRaf) cancelAnimationFrame(scrollRaf);
+      scrollRaf = 0;
+      return;
+    }
+
+    if (event.data.type !== "INLINE_EDIT_CAPTURE_REQUEST") return;
+
+    handleCaptureRequest(event);
+  });
+})();
+
+
+</script></body>
+</html>
