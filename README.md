@@ -81,3 +81,9 @@ If the private repository already exists and the remote is set, either bootstrap
 # or
 .\scripts\bootstrap-github-rest.ps1 -SeedBacklog
 ```
+
+## AI-Assisted Development Workflow
+
+This repo uses a lightweight AI workflow. Chat Mode is for discussion, learning, brainstorming, and questions without file changes. Plan Mode creates or refines the project specification before implementation. Build Mode implements one approved ticket or vertical slice at a time. Review Mode validates existing work against the specification and acceptance criteria.
+
+Major transitions require user approval. Product code is not considered complete until the relevant tests, type checks, lint checks, builds, and review results have been reported.
