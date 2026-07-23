@@ -190,8 +190,11 @@ function ProfileTable({ project }: { project: Project }) {
   return <div className="profile-table"><div className="profile-head"><span>Profile fact</span><span>Current environment</span><span>Target / required delta</span></div>{project.profileFacts.map((fact) => <div key={fact.label}><b>{fact.label}</b><span>{fact.current}</span><span>{fact.target}</span></div>)}</div>;
 }
 
+const phases = ["Onboarding", "Scope", "Gap Analysis", "Remediation", "Validation", "Reporting"];
+
 function VariantA({ project, framework, onProjectChange }: { project: Project; framework: Framework; onProjectChange: (value: Framework) => void }) {
   const nav = ["Overview", "Profile", "Assessments", "Actions / POA&M", "Evidence", "Risks", "Policies", "Reports"];
+  const activePhase = project.phase === "Gap Analysis" ? 2 : 3;
   return (
     <div className="variant-a">
       <aside className="a-sidebar">
@@ -203,8 +206,32 @@ function VariantA({ project, framework, onProjectChange }: { project: Project; f
       <main className="a-main">
         <Identity project={project} />
         <Metrics project={project} />
+        <div className="a-phase-rail" aria-label="Engagement phases">
+          {phases.map((phase, index) => (
+            <div className={index === activePhase ? "active" : index < activePhase ? "done" : ""} key={phase}>
+              <i>{index < activePhase ? "✓" : index + 1}</i>
+              <span>{phase}</span>
+              <small>{index === activePhase ? "In focus" : index < activePhase ? "Active work remains" : "Available"}</small>
+            </div>
+          ))}
+        </div>
         <div className="a-workspace">
           <section>
+            <div className="a-resume">
+              <div className="a-resume-head">
+                <div><span>Continue where you left off</span><h2>{project.requirements[0].id} — {project.requirements[0].title}</h2></div>
+                <Pill tone="warn">{project.requirements[0].status}</Pill>
+              </div>
+              <div className="a-resume-progress">
+                <div><span>Assessment progress</span><b>{project.metrics[0].value}</b></div>
+                <div className="bar"><i style={{ width: `${project.profile}%` }} /></div>
+              </div>
+              <div className="a-resume-context">
+                <div><span>Implementation</span><b>{project.profileFacts[0].current}</b><small>Target: {project.profileFacts[0].target}</small></div>
+                <div><span>Evidence support</span><b>{project.evidence[0].title}</b><small>{project.evidence[0].mappings}</small></div>
+                <div><span>Linked action</span><b>{project.actions[0].title}</b><small>{project.actions[0].due} · {project.actions[0].kind}</small></div>
+              </div>
+            </div>
             <div className="section-title"><div><span>Priority work</span><h2>Next actions</h2></div><button>View unified queue →</button></div>
             <ActionRows project={project} />
             <div className="section-title tight"><div><span>Active assessment</span><h2>{project.framework === "CMMC" ? "Requirement review" : "Program review"}</h2></div><div className="tabs">{project.frameworkAreas.slice(0, 4).map((area, i) => <button className={i === 1 ? "active" : ""} key={area}>{area}</button>)}</div></div>
@@ -226,8 +253,6 @@ function VariantA({ project, framework, onProjectChange }: { project: Project; f
     </div>
   );
 }
-
-const phases = ["Onboarding", "Scope", "Gap Analysis", "Remediation", "Validation", "Reporting"];
 
 function VariantB({ project, framework, onProjectChange }: { project: Project; framework: Framework; onProjectChange: (value: Framework) => void }) {
   const activePhase = project.phase === "Gap Analysis" ? 2 : 3;

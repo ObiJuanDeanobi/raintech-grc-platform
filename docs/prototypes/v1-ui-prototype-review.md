@@ -39,13 +39,23 @@ project selector.
 
 ## Selection Record
 
-After review, record:
+Initial direction selected by Johnathan:
 
-- selected shell
-- selected assessment workspace
-- selected action model
-- elements borrowed from another variant
-- rejected tradeoffs and why
+- **Base shell:** Variant A, Project Command Center.
+- **Assessment workspace:** retain A's dense requirement list and right-side
+  context inspector.
+- **Overview additions from B:** add a compact engagement-phase rail and a
+  "continue where you left off" panel showing assessment progress,
+  implementation context, evidence support, and the linked action.
+- **Action model:** retain A's project Overview and direct navigation, with the
+  unified queue available as a deliberate secondary destination.
+- **Rejected tradeoff from B:** do not make the entire workspace phase-first;
+  the full phase shell consumes vertical space and can overstate sequentiality.
+- **Rejected tradeoff from C:** do not make the cross-project queue the default
+  home; it weakens project orientation for deep assessment work.
+
+This is an interaction-model decision, not approval to promote prototype code.
+The production shell must be implemented afresh under a production ticket.
 
 Production implementation requires a new approved ticket and a fresh,
 tested implementation rather than promotion of this prototype code.

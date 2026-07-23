@@ -10,8 +10,8 @@ Build
 
 ## Current objective
 
-Compare the three completed V1 project workspace UI variants and select the
-production interaction model.
+Confirm the hybrid A interaction model and use the recorded decision to shape
+the production workspace ticket.
 
 ## Approved specification
 
@@ -31,10 +31,13 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 - Tech-debt and bloat review gates added to delivery workflow.
 - Three read-only V1 project workspace UI variants built and visually verified
   for GitHub issue #20.
+- Initial interaction direction selected: Variant A shell and assessment
+  workspace with Variant B's compact phase rail and work-resumption context on
+  the Overview.
 
 ## In progress
 
-- UI prototype review and interaction-model selection.
+- Final hybrid-A review and production ticket handoff.
 
 ## Blocked
 
@@ -48,5 +51,5 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 
 ## Next recommended action
 
-Review variants A, B, and C, then document the selected shell, assessment
-workspace, and action model before production UI implementation begins.
+Confirm the revised hybrid A, then create an approved production ticket that
+reimplements the selected interaction model without promoting prototype code.
