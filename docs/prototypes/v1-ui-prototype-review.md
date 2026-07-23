@@ -36,8 +36,9 @@ Initial direction selected by Johnathan:
 - **Project schedule:** project end date is required during onboarding/profile
   setup and is surfaced in the client list, selected project identity, and
   global portfolio summary. Dashboard shows Active Projects above Unified
-  Queue with project name, end date, and days remaining. Client pages replace
-  the redundant due-soon metric with a prominent Project Ends metric.
+  Queue as a stacked list with project name, end date, days remaining, and a
+  distinct project-completion percentage. Client pages replace the redundant
+  due-soon metric with a prominent Project Ends metric.
 - **Assessment workspace:** retain A's dense requirement list and right-side
   inspector concept, but move it out of Overview and into a dedicated
   objective-by-objective assessment workspace.

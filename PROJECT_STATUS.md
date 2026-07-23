@@ -52,6 +52,8 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 - Dashboard now places Active Projects above Unified Queue with end dates and
   days remaining; client metric strips emphasize the project end schedule in
   place of redundant due-soon counts.
+- Active Projects now uses a stacked list and shows a separate project
+  completion percentage and progress bar for each engagement.
 
 ## In progress
 

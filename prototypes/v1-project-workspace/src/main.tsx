@@ -14,6 +14,7 @@ type Project = {
   phase: string;
   endDate: string;
   daysRemaining: number;
+  completion: number;
   profile: number;
   frameworkAreas: string[];
   metrics: { label: string; value: string; tone: Tone }[];
@@ -35,6 +36,7 @@ const projects: Record<Framework, Project> = {
     phase: "Gap Analysis",
     endDate: "Dec 18, 2026",
     daysRemaining: 148,
+    completion: 61,
     profile: 72,
     frameworkAreas: ["Scope", "Gap Analysis", "Findings", "Validation", "History"],
     metrics: [
@@ -92,6 +94,7 @@ const projects: Record<Framework, Project> = {
     phase: "Remediation",
     endDate: "Oct 30, 2026",
     daysRemaining: 99,
+    completion: 66,
     profile: 81,
     frameworkAreas: ["Security Rule", "Privacy Rule", "Breach Notification", "Security Risk Analysis"],
     metrics: [
@@ -230,6 +233,10 @@ function PortfolioDashboard({ onOpenClient }: { onOpenClient: (framework: Framew
               <Pill tone="warn">{item.phase}</Pill>
               <div className="project-date"><span>Project end</span><b>{item.endDate}</b></div>
               <div className="project-days"><b>{item.daysRemaining}</b><span>days remaining</span></div>
+              <div className="project-completion">
+                <div><span>Project completed</span><b>{item.completion}%</b></div>
+                <div className="completion-bar"><i style={{ width: `${item.completion}%` }} /></div>
+              </div>
               <em>›</em>
             </button>
           );

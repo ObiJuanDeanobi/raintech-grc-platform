@@ -115,8 +115,8 @@ i.good { background: #3c8d63; } i.warn { background: #d48a33; } i.bad { backgrou
 .portfolio-metrics small { font-size: 8px; }
 .active-projects-heading { margin: 22px 0 9px; }
 .active-projects-heading > span { color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
-.active-projects { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.active-projects > button { min-height: 86px; display: grid; grid-template-columns: minmax(190px, 1fr) auto 118px 86px 10px; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); background: #fff; text-align: left; cursor: pointer; }
+.active-projects { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.active-projects > button { min-height: 86px; display: grid; grid-template-columns: minmax(190px, 1fr) auto 118px 86px minmax(150px, 210px) 10px; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); background: #fff; text-align: left; cursor: pointer; }
 .active-projects > button:hover { background: #f0f5f1; border-color: #9eb5aa; }
 .active-projects > button > div:first-child span { color: var(--muted); font-size: 8px; }
 .active-projects h3 { margin-top: 3px; font-size: 13px; }
@@ -125,6 +125,12 @@ i.good { background: #3c8d63; } i.warn { background: #d48a33; } i.bad { backgrou
 .active-projects .project-date b { font-size: 11px; }
 .active-projects .project-days { align-items: flex-end; padding-left: 11px; border-left: 1px solid var(--line); }
 .active-projects .project-days b { color: #8a4d17; font-size: 21px; line-height: 1; }
+.project-completion { display: flex; flex-direction: column; gap: 7px; padding-left: 12px; border-left: 1px solid var(--line); }
+.project-completion > div:first-child { display: flex; align-items: center; justify-content: space-between; }
+.project-completion span { color: var(--muted); font-size: 8px; text-transform: uppercase; letter-spacing: .06em; }
+.project-completion b { color: #315f50; font-size: 12px; }
+.completion-bar { height: 7px; overflow: hidden; background: #e2e6e0; }
+.completion-bar i { display: block; height: 100%; background: #4f7967; }
 .active-projects em { color: #82908a; font-style: normal; }
 .portfolio-queue-title { margin-top: 24px; }
 .portfolio-queue .row { grid-template-columns: 8px minmax(260px, 1fr) auto auto 54px 10px; }
@@ -206,7 +212,6 @@ i.good { background: #3c8d63; } i.warn { background: #d48a33; } i.bad { backgrou
 
 @media (max-width: 1300px) {
   .objective-workspace { grid-template-columns: 240px minmax(400px, 1fr) 330px; }
-  .active-projects { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 1250px) {
