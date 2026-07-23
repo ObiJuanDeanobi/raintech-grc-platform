@@ -58,9 +58,13 @@ Initial direction selected by Johnathan:
 - **Global utility context:** add a compact top bar for notifications and the
   signed-in user without competing with project identity.
 - **Assessment interaction:** selecting `Assessments` opens an objective
-  navigator, the current objective's determination and evidence workspace, and
-  a contextual inspector with requirement text, what to determine,
-  implementation guidance, expected evidence, and linked work.
+  navigator, a central decision surface with requirement text, what to
+  determine, implementation guidance, expected evidence, linked work, and the
+  determination state, plus a right-side working record containing the
+  implementation statement, mapped evidence, and assessment notes.
+- **Overview visualization:** do not add a separate chart section. The existing
+  metrics and progress treatment provide sufficient orientation; the unified
+  queue expands with realistic evidence, risk, and report-blocker work instead.
 - **Rejected tradeoff from B:** do not make the entire workspace phase-first;
   the full phase shell consumes vertical space and can overstate sequentiality.
 - **Rejected tradeoff from C:** do not make the cross-project queue the default

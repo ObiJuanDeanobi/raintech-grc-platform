@@ -47,6 +47,9 @@ const projects: Record<Framework, Project> = {
       { kind: "Evidence request", title: "Obtain quarterly access review export", context: "AC.L2-3.1.5 · waiting on IT lead", due: "Jul 25", tone: "warn" },
       { kind: "POA&M", title: "Disable unmanaged USB storage", context: "MP.L2-3.8.7 · remediation owner assigned", due: "Jul 29", tone: "warn" },
       { kind: "Recurring review", title: "Review CUI enclave boundary inventory", context: "Scope profile · annual review", due: "Aug 02", tone: "neutral" },
+      { kind: "Evidence validation", title: "Validate CUI data flow workshop notes", context: "AC.L2-3.1.3 · confirm approved paths", due: "Aug 04", tone: "warn" },
+      { kind: "Risk treatment", title: "Reduce removable media residual risk", context: "RISK-007 · Operations owner", due: "Aug 06", tone: "bad" },
+      { kind: "Report blocker", title: "Resolve unreviewed CMMC requirements", context: "Gap & Score Report · 43 requirements remain", due: "Aug 08", tone: "neutral" },
     ],
     requirements: [
       { id: "AC.L2-3.1.3", title: "Control CUI flow in accordance with authorizations", status: "Pending", evidence: "3 mapped", finding: "1 open" },
@@ -100,6 +103,9 @@ const projects: Record<Framework, Project> = {
       { kind: "Scope check", title: "Validate outreach tablet ePHI access", context: "SRA scope · one system unresolved", due: "Jul 24", tone: "bad" },
       { kind: "Evidence request", title: "Obtain BAA register from procurement", context: "Privacy · shared evidence request", due: "Jul 28", tone: "warn" },
       { kind: "Recurring review", title: "Review breach response contact tree", context: "Breach Notification · semiannual", due: "Aug 05", tone: "neutral" },
+      { kind: "Evidence validation", title: "Confirm outreach tablet encryption state", context: "SRA evidence · Clinical Operations", due: "Aug 06", tone: "warn" },
+      { kind: "Risk treatment", title: "Reduce offline ePHI exposure", context: "RISK-003 · residual risk remains High", due: "Aug 08", tone: "bad" },
+      { kind: "Report blocker", title: "Resolve incomplete SRA system scope", context: "HIPAA Security Risk Analysis · 1 system remains", due: "Aug 11", tone: "neutral" },
     ],
     requirements: [
       { id: "164.308(a)(1)(ii)(A)", title: "Conduct an accurate and thorough risk analysis", status: "Pending", evidence: "5 mapped", finding: "SRA incomplete" },
@@ -334,7 +340,7 @@ function VariantA({ project, framework, onProjectChange }: { project: Project; f
                 <div><span>All actionable project work</span><h2>Unified queue</h2></div>
                 <div className="queue-summary"><b>{project.actions.length} open</b><span>Sorted by priority and due date</span></div>
               </div>
-              <ActionRows project={project} />
+              <ActionRows project={project} limit={project.actions.length} />
             </div>
           </>
         ) : (
@@ -358,11 +364,34 @@ function VariantA({ project, framework, onProjectChange }: { project: Project; f
                   <div><span>{project.framework === "CMMC" ? "Current objective" : "Current assessment check"}</span><code>{objective.id}</code><h2>{objective.title}</h2></div>
                   <Pill tone={objective.status === "Met" ? "good" : objective.status === "Not Met" ? "bad" : "warn"}>{objective.status}</Pill>
                 </div>
+                <div className="objective-context-block">
+                  <span className="inspector-label">Requirement</span>
+                  <h3>{objective.requirement}</h3>
+                </div>
+                <div className="objective-context-block">
+                  <span className="inspector-label">What to determine</span>
+                  <p>{objective.check}</p>
+                </div>
                 <div className="assessment-field">
                   <span>Assessor determination</span>
                   <div className="status-options">{["Blank", "Met", "Not Met", "Pending"].map(status => <button className={status === objective.status ? "active" : ""} key={status}>{status}</button>)}</div>
                 </div>
-                <div className="assessment-field">
+                <div className="objective-context-block">
+                  <span className="inspector-label">Implementation guidance</span>
+                  <p>{objective.guidance}</p>
+                </div>
+                <div className="objective-context-block">
+                  <span className="inspector-label">Expected evidence</span>
+                  <p>{objective.evidence}</p>
+                </div>
+                <div className="objective-context-block">
+                  <span className="inspector-label">Linked work</span>
+                  <div className="inspector-linked"><b>{project.actions[selectedObjective % project.actions.length].title}</b><small>{project.actions[selectedObjective % project.actions.length].kind} · {project.actions[selectedObjective % project.actions.length].due}</small></div>
+                </div>
+              </section>
+              <aside className="assessment-record">
+                <div className="inspector-head"><span>Assessment record</span><Pill tone="neutral">Working context</Pill></div>
+                <div className="assessment-field first">
                   <span>Implementation statement</span>
                   <p>{project.framework === "CMMC" ? project.profileFacts[0].current + ". Approved flow enforcement remains under validation against the target boundary." : project.profileFacts[0].current + ". Scope cannot be concluded until the unresolved system is included or excluded with rationale."}</p>
                 </div>
@@ -374,19 +403,6 @@ function VariantA({ project, framework, onProjectChange }: { project: Project; f
                   <span>Assessment notes</span>
                   <p className="placeholder-note">Read-only prototype · interview notes, test results, and assessor rationale would be captured here.</p>
                 </div>
-              </section>
-              <aside className="objective-inspector">
-                <div className="inspector-head"><span>Objective context</span><Pill tone="neutral">Guidance</Pill></div>
-                <span className="inspector-label">Requirement</span>
-                <h3>{objective.requirement}</h3>
-                <span className="inspector-label">What to determine</span>
-                <p>{objective.check}</p>
-                <span className="inspector-label">Implementation guidance</span>
-                <p>{objective.guidance}</p>
-                <span className="inspector-label">Expected evidence</span>
-                <p>{objective.evidence}</p>
-                <span className="inspector-label">Linked work</span>
-                <div className="inspector-linked"><b>{project.actions[selectedObjective % project.actions.length].title}</b><small>{project.actions[selectedObjective % project.actions.length].kind} · {project.actions[selectedObjective % project.actions.length].due}</small></div>
               </aside>
             </div>
           </div>

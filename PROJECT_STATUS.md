@@ -40,6 +40,9 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 - Unified actionable work now follows the Overview directly, with redundant
   evidence/risk/report summaries removed and compact notification/user context
   added above the project identity.
+- Overview remains chart-free and uses the available space for a fuller unified
+  queue; Assessments now centers decision guidance and places implementation,
+  evidence, and notes in the right-side working record.
 
 ## In progress
 
