@@ -1,65 +1,188 @@
 # Project Operating Model
 
+## Product Spine
+
+```text
+Client -> Project -> Profile -> Assessment -> Continuous Remediation
+       -> Evidence -> Reports/Documents
+```
+
+The project is the engagement boundary. A client can have multiple projects,
+such as `CMMC Level 2 2026` and `HIPAA 2026`, without forcing those efforts to
+share scope or conclusions.
+
 ## Core Data Objects
 
-These concepts should remain explicit in the code and issue tracker:
+- `UserAccount`: stable identity used for attribution and approvals.
+- `Client`: organization-level identity and contact information.
+- `Project`: framework effort, lifecycle, dates, and ownership.
+- `ProjectProfile`: progressive current state, target state, and deltas.
+- `ProfileSnapshot`: immutable profile state used by issued outputs.
+- `FrameworkVersion`: pinned CMMC or HIPAA catalog release.
+- `Assessment`: framework-specific scope, lifecycle, and revision chain.
+- `AssessmentResult`: requirement or objective status, notes, and validation.
+- `Finding`: a gap discovered through assessment or evidence work.
+- `POAMItem`: continuous CMMC remediation record linked to findings.
+- `ActionItem`: task, evidence request, corrective action, or validation work.
+- `EvidenceArtifact`: logical evidence record.
+- `EvidenceVersion`: immutable captured or replaced file version.
+- `EvidenceMapping`: contextual link and support rationale.
+- `Risk`: threat, vulnerability, safeguards, inherent risk, and residual risk.
+- `Quote`: versioned estimate inputs, rules, range, and presentation.
+- `Template`: governed document structure and named fields.
+- `Policy`: governed content and review lifecycle.
+- `GeneratedDocument`: editable output linked to its source versions.
+- `Report`: previewable and reproducible project output.
+- `ReviewSchedule`: recurrence, due date, lead time, and next occurrence.
+- `ReviewEvent`: completed review, including no-change outcomes.
+- `AuditEvent`: actor, timestamp, action, and changed-record reference.
+- `BackupRecord`: backup type, destination, integrity result, and retention state.
 
-- Customer
-- InitialProfile
-- ImplementationProfile
-- ReadinessScore
-- QuoteRecommendation
-- GapAssessment
-- ControlObjectiveResult
-- EvidenceItem
-- EvidenceMapping
-- POAMItem
-- Report
-- GeneratedDocument
+## Progressive Project Profile
 
-## Initial Profile vs Implementation Profile
+The onboarding questionnaire creates the first version of the project profile.
+The same profile becomes more complete during scoping, gap analysis, evidence
+capture, and remediation.
 
-The V1 intake creates an InitialProfile. It is allowed to be incomplete because it supports sales scoping, readiness scoring, and quoting.
+Profile information is separated into:
 
-The V2 gap analysis enriches the profile into an ImplementationProfile. This is the authoritative environment profile used for SSPs, policies, procedures, diagrams, evidence guidance, and later automation.
+- Current environment: what exists and is verified now.
+- Target environment: the approved intended implementation.
+- Implementation deltas: remediation required to reach the target.
+- Unknowns: material facts that still require validation.
+
+Issued assessments and reports use immutable profile snapshots. The live project
+profile continues evolving without rewriting historical conclusions.
+
+## Assessment and Continuous Work
+
+An assessment is a time-bound, framework-version-pinned snapshot. Findings,
+POA&M items, risks, and recurring reviews are project-level records that may
+continue across multiple assessments.
+
+Reassessment copies prior answers and references as `Needs Revalidation`.
+Prior issued assessments remain unchanged, and open remediation is referenced
+rather than duplicated.
+
+## Shared Engines and Framework Boundaries
+
+CMMC and HIPAA share:
+
+- evidence lifecycle
+- 5x5 risk calculations
+- action queue
+- recurring reviews
+- audit history
+- reports and document governance
+
+They retain separate framework catalogs, statuses, guidance, completeness rules,
+and conclusions. Cross-framework mappings are deferred to V2.
 
 ## Question Justification Rule
 
-Every customer-facing intake question must support at least one of:
+Every intake or profile question must drive at least one of:
 
-- readiness score
-- quote range
-- recommended implementation path
-- implementation profile
-- evidence capture guidance
-- SSP/policy/procedure/diagram generation
+- scope or applicability
+- CMMC quote range or implementation path
+- assessment guidance
+- evidence guidance
+- risk analysis
+- remediation
+- report content
+- policy or document generation
+- future automation
 
-Questions that do not support one of those outcomes should be removed.
+Questions without a downstream decision or output are removed.
+
+## Evidence Rule
+
+An evidence file is stored once and versioned. Each use is represented by a
+mapping with its own support rationale and review state. Reuse does not
+automatically satisfy a requirement.
+
+`Met` requires mapped evidence or a documented interview/observation record.
+Stale evidence creates review work but does not automatically change the
+assessment result.
+
+## Work Queue Rule
+
+Findings, risks, POA&M items, evidence requests, and tasks remain distinct
+records. A unified action queue projects them into one prioritized working view.
+
+Items requiring validation move to `Ready for Validation`; they do not close
+automatically.
+
+## Versioning Rule
+
+- Issued assessments and reports are immutable.
+- Corrections create revisions.
+- Changed policies or evidence create new versions.
+- No-change reviews create review events without new content versions.
+- Same-framework catalog updates create a delta and controlled migration.
 
 ## Vertical Slice Rule
 
-Prefer complete, testable workflows over disconnected screens. The first complete slice is:
+Build complete workflows instead of disconnected modules. Each slice must:
 
-```text
-Create customer -> complete initial profile -> calculate score and quote -> save record -> view summary
-```
+- begin from an existing client/project context
+- persist typed data
+- expose the next useful action
+- produce an observable result or output
+- include audit attribution
+- include applicable tests and recovery behavior
 
-Future slices should attach to this flow instead of creating separate mini-apps.
+## Bloat and Tech-Debt Gates
+
+Every production ticket passes four lightweight gates:
+
+1. **Ticket gate:** explain why the capability is needed now, what is explicitly
+   deferred, and the simplest acceptable implementation.
+2. **Design gate:** add an abstraction only for a demonstrated requirement or a
+   second real use case; do not build generic engines for imagined needs.
+3. **Review gate:** check for speculative configurability, unnecessary
+   dependencies, duplicate lifecycle logic, scope creep, and premature migration
+   complexity.
+4. **Milestone gate:** remove dead paths, revisit accepted debt, and verify that
+   deferred work has not quietly entered the release.
+
+Accepted debt must have a concrete reason and revisit point. Track it as a
+GitHub issue labeled `tech-debt`; do not maintain a second speculative backlog.
+
+The following are V1-late enhancements and do not block initial operational use:
+
+- evidence compression and advanced deduplication
+- automatic framework-version migration
+- generalized report or template designers
+- background schedulers or notification services
+- generalized plugin, cloud, or RBAC frameworks
 
 ## Issue Acceptance Criteria
 
-Each GitHub issue should include:
+Each implementation issue must include:
 
-- outcome
+- user outcome
+- specification requirements covered
 - data objects touched
+- explicit non-goals
+- why the work is required now
+- simplest acceptable implementation
+- abstractions and dependencies introduced
+- accepted debt and revisit point
 - acceptance criteria
-- verification steps
-- screenshots required when UI changes
+- verification commands
+- screenshots for UI changes
+- migration or fixture impact
 
 ## Verification Defaults
 
-For the current local app foundation, keep these checks handy:
+Each production slice must run applicable:
 
-- `python -m pytest -q`
-- seed counts: 14 domains, 110 requirements, 320 objectives
-- live checks for `/`, `/objectives`, `/evidence`, `/reports/completion`, and `/exports/zip`
+- unit and integration tests
+- TypeScript type checking
+- Python type/static checks selected during foundation work
+- linting
+- production frontend build
+- local API and browser smoke tests
+- ARM64/x64 compatibility review
+
+Framework fixture checks must verify the expected catalog counts and stable IDs.

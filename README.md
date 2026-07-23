@@ -1,86 +1,64 @@
-# RainTech CMMC GRC Platform
+# RainTech GRC Platform
 
-Local-first CMMC Level 2 GRC platform for RainTech internal delivery work.
+Fresh-start local-first platform for RainTech internal CMMC Level 2 and HIPAA
+delivery work.
+
+## Current Status
+
+The new platform is in specification and UI-prototype planning. Existing
+application code is legacy reference material and is not the approved
+production direction.
 
 ## Direction
 
 The rebuild follows this product spine:
 
 ```text
-Profile -> Scope/Quote -> Gap Analysis -> Evidence -> Reports -> Documents
+Client -> Project -> Profile -> Assessment -> Continuous Remediation
+       -> Evidence -> Reports/Documents
 ```
 
-The customer profile is progressive:
-
-- V1 creates an initial scoping profile for readiness and quote.
-- V2 gap analysis enriches it into the final implementation profile.
-- V5 document generation uses the final implementation profile.
+- V1 supports CMMC Level 2 and a full HIPAA program.
+- The project is the engagement boundary.
+- The project profile begins during onboarding and matures throughout delivery.
+- Issued assessments are immutable snapshots; remediation continues across them.
+- Hosted access, RBAC, public intake, crosswalking, and automation are deferred.
 
 See [ROADMAP.md](ROADMAP.md) and [docs/PROJECT_OPERATING_MODEL.md](docs/PROJECT_OPERATING_MODEL.md) before adding new product surface area.
 
-The original evidence tracker is still available, and the new platform adds:
+The approved specification draft is [docs/specification.md](docs/specification.md).
+The planned UI comparison is
+[docs/prototypes/v1-ui-prototype-brief.md](docs/prototypes/v1-ui-prototype-brief.md).
 
-- customer implementation profiles
-- readiness score and quote records
-- CMMC Level 2 assessment workspaces
-- objective status, notes, POA&M items, and tailored evidence guidance
-- manual evidence upload, reuse, and mapping to objectives
-- generated SSP/policy/procedure/diagram drafts from templates
-- evidence capture, POA&M, and client-ready ZIP exports
+## Repository Map
 
-## Quick Start
+```text
+.agents/             Repository-scoped AI development skills
+.github/             Active issue and pull-request templates
+docs/                Current specification, operating model, ADRs, and briefs
+legacy/              Superseded application, prototypes, and setup artifacts
+data/                Legacy local database/evidence (ignored; do not delete)
+exports/             Legacy generated exports (ignored)
+PROJECT_STATUS.md    Current phase, objective, risks, and next action
+ROADMAP.md           Approved product sequencing
+```
+
+The future production application will receive its own clearly named source
+folders after the specification and prototype are approved.
+
+## Legacy Reference App
+
+The prior FastAPI tracker remains available under `legacy/evidence-tracker/`.
+It is reference material, not the production foundation.
 
 ```powershell
-.\run.ps1
+powershell -ExecutionPolicy Bypass -File ".\legacy\evidence-tracker\run.ps1" -Port 8010
 ```
 
 Then open:
 
-- GRC Platform: http://127.0.0.1:8000/platform
-- Legacy evidence tracker: http://127.0.0.1:8000
-
-If port 8000 is already in use:
-
-```powershell
-.\run.ps1 -Port 8010
-```
-
-The app stores its working database and evidence files under `data/`, which is intentionally ignored by Git.
-
-## GitHub Setup
-
-This repository includes GitHub issue templates and backlog seed files under `.github/`.
-
-If GitHub CLI is available:
-
-```powershell
-gh auth login
-.\scripts\bootstrap-github.ps1 -CreateRepo -Push -SeedBacklog
-```
-
-If GitHub CLI is not available, create a GitHub token with private repo access and use the REST bootstrap script:
-
-```powershell
-.\scripts\bootstrap-github-rest.ps1 -CreateRepo -Push -SeedBacklog
-```
-
-See [docs/GITHUB_NO_CLI_SETUP.md](docs/GITHUB_NO_CLI_SETUP.md) for the no-install setup path.
-
-The REST script prompts for the token and does not write it to disk. You can also set it temporarily for the current PowerShell session:
-
-```powershell
-$env:GITHUB_TOKEN = "paste-token-here"
-.\scripts\bootstrap-github-rest.ps1 -CreateRepo -Push -SeedBacklog
-Remove-Item Env:\GITHUB_TOKEN
-```
-
-If the private repository already exists and the remote is set, either bootstrap script can seed the backlog:
-
-```powershell
-.\scripts\bootstrap-github.ps1 -SeedBacklog
-# or
-.\scripts\bootstrap-github-rest.ps1 -SeedBacklog
-```
+- Legacy platform shell: http://127.0.0.1:8010/platform
+- Legacy evidence tracker: http://127.0.0.1:8010
 
 ## AI-Assisted Development Workflow
 
