@@ -18,7 +18,7 @@ Create the prototype ticket and build the three approved UI variants.
 
 ## Active ticket
 
-None.
+GitHub issue #20: Prototype V1 project workspace UI variants.
 
 ## Completed
 
@@ -31,7 +31,7 @@ None.
 
 ## In progress
 
-- Planning-package cleanup and prototype ticket preparation.
+- UI prototype handoff.
 
 ## Blocked
 
@@ -45,5 +45,5 @@ None.
 
 ## Next recommended action
 
-Commit the approved planning package, create the prototype ticket, and build the
-three throwaway UI variants.
+Start a fresh Codex task for GitHub issue #20 and build the three throwaway UI
+variants from `docs/prototypes/v1-ui-prototype-brief.md`.
