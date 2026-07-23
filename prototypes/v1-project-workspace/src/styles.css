@@ -53,6 +53,9 @@ code { font-family: "Cascadia Mono", Consolas, monospace; color: #2d5d4d; font-s
 .metric-strip > div { min-height: 65px; padding: 12px 18px; border-right: 1px solid var(--line); position: relative; display: flex; flex-direction: column; gap: 5px; }
 .metric-strip span { font-size: 10px; color: var(--muted); }
 .metric-strip b { font-size: 18px; letter-spacing: -.03em; }
+.metric-strip small { font-size: 8px; }
+.metric-strip .schedule-metric { gap: 3px; background: #f7f1e7; box-shadow: inset 3px 0 #d08a37; }
+.metric-strip .schedule-metric b { color: #75471f; }
 .metric-strip i { position: absolute; top: 15px; right: 16px; width: 7px; height: 7px; border-radius: 50%; }
 i.good { background: #3c8d63; } i.warn { background: #d48a33; } i.bad { background: #bd5545; } i.neutral { background: #718995; }
 
@@ -110,7 +113,20 @@ i.good { background: #3c8d63; } i.warn { background: #d48a33; } i.bad { backgrou
 .portfolio-metrics span { color: var(--muted); font-size: 9px; }
 .portfolio-metrics b { font-size: 20px; }
 .portfolio-metrics small { font-size: 8px; }
-.portfolio-queue-title { margin-top: 22px; }
+.active-projects-heading { margin: 22px 0 9px; }
+.active-projects-heading > span { color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.active-projects { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.active-projects > button { min-height: 86px; display: grid; grid-template-columns: minmax(190px, 1fr) auto 118px 86px 10px; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); background: #fff; text-align: left; cursor: pointer; }
+.active-projects > button:hover { background: #f0f5f1; border-color: #9eb5aa; }
+.active-projects > button > div:first-child span { color: var(--muted); font-size: 8px; }
+.active-projects h3 { margin-top: 3px; font-size: 13px; }
+.active-projects .project-date, .active-projects .project-days { display: flex; flex-direction: column; gap: 3px; }
+.active-projects .project-date span, .active-projects .project-days span { color: var(--muted); font-size: 8px; text-transform: uppercase; letter-spacing: .06em; }
+.active-projects .project-date b { font-size: 11px; }
+.active-projects .project-days { align-items: flex-end; padding-left: 11px; border-left: 1px solid var(--line); }
+.active-projects .project-days b { color: #8a4d17; font-size: 21px; line-height: 1; }
+.active-projects em { color: #82908a; font-style: normal; }
+.portfolio-queue-title { margin-top: 24px; }
 .portfolio-queue .row { grid-template-columns: 8px minmax(260px, 1fr) auto auto 54px 10px; }
 .a-phase-rail { display: grid; grid-template-columns: repeat(6, 1fr); padding: 11px 24px; border-bottom: 1px solid var(--line); background: #eef1eb; }
 .a-phase-rail > div { position: relative; min-height: 43px; display: grid; grid-template-columns: 26px 1fr; grid-template-rows: 21px 16px; text-align: left; color: #707a76; }
@@ -190,6 +206,7 @@ i.good { background: #3c8d63; } i.warn { background: #d48a33; } i.bad { backgrou
 
 @media (max-width: 1300px) {
   .objective-workspace { grid-template-columns: 240px minmax(400px, 1fr) 330px; }
+  .active-projects { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 1250px) {

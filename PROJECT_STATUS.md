@@ -49,6 +49,9 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
   switcher were removed.
 - Project end date is now modeled as an onboarding/profile field and surfaced
   in client selection, project identity, and global portfolio orientation.
+- Dashboard now places Active Projects above Unified Queue with end dates and
+  days remaining; client metric strips emphasize the project end schedule in
+  place of redundant due-soon counts.
 
 ## In progress
 

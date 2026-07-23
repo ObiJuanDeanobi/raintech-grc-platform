@@ -35,7 +35,9 @@ Initial direction selected by Johnathan:
   client Overview owns a Client Queue.
 - **Project schedule:** project end date is required during onboarding/profile
   setup and is surfaced in the client list, selected project identity, and
-  global portfolio summary.
+  global portfolio summary. Dashboard shows Active Projects above Unified
+  Queue with project name, end date, and days remaining. Client pages replace
+  the redundant due-soon metric with a prominent Project Ends metric.
 - **Assessment workspace:** retain A's dense requirement list and right-side
   inspector concept, but move it out of Overview and into a dedicated
   objective-by-objective assessment workspace.
@@ -50,7 +52,8 @@ Initial direction selected by Johnathan:
   report blockers enter that queue rather than appearing in a separate summary
   strip.
 - **Global utility context:** add a compact top bar for notifications and the
-  signed-in user without competing with project identity.
+  signed-in user without competing with project identity; do not duplicate the
+  signed-in name in each project header.
 - **Assessment interaction:** selecting `Assessments` opens an objective
   navigator, a central decision surface with requirement text, what to
   determine, implementation guidance, expected evidence, linked work, and the

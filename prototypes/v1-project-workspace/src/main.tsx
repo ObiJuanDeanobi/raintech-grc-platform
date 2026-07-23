@@ -12,8 +12,8 @@ type Project = {
   project: string;
   assessment: string;
   phase: string;
-  owner: string;
   endDate: string;
+  daysRemaining: number;
   profile: number;
   frameworkAreas: string[];
   metrics: { label: string; value: string; tone: Tone }[];
@@ -33,8 +33,8 @@ const projects: Record<Framework, Project> = {
     project: "CMMC Level 2 2026",
     assessment: "CMMC 2.0 Level 2 · Draft 01",
     phase: "Gap Analysis",
-    owner: "Johnathan · RainTech",
     endDate: "Dec 18, 2026",
+    daysRemaining: 148,
     profile: 72,
     frameworkAreas: ["Scope", "Gap Analysis", "Findings", "Validation", "History"],
     metrics: [
@@ -90,8 +90,8 @@ const projects: Record<Framework, Project> = {
     project: "HIPAA 2026",
     assessment: "HIPAA Program Review · Draft 02",
     phase: "Remediation",
-    owner: "Johnathan · RainTech",
     endDate: "Oct 30, 2026",
+    daysRemaining: 99,
     profile: 81,
     frameworkAreas: ["Security Rule", "Privacy Rule", "Breach Notification", "Security Risk Analysis"],
     metrics: [
@@ -171,7 +171,6 @@ function Identity({ project }: { project: Project }) {
         <Pill tone="warn">{project.phase}</Pill>
         <span>{project.assessment}</span>
         <span>Ends {project.endDate}</span>
-        <span>{project.owner}</span>
       </div>
     </div>
   );
@@ -194,7 +193,11 @@ function UtilityBar() {
 }
 
 function Metrics({ project }: { project: Project }) {
-  return <div className="metric-strip">{project.metrics.map((metric) => <div key={metric.label}><span>{metric.label}</span><b>{metric.value}</b><i className={metric.tone} /></div>)}</div>;
+  const metrics = [
+    ...project.metrics.slice(0, 3),
+    { label: "Project ends", value: project.endDate, tone: "warn" as Tone, detail: `${project.daysRemaining} days remaining` },
+  ];
+  return <div className="metric-strip">{metrics.map((metric) => <div className={"detail" in metric ? "schedule-metric" : ""} key={metric.label}><span>{metric.label}</span><b>{metric.value}</b>{"detail" in metric && <small>{metric.detail}</small>}<i className={metric.tone} /></div>)}</div>;
 }
 
 function ActionRows({ project, limit = 4 }: { project: Project; limit?: number }) {
@@ -212,10 +215,25 @@ function PortfolioDashboard({ onOpenClient }: { onOpenClient: (framework: Framew
         <Pill tone="neutral">Internal workspace</Pill>
       </header>
       <div className="portfolio-metrics">
-        <div><span>Active clients</span><b>2</b><small>Next project end · Oct 30, 2026</small></div>
+        <div><span>Active clients</span><b>2</b><small>CMMC and HIPAA engagements</small></div>
         <div><span>Open work</span><b>{actions.length}</b><small>Across all client queues</small></div>
         <div><span>Due today</span><b>2</b><small>Both require validation</small></div>
         <div><span>High priority</span><b>4</b><small>Corrective action or risk treatment</small></div>
+      </div>
+      <div className="active-projects-heading"><span>Current delivery schedule</span><h2>Active projects</h2></div>
+      <div className="active-projects">
+        {(Object.keys(projects) as Framework[]).map((framework) => {
+          const item = projects[framework];
+          return (
+            <button key={framework} onClick={() => onOpenClient(framework)}>
+              <div><span>{item.client}</span><h3>{item.project}</h3></div>
+              <Pill tone="warn">{item.phase}</Pill>
+              <div className="project-date"><span>Project end</span><b>{item.endDate}</b></div>
+              <div className="project-days"><b>{item.daysRemaining}</b><span>days remaining</span></div>
+              <em>›</em>
+            </button>
+          );
+        })}
       </div>
       <div className="section-title portfolio-queue-title">
         <div><span>Every client</span><h2>Unified queue</h2></div>
