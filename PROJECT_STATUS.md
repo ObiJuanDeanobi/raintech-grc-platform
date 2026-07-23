@@ -2,15 +2,16 @@
 
 ## Current phase
 
-Planning
+Prototype review
 
 ## Current mode
 
-Plan
+Build
 
 ## Current objective
 
-Create the prototype ticket and build the three approved UI variants.
+Compare the three completed V1 project workspace UI variants and select the
+production interaction model.
 
 ## Approved specification
 
@@ -28,10 +29,12 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 - Specification, roadmap, and prototype brief approved.
 - Legacy application and obsolete backlog moved under `legacy/`.
 - Tech-debt and bloat review gates added to delivery workflow.
+- Three read-only V1 project workspace UI variants built and visually verified
+  for GitHub issue #20.
 
 ## In progress
 
-- UI prototype handoff.
+- UI prototype review and interaction-model selection.
 
 ## Blocked
 
@@ -45,5 +48,5 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 
 ## Next recommended action
 
-Start a fresh Codex task for GitHub issue #20 and build the three throwaway UI
-variants from `docs/prototypes/v1-ui-prototype-brief.md`.
+Review variants A, B, and C, then document the selected shell, assessment
+workspace, and action model before production UI implementation begins.
