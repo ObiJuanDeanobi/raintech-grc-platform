@@ -1,6 +1,6 @@
 # Domain Docs
 
-This is a single-context repository for the RainTech CMMC GRC platform.
+This is a single-context repository for the RainTech GRC platform.
 
 Before software delivery work, read:
 
@@ -12,11 +12,14 @@ Before software delivery work, read:
 
 ## Domain Direction
 
-- CMMC Level 2 is the only compliance framework in scope until V1-V5 are solid.
-- The product spine is: `Profile -> Scope/Quote -> Gap Analysis -> Evidence -> Reports -> Documents`.
-- The customer profile is progressive:
-  - `InitialProfile` supports intake, readiness scoring, and quoting.
-  - `ImplementationProfile` is enriched during gap analysis and drives documents/reports.
+- CMMC Level 2 and a full HIPAA program are both in V1.
+- The product spine is:
+  `Client -> Project -> Profile -> Assessment -> Continuous Remediation -> Evidence -> Reports/Documents`.
+- The project is the engagement boundary.
+- The project profile begins during onboarding and matures during assessment,
+  evidence, and remediation work.
+- Issued assessments and reports use immutable profile snapshots.
+- Remediation and recurring reviews continue at project level across assessments.
 - Build vertical slices instead of broad disconnected dashboards.
 
 ## Existing Decision Location

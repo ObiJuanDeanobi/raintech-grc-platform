@@ -28,4 +28,13 @@ Tickets should be vertical slices with:
 - verification steps
 - screenshots required when UI changes
 
-Use the existing GitHub milestones and labels seeded under `.github/backlog/`.
+The original seed backlog was superseded by the fresh-start specification and
+is preserved under `legacy/github-bootstrap-v0/backlog/`.
+
+Do not seed or create a replacement implementation backlog until the user
+approves `docs/specification.md`. After approval, create tickets as vertical
+slices from the current roadmap and acceptance criteria.
+
+Every feature ticket must include the scope and bloat check defined in
+`docs/agents/tech-debt-gates.md`. Accepted debt is tracked in GitHub with the
+`tech-debt` label, a reason, and a revisit point.

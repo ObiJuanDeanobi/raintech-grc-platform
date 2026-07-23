@@ -18,6 +18,21 @@ body:
     validations:
       required: true
   - type: textarea
+    id: scope
+    attributes:
+      label: Scope and Bloat Check
+      description: Explain why this is needed now and keep the implementation deliberately small.
+      value: |
+        Why now:
+
+        Simplest acceptable implementation:
+
+        Explicitly deferred:
+
+        New abstraction or dependency, if any:
+    validations:
+      required: true
+  - type: textarea
     id: acceptance
     attributes:
       label: Acceptance Criteria
@@ -42,4 +57,4 @@ body:
     id: notes
     attributes:
       label: Notes
-      description: Decisions, assumptions, or follow-up risks.
+      description: Decisions, assumptions, follow-up risks, or accepted debt with its revisit point.
