@@ -102,8 +102,7 @@ i.good { background: #3c8d63; } i.warn { background: #d48a33; } i.bad { backgrou
 .a-phase-rail > div.done i { background: #bad5c5; color: #285b45; }
 .a-phase-rail > div.active { color: #7c431e; }
 .a-phase-rail > div.active i { background: #b9642e; color: white; box-shadow: 0 0 0 3px #ead5c6; }
-.a-workspace { display: grid; grid-template-columns: minmax(600px, 1fr) 270px; gap: 0; max-width: 1380px; margin: auto; background: var(--paper); min-height: calc(100vh - 214px); }
-.a-workspace > section { padding: 0 22px 100px; min-width: 0; border-right: 1px solid var(--line); }
+.a-overview { max-width: 1180px; margin: auto; padding: 0 22px 100px; }
 .a-resume { margin-top: 18px; border-top: 2px solid #9a6540; border-bottom: 1px solid var(--line); }
 .a-resume-head { min-height: 53px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .a-resume-head > div { min-width: 0; }
@@ -118,6 +117,50 @@ i.good { background: #3c8d63; } i.warn { background: #d48a33; } i.bad { backgrou
 .a-resume-context span { color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
 .a-resume-context b { font-size: 10px; line-height: 1.35; }
 .a-resume-context small { font-size: 8px; line-height: 1.35; }
+.overview-registers { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 18px; border-block: 1px solid var(--line); }
+.overview-registers > div { min-height: 88px; padding: 12px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 5px; }
+.overview-registers > div:last-child { border-right: 0; }
+.overview-registers span, .assessment-field > span, .inspector-label { color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.overview-registers b { font-size: 10px; line-height: 1.35; }
+.overview-registers small { font-size: 9px; line-height: 1.35; }
+.assessment-view { min-height: calc(100vh - 82px); background: #f5f7f3; }
+.assessment-view-tabs { min-height: 47px; display: flex; align-items: end; gap: 4px; padding: 0 20px; background: #fff; border-bottom: 1px solid var(--line); }
+.assessment-view-tabs button { padding: 14px 11px 11px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); font-size: 10px; font-weight: 700; cursor: pointer; }
+.assessment-view-tabs button.active { color: var(--forest); border-bottom-color: var(--forest); }
+.objective-workspace { display: grid; grid-template-columns: 290px minmax(480px, 1fr) 315px; min-height: calc(100vh - 129px); max-width: 1440px; margin: auto; }
+.objective-nav { background: #eef1ed; border-right: 1px solid var(--line); }
+.objective-nav-head { min-height: 58px; padding: 13px 15px; display: flex; flex-direction: column; gap: 3px; border-bottom: 1px solid var(--line); }
+.objective-nav-head span { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.objective-nav-head b { font-size: 11px; }
+.objective-nav > button { width: 100%; min-height: 85px; display: grid; grid-template-columns: 1fr auto; gap: 6px; padding: 12px 14px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer; }
+.objective-nav > button:hover, .objective-nav > button.active { background: #fff; box-shadow: inset 3px 0 #3f6b5d; }
+.objective-nav > button code { grid-column: 1; }
+.objective-nav > button b { grid-column: 1 / 3; font-size: 11px; line-height: 1.35; }
+.objective-nav > button .pill { grid-column: 2; grid-row: 1; }
+.objective-main { min-width: 0; padding: 20px 22px 100px; background: #fff; }
+.objective-heading { min-height: 90px; display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #597466; }
+.objective-heading > div { display: flex; flex-direction: column; gap: 5px; }
+.objective-heading span { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.objective-heading h2 { font-size: 20px; }
+.assessment-field { padding: 15px 0; border-bottom: 1px solid var(--line); }
+.assessment-field > span { display: block; margin-bottom: 9px; }
+.assessment-field > p { font-size: 11px; line-height: 1.55; }
+.status-options { display: flex; gap: 5px; }
+.status-options button { padding: 7px 10px; border: 1px solid var(--line); background: #f6f7f4; color: var(--muted); font-size: 9px; cursor: default; }
+.status-options button.active { background: #f4dfd9; border-color: #d9a297; color: #8b3e34; font-weight: 700; }
+.mapped-evidence { display: flex; gap: 9px; padding: 8px 0; border-top: 1px solid #e8eae6; }
+.mapped-evidence > i { width: 8px; height: 8px; flex: 0 0 8px; margin-top: 4px; border-radius: 50%; }
+.mapped-evidence > div { display: flex; flex-direction: column; gap: 2px; }
+.mapped-evidence b { font-size: 10px; }
+.mapped-evidence small { font-size: 9px; }
+.placeholder-note { color: #77817c; background: #f5f6f2; padding: 12px; border-left: 3px solid #bac4be; }
+.objective-inspector { padding: 20px 18px 100px; background: #f0f2ee; border-left: 1px solid var(--line); }
+.objective-inspector .inspector-label { display: block; margin: 19px 0 7px; }
+.objective-inspector h3 { font-size: 12px; }
+.objective-inspector p { font-size: 10px; line-height: 1.55; color: #5f6c67; }
+.inspector-linked { padding: 10px; background: #fff; border: 1px solid var(--line); display: flex; flex-direction: column; gap: 3px; }
+.inspector-linked b { font-size: 10px; line-height: 1.35; }
+.inspector-linked small { font-size: 9px; }
 .a-inspector { padding: 19px 18px 100px; background: #f7f8f4; }
 .inspector-head { display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: var(--muted); margin-bottom: 18px; }
 .a-inspector > code { display: block; margin-bottom: 5px; }
@@ -244,9 +287,11 @@ i.good { background: #3c8d63; } i.warn { background: #d48a33; } i.bad { backgrou
 .prototype-switcher small { color: #98abb0; font-size: 7px; letter-spacing: .14em; }
 .prototype-switcher b { font-size: 11px; }
 
+@media (max-width: 1300px) {
+  .objective-workspace { grid-template-columns: 250px minmax(450px, 1fr) 280px; }
+}
+
 @media (max-width: 1250px) {
-  .a-workspace { grid-template-columns: minmax(560px, 1fr) 245px; }
-  .a-inspector { padding-inline: 14px; }
   .a-phase-rail { padding-inline: 16px; }
   .a-phase-rail small { display: none; }
   .b-flow { grid-template-columns: minmax(590px, 1fr) 275px; gap: 20px; }

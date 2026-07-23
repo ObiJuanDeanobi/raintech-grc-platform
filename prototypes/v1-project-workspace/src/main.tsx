@@ -195,60 +195,187 @@ const phases = ["Onboarding", "Scope", "Gap Analysis", "Remediation", "Validatio
 function VariantA({ project, framework, onProjectChange }: { project: Project; framework: Framework; onProjectChange: (value: Framework) => void }) {
   const nav = ["Overview", "Profile", "Assessments", "Actions / POA&M", "Evidence", "Risks", "Policies", "Reports"];
   const activePhase = project.phase === "Gap Analysis" ? 2 : 3;
+  const [activeView, setActiveView] = useState<"Overview" | "Assessments">("Overview");
+  const [selectedObjective, setSelectedObjective] = useState(0);
+  const assessmentItems = project.framework === "CMMC" ? [
+    {
+      id: "AC.L2-3.1.3[a]",
+      title: "Authorized CUI flows are defined",
+      status: "Pending",
+      requirement: "Control CUI flow in accordance with approved authorizations.",
+      check: "Determine whether authorized information flows for CUI are defined.",
+      guidance: "Identify each approved source, destination, transfer method, and responsible owner. Reconcile the narrative with the current enclave boundary and data-flow diagram.",
+      evidence: "CUI data-flow diagram; boundary inventory; flow authorization matrix",
+    },
+    {
+      id: "AC.L2-3.1.3[b]",
+      title: "Flow-control enforcement is implemented",
+      status: "Not Met",
+      requirement: "Control CUI flow in accordance with approved authorizations.",
+      check: "Determine whether methods and enforcement mechanisms for controlling CUI flow are defined and implemented.",
+      guidance: "Confirm how email, file sharing, printing, removable media, and remote sessions enforce the approved paths. Separate documented policy from technical enforcement.",
+      evidence: "DLP policy export; firewall rules; print restrictions; administrator interview",
+    },
+    {
+      id: "AC.L2-3.1.3[c]",
+      title: "Approved destinations are identified",
+      status: "Pending",
+      requirement: "Control CUI flow in accordance with approved authorizations.",
+      check: "Determine whether designated sources and destinations for CUI are identified.",
+      guidance: "Validate the named systems, service providers, endpoints, and physical outputs against the live project profile.",
+      evidence: "System inventory; service-provider list; endpoint inventory; observation",
+    },
+    {
+      id: "IA.L2-3.5.3[a]",
+      title: "Privileged access requires MFA",
+      status: "Not Met",
+      requirement: "Use multifactor authentication for local and network access.",
+      check: "Determine whether multifactor authentication is implemented for privileged accounts.",
+      guidance: "Review authentication paths for administrators, emergency accounts, and service-provider access. Record exclusions and compensating safeguards explicitly.",
+      evidence: "Conditional Access export; privileged-role inventory; sign-in records",
+    },
+  ] : [
+    {
+      id: "SRA-01",
+      title: "All ePHI systems and locations are identified",
+      status: "Pending",
+      requirement: "Conduct an accurate and thorough assessment of potential risks and vulnerabilities to ePHI.",
+      check: "Confirm that every system, location, device, and vendor that creates, receives, maintains, or transmits ePHI is included or explicitly excluded.",
+      guidance: "Resolve the outreach tablet before concluding scope. An exclusion needs a factual rationale and owner confirmation.",
+      evidence: "ePHI inventory; data-flow notes; vendor register; location walkthrough",
+    },
+    {
+      id: "SRA-02",
+      title: "Threat-vulnerability pairs are documented",
+      status: "Pending",
+      requirement: "Evaluate risks and vulnerabilities to the confidentiality, integrity, and availability of ePHI.",
+      check: "Confirm that credible threats are paired with specific vulnerabilities for each in-scope asset.",
+      guidance: "Avoid generic risk statements. Tie each scenario to an asset, existing safeguards, likelihood, impact, and corrective action.",
+      evidence: "Risk register; interview notes; vulnerability results; safeguard inventory",
+    },
+    {
+      id: "164.312(a)(2)(ii)-01",
+      title: "Emergency access approach is documented",
+      status: "Not Met",
+      requirement: "Establish procedures for obtaining necessary ePHI during an emergency.",
+      check: "Confirm the standard measure or an equivalent alternative is documented and operational.",
+      guidance: "Record the addressable decision, responsible roles, activation method, testing history, and why the selected approach is reasonable and appropriate.",
+      evidence: "Emergency-access procedure; test record; access logs; workforce interview",
+    },
+    {
+      id: "PRIV-01",
+      title: "Minimum-necessary access is reviewed",
+      status: "Met",
+      requirement: "Limit uses, disclosures, and requests for PHI to the minimum necessary.",
+      check: "Confirm role-based access and recurring access review evidence covers the relevant workforce.",
+      guidance: "Use the shared Q2 access review, but document why that evidence supports this specific privacy decision.",
+      evidence: "Access review; role matrix; termination sample; mapping rationale",
+    },
+  ];
+  const objective = assessmentItems[selectedObjective];
   return (
     <div className="variant-a">
       <aside className="a-sidebar">
         <div className="brand"><span>R</span><b>RainTech</b><small>GRC workspace</small></div>
         <ProjectPicker active={framework} onChange={onProjectChange} compact />
-        <nav>{nav.map((item, index) => <button className={index === 0 ? "active" : ""} key={item}><span>{["⌂", "◎", "▤", "✓", "◇", "△", "§", "↗"][index]}</span>{item}{item === "Actions / POA&M" && <i>14</i>}</button>)}</nav>
+        <nav>{nav.map((item, index) => <button className={item === activeView ? "active" : ""} key={item} onClick={() => {
+          if (item === "Overview" || item === "Assessments") setActiveView(item);
+        }}><span>{["⌂", "◎", "▤", "✓", "◇", "△", "§", "↗"][index]}</span>{item}{item === "Actions / POA&M" && <i>14</i>}</button>)}</nav>
         <div className="sidebar-foot"><b>Experimental prototype</b><span>Read-only synthetic data</span></div>
       </aside>
       <main className="a-main">
         <Identity project={project} />
-        <Metrics project={project} />
-        <div className="a-phase-rail" aria-label="Engagement phases">
-          {phases.map((phase, index) => (
-            <div className={index === activePhase ? "active" : index < activePhase ? "done" : ""} key={phase}>
-              <i>{index < activePhase ? "✓" : index + 1}</i>
-              <span>{phase}</span>
-              <small>{index === activePhase ? "In focus" : index < activePhase ? "Active work remains" : "Available"}</small>
+        {activeView === "Overview" ? (
+          <>
+            <Metrics project={project} />
+            <div className="a-phase-rail" aria-label="Engagement phases">
+              {phases.map((phase, index) => (
+                <div className={index === activePhase ? "active" : index < activePhase ? "done" : ""} key={phase}>
+                  <i>{index < activePhase ? "✓" : index + 1}</i>
+                  <span>{phase}</span>
+                  <small>{index === activePhase ? "In focus" : index < activePhase ? "Active work remains" : "Available"}</small>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="a-workspace">
-          <section>
-            <div className="a-resume">
-              <div className="a-resume-head">
-                <div><span>Continue where you left off</span><h2>{project.requirements[0].id} — {project.requirements[0].title}</h2></div>
-                <Pill tone="warn">{project.requirements[0].status}</Pill>
+            <div className="a-overview">
+              <div className="a-resume">
+                <div className="a-resume-head">
+                  <div><span>Continue where you left off</span><h2>{project.requirements[0].id} — {project.requirements[0].title}</h2></div>
+                  <Pill tone="warn">{project.requirements[0].status}</Pill>
+                </div>
+                <div className="a-resume-progress">
+                  <div><span>Assessment progress</span><b>{project.metrics[0].value}</b></div>
+                  <div className="bar"><i style={{ width: `${project.profile}%` }} /></div>
+                </div>
+                <div className="a-resume-context">
+                  <div><span>Implementation</span><b>{project.profileFacts[0].current}</b><small>Target: {project.profileFacts[0].target}</small></div>
+                  <div><span>Evidence support</span><b>{project.evidence[0].title}</b><small>{project.evidence[0].mappings}</small></div>
+                  <div><span>Linked action</span><b>{project.actions[0].title}</b><small>{project.actions[0].due} · {project.actions[0].kind}</small></div>
+                </div>
               </div>
-              <div className="a-resume-progress">
-                <div><span>Assessment progress</span><b>{project.metrics[0].value}</b></div>
-                <div className="bar"><i style={{ width: `${project.profile}%` }} /></div>
-              </div>
-              <div className="a-resume-context">
-                <div><span>Implementation</span><b>{project.profileFacts[0].current}</b><small>Target: {project.profileFacts[0].target}</small></div>
-                <div><span>Evidence support</span><b>{project.evidence[0].title}</b><small>{project.evidence[0].mappings}</small></div>
-                <div><span>Linked action</span><b>{project.actions[0].title}</b><small>{project.actions[0].due} · {project.actions[0].kind}</small></div>
+              <div className="section-title"><div><span>Priority work</span><h2>Next actions</h2></div><button>View unified queue →</button></div>
+              <ActionRows project={project} />
+              <div className="overview-registers">
+                <div><span>Evidence attention</span><b>{project.evidence[1].title}</b><small>{project.evidence[1].review}</small></div>
+                <div><span>Highest residual risk</span><b>{project.risks[0].title}</b><small>{project.risks[0].residual} · {project.risks[0].owner}</small></div>
+                <div><span>Report gate</span><b>{project.reports[0].title}</b><small>{project.reports[0].readiness}</small></div>
               </div>
             </div>
-            <div className="section-title"><div><span>Priority work</span><h2>Next actions</h2></div><button>View unified queue →</button></div>
-            <ActionRows project={project} />
-            <div className="section-title tight"><div><span>Active assessment</span><h2>{project.framework === "CMMC" ? "Requirement review" : "Program review"}</h2></div><div className="tabs">{project.frameworkAreas.slice(0, 4).map((area, i) => <button className={i === 1 ? "active" : ""} key={area}>{area}</button>)}</div></div>
-            <RequirementRows project={project} />
-          </section>
-          <aside className="a-inspector">
-            <div className="inspector-head"><span>Context inspector</span><Pill tone="warn">{project.requirements[0].status}</Pill></div>
-            <code>{project.requirements[0].id}</code>
-            <h3>{project.requirements[0].title}</h3>
-            <p>{project.framework === "CMMC" ? "Objective [b] needs confirmation that authorized flows match the enclave boundary and print workflow." : "The SRA remains incomplete until the outreach tablet is reviewed or explicitly excluded with rationale."}</p>
-            <dl><div><dt>Evidence</dt><dd>{project.requirements[0].evidence}</dd></div><div><dt>Linked work</dt><dd>{project.requirements[0].finding}</dd></div><div><dt>Profile</dt><dd>{project.profile}% complete</dd></div></dl>
-            <h4>Evidence context</h4>
-            {project.evidence.slice(0, 2).map((item) => <div className="mini-evidence" key={item.title}><i className={item.tone} /><span><b>{item.title}</b><small>{item.mappings}</small></span></div>)}
-            <h4>Issue readiness</h4>
-            <div className="readiness"><span>{project.reports[0].title}</span><b>{project.reports[0].readiness}</b></div>
-          </aside>
-        </div>
+          </>
+        ) : (
+          <div className="assessment-view">
+            <div className="assessment-view-tabs">
+              {project.frameworkAreas.map((area, index) => <button className={index === 1 || (project.framework === "HIPAA" && index === 0) ? "active" : ""} key={area}>{area}</button>)}
+            </div>
+            <div className="objective-workspace">
+              <aside className="objective-nav">
+                <div className="objective-nav-head"><span>{project.framework === "CMMC" ? "Assessment objectives" : "Assessment checks"}</span><b>{assessmentItems.length} in current set</b></div>
+                {assessmentItems.map((item, index) => (
+                  <button className={index === selectedObjective ? "active" : ""} key={item.id} onClick={() => setSelectedObjective(index)}>
+                    <code>{item.id}</code>
+                    <b>{item.title}</b>
+                    <Pill tone={item.status === "Met" ? "good" : item.status === "Not Met" ? "bad" : "warn"}>{item.status}</Pill>
+                  </button>
+                ))}
+              </aside>
+              <section className="objective-main">
+                <div className="objective-heading">
+                  <div><span>{project.framework === "CMMC" ? "Current objective" : "Current assessment check"}</span><code>{objective.id}</code><h2>{objective.title}</h2></div>
+                  <Pill tone={objective.status === "Met" ? "good" : objective.status === "Not Met" ? "bad" : "warn"}>{objective.status}</Pill>
+                </div>
+                <div className="assessment-field">
+                  <span>Assessor determination</span>
+                  <div className="status-options">{["Blank", "Met", "Not Met", "Pending"].map(status => <button className={status === objective.status ? "active" : ""} key={status}>{status}</button>)}</div>
+                </div>
+                <div className="assessment-field">
+                  <span>Implementation statement</span>
+                  <p>{project.framework === "CMMC" ? project.profileFacts[0].current + ". Approved flow enforcement remains under validation against the target boundary." : project.profileFacts[0].current + ". Scope cannot be concluded until the unresolved system is included or excluded with rationale."}</p>
+                </div>
+                <div className="assessment-field">
+                  <span>Mapped evidence</span>
+                  {project.evidence.slice(0, 2).map(item => <div className="mapped-evidence" key={item.title}><i className={item.tone} /><div><b>{item.title}</b><small>{item.mappings} · {item.review}</small></div></div>)}
+                </div>
+                <div className="assessment-field">
+                  <span>Assessment notes</span>
+                  <p className="placeholder-note">Read-only prototype · interview notes, test results, and assessor rationale would be captured here.</p>
+                </div>
+              </section>
+              <aside className="objective-inspector">
+                <div className="inspector-head"><span>Objective context</span><Pill tone="neutral">Guidance</Pill></div>
+                <span className="inspector-label">Requirement</span>
+                <h3>{objective.requirement}</h3>
+                <span className="inspector-label">What to determine</span>
+                <p>{objective.check}</p>
+                <span className="inspector-label">Implementation guidance</span>
+                <p>{objective.guidance}</p>
+                <span className="inspector-label">Expected evidence</span>
+                <p>{objective.evidence}</p>
+                <span className="inspector-label">Linked work</span>
+                <div className="inspector-linked"><b>{project.actions[selectedObjective % project.actions.length].title}</b><small>{project.actions[selectedObjective % project.actions.length].kind} · {project.actions[selectedObjective % project.actions.length].due}</small></div>
+              </aside>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

@@ -43,12 +43,20 @@ Initial direction selected by Johnathan:
 
 - **Base shell:** Variant A, Project Command Center.
 - **Assessment workspace:** retain A's dense requirement list and right-side
-  context inspector.
+  inspector concept, but move it out of Overview and into a dedicated
+  objective-by-objective assessment workspace.
 - **Overview additions from B:** add a compact engagement-phase rail and a
   "continue where you left off" panel showing assessment progress,
   implementation context, evidence support, and the linked action.
 - **Action model:** retain A's project Overview and direct navigation, with the
   unified queue available as a deliberate secondary destination.
+- **Overview boundary:** remove the requirement-review list and requirement
+  inspector. Overview contains only project orientation, resumption context,
+  priority work, and project-level evidence/risk/report signals.
+- **Assessment interaction:** selecting `Assessments` opens an objective
+  navigator, the current objective's determination and evidence workspace, and
+  a contextual inspector with requirement text, what to determine,
+  implementation guidance, expected evidence, and linked work.
 - **Rejected tradeoff from B:** do not make the entire workspace phase-first;
   the full phase shell consumes vertical space and can overstate sequentiality.
 - **Rejected tradeoff from C:** do not make the cross-project queue the default

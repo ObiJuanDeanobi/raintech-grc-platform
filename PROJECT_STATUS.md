@@ -10,8 +10,8 @@ Build
 
 ## Current objective
 
-Confirm the hybrid A interaction model and use the recorded decision to shape
-the production workspace ticket.
+Confirm the refined hybrid A interaction model and use the recorded decision to
+shape the production workspace ticket.
 
 ## Approved specification
 
@@ -34,10 +34,13 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 - Initial interaction direction selected: Variant A shell and assessment
   workspace with Variant B's compact phase rail and work-resumption context on
   the Overview.
+- Overview refined to project-level orientation only; requirement review and
+  contextual guidance now live in a dedicated objective-by-objective
+  Assessments workspace.
 
 ## In progress
 
-- Final hybrid-A review and production ticket handoff.
+- Final refined hybrid-A review and production ticket handoff.
 
 ## Blocked
 
