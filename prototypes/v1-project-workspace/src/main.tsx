@@ -174,6 +174,22 @@ function Identity({ project }: { project: Project }) {
   );
 }
 
+function UtilityBar() {
+  return (
+    <div className="utility-bar">
+      <span>Prototype workspace</span>
+      <div>
+        <button aria-label="Notifications"><span aria-hidden="true">♢</span><i>3</i></button>
+        <button className="user-menu" aria-label="Signed in user: Johnathan Dean">
+          <span>JD</span>
+          <b>Johnathan Dean</b>
+          <em>⌄</em>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Metrics({ project }: { project: Project }) {
   return <div className="metric-strip">{project.metrics.map((metric) => <div key={metric.label}><span>{metric.label}</span><b>{metric.value}</b><i className={metric.tone} /></div>)}</div>;
 }
@@ -284,6 +300,7 @@ function VariantA({ project, framework, onProjectChange }: { project: Project; f
         <div className="sidebar-foot"><b>Experimental prototype</b><span>Read-only synthetic data</span></div>
       </aside>
       <main className="a-main">
+        <UtilityBar />
         <Identity project={project} />
         {activeView === "Overview" ? (
           <>
@@ -313,13 +330,11 @@ function VariantA({ project, framework, onProjectChange }: { project: Project; f
                   <div><span>Linked action</span><b>{project.actions[0].title}</b><small>{project.actions[0].due} · {project.actions[0].kind}</small></div>
                 </div>
               </div>
-              <div className="section-title"><div><span>Priority work</span><h2>Next actions</h2></div><button>View unified queue →</button></div>
-              <ActionRows project={project} />
-              <div className="overview-registers">
-                <div><span>Evidence attention</span><b>{project.evidence[1].title}</b><small>{project.evidence[1].review}</small></div>
-                <div><span>Highest residual risk</span><b>{project.risks[0].title}</b><small>{project.risks[0].residual} · {project.risks[0].owner}</small></div>
-                <div><span>Report gate</span><b>{project.reports[0].title}</b><small>{project.reports[0].readiness}</small></div>
+              <div className="section-title queue-title">
+                <div><span>All actionable project work</span><h2>Unified queue</h2></div>
+                <div className="queue-summary"><b>{project.actions.length} open</b><span>Sorted by priority and due date</span></div>
               </div>
+              <ActionRows project={project} />
             </div>
           </>
         ) : (

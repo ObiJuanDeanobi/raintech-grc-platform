@@ -52,7 +52,11 @@ Initial direction selected by Johnathan:
   unified queue available as a deliberate secondary destination.
 - **Overview boundary:** remove the requirement-review list and requirement
   inspector. Overview contains only project orientation, resumption context,
-  priority work, and project-level evidence/risk/report signals.
+  and the unified actionable-work queue directly below it. Evidence, risk, and
+  report blockers enter that queue rather than appearing in a separate summary
+  strip.
+- **Global utility context:** add a compact top bar for notifications and the
+  signed-in user without competing with project identity.
 - **Assessment interaction:** selecting `Assessments` opens an objective
   navigator, the current objective's determination and evidence workspace, and
   a contextual inspector with requirement text, what to determine,

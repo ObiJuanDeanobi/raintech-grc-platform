@@ -37,6 +37,9 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 - Overview refined to project-level orientation only; requirement review and
   contextual guidance now live in a dedicated objective-by-objective
   Assessments workspace.
+- Unified actionable work now follows the Overview directly, with redundant
+  evidence/risk/report summaries removed and compact notification/user context
+  added above the project identity.
 
 ## In progress
 
