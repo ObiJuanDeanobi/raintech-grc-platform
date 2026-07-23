@@ -15,13 +15,12 @@ one command:
 .\run.ps1
 ```
 
-Open `http://127.0.0.1:5173/?variant=A`. Use the floating switcher or the left
-and right arrow keys to move between:
+Open `http://127.0.0.1:5173/`.
 
-- A — Project Command Center
-- B — Guided Engagement Flow
-- C — Work Queue First
+The original three alternatives were narrowed to the selected Project Command
+Center direction. Dashboard shows the Unified Queue across all clients. Select
+a synthetic client in the left sidebar to open its Overview, Client Queue, and
+objective-by-objective Assessments workspace.
 
-The project toggle switches between the synthetic CMMC and FQHC HIPAA
-engagements. All data is in memory; there is no backend, persistence,
-authentication, or real client data.
+All data is in memory; there is no backend, persistence, authentication, or
+real client data.

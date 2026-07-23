@@ -43,10 +43,16 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 - Overview remains chart-free and uses the available space for a fuller unified
   queue; Assessments now centers decision guidance and places implementation,
   evidence, and notes in the right-side working record.
+- Selected Variant A was collapsed into a single prototype workspace. Dashboard
+  now sits above client profiles and owns the cross-client Unified Queue, while
+  each selected client Overview owns its Client Queue; variants B/C and the
+  switcher were removed.
+- Project end date is now modeled as an onboarding/profile field and surfaced
+  in client selection, project identity, and global portfolio orientation.
 
 ## In progress
 
-- Final refined hybrid-A review and production ticket handoff.
+- Final selected-workspace review and production ticket handoff.
 
 ## Blocked
 
@@ -60,5 +66,5 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 
 ## Next recommended action
 
-Confirm the revised hybrid A, then create an approved production ticket that
+Confirm the selected workspace, then create an approved production ticket that
 reimplements the selected interaction model without promoting prototype code.

@@ -2,8 +2,8 @@
 
 ## Status
 
-Experimental prototype complete on `codex/v1-ui-prototype`. Interaction-model
-selection is pending Johnathan's review. Prototype code must not be promoted
+Experimental prototype complete on `codex/v1-ui-prototype`. The selected
+interaction model is recorded below. Prototype code must not be promoted
 directly into production.
 
 ## Run
@@ -13,35 +13,29 @@ cd prototypes\v1-project-workspace
 .\run.ps1
 ```
 
-Open `http://127.0.0.1:5173/?variant=A`. Use the bottom switcher or left/right
-arrow keys. Switch between the synthetic CMMC and FQHC HIPAA projects from the
-project selector.
+Open `http://127.0.0.1:5173/`. Use Dashboard for cross-client work, or select a
+synthetic CMMC or FQHC HIPAA client from the left sidebar.
 
-## Comparison Checklist
+## Review Checklist
 
-### A — Project Command Center
-
-- Is the persistent project navigation the fastest way to stay oriented?
-- Does the dense assessment table plus context inspector show enough linkage?
-- Is project-level work too dominant compared with cross-project priorities?
-
-### B — Guided Engagement Flow
-
-- Does the phase rail clarify the engagement without implying strict sequence?
-- Is parallel remediation visible enough while gap analysis is in focus?
-- Does phase guidance add useful structure or consume too much vertical space?
-
-### C — Work Queue First
-
-- Is starting from the unified queue the best daily operating model?
-- Does the split context preserve enough client, project, and assessment identity?
-- Is secondary project navigation discoverable enough for non-queue work?
+- Does Dashboard provide a clear global home above the client list?
+- Does Unified Queue clearly mean work across all clients?
+- Does Client Queue clearly mean work scoped to the selected client?
+- Does the assessment workspace keep guidance central and the working record
+  visible without excessive context switching?
 
 ## Selection Record
 
 Initial direction selected by Johnathan:
 
-- **Base shell:** Variant A, Project Command Center.
+- **Base shell:** Variant A, Project Command Center. Variants B and C and the
+  prototype switcher were removed after selection.
+- **Scope hierarchy:** Dashboard is the global home above client profiles in
+  the sidebar. Dashboard owns Unified Queue across all clients; each selected
+  client Overview owns a Client Queue.
+- **Project schedule:** project end date is required during onboarding/profile
+  setup and is surfaced in the client list, selected project identity, and
+  global portfolio summary.
 - **Assessment workspace:** retain A's dense requirement list and right-side
   inspector concept, but move it out of Overview and into a dedicated
   objective-by-objective assessment workspace.
@@ -67,8 +61,8 @@ Initial direction selected by Johnathan:
   queue expands with realistic evidence, risk, and report-blocker work instead.
 - **Rejected tradeoff from B:** do not make the entire workspace phase-first;
   the full phase shell consumes vertical space and can overstate sequentiality.
-- **Rejected tradeoff from C:** do not make the cross-project queue the default
-  home; it weakens project orientation for deep assessment work.
+- **Qualified lesson from C:** retain a cross-client queue on the global
+  Dashboard, while keeping client orientation for deep assessment work.
 
 This is an interaction-model decision, not approval to promote prototype code.
 The production shell must be implemented afresh under a production ticket.
@@ -79,7 +73,7 @@ tested implementation rather than promotion of this prototype code.
 ## Visual Verification
 
 Screenshots were captured at 1440×900 (desktop, CMMC) and 1280×720 (laptop,
-HIPAA) for every variant under
+HIPAA) for the selected workspace under
 `prototypes/v1-project-workspace/screenshots/`.
 
 Checks completed:
@@ -88,6 +82,5 @@ Checks completed:
 - no overlapping structural panes
 - no blank critical content
 - labels and primary text remain readable
-- project and variant controls work
-- URL variant state survives reload
+- Dashboard, client selection, and assessment controls work
 - browser console contains no errors or warnings
