@@ -10,22 +10,21 @@ Build
 
 ## Current objective
 
-Ingest and version the HIPAA full-program catalog so it can be reviewed on paper
-before any HIPAA assessment surface is built.
+Practitioner review of the ingested HIPAA catalog, so the assessable units are
+confirmed before any HIPAA assessment surface is built on them.
 
 ## Approved specification
 
-`docs/specification.md`. Approved July 23, 2026; post-prototype revision approved
-July 27, 2026. No unapproved changes outstanding.
+`docs/specification.md`. Approved July 23, 2026; post-prototype revision and
+catalog count correction approved July 27, 2026. No unapproved changes
+outstanding.
 
 ## Active ticket
 
 GitHub issue #21: Slice 4a, ingest and version the HIPAA full-program catalog.
-
-GitHub issue #20 (UI prototype) is complete and can be closed. Three of its
-acceptance criteria — the three-variant switcher, left/right variant controls, and
-per-variant screenshots — were superseded when the prototype collapsed to the
-selected Variant A. That is recorded in `docs/prototypes/v1-ui-prototype-review.md`.
+Code complete and merged. One acceptance criterion is outstanding: Johnathan's
+practitioner review of `docs/catalogs/hipaa-45cfr164-2026-07-01.md`. The issue
+stays open until that lands.
 
 ## Completed
 
@@ -88,23 +87,42 @@ selected Variant A. That is recorded in `docs/prototypes/v1-ui-prototype-review.
   prototype.
 - `chore/agent-workflow-hardening` deleted after confirming it was fully merged
   into `main`.
+- HIPAA full-program catalog ingested and pinned as framework version
+  `hipaa-45cfr164-2026-07-01`: 190 assessable records over three catalog areas,
+  stable citation-based identifiers, 20 structure and count tests, a readable
+  export, and CI that rebuilds the catalog from its pinned source and fails on any
+  difference.
+- Specification catalog counts replaced with the authoritative figures established
+  by ingestion. Two indicative counts were wrong and are corrected.
+- GitHub issue #20 closed. Three acceptance criteria were superseded when the
+  prototype collapsed to the selected Variant A, as recorded in
+  `docs/prototypes/v1-ui-prototype-review.md`.
 
 ## In progress
 
-- GitHub issue #21: HIPAA full-program catalog ingestion.
+- GitHub issue #21: practitioner review of the exported catalog. Code is merged;
+  the review is the remaining acceptance criterion.
 
 ## Blocked
 
-- Nothing. The specification approval that gated production BUILD landed
-  July 27, 2026.
+- Slice 4 beyond the catalog is blocked on practitioner review. Building an
+  assessment surface on unreviewed assessable units risks reworking every
+  determination made against them.
 
 ## Known risks
 
-- The HIPAA catalog is unbuilt and the first engagement is weeks away. The
-  platform runs in parallel with the existing method and is not on the critical
-  path of client work.
-- The OCR Audit Protocol predates the current rule text and must be reconciled
-  against eCFR during ingestion rather than assumed current.
+- The HIPAA catalog is ingested but unreviewed, and the first engagement is weeks
+  away. The platform runs in parallel with the existing method and is not on the
+  critical path of client work.
+- The catalog is verified to reproduce the regulation faithfully. It is not
+  verified to be a sound assessment instrument; that is a practitioner judgement
+  and is the open acceptance criterion on issue #21.
+- Three catalog exclusions are judgement calls, not facts, and are recorded with
+  reasons in the catalog and the export. 45 CFR 164.306 is the one most worth
+  challenging.
+- The OCR Audit Protocol predates the current rule text and is not yet ingested.
+  It must be reconciled against eCFR when the guidance layer is built, not
+  assumed current.
 - HHS SRA Tool terms are unassessed. No content from it may be reused until they
   are checked.
 - Document templates remain an open input.
@@ -115,9 +133,10 @@ selected Variant A. That is recorded in `docs/prototypes/v1-ui-prototype-review.
 
 ## Next recommended action
 
-Build GitHub issue #21 from clean `main` without promoting prototype code:
-an ingestion script over eCFR Title 45 Part 164, a versioned catalog fixture, a
-structure and count test, and a readable export for practitioner review.
+Review `docs/catalogs/hipaa-45cfr164-2026-07-01.md` and confirm three things: that
+the assessable units are right, that the recorded exclusions are correct, and that
+section-level records read correctly for the Breach Notification Rule. Corrections
+are written against citations, which are stable across catalog versions.
 
-The required/optional split of Slices 2, 5, and 7 is deferred until after the first
-engagement. It is a scope change and it does not gate the HIPAA catalog.
+Slice 4 continues once that lands. The required/optional split of Slices 2, 5, and
+7 remains deferred until after the first engagement.
