@@ -54,9 +54,23 @@ EXCLUDED_SECTIONS = {
     "164.306": (
         "Security standards: General rules. Governs how the other Security Rule "
         "records are assessed -- including the 164.306(d) addressable decision "
-        "rule -- rather than stating a discrete assessable obligation. Its "
-        "requirements are evaluated through the standards and implementation "
-        "specifications it governs."
+        "rule -- rather than stating a discrete assessable obligation. Excluded "
+        "on HHS's own practice, not on our design judgement, on four converging "
+        "grounds verified July 27, 2026: (1) no paragraph in 164.306 is labelled "
+        '"Standard:", unlike every other assessable Security Rule provision; '
+        "(2) Appendix A to Subpart C, HHS's inventory of what is assessed, omits "
+        "164.306 entirely and runs 164.308(a)(1) to 164.312(e)(1); (3) the OCR "
+        "Audit Protocol has no audit entries citing 164.306 -- its Security Rule "
+        "entries begin at 164.308 and cover 164.308, .310 and .312 -- and cites "
+        "164.306 only inside a 164.308 entry, as a cross-reference; (4) a sample "
+        "of three OCR resolution agreements (Assured Imaging, Comstar, Vision "
+        "Upright MRI) pins every Security Rule violation to a specific safeguard "
+        "and cites 164.306 in none. The substantive paragraphs are assessed "
+        "through provisions that cite them: 164.306(a) through 164.308(a)(1)(ii)(B) "
+        "Risk management, which is written 'to comply with 164.306(a)'; and "
+        "164.306(e) through 164.308(a)(8) Evaluation and 164.316(b)(2)(iii) "
+        "Updates, which 164.306(e) cites by number. Including them would "
+        "double-count findings already recorded against those records."
     ),
     "164.318": "Compliance dates for initial implementation. Historical dates, expired.",
     "164.400": "Applicability. Scoping provision; carries no assessable obligation.",
