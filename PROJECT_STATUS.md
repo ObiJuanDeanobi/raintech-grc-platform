@@ -15,9 +15,9 @@ confirmed before any HIPAA assessment surface is built on them.
 
 ## Approved specification
 
-`docs/specification.md`. Approved July 23, 2026; post-prototype revision and
-catalog count correction approved July 27, 2026. No unapproved changes
-outstanding.
+`docs/specification.md`. Approved July 23, 2026; post-prototype revision, catalog
+count correction and bare-standard correction approved July 27, 2026. No
+unapproved changes outstanding.
 
 ## Active ticket
 
@@ -94,6 +94,12 @@ stays open until that lands.
   difference.
 - Specification catalog counts replaced with the authoritative figures established
   by ingestion. Two indicative counts were wrong and are corrected.
+- Practitioner review, decisions 1 to 3. The 164.306 exclusion is confirmed and
+  now rests on HHS's own practice rather than our judgement. The nine remaining
+  exclusions are confirmed. Decision 3 found a real defect: five standards written
+  as a bare `Standard` were missing, including 45 CFR 164.502(a), and the Breach
+  Notification Rule was modelled as sections rather than standards. Corrected;
+  all three rules now share one shape. Records 191 to 192.
 - GitHub issue #20 closed. Three acceptance criteria were superseded when the
   prototype collapsed to the selected Variant A, as recorded in
   `docs/prototypes/v1-ui-prototype-review.md`.

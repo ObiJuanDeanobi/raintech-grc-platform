@@ -32,6 +32,7 @@ from hipaa_ingest import (  # noqa: E402
     SPEC_DESIGNATED_RE,
     SPEC_HEADER_RE,
     SPEC_INLINE_RE,
+    STANDARD_BARE_RE,
     STANDARD_RE,
     classify,
     italic_text,
@@ -48,10 +49,10 @@ SOURCE_DIR = REPO_ROOT / "catalog" / "sources"
 # the source XML rather than trusting these numbers.
 EXPECTED = {
     "security": {"standard": 22, "implementation_specification": 41, "section": 0},
-    "privacy": {"standard": 55, "implementation_specification": 58, "section": 0},
-    "breach": {"standard": 0, "implementation_specification": 9, "section": 6},
+    "privacy": {"standard": 56, "implementation_specification": 58, "section": 0},
+    "breach": {"standard": 4, "implementation_specification": 9, "section": 2},
 }
-EXPECTED_TOTAL = 191
+EXPECTED_TOTAL = 192
 
 # The Required/Addressable distinction exists only in the Security Rule,
 # per 45 CFR 164.306(d).
@@ -133,6 +134,35 @@ class CatalogStructureTest(unittest.TestCase):
                     ("standard", "section"),
                     "implementation specifications hang off a standard or section",
                 )
+
+    def test_bare_standard_labels_are_recognised(self):
+        """A standard written "Standard" with no name is still a standard.
+
+        45 CFR 164.502(a) -- the Privacy Rule's general prohibition on use and
+        disclosure -- and all four Breach Notification Rule standards are
+        written this way. Matching only "Standard: <name>" loses all five, and
+        leaves the Breach Rule modelled as bare sections.
+        """
+        by_id = {r["id"]: r for r in self.records}
+        for citation, heading in (
+            ("164.502(a)", "Uses and disclosures of protected health information"),
+            ("164.404(a)", "Notification to individuals"),
+            ("164.406(a)", "Notification to the media"),
+            ("164.408(a)", "Notification to the Secretary"),
+            ("164.410(a)", "Notification by a business associate"),
+        ):
+            with self.subTest(citation=citation):
+                self.assertIn(citation, by_id, "bare-labelled standard missing")
+                record = by_id[citation]
+                self.assertEqual(record["record_type"], "standard")
+                # A bare "Standard" names nothing, so the title comes from the
+                # section heading.
+                self.assertTrue(record["title"].startswith(heading))
+
+    def test_section_records_are_the_documented_exception(self):
+        """Only provisions with no standard at all fall back to section level."""
+        sections = [r["id"] for r in self.records if r["record_type"] == "section"]
+        self.assertEqual(sorted(sections), ["164.412", "164.414"])
 
     def test_standards_have_no_parent(self):
         for record in self.records:
@@ -237,7 +267,7 @@ class SourceReconciliationTest(unittest.TestCase):
                 label = italic_text(paragraph)
                 if label is None:
                     continue
-                if STANDARD_RE.match(label):
+                if STANDARD_RE.match(label) or STANDARD_BARE_RE.match(label):
                     found["standard"] += 1
                 elif SPEC_DESIGNATED_RE.match(label):
                     found["spec_record"] += 1

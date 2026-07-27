@@ -41,15 +41,15 @@
     },
     "breach": {
       "total": 15,
-      "standard": 0,
+      "standard": 4,
       "implementation_specification": 9,
-      "section": 6,
+      "section": 2,
       "required": 0,
       "addressable": 0
     },
     "privacy": {
-      "total": 113,
-      "standard": 55,
+      "total": 114,
+      "standard": 56,
       "implementation_specification": 58,
       "section": 0,
       "required": 0,
@@ -1135,22 +1135,20 @@
       "notes": []
     },
     {
-      "id": "164.404",
-      "citation": "45 CFR 164.404",
+      "id": "164.404(a)",
+      "citation": "45 CFR 164.404(a)",
       "work_area": "breach",
       "subpart": "D",
       "section": "164.404",
-      "paragraph": "",
-      "record_type": "section",
+      "paragraph": "(a)",
+      "record_type": "standard",
       "parent_id": null,
       "title": "Notification to individuals",
-      "text": "(a) Standard—(1) General rule. A covered entity shall, following the discovery of a breach of unsecured protected health information, notify each individual whose unsecured protected health information has been, or is reasonably believed by the covered entity to have been, accessed, acquired, used, or disclosed as a result of such breach.",
+      "text": "—(1) General rule. A covered entity shall, following the discovery of a breach of unsecured protected health information, notify each individual whose unsecured protected health information has been, or is reasonably believed by the covered entity to have been, accessed, acquired, used, or disclosed as a result of such breach.",
       "designation": null,
       "source": "eCFR Title 45 Part 164 Subpart D (Breach Notification Rule), snapshot 2026-07-01",
       "retrieved": "2026-07-27",
-      "notes": [
-        "Section-level record. This subpart publishes no \"Standard:\" label, so the section is the assessable unit. The section is a published, citable unit of the CFR; no structure is invented."
-      ]
+      "notes": []
     },
     {
       "id": "164.404(b)",
@@ -1160,7 +1158,7 @@
       "section": "164.404",
       "paragraph": "(b)",
       "record_type": "implementation_specification",
-      "parent_id": "164.404",
+      "parent_id": "164.404(a)",
       "title": "Timeliness of notification",
       "text": "Except as provided in § 164.412, a covered entity shall provide the notification required by paragraph (a) of this section without unreasonable delay and in no case later than 60 calendar days after discovery of a breach.",
       "designation": null,
@@ -1176,7 +1174,7 @@
       "section": "164.404",
       "paragraph": "(c)",
       "record_type": "implementation_specification",
-      "parent_id": "164.404",
+      "parent_id": "164.404(a)",
       "title": "Content of notification",
       "text": "—(1) Elements. The notification required by paragraph (a) of this section shall include, to the extent possible:",
       "designation": null,
@@ -1192,7 +1190,7 @@
       "section": "164.404",
       "paragraph": "(d)",
       "record_type": "implementation_specification",
-      "parent_id": "164.404",
+      "parent_id": "164.404(a)",
       "title": "Methods of individual notification",
       "text": "The notification required by paragraph (a) of this section shall be provided in the following form:",
       "designation": null,
@@ -1201,22 +1199,20 @@
       "notes": []
     },
     {
-      "id": "164.406",
-      "citation": "45 CFR 164.406",
+      "id": "164.406(a)",
+      "citation": "45 CFR 164.406(a)",
       "work_area": "breach",
       "subpart": "D",
       "section": "164.406",
-      "paragraph": "",
-      "record_type": "section",
+      "paragraph": "(a)",
+      "record_type": "standard",
       "parent_id": null,
       "title": "Notification to the media",
-      "text": "(a) Standard. For a breach of unsecured protected health information involving more than 500 residents of a State or jurisdiction, a covered entity shall, following the discovery of the breach as provided in § 164.404(a)(2), notify prominent media outlets serving the State or jurisdiction.",
+      "text": "For a breach of unsecured protected health information involving more than 500 residents of a State or jurisdiction, a covered entity shall, following the discovery of the breach as provided in § 164.404(a)(2), notify prominent media outlets serving the State or jurisdiction.",
       "designation": null,
       "source": "eCFR Title 45 Part 164 Subpart D (Breach Notification Rule), snapshot 2026-07-01",
       "retrieved": "2026-07-27",
-      "notes": [
-        "Section-level record. This subpart publishes no \"Standard:\" label, so the section is the assessable unit. The section is a published, citable unit of the CFR; no structure is invented."
-      ]
+      "notes": []
     },
     {
       "id": "164.406(b)",
@@ -1226,7 +1222,7 @@
       "section": "164.406",
       "paragraph": "(b)",
       "record_type": "implementation_specification",
-      "parent_id": "164.406",
+      "parent_id": "164.406(a)",
       "title": "Timeliness of notification",
       "text": "Except as provided in § 164.412, a covered entity shall provide the notification required by paragraph (a) of this section without unreasonable delay and in no case later than 60 calendar days after discovery of a breach.",
       "designation": null,
@@ -1242,7 +1238,7 @@
       "section": "164.406",
       "paragraph": "(c)",
       "record_type": "implementation_specification",
-      "parent_id": "164.406",
+      "parent_id": "164.406(a)",
       "title": "Content of notification",
       "text": "The notification required by paragraph (a) of this section shall meet the requirements of § 164.404(c).",
       "designation": null,
@@ -1251,22 +1247,20 @@
       "notes": []
     },
     {
-      "id": "164.408",
-      "citation": "45 CFR 164.408",
+      "id": "164.408(a)",
+      "citation": "45 CFR 164.408(a)",
       "work_area": "breach",
       "subpart": "D",
       "section": "164.408",
-      "paragraph": "",
-      "record_type": "section",
+      "paragraph": "(a)",
+      "record_type": "standard",
       "parent_id": null,
       "title": "Notification to the Secretary",
-      "text": "(a) Standard. A covered entity shall, following the discovery of a breach of unsecured protected health information as provided in § 164.404(a)(2), notify the Secretary.",
+      "text": "A covered entity shall, following the discovery of a breach of unsecured protected health information as provided in § 164.404(a)(2), notify the Secretary.",
       "designation": null,
       "source": "eCFR Title 45 Part 164 Subpart D (Breach Notification Rule), snapshot 2026-07-01",
       "retrieved": "2026-07-27",
-      "notes": [
-        "Section-level record. This subpart publishes no \"Standard:\" label, so the section is the assessable unit. The section is a published, citable unit of the CFR; no structure is invented."
-      ]
+      "notes": []
     },
     {
       "id": "164.408(b)",
@@ -1276,7 +1270,7 @@
       "section": "164.408",
       "paragraph": "(b)",
       "record_type": "implementation_specification",
-      "parent_id": "164.408",
+      "parent_id": "164.408(a)",
       "title": "Breaches involving 500 or more individuals",
       "text": "For breaches of unsecured protected health information involving 500 or more individuals, a covered entity shall, except as provided in § 164.412, provide the notification required by paragraph (a) of this section contemporaneously with the notice required by § 164.404(a) and in the manner specified on the HHS Web site.",
       "designation": null,
@@ -1292,7 +1286,7 @@
       "section": "164.408",
       "paragraph": "(c)",
       "record_type": "implementation_specification",
-      "parent_id": "164.408",
+      "parent_id": "164.408(a)",
       "title": "Breaches involving less than 500 individuals",
       "text": "For breaches of unsecured protected health information involving less than 500 individuals, a covered entity shall maintain a log or other documentation of such breaches and, not later than 60 days after the end of each calendar year, provide the notification required by paragraph (a) of this section for breaches discovered during the preceding calendar year, in the manner specified on the HHS web site.",
       "designation": null,
@@ -1301,22 +1295,20 @@
       "notes": []
     },
     {
-      "id": "164.410",
-      "citation": "45 CFR 164.410",
+      "id": "164.410(a)",
+      "citation": "45 CFR 164.410(a)",
       "work_area": "breach",
       "subpart": "D",
       "section": "164.410",
-      "paragraph": "",
-      "record_type": "section",
+      "paragraph": "(a)",
+      "record_type": "standard",
       "parent_id": null,
       "title": "Notification by a business associate",
-      "text": "(a) Standard—(1) General rule. A business associate shall, following the discovery of a breach of unsecured protected health information, notify the covered entity of such breach.",
+      "text": "—(1) General rule. A business associate shall, following the discovery of a breach of unsecured protected health information, notify the covered entity of such breach.",
       "designation": null,
       "source": "eCFR Title 45 Part 164 Subpart D (Breach Notification Rule), snapshot 2026-07-01",
       "retrieved": "2026-07-27",
-      "notes": [
-        "Section-level record. This subpart publishes no \"Standard:\" label, so the section is the assessable unit. The section is a published, citable unit of the CFR; no structure is invented."
-      ]
+      "notes": []
     },
     {
       "id": "164.410(b)",
@@ -1326,7 +1318,7 @@
       "section": "164.410",
       "paragraph": "(b)",
       "record_type": "implementation_specification",
-      "parent_id": "164.410",
+      "parent_id": "164.410(a)",
       "title": "Timeliness of notification",
       "text": "Except as provided in § 164.412, a business associate shall provide the notification required by paragraph (a) of this section without unreasonable delay and in no case later than 60 calendar days after discovery of a breach.",
       "designation": null,
@@ -1342,7 +1334,7 @@
       "section": "164.410",
       "paragraph": "(c)",
       "record_type": "implementation_specification",
-      "parent_id": "164.410",
+      "parent_id": "164.410(a)",
       "title": "Content of notification",
       "text": "(1) The notification required by paragraph (a) of this section shall include, to the extent possible, the identification of each individual whose unsecured protected health information has been, or is reasonably believed by the business associate to have been, accessed, acquired, used, or disclosed during the breach.",
       "designation": null,
@@ -1385,6 +1377,22 @@
       "notes": [
         "Section-level record. This subpart publishes no \"Standard:\" label, so the section is the assessable unit. The section is a published, citable unit of the CFR; no structure is invented."
       ]
+    },
+    {
+      "id": "164.502(a)",
+      "citation": "45 CFR 164.502(a)",
+      "work_area": "privacy",
+      "subpart": "E",
+      "section": "164.502",
+      "paragraph": "(a)",
+      "record_type": "standard",
+      "parent_id": null,
+      "title": "Uses and disclosures of protected health information: General rules",
+      "text": "A covered entity or business associate may not use or disclose protected health information, except as permitted or required by this subpart or by subpart C of part 160 of this subchapter.",
+      "designation": null,
+      "source": "eCFR Title 45 Part 164 Subpart E (Privacy Rule), snapshot 2026-07-01",
+      "retrieved": "2026-07-27",
+      "notes": []
     },
     {
       "id": "164.502(b)",

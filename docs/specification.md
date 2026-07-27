@@ -2,8 +2,8 @@
 
 ## Status
 
-Approved. Originally approved July 23, 2026; the post-prototype revision and the
-catalog count correction approved July 27, 2026.
+Approved. Originally approved July 23, 2026; the post-prototype revision, the
+catalog count correction and the bare-standard correction approved July 27, 2026.
 
 No unapproved changes are outstanding. Production BUILD is unblocked. Each slice
 still requires an approved ticket and applicable verification, and changing this
@@ -111,32 +111,38 @@ context, risks, and outputs.
   - **Privacy Rule (Subpart E, 45 CFR 164.500-535):** uses the standard-and-
     implementation-specification model extensively — more heavily than the Security
     Rule — but carries no Required or Addressable designation on any specification.
-  - **Breach Notification Rule (Subpart D, 45 CFR 164.400-414):** publishes no
-    `Standard:` headings at all, but does publish implementation specifications.
-    It is the genuine structural outlier of the three. Because nothing in it is
-    labelled a standard, the section is the assessable unit — a published,
-    citable unit of the CFR, so no structure is invented.
+  - **Breach Notification Rule (Subpart D, 45 CFR 164.400-414):** four standards
+    and nine implementation specifications. Structurally it follows the same
+    shape as the other two rules, not a different one. Its standards are written
+    as a bare `Standard` rather than `Standard: <name>`, taking their subject
+    from the section heading — 164.404(a), .406(a), .408(a) and .410(a). The
+    same bare form appears once in the Privacy Rule, at 164.502(a).
+  - Two provisions, 45 CFR 164.412 and 164.414, carry obligations under no
+    standard label at all. For those the section is the assessable unit — a
+    published, citable unit of the CFR, so no structure is invented. This is the
+    documented exception across the whole catalog, two records of 192, not a
+    parallel model for any rule.
   - Authoritative record counts, established by ingestion on July 27, 2026 and
     asserted by the catalog tests:
 
     | Catalog area | Standards | Implementation specifications | Sections | Required | Addressable |
     |---|---:|---:|---:|---:|---:|
-    | Security Rule (Subpart C) | 21 | 41 | 0 | 19 | 22 |
-    | Privacy Rule (Subpart E) | 55 | 58 | 0 | 0 | 0 |
-    | Breach Rule (Subpart D) | 0 | 9 | 6 | 0 | 0 |
+    | Security Rule (Subpart C) | 22 | 41 | 0 | 19 | 22 |
+    | Privacy Rule (Subpart E) | 56 | 58 | 0 | 0 | 0 |
+    | Breach Rule (Subpart D) | 4 | 9 | 2 | 0 | 0 |
 
     Source: eCFR Title 45 Part 164, snapshot 2026-07-01, retrieved July 27, 2026
     via the eCFR versioner API. Pinned as framework version
     `hipaa-45cfr164-2026-07-01`; see `catalog/README.md`.
 
-    These replace the indicative counts recorded when this section was first
-    written. Two of those were wrong. Subpart D was described as having neither
-    standards nor implementation specifications; it has no standards but nine
-    implementation specifications. Subpart E was recorded as 56 standards and
-    roughly 77 implementation-specification references; parsing the published
-    structure rather than counting phrase occurrences gives 55 and 58. The
-    earlier numbers were labelled indicative and subject to exactly this
-    correction.
+    Corrected twice. The counts first recorded here were indicative and two were
+    wrong. The first correction, on ingestion, was itself incomplete: it repeated
+    the claim that Subpart D publishes no standards. Practitioner review found
+    that wrong — Subpart D publishes four, written as a bare `Standard`, and the
+    same form appears at 164.502(a), the Privacy Rule's general prohibition on
+    use and disclosure. Recognising only `Standard: <name>` had lost all five,
+    and had left the Breach Notification Rule modelled as bare sections rather
+    than as standards with specifications beneath them.
   - One catalog record shape must tolerate all three, carrying `addressable` only
     where the regulation actually uses it — which is Subpart C alone.
 - The Security Risk Analysis is a workflow area, not a catalog area. Risk analysis
@@ -600,6 +606,21 @@ The Accepted Interaction Model, both rollup rules, the work-item state transitio
 the HIPAA rule-structure correction, and the ADR 0011 reference were added after
 the July 23 approval. **Approved as a whole by Johnathan on July 27, 2026.**
 Production BUILD is unblocked; GitHub issue #21 is the first ticket.
+
+### Bare-standard correction — approved July 27, 2026
+
+Practitioner review of the ingested catalog found that the specification, and
+the ingestion built from it, recognised only standards written
+`Standard: <name>`. Five standards are written as a bare `Standard` taking their
+subject from the section heading: 45 CFR 164.502(a), and all four Breach
+Notification Rule standards at 164.404(a), .406(a), .408(a) and .410(a). All
+five were absent from the catalog, and the Breach Notification Rule was modelled
+as section-level records rather than as standards with implementation
+specifications beneath them.
+
+All three rules now share one shape. Section-level records are the documented
+exception — 164.412 and 164.414 — rather than a parallel model. Records go 191
+to 192. **Approved by Johnathan on July 27, 2026.**
 
 ### Catalog count correction — approved July 27, 2026
 
