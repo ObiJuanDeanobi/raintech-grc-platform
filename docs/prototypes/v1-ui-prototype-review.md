@@ -1,0 +1,110 @@
+# V1 UI Prototype Review
+
+## Status
+
+Experimental prototype complete on `codex/v1-ui-prototype`. The selected
+interaction model is recorded below. Prototype code must not be promoted
+directly into production.
+
+## Run
+
+```powershell
+cd prototypes\v1-project-workspace
+.\run.ps1
+```
+
+Open `http://127.0.0.1:5173/`. Use Dashboard for cross-client work, or select a
+synthetic CMMC or FQHC HIPAA client from the left sidebar.
+
+## Review Checklist
+
+- Does Dashboard provide a clear global home above the client list?
+- Does Unified Queue clearly mean work across all clients?
+- Does Client Queue clearly mean work scoped to the selected client?
+- Does Profile make the original onboarding baseline, the current validated
+  state, and the required target easy to compare?
+- Does the assessment workspace keep guidance central and the working record
+  visible without excessive context switching?
+
+## Selection Record
+
+Initial direction selected by Johnathan:
+
+- **Base shell:** Variant A, Project Command Center. Variants B and C and the
+  prototype switcher were removed after selection.
+- **Scope hierarchy:** Dashboard is the global home above client profiles in
+  the sidebar. Dashboard owns Unified Queue across all clients; each selected
+  client Overview owns a Client Queue.
+- **Project schedule:** project end date is required during onboarding/profile
+  setup and is surfaced in the client list, selected project identity, and
+  global portfolio summary. Dashboard shows Active Projects above Unified
+  Queue as a stacked list with project name, end date, days remaining, and a
+  distinct project-completion percentage. Client pages replace the redundant
+  due-soon metric with a prominent Project Ends metric.
+- **Assessment workspace:** retain A's dense requirement list and right-side
+  inspector concept, but move it out of Overview and into a dedicated
+  objective-by-objective assessment workspace.
+- **Overview additions from B:** add a compact engagement-phase rail and a
+  "continue where you left off" panel showing assessment progress,
+  implementation context, evidence support, and the linked action.
+- **Action model:** retain A's project Overview and direct navigation, with the
+  unified queue available as a deliberate secondary destination.
+- **Overview boundary:** remove the requirement-review list and requirement
+  inspector. Overview contains only project orientation, resumption context,
+  and the unified actionable-work queue directly below it. Evidence, risk, and
+  report blockers enter that queue rather than appearing in a separate summary
+  strip.
+- **Global utility context:** add a compact top bar for notifications and the
+  signed-in user without competing with project identity; do not duplicate the
+  signed-in name in each project header.
+- **Assessment interaction:** selecting `Assessments` opens an objective
+  navigator, a central decision surface with requirement text, what to
+  determine, implementation guidance, expected evidence, linked work, and the
+  determination state, plus a right-side working record containing the
+  implementation statement, mapped evidence, and assessment notes.
+- **Progressive profile:** retain the onboarding baseline as a distinct record
+  while gap-analysis work enriches an Implementation Profile. Profile shows
+  the current scope snapshot, project schedule, baseline-to-current-to-target
+  facts, unresolved confirmations, and which assessment outputs consume each
+  fact.
+- **Work surfaces:** the Dashboard Unified Queue and the Overview Client Queue are
+  prioritized *projections* for deciding what to work on. `Actions / POA&M` owns
+  the *records*. Each record exposes the record type, who raised it, its links in
+  both directions, its next action, and the condition that must be true before it
+  closes. Record types remain distinct rather than flattening into a single row
+  shape, and differ by framework on the shared surface: CMMC shows POA&M, HIPAA
+  shows Corrective action and Task. `Ready for Validation` is a prominent group
+  rather than a separate destination, because those items require an explicit
+  decision and never close automatically. A finding does not close when its POA&M
+  or corrective action closes. Report blockers and stale-evidence warnings are
+  derived signals belonging to the queues; they are not records and are not
+  managed on this surface.
+- **Overview visualization:** do not add a separate chart section. The existing
+  metrics and progress treatment provide sufficient orientation; the unified
+  queue expands with realistic evidence, risk, and report-blocker work instead.
+- **Rejected tradeoff from B:** do not make the entire workspace phase-first;
+  the full phase shell consumes vertical space and can overstate sequentiality.
+- **Qualified lesson from C:** retain a cross-client queue on the global
+  Dashboard, while keeping client orientation for deep assessment work.
+
+This is an interaction-model decision, not approval to promote prototype code.
+The production shell must be implemented afresh under a production ticket.
+
+Production implementation requires a new approved ticket and a fresh,
+tested implementation rather than promotion of this prototype code.
+
+## Visual Verification
+
+Screenshots were captured at 1440×900 (desktop, CMMC) and 1280×720 (laptop,
+HIPAA) for the selected workspace under
+`prototypes/v1-project-workspace/screenshots/`.
+
+Checks completed:
+
+- no horizontal page overflow
+- no overlapping structural panes
+- no blank critical content
+- labels and primary text remain readable
+- Dashboard, client selection, and assessment controls work
+- CMMC and HIPAA Profile views render with their distinct synthetic scope data
+- browser console contains no errors or warnings

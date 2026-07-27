@@ -2,8 +2,14 @@
 
 ## Status
 
-Approved on July 23, 2026. Production work remains governed by the prototype and
-vertical-slice ticket gates.
+Approved on July 23, 2026.
+
+**Contains unapproved changes.** The UI prototype settled the interaction model and
+exposed two modeling gaps. The Accepted Interaction Model section, the
+objective-to-requirement rollup rule, the work-item state transitions, and the
+reference to ADR 0011 were added after that approval and are pending Johnathan's
+review. Production work remains governed by the prototype and vertical-slice ticket
+gates, and the first production ticket requires this revision to be approved.
 
 ## Problem
 
@@ -83,6 +89,37 @@ context, risks, and outputs.
   notes, status, and rule-based client-specific implementation guidance.
 - CMMC uses a requirement-centered workspace with its assessment objectives
   visible together.
+- The assessable unit differs by framework, because the two frameworks are
+  decomposed by different authorities to different depths. Do not force one shape
+  onto both.
+  - **CMMC:** determinations are recorded at assessment-objective level, because
+    NIST SP 800-171A normatively decomposes each requirement into determination
+    statements. Requirement status derives from its objectives.
+  - **HIPAA:** determinations are recorded at implementation-specification level,
+    or at the standard itself where a standard has no implementation
+    specifications. Standard status derives from its specifications. No
+    objective layer is created — 45 CFR Part 164 publishes no such decomposition,
+    and inventing one would produce assessable records that cannot be cited.
+  - The OCR Audit Protocol's key activities and audit inquiries populate the
+    implementation guidance and expected evidence fields. They are not records
+    that carry a determination.
+- The three HIPAA rules are not structurally uniform. The Security Rule uses
+  standards with Required and Addressable implementation specifications per
+  45 CFR 164.306. The Privacy Rule and Breach Notification Rule largely do not use
+  that model. One catalog record shape must tolerate all three, carrying
+  `addressable` only where the regulation actually uses it.
+- Requirement or standard status is derived and is not edited directly:
+  - all children Met, or Met with a documented N/A where the framework allows it,
+    derives Met
+  - any child Not Met derives Not Met
+  - otherwise, any child Pending derives Pending
+  - otherwise the parent remains Blank
+  - Not Met takes precedence over Pending when both are present
+- Only the derived requirement status feeds official CMMC scoring. Objective-level
+  status is never scored on its own.
+- Confirmed by Johnathan on July 27, 2026. The CMMC rule follows the structure of
+  NIST SP 800-171A, where a requirement is satisfied only when all of its
+  determination statements are satisfied.
 - HIPAA projects contain four connected areas: Security Rule, Privacy Rule,
   Breach Notification Rule, and Security Risk Analysis.
 - Assessments move from Draft to Issued. Issued assessments are immutable;
@@ -147,6 +184,25 @@ context, risks, and outputs.
 - Customer-facing POA&M output omits Withdrawn items or leaves their display
   status blank.
 
+Work-item state transitions:
+
+- Draft to Open on first assignment. Open, In Progress, and Waiting move freely
+  between one another as work proceeds.
+- Any of Open, In Progress, or Waiting moves to Ready for Validation when the
+  responsible party asserts the work is done.
+- Ready for Validation moves to Closed only through an explicit validation
+  decision recorded by the selected account. Nothing reaches Closed by any other
+  path, and no item closes as a side effect of another item closing.
+- Failed validation returns the item to In Progress, or creates a linked
+  successor when the original approach was abandoned.
+- Withdrawn is reachable from any open state and is exceptional. It records that
+  the item should not have existed, which is different from Closed.
+- Closed and Withdrawn are terminal. Reopening creates a linked successor rather
+  than reviving a terminal record.
+- A finding is closed only by revalidation of the underlying requirement or
+  standard in a later assessment. Completing or closing its linked POA&M item or
+  corrective action never closes the finding.
+
 ### Risk Management
 
 - Use one shared 5x5 likelihood-and-impact engine.
@@ -182,6 +238,13 @@ context, risks, and outputs.
 ### Policies and Documents
 
 - Maintain reusable, versioned templates and approved content blocks.
+- Templates, approved content blocks, and generated deliverables must satisfy the
+  output language constraints in ADR 0011: no certification claims for RainTech,
+  the platform, or a client system; no asserted regulatory frequency the
+  controlling authority does not mandate; no presentation of evidence reuse as
+  framework equivalence; and no internal progress percentage presented as a
+  compliance conclusion. An approved content block is reviewed against ADR 0011
+  before it becomes reusable.
 - Generate deterministic drafts using named project-profile fields and
   conditional sections; no LLM is required in V1.
 - Support editable drafts, version history, linked source data, and approval.
@@ -246,8 +309,61 @@ Assessment work contains:
 Scope | Gap Analysis | Findings | Validation | History
 ```
 
-The Overview prioritizes phase, urgent actions, upcoming reviews, project
-progress, and recent activity.
+## Accepted Interaction Model
+
+Selected through the UI prototype on `codex/v1-ui-prototype` and recorded in
+`docs/prototypes/v1-ui-prototype-review.md`. Production reimplements this model
+against the real architecture; prototype code is not promoted.
+
+**Two scopes.** Dashboard is the cross-client home and sits above the client list
+in the sidebar. Selecting a client opens that project's workspace. The two are
+never blended.
+
+- Dashboard owns the **Unified Queue**, which spans every client, and Active
+  Projects above it as a stacked list showing client, project, phase, end date,
+  days remaining, and project-completion percentage.
+- Each client Overview owns the **Client Queue**, scoped to the selected client.
+- Project completion measures delivery progress and is distinct from profile
+  completeness. Neither is a compliance conclusion and neither appears in
+  client-facing output.
+
+**Overview is orientation, not assessment.** It contains a compact phase rail, a
+work-resumption panel, and the Client Queue directly beneath. It does not contain
+a requirement-review list, a requirement inspector, a separate evidence/risk/report
+summary strip, or a chart section added to fill space.
+
+**Assessments is objective-by-objective.** An objective navigator on the left, a
+central decision surface carrying the requirement, what to determine, the
+determination control, implementation guidance, expected evidence, and linked
+work, and a right-side working record holding the implementation statement,
+mapped evidence, and assessment notes.
+
+**Profile is progressive and additive.** The onboarding baseline stays visible
+beside the current validated state and the required target, each fact carrying a
+status of Confirmed, Changed, or Missing plus its assessment impact. Assessment
+findings enrich the Implementation Profile; they never overwrite the onboarding
+baseline.
+
+**Queues project; Actions/POA&M owns the records.** The queues are prioritized
+projections for deciding what to work on. Actions/POA&M is where the records are
+managed, and each record exposes what a queue row cannot: the record type, who
+raised it, its links in both directions, its next action, and the condition that
+must be true before it closes. Record types stay distinct rather than flattening
+into one row shape, and differ by framework on the shared surface — CMMC shows
+POA&M, HIPAA shows Corrective action. Ready for Validation is a prominent group,
+not a separate destination, because those items require an explicit decision.
+Report blockers and stale-evidence warnings are derived signals that appear in the
+queues; they are not records and are not managed here.
+
+**Global utility context.** A compact top bar carries notifications and the
+signed-in account. The signed-in name is not repeated in each project header.
+
+**Project end date** is captured during onboarding as a profile field and stays
+visible in the client list, project identity, Profile, and Dashboard.
+
+Rejected during prototyping: a phase-first workspace shell, which overstates
+sequentiality and consumes vertical space; and the global queue as the default
+home, which weakens project orientation for deep assessment work.
 
 ## Non-Goals
 
@@ -434,3 +550,27 @@ production shell is established.
 Approved by Johnathan on July 23, 2026. This approval authorizes the UI prototype
 and creation of the vertical-slice ticket plan. Each production slice still
 requires an approved ticket and applicable verification.
+
+### Pending revision
+
+The Accepted Interaction Model, the rollup rules, the work-item state transitions,
+and the ADR 0011 reference were added after the July 23 approval and are **not yet
+approved as a whole**.
+
+Settled since:
+
+- CMMC objective-to-requirement rollup confirmed by Johnathan, July 27, 2026.
+- HIPAA determinations recorded at implementation-specification level, with no
+  invented objective layer. Confirmed July 27, 2026.
+- First engagement is a full HIPAA program assessment within weeks. Slice 4
+  precedes Slice 3. The platform runs in parallel with existing methods rather
+  than on the critical path of live client work.
+
+Still open:
+
+1. Approval of this revision as a whole.
+2. Whether to restructure `ROADMAP.md` so the required and optional halves of
+   Slices 2, 5, and 7 are separated, and Slice 4 formally precedes Slice 3.
+   That narrows V1 and is a scope change.
+
+Production BUILD does not begin until this revision is approved.
