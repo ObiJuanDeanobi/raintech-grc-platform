@@ -67,6 +67,18 @@ Initial direction selected by Johnathan:
   the current scope snapshot, project schedule, baseline-to-current-to-target
   facts, unresolved confirmations, and which assessment outputs consume each
   fact.
+- **Work surfaces:** the Dashboard Unified Queue and the Overview Client Queue are
+  prioritized *projections* for deciding what to work on. `Actions / POA&M` owns
+  the *records*. Each record exposes the record type, who raised it, its links in
+  both directions, its next action, and the condition that must be true before it
+  closes. Record types remain distinct rather than flattening into a single row
+  shape, and differ by framework on the shared surface: CMMC shows POA&M, HIPAA
+  shows Corrective action and Task. `Ready for Validation` is a prominent group
+  rather than a separate destination, because those items require an explicit
+  decision and never close automatically. A finding does not close when its POA&M
+  or corrective action closes. Report blockers and stale-evidence warnings are
+  derived signals belonging to the queues; they are not records and are not
+  managed on this surface.
 - **Overview visualization:** do not add a separate chart section. The existing
   metrics and progress treatment provide sufficient orientation; the unified
   queue expands with realistic evidence, risk, and report-blocker work instead.

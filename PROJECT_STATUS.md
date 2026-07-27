@@ -59,13 +59,28 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
   with scope counts, schedule, unresolved inputs, assessment impact, and
   downstream consumers shown for synthetic CMMC and HIPAA engagements.
 
+- Actions / POA&M prototyped as a record surface distinct from the two queues,
+  with distinct record types, framework-specific vocabulary, an explicit
+  Ready for Validation group, and per-record close conditions.
+- Agent workflow hardened: CLAUDE.md pointer, CI running prototype typecheck and
+  build on every push, UI review rules recorded in AGENTS.md, tech-debt gate text
+  deduplicated, test-depth tiers defined, and ADR 0011 added for generated output
+  language.
+- Prototyping stopped. Coverage matches the next three slices; Evidence, Risks,
+  Policies, and Reports are deferred to their own slices rather than prototyped
+  months before implementation.
+- Specification updated with the accepted interaction model, the
+  objective-to-requirement rollup rule, and work-item state transitions.
+
 ## In progress
 
-- Final selected-workspace review and production ticket handoff.
+- Specification revision awaiting Johnathan's approval before production BUILD.
 
 ## Blocked
 
-- None.
+- Production ticket for Slice 1 is blocked on two decisions: confirmation of the
+  rollup rule against controlling CMMC assessment guidance, and the
+  first-real-engagement threshold.
 
 ## Known risks
 
@@ -75,5 +90,6 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 
 ## Next recommended action
 
-Confirm the selected workspace, then create an approved production ticket that
-reimplements the selected interaction model without promoting prototype code.
+Review and approve the specification revision, and decide the two blocked items.
+Then the Slice 1 production ticket is written against the approved specification
+and reimplemented from clean `main` without promoting prototype code.
