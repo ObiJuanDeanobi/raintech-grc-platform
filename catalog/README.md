@@ -96,6 +96,43 @@ They recount from the source rather than trusting the expected numbers, which
 is what stops a parser regression from silently dropping records and then
 passing because someone updated the expected count to match.
 
+## Independent control: Appendix A
+
+Appendix A to Subpart C is the Security Standards Matrix — HHS's own enumeration
+of the standards and implementation specifications in 164.308, .310 and .312,
+published inside the regulation. It is **not ingested as records**, because that
+would double-count every Security Rule record. It is used as an external control
+on the parse instead, and the tests enforce the agreement.
+
+Restricted to the matrix's scope, catalog and matrix agree exactly:
+
+| | Standards | Impl. specs | Required | Addressable |
+|---|---:|---:|---:|---:|
+| Appendix A | 18 | 36 | 14 | 22 |
+| Catalog (164.308/.310/.312) | 18 | 36 | 14 | 22 |
+
+Two things about the matrix are load-bearing and easy to get wrong:
+
+- **It cites a standard by the paragraph that contains it.** Where a standard has
+  implementation specifications, the standard sits at 164.308(a)(1)(i) and the
+  matrix cites 164.308(a)(1). Comparing raw citations reports six standards as
+  missing when none are.
+- **It omits the (A) on Workforce Clearance Procedure.** The section text at
+  164.308(a)(3)(ii)(B) carries it, and the section text is controlling.
+
+This control earned its place: it caught **45 CFR 164.308(b)(1)** missing from the
+catalog. That paragraph is a standard in the matrix, but the section text titles
+it without the `Standard:` prefix that every other Security Rule standard carries,
+so a label-driven parse cannot see it. It is now promoted with a note recording
+Appendix A as the authority.
+
+**There is no equivalent control for the Privacy or Breach Notification Rules.**
+The CFR publishes no matrix for either. Those two areas are verified against the
+source text and for internal structural consistency, but they have no second
+opinion. The HHS OCR Audit Protocol is the candidate — it enumerates provisions by
+CFR citation across all three rules — and cross-checking against it is worth doing
+before the catalog is relied on for Privacy or Breach work.
+
 ## Spot reconciliation sample
 
 Recorded so the check is repeatable rather than asserted. On 2026-07-27 these

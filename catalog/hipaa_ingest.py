@@ -68,15 +68,33 @@ EXCLUDED_SECTIONS = {
 }
 
 # Appendix A to Subpart C is the Security Standards Matrix -- a summary table
-# restating the standards already ingested from 164.308-164.316. Ingesting it
-# would double-count every Security Rule record.
+# restating the standards and implementation specifications of 164.308, .310
+# and .312. It is not ingested as records, because that would double-count
+# every Security Rule record.
+#
+# It is used instead as an independent control. The matrix is HHS's own
+# enumeration, published in the regulation, so it can be diffed against what
+# the section text yields. That diff found a real gap: 164.308(b)(1) is a
+# standard in the matrix but its paragraph in the section text carries no
+# "Standard:" prefix, so a label-driven parser misses it.
+#
+# Note the matrix covers only the three safeguard sections. It does not cover
+# 164.314 or 164.316, so it is a lower bound on the Security Rule, not a
+# complete inventory.
+APPENDIX_A = "Appendix A to Subpart C of Part 164"
+APPENDIX_A_SCOPE = ("164.308", "164.310", "164.312")
 EXCLUDED_APPENDICES = {
-    "Appendix A to Subpart C of Part 164": (
+    APPENDIX_A: (
         "Security Standards: Matrix. A summary restatement of the standards and "
-        "implementation specifications in 164.308-164.316. Ingesting it would "
-        "double-count every Security Rule record."
+        "implementation specifications in 164.308, .310 and .312. Not ingested "
+        "as records -- that would double-count every Security Rule record. It is "
+        "used as an independent control on the parse instead."
     )
 }
+
+# The matrix omits the (A) designation on this one specification. The section
+# text at 164.308(a)(3)(ii)(B) carries it. The section text is controlling.
+APPENDIX_A_KNOWN_OMISSIONS = {"Workforce Clearance Procedure"}
 
 STANDARD_RE = re.compile(r"^Standard:\s*(?P<title>.+?)\s*$")
 # The regulation writes implementation specifications three different ways.
@@ -324,6 +342,128 @@ def inline_descent(body: str, label: str | None) -> str | None:
     return token if classify(token) else None
 
 
+def parse_appendix_a(payload: bytes) -> dict:
+    """Parse the Security Standards Matrix into an independent inventory.
+
+    Returns the standards it declares, keyed by the paragraph citation it
+    gives them, plus its named implementation specifications with their
+    designations. Rows whose specification cell is only "(R)" designate the
+    standard itself and declare no separate specification.
+    """
+    root = ET.fromstring(payload)
+    appendix = next(
+        (d for d in root.iter("DIV9") if d.attrib.get("N") == APPENDIX_A), None
+    )
+    if appendix is None:
+        return {"standards": {}, "specifications": []}
+
+    standards: dict[str, str] = {}
+    specifications: list[tuple[str, str | None, str | None]] = []
+    current: str | None = None
+
+    rows = [
+        [" ".join("".join(cell.itertext()).split()) for cell in row]
+        for row in appendix.findall(".//TABLE//TR")
+    ]
+    for row in rows[1:]:
+        name, section, spec = (row + ["", "", ""])[:3]
+        if name and not section and not spec:
+            continue  # group banner, e.g. "Administrative Safeguards"
+        if name and section:
+            standards[section] = name
+            current = section
+        if not spec:
+            continue
+        match = re.search(r"\((R|A)\)\s*$", spec)
+        designation = (
+            {"R": "required", "A": "addressable"}[match.group(1)] if match else None
+        )
+        title = re.sub(r"\s*\((R|A)\)\s*$", "", spec).strip()
+        if not title:
+            continue  # "(R)" alone designates the standard, not a specification
+        specifications.append((title, designation, current))
+
+    return {"standards": standards, "specifications": specifications}
+
+
+def matrix_citation_resolves(citation: str, standard_ids: set[str]) -> bool:
+    """True when a matrix citation names a standard the catalog already has.
+
+    Appendix A cites a standard by the paragraph that *contains* it, not by
+    the paragraph the standard's text sits on. Where a standard has
+    implementation specifications the regulation splits them: the standard
+    is at 164.308(a)(1)(i) and its specifications at 164.308(a)(1)(ii), and
+    the matrix cites the parent, 164.308(a)(1). Comparing raw citations
+    reports every such standard as missing.
+    """
+    return citation in standard_ids or f"{citation}(i)" in standard_ids
+
+
+def reconcile_with_appendix_a(
+    records: list[Record], payload: bytes, candidates: dict, retrieved: str, source: str
+) -> list[Record]:
+    """Promote standards the matrix declares but the section text does not label.
+
+    Every Security Rule standard except one is written "Standard: <name>" in
+    the section text. 45 CFR 164.308(b)(1) is not, so a label-driven parse
+    misses it -- while Appendix A lists it as a standard. Appendix A is
+    published regulation, so promoting it invents nothing.
+    """
+    inventory = parse_appendix_a(payload)
+    have = {r.id for r in records if r.record_type == "standard"}
+    additions: list[Record] = []
+
+    for citation, name in inventory["standards"].items():
+        if matrix_citation_resolves(citation, have):
+            continue
+        candidate = candidates.get(citation)
+        if candidate is None:
+            continue
+        title, text = candidate
+        section = citation.split("(")[0]
+        additions.append(
+            Record(
+                id=citation,
+                citation=f"45 CFR {citation}",
+                work_area="security",
+                subpart="C",
+                section=section,
+                paragraph=citation[len(section):],
+                record_type="standard",
+                parent_id=None,
+                title=title.rstrip(".").strip(),
+                text=text,
+                designation=None,
+                source=source,
+                retrieved=retrieved,
+                notes=[
+                    "Declared a standard by Appendix A to Subpart C (Security "
+                    "Standards: Matrix). The section text titles this paragraph "
+                    'without the "Standard:" prefix every other Security Rule '
+                    "standard carries, so it is not recoverable from the section "
+                    "text alone. Appendix A is published regulation and is the "
+                    "authority here."
+                ],
+            )
+        )
+
+    # Specifications under a promoted standard were parented to whatever
+    # standard was innermost at the time, or to nothing. Re-parent them.
+    for addition in additions:
+        prefix = addition.id
+        for record in records:
+            if record.record_type != "implementation_specification":
+                continue
+            if record.id.startswith(addition.section) and record.id != addition.id:
+                # Same subtree as the promoted standard, e.g. 164.308(b)(3)
+                # under 164.308(b)(1).
+                branch = addition.paragraph.rsplit("(", 1)[0]
+                if branch and record.paragraph.startswith(branch):
+                    record.parent_id = prefix
+
+    return additions
+
+
 def paragraph_text(element: ET.Element) -> str:
     """Flatten a <P> element to plain text with normalized whitespace."""
     return " ".join("".join(element.itertext()).split())
@@ -369,8 +509,14 @@ def fetch_subpart(subpart: str, snapshot: str, cache_dir: Path | None) -> bytes:
 
 def parse_subpart(
     payload: bytes, subpart: str, snapshot: str, retrieved: str
-) -> tuple[list[Record], list[dict]]:
-    """Parse one subpart into records plus the exclusions applied."""
+) -> tuple[list[Record], list[dict], dict]:
+    """Parse one subpart into records, the exclusions applied, and candidates.
+
+    Candidates are titled paragraphs that produced no record. They are kept so
+    Appendix A reconciliation can promote one that the matrix declares to be a
+    standard.
+    """
+    candidates: dict[str, tuple[str, str]] = {}
     root = ET.fromstring(payload)
     work_area, area_label = WORK_AREAS[subpart]
     source = f"eCFR Title 45 Part 164 Subpart {subpart} ({area_label}), snapshot {snapshot}"
@@ -405,11 +551,12 @@ def parse_subpart(
             continue
 
         section_records = parse_section(
-            section_div, section, heading, subpart, work_area, source, retrieved
+            section_div, section, heading, subpart, work_area, source, retrieved,
+            candidates,
         )
         records.extend(section_records)
 
-    return records, exclusions
+    return records, exclusions, candidates
 
 
 def parse_section(
@@ -420,8 +567,11 @@ def parse_section(
     work_area: str,
     source: str,
     retrieved: str,
+    candidates: dict | None = None,
 ) -> list[Record]:
     """Parse one section's paragraphs into records."""
+    if candidates is None:
+        candidates = {}
     records: list[Record] = []
     path: list[tuple[str, str]] = []
     # Innermost enclosing standard, held as (scope_depth, id).
@@ -607,8 +757,13 @@ def parse_section(
 
         # The paragraph is labelled but is neither a standard nor an
         # implementation specification -- an ordinary titled paragraph such as
-        # 45 CFR 164.514(f). It produces no record, but its inline first child
-        # still has to reach the path.
+        # 45 CFR 164.514(f). It produces no record here, but Appendix A may
+        # declare it a standard, so keep it as a candidate. Its inline first
+        # child still has to reach the path.
+        candidates[record_id] = (
+            label,
+            body[len(label):].strip() if body.startswith(label) else body,
+        )
         if descent:
             path = place(path, descent)
 
@@ -698,7 +853,15 @@ def build(snapshot: str, retrieved: str, cache_dir: Path | None) -> dict:
             f"eCFR Title 45 Part 164 Subpart {subpart} ({area_label}), "
             f"snapshot {snapshot}"
         )
-        parsed, parsed_exclusions = parse_subpart(payload, subpart, snapshot, retrieved)
+        parsed, parsed_exclusions, candidates = parse_subpart(
+            payload, subpart, snapshot, retrieved
+        )
+        if subpart == "C":
+            parsed.extend(
+                reconcile_with_appendix_a(
+                    parsed, payload, candidates, retrieved, source
+                )
+            )
         parsed.extend(
             add_section_records(parsed, payload, subpart, work_area, source, retrieved)
         )

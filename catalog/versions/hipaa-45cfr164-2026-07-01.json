@@ -32,8 +32,8 @@
   "work_areas_note": "HIPAA projects present four work areas over three catalog areas. The Security Risk Analysis is a workflow area built on the Security Rule records; risk analysis is 45 CFR 164.308(a)(1)(ii)(A) and appears exactly once, as a Security Rule implementation specification.",
   "counts": {
     "security": {
-      "total": 62,
-      "standard": 21,
+      "total": 63,
+      "standard": 22,
       "implementation_specification": 41,
       "section": 0,
       "required": 19,
@@ -60,7 +60,7 @@
     {
       "unit": "Appendix A to Subpart C of Part 164",
       "kind": "appendix",
-      "reason": "Security Standards: Matrix. A summary restatement of the standards and implementation specifications in 164.308-164.316. Ingesting it would double-count every Security Rule record."
+      "reason": "Security Standards: Matrix. A summary restatement of the standards and implementation specifications in 164.308, .310 and .312. Not ingested as records -- that would double-count every Security Rule record. It is used as an independent control on the parse instead."
     },
     {
       "unit": "45 CFR 164.302",
@@ -573,6 +573,24 @@
       "notes": []
     },
     {
+      "id": "164.308(b)(1)",
+      "citation": "45 CFR 164.308(b)(1)",
+      "work_area": "security",
+      "subpart": "C",
+      "section": "164.308",
+      "paragraph": "(b)(1)",
+      "record_type": "standard",
+      "parent_id": null,
+      "title": "Business associate contracts and other arrangements",
+      "text": "A covered entity may permit a business associate to create, receive, maintain, or transmit electronic protected health information on the covered entity's behalf only if the covered entity obtains satisfactory assurances, in accordance with § 164.314(a), that the business associate will appropriately safeguard the information. A covered entity is not required to obtain such satisfactory assurances from a business associate that is a subcontractor.",
+      "designation": null,
+      "source": "eCFR Title 45 Part 164 Subpart C (Security Rule), snapshot 2026-07-01",
+      "retrieved": "2026-07-27",
+      "notes": [
+        "Declared a standard by Appendix A to Subpart C (Security Standards: Matrix). The section text titles this paragraph without the \"Standard:\" prefix every other Security Rule standard carries, so it is not recoverable from the section text alone. Appendix A is published regulation and is the authority here."
+      ]
+    },
+    {
       "id": "164.308(b)(3)",
       "citation": "45 CFR 164.308(b)(3)",
       "work_area": "security",
@@ -580,7 +598,7 @@
       "section": "164.308",
       "paragraph": "(b)(3)",
       "record_type": "implementation_specification",
-      "parent_id": "164.308(a)(8)",
+      "parent_id": "164.308(b)(1)",
       "title": "Written contract or other arrangement",
       "text": "Document the satisfactory assurances required by paragraph (b)(1) or (b)(2) of this section through a written contract or other arrangement with the business associate that meets the applicable requirements of § 164.314(a).",
       "designation": "required",
