@@ -45,21 +45,35 @@ issued deliverables.
 - Internal estimate and customer-facing PDF.
 - HIPAA estimate remains manual.
 
+### Slice 4 - HIPAA Program Delivery
+
+**Built before Slice 3.** The first real engagement is a full HIPAA program
+assessment. Slice numbers are stable identifiers and are not renumbered; the build
+order is 1, 2, 4, 3, 5, 6, 7. Slice 4a — the HIPAA catalog — is the long-lead item
+and starts first, because it needs practitioner review time rather than build time.
+
+- Security Rule, Privacy Rule, Breach Notification Rule, and Security Risk
+  Analysis work areas.
+- Four work areas over three catalog areas. The Security Risk Analysis is a
+  workflow surface, not a separate catalog: risk analysis is already a Security
+  Rule record at 45 CFR 164.308(a)(1)(ii)(A). Do not ingest it twice.
+- Required/addressable decisions and N/A rationale. The Required/Addressable
+  designation exists only in the Security Rule (Subpart C), per 45 CFR 164.306(d).
+  The Privacy Rule uses standards and implementation specifications heavily but
+  carries no such designation. See the specification for the structural detail and
+  its citation.
+- 5x5 inherent/residual risk analysis with complete ePHI scope checks.
+- HIPAA gap, corrective-action, executive, and SRA reports.
+- Reassessment by copy and revalidation.
+
 ### Slice 3 - CMMC Level 2 Delivery
+
+Built after Slice 4. See the ordering note above.
 
 - Versioned CMMC Level 2 catalog.
 - Requirement-centered gap analysis with all assessment objectives.
 - Official CMMC scoring only.
 - Findings, Pending/Not Met handling, validation, continuous POA&M, and reports.
-- Reassessment by copy and revalidation.
-
-### Slice 4 - HIPAA Program Delivery
-
-- Security Rule, Privacy Rule, Breach Notification Rule, and Security Risk
-  Analysis work areas.
-- Required/addressable decisions and N/A rationale.
-- 5x5 inherent/residual risk analysis with complete ePHI scope checks.
-- HIPAA gap, corrective-action, executive, and SRA reports.
 - Reassessment by copy and revalidation.
 
 ### Slice 5 - Evidence and Recurring Reviews

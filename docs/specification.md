@@ -2,14 +2,12 @@
 
 ## Status
 
-Approved on July 23, 2026.
+Approved. Originally approved July 23, 2026; the post-prototype revision approved
+July 27, 2026.
 
-**Contains unapproved changes.** The UI prototype settled the interaction model and
-exposed two modeling gaps. The Accepted Interaction Model section, the
-objective-to-requirement rollup rule, the work-item state transitions, and the
-reference to ADR 0011 were added after that approval and are pending Johnathan's
-review. Production work remains governed by the prototype and vertical-slice ticket
-gates, and the first production ticket requires this revision to be approved.
+No unapproved changes are outstanding. Production BUILD is unblocked. Each slice
+still requires an approved ticket and applicable verification, and changing this
+document again requires Johnathan's approval.
 
 ## Problem
 
@@ -103,11 +101,34 @@ context, risks, and outputs.
   - The OCR Audit Protocol's key activities and audit inquiries populate the
     implementation guidance and expected evidence fields. They are not records
     that carry a determination.
-- The three HIPAA rules are not structurally uniform. The Security Rule uses
-  standards with Required and Addressable implementation specifications per
-  45 CFR 164.306. The Privacy Rule and Breach Notification Rule largely do not use
-  that model. One catalog record shape must tolerate all three, carrying
-  `addressable` only where the regulation actually uses it.
+- The three HIPAA rules are not structurally uniform, but they diverge on the
+  Required/Addressable designation rather than on the standard-and-implementation-
+  specification model itself. Do not treat the Privacy Rule as standard-only; that
+  would drop most of its assessable records.
+  - **Security Rule (Subpart C, 45 CFR 164.302-318):** standards with Required and
+    Addressable implementation specifications. The Addressable designation exists
+    only here, per 45 CFR 164.306(d).
+  - **Privacy Rule (Subpart E, 45 CFR 164.500-535):** uses the standard-and-
+    implementation-specification model extensively — more heavily than the Security
+    Rule — but carries no Required or Addressable designation on any specification.
+  - **Breach Notification Rule (Subpart D, 45 CFR 164.400-414):** publishes no
+    `Standard:` headings and few implementation specifications. It is the genuine
+    structural outlier of the three.
+  - Indicative counts from the current text, as a floor for catalog sizing and not
+    as certified record counts: Subpart C has 21 `Standard:` headings, 19 Required
+    and 22 Addressable specifications; Subpart E has 56 `Standard:` headings and
+    roughly 77 implementation-specification references with zero designations;
+    Subpart D has none of either. Source: eCFR Title 45 Part 164, snapshot
+    2026-07-01, retrieved July 27, 2026 via the eCFR versioner API. Ingestion
+    establishes the authoritative counts.
+  - One catalog record shape must tolerate all three, carrying `addressable` only
+    where the regulation actually uses it — which is Subpart C alone.
+- The Security Risk Analysis is a workflow area, not a catalog area. Risk analysis
+  is 45 CFR 164.308(a)(1)(ii)(A), a single Required implementation specification
+  inside the Security Management Process standard at 164.308(a)(1)(i). It is
+  already a Security Rule catalog record and must not be ingested a second time as
+  a fourth catalog area. HIPAA projects therefore present four work areas over
+  three catalog areas.
 - Requirement or standard status is derived and is not edited directly:
   - all children Met, or Met with a documented N/A where the framework allows it,
     derives Met
@@ -541,36 +562,50 @@ production shell is established.
 ## Open Questions
 
 - Final source and licensing approach for the HIPAA catalog and guidance content.
+  Narrowed by GitHub issue #21: eCFR, the OCR Audit Protocol, and NIST SP 800-66
+  Rev. 2 are all US government works, so no licensing spend is expected. The HHS
+  SRA Tool remains unassessed and its terms must be checked before any reuse.
 - Final RainTech policy, procedure, report, and SSP templates.
-- Exact production styling and interaction model, to be resolved by the UI
-  prototype.
+
+Closed:
+
+- Exact production styling and interaction model. Resolved by the UI prototype and
+  recorded in the Accepted Interaction Model section. Closed July 27, 2026.
 
 ## Approval
 
-Approved by Johnathan on July 23, 2026. This approval authorizes the UI prototype
+Approved by Johnathan on July 23, 2026. This approval authorized the UI prototype
 and creation of the vertical-slice ticket plan. Each production slice still
 requires an approved ticket and applicable verification.
 
-### Pending revision
+### Post-prototype revision — approved July 27, 2026
 
-The Accepted Interaction Model, the rollup rules, the work-item state transitions,
-and the ADR 0011 reference were added after the July 23 approval and are **not yet
-approved as a whole**.
+The Accepted Interaction Model, both rollup rules, the work-item state transitions,
+the HIPAA rule-structure correction, and the ADR 0011 reference were added after
+the July 23 approval. **Approved as a whole by Johnathan on July 27, 2026.**
+Production BUILD is unblocked; GitHub issue #21 is the first ticket.
 
-Settled since:
+Settled in this revision:
 
 - CMMC objective-to-requirement rollup confirmed by Johnathan, July 27, 2026.
 - HIPAA determinations recorded at implementation-specification level, with no
   invented objective layer. Confirmed July 27, 2026.
 - First engagement is a full HIPAA program assessment within weeks. Slice 4
   precedes Slice 3. The platform runs in parallel with existing methods rather
-  than on the critical path of live client work.
+  than on the critical path of live client work. `ROADMAP.md` now records that
+  ordering, so it is no longer an open question.
+- HIPAA rule structure corrected against primary source, July 27, 2026. The
+  earlier claim that the Privacy Rule "largely does not use that model" was wrong:
+  Subpart E uses standards and implementation specifications more heavily than
+  Subpart C does, and what it lacks is the Required/Addressable designation. The
+  correction is recorded under Frameworks and Assessments with its citation and
+  retrieval date. Verified against eCFR rather than asserted.
+- The Security Risk Analysis is a workflow area, not a catalog area. It is already
+  a Security Rule record at 45 CFR 164.308(a)(1)(ii)(A).
 
-Still open:
+Deferred, not blocking:
 
-1. Approval of this revision as a whole.
-2. Whether to restructure `ROADMAP.md` so the required and optional halves of
-   Slices 2, 5, and 7 are separated, and Slice 4 formally precedes Slice 3.
-   That narrows V1 and is a scope change.
-
-Production BUILD does not begin until this revision is approved.
+- Whether to restructure `ROADMAP.md` so the required and optional halves of
+  Slices 2, 5, and 7 are separated. That narrows V1 and is a scope change. It does
+  not gate the HIPAA catalog work and is deferred until after the first
+  engagement, when the required half is known rather than predicted.

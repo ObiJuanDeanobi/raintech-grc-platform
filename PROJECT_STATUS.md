@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Prototype review
+Production build, Slice 4a
 
 ## Current mode
 
@@ -10,16 +10,22 @@ Build
 
 ## Current objective
 
-Confirm the refined hybrid A interaction model and use the recorded decision to
-shape the production workspace ticket.
+Ingest and version the HIPAA full-program catalog so it can be reviewed on paper
+before any HIPAA assessment surface is built.
 
 ## Approved specification
 
-`docs/specification.md`, approved July 23, 2026.
+`docs/specification.md`. Approved July 23, 2026; post-prototype revision approved
+July 27, 2026. No unapproved changes outstanding.
 
 ## Active ticket
 
-GitHub issue #20: Prototype V1 project workspace UI variants.
+GitHub issue #21: Slice 4a, ingest and version the HIPAA full-program catalog.
+
+GitHub issue #20 (UI prototype) is complete and can be closed. Three of its
+acceptance criteria — the three-variant switcher, left/right variant controls, and
+per-variant screenshots — were superseded when the prototype collapsed to the
+selected Variant A. That is recorded in `docs/prototypes/v1-ui-prototype-review.md`.
 
 ## Completed
 
@@ -71,25 +77,47 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
   months before implementation.
 - Specification updated with the accepted interaction model, the
   objective-to-requirement rollup rule, and work-item state transitions.
+- HIPAA rule structure verified against eCFR Title 45 Part 164 and corrected. The
+  Privacy Rule does use the standard-and-implementation-specification model; only
+  the Security Rule carries Required/Addressable. The Security Risk Analysis is a
+  workflow area, not a fourth catalog area.
+- Roadmap records the build order 1, 2, 4, 3, 5, 6, 7 without renumbering slices.
+- Post-prototype specification revision approved by Johnathan, July 27, 2026.
+  Production BUILD is unblocked.
+- Stale open question on production styling closed; it was resolved by the
+  prototype.
+- `chore/agent-workflow-hardening` deleted after confirming it was fully merged
+  into `main`.
 
 ## In progress
 
-- Specification revision awaiting Johnathan's approval before production BUILD.
+- GitHub issue #21: HIPAA full-program catalog ingestion.
 
 ## Blocked
 
-- Production ticket for Slice 1 is blocked on two decisions: confirmation of the
-  rollup rule against controlling CMMC assessment guidance, and the
-  first-real-engagement threshold.
+- Nothing. The specification approval that gated production BUILD landed
+  July 27, 2026.
 
 ## Known risks
 
-- The final HIPAA catalog source and document templates are still open inputs.
+- The HIPAA catalog is unbuilt and the first engagement is weeks away. The
+  platform runs in parallel with the existing method and is not on the critical
+  path of client work.
+- The OCR Audit Protocol predates the current rule text and must be reconciled
+  against eCFR during ingestion rather than assumed current.
+- HHS SRA Tool terms are unassessed. No content from it may be reused until they
+  are checked.
+- Document templates remain an open input.
 - The local `data/` folder contains legacy evidence and exports that must be
   preserved until a separate backup/retention decision is made.
+- Launcher, offline operation, packaging, and backup/restore cannot be verified
+  from a cloud session. Those belong to Slices 1 and 7 on the Windows machine.
 
 ## Next recommended action
 
-Review and approve the specification revision, and decide the two blocked items.
-Then the Slice 1 production ticket is written against the approved specification
-and reimplemented from clean `main` without promoting prototype code.
+Build GitHub issue #21 from clean `main` without promoting prototype code:
+an ingestion script over eCFR Title 45 Part 164, a versioned catalog fixture, a
+structure and count test, and a readable export for practitioner review.
+
+The required/optional split of Slices 2, 5, and 7 is deferred until after the first
+engagement. It is a scope change and it does not gate the HIPAA catalog.
