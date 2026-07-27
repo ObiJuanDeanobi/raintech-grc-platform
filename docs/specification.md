@@ -2,14 +2,12 @@
 
 ## Status
 
-Approved on July 23, 2026.
+Approved. Originally approved July 23, 2026; the post-prototype revision approved
+July 27, 2026.
 
-**Contains unapproved changes.** The UI prototype settled the interaction model and
-exposed two modeling gaps. The Accepted Interaction Model section, the
-objective-to-requirement rollup rule, the work-item state transitions, and the
-reference to ADR 0011 were added after that approval and are pending Johnathan's
-review. Production work remains governed by the prototype and vertical-slice ticket
-gates, and the first production ticket requires this revision to be approved.
+No unapproved changes are outstanding. Production BUILD is unblocked. Each slice
+still requires an approved ticket and applicable verification, and changing this
+document again requires Johnathan's approval.
 
 ## Problem
 
@@ -564,23 +562,30 @@ production shell is established.
 ## Open Questions
 
 - Final source and licensing approach for the HIPAA catalog and guidance content.
+  Narrowed by GitHub issue #21: eCFR, the OCR Audit Protocol, and NIST SP 800-66
+  Rev. 2 are all US government works, so no licensing spend is expected. The HHS
+  SRA Tool remains unassessed and its terms must be checked before any reuse.
 - Final RainTech policy, procedure, report, and SSP templates.
-- Exact production styling and interaction model, to be resolved by the UI
-  prototype.
+
+Closed:
+
+- Exact production styling and interaction model. Resolved by the UI prototype and
+  recorded in the Accepted Interaction Model section. Closed July 27, 2026.
 
 ## Approval
 
-Approved by Johnathan on July 23, 2026. This approval authorizes the UI prototype
+Approved by Johnathan on July 23, 2026. This approval authorized the UI prototype
 and creation of the vertical-slice ticket plan. Each production slice still
 requires an approved ticket and applicable verification.
 
-### Pending revision
+### Post-prototype revision — approved July 27, 2026
 
-The Accepted Interaction Model, the rollup rules, the work-item state transitions,
-and the ADR 0011 reference were added after the July 23 approval and are **not yet
-approved as a whole**.
+The Accepted Interaction Model, both rollup rules, the work-item state transitions,
+the HIPAA rule-structure correction, and the ADR 0011 reference were added after
+the July 23 approval. **Approved as a whole by Johnathan on July 27, 2026.**
+Production BUILD is unblocked; GitHub issue #21 is the first ticket.
 
-Settled since:
+Settled in this revision:
 
 - CMMC objective-to-requirement rollup confirmed by Johnathan, July 27, 2026.
 - HIPAA determinations recorded at implementation-specification level, with no
@@ -598,12 +603,9 @@ Settled since:
 - The Security Risk Analysis is a workflow area, not a catalog area. It is already
   a Security Rule record at 45 CFR 164.308(a)(1)(ii)(A).
 
-Still open:
+Deferred, not blocking:
 
-1. Approval of this revision as a whole.
-2. Whether to restructure `ROADMAP.md` so the required and optional halves of
-   Slices 2, 5, and 7 are separated. That narrows V1 and is a scope change. It
-   does not gate the HIPAA catalog work and is deferred until after the first
-   engagement, when the required half is known rather than predicted.
-
-Production BUILD does not begin until this revision is approved.
+- Whether to restructure `ROADMAP.md` so the required and optional halves of
+  Slices 2, 5, and 7 are separated. That narrows V1 and is a scope change. It does
+  not gate the HIPAA catalog work and is deferred until after the first
+  engagement, when the required half is known rather than predicted.
