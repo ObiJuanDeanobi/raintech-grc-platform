@@ -11,11 +11,19 @@ standard -- and is ingested once, as a Security Rule record. See
 docs/specification.md.
 
 Structural note. Only what the regulation itself labels becomes a record:
-paragraphs marked "Standard:" or "Implementation specification(s)", plus
-section-level records where a subpart publishes obligations under no
-"Standard:" label at all. No objective layer is invented; 45 CFR Part 164
-publishes no such decomposition and inventing one would produce assessable
-records that cannot be cited.
+paragraphs marked "Standard" -- named ("Standard: Security management
+process") or bare, where the section heading supplies the subject -- and
+paragraphs marked "Implementation specification(s)". All three rules share
+one shape: a standard with its implementation specifications beneath it.
+
+Two provisions, 164.412 and 164.414, carry obligations under no standard
+label at all and fall back to a section-level record. A section is a
+published, citable unit of the CFR, so this invents nothing. It is the
+documented exception, not a parallel model.
+
+No objective layer is invented anywhere; 45 CFR Part 164 publishes no such
+decomposition and inventing one would produce assessable records that
+cannot be cited.
 
 Usage:
     python catalog/hipaa_ingest.py --out catalog/versions/<name>.json
@@ -110,7 +118,13 @@ EXCLUDED_APPENDICES = {
 # text at 164.308(a)(3)(ii)(B) carries it. The section text is controlling.
 APPENDIX_A_KNOWN_OMISSIONS = {"Workforce Clearance Procedure"}
 
+# A standard is written two ways. Most carry their own name --
+# "Standard: Security management process." -- but some are a bare "Standard"
+# whose subject is the section heading. Matching only the named form loses
+# 45 CFR 164.502(a), the Privacy Rule's general prohibition on use and
+# disclosure, and all four Breach Notification Rule standards.
 STANDARD_RE = re.compile(r"^Standard:\s*(?P<title>.+?)\s*$")
+STANDARD_BARE_RE = re.compile(r"^Standard\s*[.–—-]?\s*$")
 # The regulation writes implementation specifications three different ways.
 # All three must be handled or records are silently lost.
 #
@@ -642,12 +656,21 @@ def parse_section(
         record_id = f"{section}{paragraph_path}"
 
         standard_match = STANDARD_RE.match(label)
+        bare_standard_match = (
+            None if standard_match else STANDARD_BARE_RE.match(label)
+        )
         header_match = SPEC_HEADER_RE.match(label)
         designated_match = SPEC_DESIGNATED_RE.match(label)
         inline_match = SPEC_INLINE_RE.match(label)
 
-        if standard_match:
-            title = standard_match.group("title").rstrip(".").strip()
+        if standard_match or bare_standard_match:
+            # A bare "Standard" names no subject of its own; the section
+            # heading is its subject.
+            title = (
+                standard_match.group("title").rstrip(".").strip()
+                if standard_match
+                else heading
+            )
             text = body[len(label):].strip() if body.startswith(label) else body
             records.append(
                 Record(
