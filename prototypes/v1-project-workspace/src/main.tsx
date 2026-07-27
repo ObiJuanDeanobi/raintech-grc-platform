@@ -20,7 +20,15 @@ type Project = {
   metrics: { label: string; value: string; tone: Tone }[];
   actions: { kind: string; title: string; context: string; due: string; tone: Tone }[];
   requirements: { id: string; title: string; status: string; evidence: string; finding: string }[];
-  profileFacts: { label: string; current: string; target: string }[];
+  profileFacts: {
+    label: string;
+    baseline: string;
+    current: string;
+    target: string;
+    status: "Confirmed" | "Changed" | "Missing";
+    impact: string;
+  }[];
+  scopeSummary: { label: string; value: string; detail: string; tone: Tone }[];
   evidence: { title: string; mappings: string; review: string; tone: Tone }[];
   risks: { title: string; inherent: string; residual: string; owner: string }[];
   policies: { title: string; state: string; review: string }[];
@@ -62,10 +70,16 @@ const projects: Record<Framework, Project> = {
       { id: "SI.L2-3.14.1", title: "Identify and correct system flaws", status: "Blank", evidence: "0 mapped", finding: "—" },
     ],
     profileFacts: [
-      { label: "CUI boundary", current: "GCC enclave; 38 named users", target: "Validated enclave with controlled print" },
-      { label: "Endpoints", current: "Windows 11 + 6 engineering workstations", target: "Intune-managed compliant endpoints" },
-      { label: "Remote access", current: "Windows 365 Government pilot", target: "KVM-only workflow; no redirection" },
-      { label: "Email & files", current: "Microsoft 365 GCC", target: "GCC with DLP and retention baseline" },
+      { label: "CUI boundary", baseline: "Microsoft 365 GCC and engineering workstations", current: "GCC enclave; 38 named users", target: "Validated enclave with controlled print", status: "Changed", impact: "Defines AC and SC assessment scope" },
+      { label: "Endpoints", baseline: "Windows endpoints; inventory pending", current: "Windows 11 + 6 engineering workstations", target: "Intune-managed compliant endpoints", status: "Confirmed", impact: "Drives endpoint evidence and sampling" },
+      { label: "Remote access", baseline: "Remote access used; method unconfirmed", current: "Windows 365 Government pilot", target: "KVM-only workflow; no redirection", status: "Missing", impact: "Blocks final boundary and CUI-flow decision" },
+      { label: "Email & files", baseline: "Microsoft 365 GCC", current: "Microsoft 365 GCC", target: "GCC with DLP and retention baseline", status: "Confirmed", impact: "Supports inherited and configured controls" },
+    ],
+    scopeSummary: [
+      { label: "People", value: "38", detail: "Named enclave users", tone: "good" },
+      { label: "Systems", value: "12", detail: "In-scope systems", tone: "good" },
+      { label: "Locations", value: "2", detail: "Office and controlled print", tone: "neutral" },
+      { label: "Service providers", value: "4", detail: "One validation pending", tone: "warn" },
     ],
     evidence: [
       { title: "Conditional Access policy export", mappings: "IA 3.5.3 · AC 3.1.12", review: "Current · reviewed Jul 18", tone: "good" },
@@ -120,10 +134,16 @@ const projects: Record<Framework, Project> = {
       { id: "164.404(a)(2)", title: "Breach discovery and notification timing", status: "N/A", evidence: "Rationale recorded", finding: "Test scenario only" },
     ],
     profileFacts: [
-      { label: "ePHI systems", current: "23 confirmed; outreach tablet unresolved", target: "24 reviewed with explicit inclusion/exclusion" },
-      { label: "Clinical platform", current: "Hosted EHR + e-prescribing", target: "Same vendors; validated BAAs and access logs" },
-      { label: "Locations", current: "4 clinics + mobile outreach", target: "Unified facility and device inventory" },
-      { label: "Third parties", current: "18 vendors with ePHI touchpoints", target: "Current BAA and review owner for each" },
+      { label: "ePHI systems", baseline: "23 known systems; outreach workflow pending", current: "23 confirmed; outreach tablet unresolved", target: "24 reviewed with explicit inclusion/exclusion", status: "Missing", impact: "Blocks completion of the security risk analysis" },
+      { label: "Clinical platform", baseline: "Hosted EHR and e-prescribing", current: "Hosted EHR + e-prescribing", target: "Same vendors; validated BAAs and access logs", status: "Confirmed", impact: "Sets system and business-associate evidence" },
+      { label: "Locations", baseline: "Four clinic locations", current: "4 clinics + mobile outreach", target: "Unified facility and device inventory", status: "Changed", impact: "Adds mobile outreach to physical scope" },
+      { label: "Third parties", baseline: "16 known vendors", current: "18 vendors with ePHI touchpoints", target: "Current BAA and review owner for each", status: "Changed", impact: "Expands BAA and vendor-risk review" },
+    ],
+    scopeSummary: [
+      { label: "Workforce groups", value: "9", detail: "Clinical and administrative", tone: "good" },
+      { label: "ePHI systems", value: "23 / 24", detail: "One system unresolved", tone: "warn" },
+      { label: "Locations", value: "5", detail: "Clinics plus mobile outreach", tone: "good" },
+      { label: "Vendors", value: "18", detail: "BAA coverage under review", tone: "warn" },
     ],
     evidence: [
       { title: "Enterprise access review — Q2", mappings: "Security · Privacy minimum necessary", review: "Current · reviewed Jul 16", tone: "good" },
@@ -207,6 +227,53 @@ function ActionRows({ project, limit = 4 }: { project: Project; limit?: number }
   return <div className="rows">{project.actions.slice(0, limit).map((action) => <button className="row action-row" key={action.title}><i className={action.tone} /><span><b>{action.title}</b><small>{action.context}</small></span><Pill tone={action.tone}>{action.kind}</Pill><time>{action.due}</time><em>›</em></button>)}</div>;
 }
 
+function ProfileView({ project }: { project: Project }) {
+  const unresolved = project.profileFacts.filter((fact) => fact.status !== "Confirmed");
+  const statusTone = (status: "Confirmed" | "Changed" | "Missing"): Tone => status === "Confirmed" ? "good" : status === "Changed" ? "warn" : "bad";
+  return (
+    <div className="profile-view">
+      <div className="profile-intro">
+        <div><span className="eyebrow">Progressive client profile</span><h2>From onboarding assumptions to validated implementation</h2><p>Assessment work enriches the profile without erasing what the client originally supplied.</p></div>
+        <div className="profile-completion"><b>{project.profile}%</b><span>Profile complete</span><div className="bar"><i style={{ width: `${project.profile}%` }} /></div></div>
+      </div>
+      <div className="profile-stages">
+        <div><i>1</i><span><b>Onboarding profile</b><small>Initial facts captured · Jul 08</small></span><Pill tone="good">Created</Pill></div>
+        <em>→</em>
+        <div><i>2</i><span><b>Implementation profile</b><small>Enriched during {project.phase.toLowerCase()}</small></span><Pill tone="warn">{unresolved.length} unresolved</Pill></div>
+        <div className="profile-schedule"><span>Project end</span><b>{project.endDate}</b><small>{project.daysRemaining} days remaining</small></div>
+      </div>
+      <div className="section-title profile-section-title"><div><span>Assessment boundary</span><h2>Scope snapshot</h2></div><small>Current validated counts</small></div>
+      <div className="profile-scope">
+        {project.scopeSummary.map((item) => <div key={item.label}><i className={item.tone} /><span>{item.label}</span><b>{item.value}</b><small>{item.detail}</small></div>)}
+      </div>
+      <div className="profile-layout">
+        <section className="profile-facts">
+          <div className="profile-facts-title"><div><span>Progressive record</span><h2>Profile facts</h2></div><small>Onboarding baseline → current validated state → required target</small></div>
+          <div className="profile-facts-head"><span>Fact and assessment impact</span><span>Onboarding baseline</span><span>Current validated state</span><span>Target / required delta</span><span>Status</span></div>
+          {project.profileFacts.map((fact) => (
+            <button key={fact.label}>
+              <span><b>{fact.label}</b><small>{fact.impact}</small></span>
+              <p>{fact.baseline}</p>
+              <p>{fact.current}</p>
+              <p>{fact.target}</p>
+              <Pill tone={statusTone(fact.status)}>{fact.status}</Pill>
+            </button>
+          ))}
+        </section>
+        <aside className="profile-attention">
+          <div className="inspector-head"><span>Profile attention</span><Pill tone="warn">{unresolved.length} items</Pill></div>
+          <h3>Needs confirmation</h3>
+          {unresolved.map((fact) => <div className="attention-item" key={fact.label}><Pill tone={statusTone(fact.status)}>{fact.status}</Pill><b>{fact.label}</b><p>{fact.target}</p></div>)}
+          <h3>Used by assessment</h3>
+          <div className="profile-consumer"><b>Scope</b><span>Boundary, systems, people, locations, and providers</span></div>
+          <div className="profile-consumer"><b>Gap Analysis</b><span>Objective applicability and implementation context</span></div>
+          <div className="profile-consumer"><b>Reports</b><span>Client environment narrative and unresolved assumptions</span></div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
 function PortfolioDashboard({ onOpenClient }: { onOpenClient: (framework: Framework) => void }) {
   const actions = (Object.keys(projects) as Framework[]).flatMap((framework) =>
     projects[framework].actions.map((action) => ({ ...action, framework, client: projects[framework].client })),
@@ -266,7 +333,7 @@ const phases = ["Onboarding", "Scope", "Gap Analysis", "Remediation", "Validatio
 function Workspace({ project, framework, onProjectChange }: { project: Project; framework: Framework; onProjectChange: (value: Framework) => void }) {
   const nav = ["Overview", "Profile", "Assessments", "Actions / POA&M", "Evidence", "Risks", "Policies", "Reports"];
   const activePhase = project.phase === "Gap Analysis" ? 2 : 3;
-  const [activeView, setActiveView] = useState<"Dashboard" | "Overview" | "Assessments">("Dashboard");
+  const [activeView, setActiveView] = useState<"Dashboard" | "Overview" | "Profile" | "Assessments">("Dashboard");
   const [selectedObjective, setSelectedObjective] = useState(0);
   const openClient = (value: Framework) => {
     onProjectChange(value);
@@ -358,7 +425,7 @@ function Workspace({ project, framework, onProjectChange }: { project: Project; 
         <ProjectPicker active={activeView === "Dashboard" ? undefined : framework} onChange={openClient} compact />
         <span className="sidebar-label workspace-label">Client workspace</span>
         <nav>{nav.map((item, index) => <button className={item === activeView ? "active" : ""} key={item} onClick={() => {
-          if (item === "Overview" || item === "Assessments") setActiveView(item);
+          if (item === "Overview" || item === "Profile" || item === "Assessments") setActiveView(item);
         }}><span>{["⌂", "◎", "▤", "✓", "◇", "△", "§", "↗"][index]}</span>{item}{item === "Actions / POA&M" && <i>14</i>}</button>)}</nav>
         <div className="sidebar-foot"><b>Experimental prototype</b><span>Read-only synthetic data</span></div>
       </aside>
@@ -402,6 +469,8 @@ function Workspace({ project, framework, onProjectChange }: { project: Project; 
                   <ActionRows project={project} limit={project.actions.length} />
                 </div>
               </>
+            ) : activeView === "Profile" ? (
+              <ProfileView project={project} />
             ) : (
               <div className="assessment-view">
                 <div className="assessment-view-tabs">

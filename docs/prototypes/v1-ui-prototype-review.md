@@ -21,6 +21,8 @@ synthetic CMMC or FQHC HIPAA client from the left sidebar.
 - Does Dashboard provide a clear global home above the client list?
 - Does Unified Queue clearly mean work across all clients?
 - Does Client Queue clearly mean work scoped to the selected client?
+- Does Profile make the original onboarding baseline, the current validated
+  state, and the required target easy to compare?
 - Does the assessment workspace keep guidance central and the working record
   visible without excessive context switching?
 
@@ -60,6 +62,11 @@ Initial direction selected by Johnathan:
   determine, implementation guidance, expected evidence, linked work, and the
   determination state, plus a right-side working record containing the
   implementation statement, mapped evidence, and assessment notes.
+- **Progressive profile:** retain the onboarding baseline as a distinct record
+  while gap-analysis work enriches an Implementation Profile. Profile shows
+  the current scope snapshot, project schedule, baseline-to-current-to-target
+  facts, unresolved confirmations, and which assessment outputs consume each
+  fact.
 - **Overview visualization:** do not add a separate chart section. The existing
   metrics and progress treatment provide sufficient orientation; the unified
   queue expands with realistic evidence, risk, and report-blocker work instead.
@@ -87,4 +94,5 @@ Checks completed:
 - no blank critical content
 - labels and primary text remain readable
 - Dashboard, client selection, and assessment controls work
+- CMMC and HIPAA Profile views render with their distinct synthetic scope data
 - browser console contains no errors or warnings

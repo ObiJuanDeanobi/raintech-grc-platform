@@ -54,6 +54,10 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
   place of redundant due-soon counts.
 - Active Projects now uses a stacked list and shows a separate project
   completion percentage and progress bar for each engagement.
+- Client Profile now prototypes the progressive profile model: the onboarding
+  baseline remains visible beside the enriched implementation state and target,
+  with scope counts, schedule, unresolved inputs, assessment impact, and
+  downstream consumers shown for synthetic CMMC and HIPAA engagements.
 
 ## In progress
 
