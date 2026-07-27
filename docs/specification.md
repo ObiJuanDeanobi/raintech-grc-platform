@@ -2,8 +2,8 @@
 
 ## Status
 
-Approved. Originally approved July 23, 2026; the post-prototype revision approved
-July 27, 2026.
+Approved. Originally approved July 23, 2026; the post-prototype revision and the
+catalog count correction approved July 27, 2026.
 
 No unapproved changes are outstanding. Production BUILD is unblocked. Each slice
 still requires an approved ticket and applicable verification, and changing this
@@ -112,15 +112,31 @@ context, risks, and outputs.
     implementation-specification model extensively — more heavily than the Security
     Rule — but carries no Required or Addressable designation on any specification.
   - **Breach Notification Rule (Subpart D, 45 CFR 164.400-414):** publishes no
-    `Standard:` headings and few implementation specifications. It is the genuine
-    structural outlier of the three.
-  - Indicative counts from the current text, as a floor for catalog sizing and not
-    as certified record counts: Subpart C has 21 `Standard:` headings, 19 Required
-    and 22 Addressable specifications; Subpart E has 56 `Standard:` headings and
-    roughly 77 implementation-specification references with zero designations;
-    Subpart D has none of either. Source: eCFR Title 45 Part 164, snapshot
-    2026-07-01, retrieved July 27, 2026 via the eCFR versioner API. Ingestion
-    establishes the authoritative counts.
+    `Standard:` headings at all, but does publish implementation specifications.
+    It is the genuine structural outlier of the three. Because nothing in it is
+    labelled a standard, the section is the assessable unit — a published,
+    citable unit of the CFR, so no structure is invented.
+  - Authoritative record counts, established by ingestion on July 27, 2026 and
+    asserted by the catalog tests:
+
+    | Catalog area | Standards | Implementation specifications | Sections | Required | Addressable |
+    |---|---:|---:|---:|---:|---:|
+    | Security Rule (Subpart C) | 21 | 41 | 0 | 19 | 22 |
+    | Privacy Rule (Subpart E) | 55 | 58 | 0 | 0 | 0 |
+    | Breach Rule (Subpart D) | 0 | 9 | 6 | 0 | 0 |
+
+    Source: eCFR Title 45 Part 164, snapshot 2026-07-01, retrieved July 27, 2026
+    via the eCFR versioner API. Pinned as framework version
+    `hipaa-45cfr164-2026-07-01`; see `catalog/README.md`.
+
+    These replace the indicative counts recorded when this section was first
+    written. Two of those were wrong. Subpart D was described as having neither
+    standards nor implementation specifications; it has no standards but nine
+    implementation specifications. Subpart E was recorded as 56 standards and
+    roughly 77 implementation-specification references; parsing the published
+    structure rather than counting phrase occurrences gives 55 and 58. The
+    earlier numbers were labelled indicative and subject to exactly this
+    correction.
   - One catalog record shape must tolerate all three, carrying `addressable` only
     where the regulation actually uses it — which is Subpart C alone.
 - The Security Risk Analysis is a workflow area, not a catalog area. Risk analysis
@@ -584,6 +600,17 @@ The Accepted Interaction Model, both rollup rules, the work-item state transitio
 the HIPAA rule-structure correction, and the ADR 0011 reference were added after
 the July 23 approval. **Approved as a whole by Johnathan on July 27, 2026.**
 Production BUILD is unblocked; GitHub issue #21 is the first ticket.
+
+### Catalog count correction — approved July 27, 2026
+
+The indicative HIPAA record counts under Frameworks and Assessments were replaced
+with the authoritative counts established by catalog ingestion (GitHub issue #21,
+framework version `hipaa-45cfr164-2026-07-01`). Two of the indicative numbers were
+wrong: Subpart D was described as publishing no implementation specifications when
+it publishes nine, and Subpart E was recorded as 56 standards and roughly 77
+specification references rather than 55 and 58. The indicative counts were
+explicitly provisional and the section said ingestion would establish the
+authoritative figures. **Approved by Johnathan on July 27, 2026.**
 
 Settled in this revision:
 
