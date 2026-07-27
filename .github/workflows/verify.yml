@@ -12,6 +12,48 @@ on:
   pull_request:
 
 jobs:
+  catalog:
+    name: Framework catalog structure and counts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect catalog tests
+        id: detect
+        run: |
+          if [ -d tests ] && [ -d catalog ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No catalog on this branch; nothing to verify."
+          fi
+
+      - name: Set up Python
+        if: steps.detect.outputs.present == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Standard library only, so there is nothing to install. The tests run
+      # against the committed catalog fixture and the committed source XML and
+      # make no network calls, so eCFR availability cannot break CI.
+      - name: Catalog structure and count tests
+        if: steps.detect.outputs.present == 'true'
+        run: python -m unittest discover -s tests -v
+
+      - name: Catalog fixture is reproducible from its pinned source
+        if: steps.detect.outputs.present == 'true'
+        run: |
+          python catalog/hipaa_ingest.py \
+            --snapshot 2026-07-01 \
+            --retrieved 2026-07-27 \
+            --out /tmp/regenerated.json
+          if ! diff -q catalog/versions/hipaa-45cfr164-2026-07-01.json /tmp/regenerated.json; then
+            echo "::error::Committed catalog does not match what the ingestion script produces from the pinned source."
+            diff catalog/versions/hipaa-45cfr164-2026-07-01.json /tmp/regenerated.json | head -40
+            exit 1
+          fi
+
   prototype:
     name: Prototype typecheck and build
     runs-on: ubuntu-latest
