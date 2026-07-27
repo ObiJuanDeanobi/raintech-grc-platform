@@ -6,6 +6,23 @@ import "./styles.css";
 type Framework = "CMMC" | "HIPAA";
 type Tone = "good" | "warn" | "bad" | "neutral";
 
+// Distinct record types projected into the queues. Report blockers and stale-evidence
+// warnings are derived signals, not records, so they never appear here.
+type WorkRecord = {
+  id: string;
+  type: "POA&M" | "Corrective action" | "Finding" | "Evidence request" | "Risk treatment" | "Recurring review" | "Task";
+  title: string;
+  status: "Open" | "In Progress" | "Waiting" | "Ready for Validation";
+  due: string;
+  owner: string;
+  tone: Tone;
+  source: string;
+  links: { label: string; value: string }[];
+  nextAction: string;
+  closeRule: string;
+  customerVisible?: string;
+};
+
 type Project = {
   framework: Framework;
   client: string;
@@ -29,6 +46,7 @@ type Project = {
     impact: string;
   }[];
   scopeSummary: { label: string; value: string; detail: string; tone: Tone }[];
+  workRecords: WorkRecord[];
   evidence: { title: string; mappings: string; review: string; tone: Tone }[];
   risks: { title: string; inherent: string; residual: string; owner: string }[];
   policies: { title: string; state: string; review: string }[];
@@ -80,6 +98,66 @@ const projects: Record<Framework, Project> = {
       { label: "Systems", value: "12", detail: "In-scope systems", tone: "good" },
       { label: "Locations", value: "2", detail: "Office and controlled print", tone: "neutral" },
       { label: "Service providers", value: "4", detail: "One validation pending", tone: "warn" },
+    ],
+    workRecords: [
+      {
+        id: "POAM-014", type: "POA&M", title: "Enforce phishing-resistant MFA for privileged roles",
+        status: "In Progress", due: "Aug 15", owner: "IT Lead", tone: "bad",
+        source: "IA.L2-3.5.3 determined Not Met · Draft 01",
+        links: [{ label: "Requirement", value: "IA.L2-3.5.3" }, { label: "Finding", value: "F-021" }, { label: "Risk", value: "RISK-011" }],
+        nextAction: "Extend the Conditional Access policy to the four remaining administrator accounts.",
+        closeRule: "Objective IA.L2-3.5.3[a] is re-determined Met with mapped evidence. Closing the POA&M does not close the finding.",
+        customerVisible: "Included in the customer POA&M with milestone dates.",
+      },
+      {
+        id: "POAM-011", type: "POA&M", title: "Disable unmanaged USB storage",
+        status: "Ready for Validation", due: "Jul 29", owner: "Operations", tone: "warn",
+        source: "MP.L2-3.8.7 determined Pending · Draft 01",
+        links: [{ label: "Requirement", value: "MP.L2-3.8.7" }, { label: "Risk", value: "RISK-007" }],
+        nextAction: "Confirm the Intune removable-media policy applied to all six engineering workstations.",
+        closeRule: "Validation evidence is mapped and the objective is re-determined. Remains open until that decision is recorded.",
+        customerVisible: "Included in the customer POA&M.",
+      },
+      {
+        id: "F-021", type: "Finding", title: "Privileged accounts authenticate without phishing-resistant MFA",
+        status: "Open", due: "—", owner: "Johnathan Dean", tone: "bad",
+        source: "Gap analysis · CMMC 2.0 Level 2 Draft 01",
+        links: [{ label: "Requirement", value: "IA.L2-3.5.3" }, { label: "POA&M", value: "POAM-014" }],
+        nextAction: "No direct action. The finding tracks the gap; POAM-014 tracks the remediation.",
+        closeRule: "Revalidation of the objective in a later assessment. A finding never closes because its POA&M closed.",
+      },
+      {
+        id: "EVR-006", type: "Evidence request", title: "Quarterly access review export",
+        status: "Waiting", due: "Jul 25", owner: "IT Lead (client)", tone: "warn",
+        source: "AC.L2-3.1.5 · requested Jul 11",
+        links: [{ label: "Requirement", value: "AC.L2-3.1.5" }],
+        nextAction: "Second follow-up sent Jul 22. Escalate to the engagement sponsor if unanswered by the due date.",
+        closeRule: "Artifact received, versioned, and mapped with a rationale for what it supports.",
+      },
+      {
+        id: "EVR-009", type: "Evidence request", title: "Confirm approved paths in CUI data flow workshop notes",
+        status: "Ready for Validation", due: "Aug 04", owner: "Johnathan Dean", tone: "warn",
+        source: "AC.L2-3.1.3 · artifact received, mapping unconfirmed",
+        links: [{ label: "Requirement", value: "AC.L2-3.1.3" }, { label: "Evidence", value: "CUI data flow workshop notes" }],
+        nextAction: "Reconcile the workshop notes against the current enclave boundary before accepting the mapping.",
+        closeRule: "A mapping rationale is recorded for each requirement the artifact is claimed to support.",
+      },
+      {
+        id: "RISK-007", type: "Risk treatment", title: "Reduce removable media residual risk",
+        status: "In Progress", due: "Aug 06", owner: "Operations", tone: "bad",
+        source: "Inherent 20 Critical · residual 10 High",
+        links: [{ label: "Risk", value: "RISK-007" }, { label: "POA&M", value: "POAM-011" }],
+        nextAction: "Residual score is not recalculated until the USB policy is validated.",
+        closeRule: "Residual recalculated, then accepted with rationale, owner, and review date.",
+      },
+      {
+        id: "REV-003", type: "Recurring review", title: "CUI enclave boundary inventory",
+        status: "Open", due: "Aug 02", owner: "Johnathan Dean", tone: "neutral",
+        source: "Annual schedule · 30-day lead time",
+        links: [{ label: "Profile fact", value: "CUI boundary" }],
+        nextAction: "Confirm the boundary is unchanged since the Jul 08 onboarding baseline.",
+        closeRule: "A review event is recorded. No new version is created if nothing changed.",
+      },
     ],
     evidence: [
       { title: "Conditional Access policy export", mappings: "IA 3.5.3 · AC 3.1.12", review: "Current · reviewed Jul 18", tone: "good" },
@@ -144,6 +222,66 @@ const projects: Record<Framework, Project> = {
       { label: "ePHI systems", value: "23 / 24", detail: "One system unresolved", tone: "warn" },
       { label: "Locations", value: "5", detail: "Clinics plus mobile outreach", tone: "good" },
       { label: "Vendors", value: "18", detail: "BAA coverage under review", tone: "warn" },
+    ],
+    workRecords: [
+      {
+        id: "CA-009", type: "Corrective action", title: "Document and test emergency access procedure",
+        status: "In Progress", due: "Aug 12", owner: "Security Officer", tone: "bad",
+        source: "164.312(a)(2)(ii) determined Not Met · addressable specification",
+        links: [{ label: "Standard", value: "164.312(a)(2)(ii)" }, { label: "Finding", value: "F-104" }],
+        nextAction: "Draft the procedure, name the activation roles, and schedule the first test.",
+        closeRule: "Procedure approved and one test recorded. The addressable decision and its rationale are recorded separately.",
+        customerVisible: "Included in the executive corrective action plan.",
+      },
+      {
+        id: "CA-004", type: "Corrective action", title: "Confirm outreach tablet encryption state",
+        status: "Ready for Validation", due: "Aug 06", owner: "Clinical Operations", tone: "warn",
+        source: "Security Risk Analysis scope gap · one system unresolved",
+        links: [{ label: "Assessment check", value: "SRA-01" }, { label: "Risk", value: "RISK-003" }, { label: "Task", value: "TASK-021" }],
+        nextAction: "Device returned Jul 24. Verify the managed encryption state before accepting the result.",
+        closeRule: "Encryption confirmed, and the system is included in scope or excluded with a factual rationale.",
+        customerVisible: "Included in the executive corrective action plan.",
+      },
+      {
+        id: "F-104", type: "Finding", title: "No documented emergency access procedure for ePHI",
+        status: "Open", due: "—", owner: "Johnathan Dean", tone: "bad",
+        source: "Security Rule review · HIPAA Program Review Draft 02",
+        links: [{ label: "Standard", value: "164.312(a)(2)(ii)" }, { label: "Corrective action", value: "CA-009" }],
+        nextAction: "No direct action. The finding records the gap; CA-009 records the remediation.",
+        closeRule: "Revalidation in a later assessment. Completing CA-009 does not close this finding.",
+      },
+      {
+        id: "TASK-021", type: "Task", title: "Resolve outreach tablet inclusion in SRA scope",
+        status: "Open", due: "Jul 24", owner: "Johnathan Dean", tone: "bad",
+        source: "Security Risk Analysis cannot be issued with unresolved scope",
+        links: [{ label: "Assessment check", value: "SRA-01" }, { label: "Corrective action", value: "CA-004" }],
+        nextAction: "Include the system in scope or exclude it with a documented rationale and owner confirmation.",
+        closeRule: "Every in-scope ePHI system, location, and vendor is reviewed or explicitly excluded.",
+      },
+      {
+        id: "EVR-014", type: "Evidence request", title: "Business Associate Agreement register",
+        status: "Waiting", due: "Jul 28", owner: "Procurement", tone: "warn",
+        source: "Privacy minimum necessary · SRA vendor scope",
+        links: [{ label: "Work area", value: "Privacy Rule" }, { label: "Work area", value: "Security Risk Analysis" }],
+        nextAction: "Requested Jul 18, no response. 18 vendors currently have ePHI touchpoints.",
+        closeRule: "Register received and each vendor mapped with its own support rationale. One artifact, many mappings.",
+      },
+      {
+        id: "RISK-003", type: "Risk treatment", title: "Reduce offline ePHI exposure on outreach devices",
+        status: "In Progress", due: "Aug 08", owner: "Clinical Ops", tone: "bad",
+        source: "Inherent 20 Critical · residual 15 High",
+        links: [{ label: "Risk", value: "RISK-003" }, { label: "Corrective action", value: "CA-004" }],
+        nextAction: "Residual stays High until the encryption state is confirmed.",
+        closeRule: "Residual recalculated. Acceptance at High or Critical requires a named approver and a review date.",
+      },
+      {
+        id: "REV-007", type: "Recurring review", title: "Breach response contact tree",
+        status: "Open", due: "Aug 05", owner: "Compliance", tone: "neutral",
+        source: "Semiannual schedule · 30-day lead time",
+        links: [{ label: "Policy", value: "Breach Notification Procedure" }],
+        nextAction: "Verify after-hours and weekend contacts before the review date.",
+        closeRule: "A review event is recorded. No new policy version is created if nothing changed.",
+      },
     ],
     evidence: [
       { title: "Enterprise access review — Q2", mappings: "Security · Privacy minimum necessary", review: "Current · reviewed Jul 16", tone: "good" },
@@ -274,6 +412,77 @@ function ProfileView({ project }: { project: Project }) {
   );
 }
 
+const workTypeOrder: WorkRecord["type"][] = ["POA&M", "Corrective action", "Finding", "Evidence request", "Risk treatment", "Recurring review", "Task"];
+
+function ActionsView({ project }: { project: Project }) {
+  const [typeFilter, setTypeFilter] = useState<string>("All");
+  const [selectedId, setSelectedId] = useState<string>(project.workRecords[0].id);
+  const counts = new Map<string, number>();
+  project.workRecords.forEach((record) => counts.set(record.type, (counts.get(record.type) ?? 0) + 1));
+  const types = ["All", ...workTypeOrder.filter((type) => counts.has(type))];
+  const visible = typeFilter === "All" ? project.workRecords : project.workRecords.filter((record) => record.type === typeFilter);
+  const ready = visible.filter((record) => record.status === "Ready for Validation");
+  const active = visible.filter((record) => record.status !== "Ready for Validation");
+  const selected = visible.find((record) => record.id === selectedId) ?? visible[0] ?? project.workRecords[0];
+  const statusTone = (status: WorkRecord["status"]): Tone =>
+    status === "Ready for Validation" ? "good" : status === "In Progress" ? "warn" : status === "Waiting" ? "neutral" : "bad";
+  const row = (record: WorkRecord) => (
+    <button className={`work-row ${record.id === selected.id ? "selected" : ""}`} key={record.id} onClick={() => setSelectedId(record.id)}>
+      <i className={record.tone} />
+      <code>{record.id}</code>
+      <span><b>{record.title}</b><small>{record.source}</small></span>
+      <Pill tone={record.type === "POA&M" || record.type === "Corrective action" ? "warn" : "neutral"}>{record.type}</Pill>
+      <em>{record.owner}</em>
+      <time>{record.due}</time>
+    </button>
+  );
+  return (
+    <div className="work-view">
+      <div className="section-title work-title">
+        <div><span>Continuous remediation</span><h2>Actions and POA&amp;M</h2></div>
+        <div className="queue-summary"><b>{project.workRecords.length} records</b><span>Queues prioritise this work; the records are managed here</span></div>
+      </div>
+      <div className="work-types">
+        {types.map((type) => (
+          <button className={type === typeFilter ? "active" : ""} key={type} onClick={() => setTypeFilter(type)}>
+            {type}{type !== "All" && <i>{counts.get(type)}</i>}
+          </button>
+        ))}
+      </div>
+      <div className="work-layout">
+        <section className="work-list">
+          {ready.length > 0 && (
+            <>
+              <div className="work-group"><b>Ready for validation</b><small>Does not close automatically — each item needs an explicit validation decision</small><Pill tone="good">{ready.length}</Pill></div>
+              {ready.map(row)}
+            </>
+          )}
+          {active.length > 0 && (
+            <>
+              <div className="work-group"><b>Open work</b><small>Open, In Progress, and Waiting</small><Pill tone="neutral">{active.length}</Pill></div>
+              {active.map(row)}
+            </>
+          )}
+          <p className="work-note">Report blockers and stale-evidence warnings appear in the queues as derived signals. They are not records and are not managed here.</p>
+        </section>
+        <aside className="work-record">
+          <div className="inspector-head"><span>Work record</span><Pill tone={statusTone(selected.status)}>{selected.status}</Pill></div>
+          <div className="work-record-head"><code>{selected.id}</code><h3>{selected.title}</h3><Pill tone="neutral">{selected.type}</Pill></div>
+          <div className="assessment-field first"><span>Owner and due</span><p>{selected.owner} · {selected.due}</p></div>
+          <div className="assessment-field"><span>Raised by</span><p>{selected.source}</p></div>
+          <div className="assessment-field">
+            <span>Linked records</span>
+            {selected.links.map((link) => <div className="work-link" key={`${link.label}-${link.value}`}><small>{link.label}</small><b>{link.value}</b></div>)}
+          </div>
+          <div className="assessment-field"><span>Next action</span><p>{selected.nextAction}</p></div>
+          <div className="assessment-field"><span>Closes when</span><p>{selected.closeRule}</p></div>
+          {selected.customerVisible && <div className="assessment-field"><span>Customer-facing output</span><p>{selected.customerVisible}</p></div>}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
 function PortfolioDashboard({ onOpenClient }: { onOpenClient: (framework: Framework) => void }) {
   const actions = (Object.keys(projects) as Framework[]).flatMap((framework) =>
     projects[framework].actions.map((action) => ({ ...action, framework, client: projects[framework].client })),
@@ -333,7 +542,7 @@ const phases = ["Onboarding", "Scope", "Gap Analysis", "Remediation", "Validatio
 function Workspace({ project, framework, onProjectChange }: { project: Project; framework: Framework; onProjectChange: (value: Framework) => void }) {
   const nav = ["Overview", "Profile", "Assessments", "Actions / POA&M", "Evidence", "Risks", "Policies", "Reports"];
   const activePhase = project.phase === "Gap Analysis" ? 2 : 3;
-  const [activeView, setActiveView] = useState<"Dashboard" | "Overview" | "Profile" | "Assessments">("Dashboard");
+  const [activeView, setActiveView] = useState<"Dashboard" | "Overview" | "Profile" | "Assessments" | "Actions / POA&M">("Dashboard");
   const [selectedObjective, setSelectedObjective] = useState(0);
   const openClient = (value: Framework) => {
     onProjectChange(value);
@@ -425,8 +634,8 @@ function Workspace({ project, framework, onProjectChange }: { project: Project; 
         <ProjectPicker active={activeView === "Dashboard" ? undefined : framework} onChange={openClient} compact />
         <span className="sidebar-label workspace-label">Client workspace</span>
         <nav>{nav.map((item, index) => <button className={item === activeView ? "active" : ""} key={item} onClick={() => {
-          if (item === "Overview" || item === "Profile" || item === "Assessments") setActiveView(item);
-        }}><span>{["⌂", "◎", "▤", "✓", "◇", "△", "§", "↗"][index]}</span>{item}{item === "Actions / POA&M" && <i>14</i>}</button>)}</nav>
+          if (item === "Overview" || item === "Profile" || item === "Assessments" || item === "Actions / POA&M") setActiveView(item);
+        }}><span>{["⌂", "◎", "▤", "✓", "◇", "△", "§", "↗"][index]}</span>{item}{item === "Actions / POA&M" && <i>{project.workRecords.length}</i>}</button>)}</nav>
         <div className="sidebar-foot"><b>Experimental prototype</b><span>Read-only synthetic data</span></div>
       </aside>
       <main className="a-main">
@@ -471,6 +680,8 @@ function Workspace({ project, framework, onProjectChange }: { project: Project; 
               </>
             ) : activeView === "Profile" ? (
               <ProfileView project={project} />
+            ) : activeView === "Actions / POA&M" ? (
+              <ActionsView key={project.framework} project={project} />
             ) : (
               <div className="assessment-view">
                 <div className="assessment-view-tabs">
