@@ -71,6 +71,11 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
   months before implementation.
 - Specification updated with the accepted interaction model, the
   objective-to-requirement rollup rule, and work-item state transitions.
+- HIPAA rule structure verified against eCFR Title 45 Part 164 and corrected. The
+  Privacy Rule does use the standard-and-implementation-specification model; only
+  the Security Rule carries Required/Addressable. The Security Risk Analysis is a
+  workflow area, not a fourth catalog area.
+- Roadmap records the build order 1, 2, 4, 3, 5, 6, 7 without renumbering slices.
 
 ## In progress
 
@@ -78,9 +83,12 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 
 ## Blocked
 
-- Production ticket for Slice 1 is blocked on two decisions: confirmation of the
-  rollup rule against controlling CMMC assessment guidance, and the
-  first-real-engagement threshold.
+- All production BUILD is blocked on one thing: approval of the specification
+  revision. The two decisions previously listed here are settled — the rollup rule
+  was confirmed July 27, 2026, and the first real engagement is the HIPAA program
+  assessment, which fixes the build order at 1, 2, 4, 3, 5, 6, 7.
+- GitHub issue #21 (Slice 4a, HIPAA catalog ingestion) is the first ticket to
+  start once that approval lands.
 
 ## Known risks
 
@@ -90,6 +98,9 @@ GitHub issue #20: Prototype V1 project workspace UI variants.
 
 ## Next recommended action
 
-Review and approve the specification revision, and decide the two blocked items.
-Then the Slice 1 production ticket is written against the approved specification
-and reimplemented from clean `main` without promoting prototype code.
+Review and approve the specification revision. Then GitHub issue #21 starts, and
+production work is reimplemented from clean `main` without promoting prototype
+code.
+
+The required/optional split of Slices 2, 5, and 7 is deferred until after the first
+engagement. It is a scope change and it does not gate the HIPAA catalog.
