@@ -89,20 +89,37 @@ context, risks, and outputs.
   notes, status, and rule-based client-specific implementation guidance.
 - CMMC uses a requirement-centered workspace with its assessment objectives
   visible together.
-- Determinations are recorded at assessment-objective level. Requirement status is
-  derived from its objectives and is not edited directly:
-  - all objectives Met, or Met with a documented N/A where the framework allows it,
+- The assessable unit differs by framework, because the two frameworks are
+  decomposed by different authorities to different depths. Do not force one shape
+  onto both.
+  - **CMMC:** determinations are recorded at assessment-objective level, because
+    NIST SP 800-171A normatively decomposes each requirement into determination
+    statements. Requirement status derives from its objectives.
+  - **HIPAA:** determinations are recorded at implementation-specification level,
+    or at the standard itself where a standard has no implementation
+    specifications. Standard status derives from its specifications. No
+    objective layer is created — 45 CFR Part 164 publishes no such decomposition,
+    and inventing one would produce assessable records that cannot be cited.
+  - The OCR Audit Protocol's key activities and audit inquiries populate the
+    implementation guidance and expected evidence fields. They are not records
+    that carry a determination.
+- The three HIPAA rules are not structurally uniform. The Security Rule uses
+  standards with Required and Addressable implementation specifications per
+  45 CFR 164.306. The Privacy Rule and Breach Notification Rule largely do not use
+  that model. One catalog record shape must tolerate all three, carrying
+  `addressable` only where the regulation actually uses it.
+- Requirement or standard status is derived and is not edited directly:
+  - all children Met, or Met with a documented N/A where the framework allows it,
     derives Met
-  - any objective Not Met derives Not Met
-  - otherwise, any objective Pending derives Pending
-  - otherwise the requirement remains Blank
+  - any child Not Met derives Not Met
+  - otherwise, any child Pending derives Pending
+  - otherwise the parent remains Blank
   - Not Met takes precedence over Pending when both are present
 - Only the derived requirement status feeds official CMMC scoring. Objective-level
   status is never scored on its own.
-- **Pending Johnathan's confirmation as the CMMC practitioner.** This follows the
-  structure of NIST SP 800-171A, where a requirement is satisfied only when all of
-  its determination statements are satisfied. Confirm against the controlling
-  assessment guidance for the pinned framework version before implementation.
+- Confirmed by Johnathan on July 27, 2026. The CMMC rule follows the structure of
+  NIST SP 800-171A, where a requirement is satisfied only when all of its
+  determination statements are satisfied.
 - HIPAA projects contain four connected areas: Security Rule, Privacy Rule,
   Breach Notification Rule, and Security Risk Analysis.
 - Assessments move from Draft to Issued. Issued assessments are immutable;
@@ -536,14 +553,24 @@ requires an approved ticket and applicable verification.
 
 ### Pending revision
 
-The Accepted Interaction Model, the objective-to-requirement rollup rule, the
-work-item state transitions, and the ADR 0011 reference were added after the
-July 23 approval and are **not yet approved**. Two items need Johnathan's decision
-rather than review:
+The Accepted Interaction Model, the rollup rules, the work-item state transitions,
+and the ADR 0011 reference were added after the July 23 approval and are **not yet
+approved as a whole**.
 
-1. Confirm the rollup rule against the controlling CMMC assessment guidance.
-2. Confirm the first-real-engagement threshold — which slices must exist before
-   the platform is used on live client work — since it shapes the first
-   production ticket.
+Settled since:
+
+- CMMC objective-to-requirement rollup confirmed by Johnathan, July 27, 2026.
+- HIPAA determinations recorded at implementation-specification level, with no
+  invented objective layer. Confirmed July 27, 2026.
+- First engagement is a full HIPAA program assessment within weeks. Slice 4
+  precedes Slice 3. The platform runs in parallel with existing methods rather
+  than on the critical path of live client work.
+
+Still open:
+
+1. Approval of this revision as a whole.
+2. Whether to restructure `ROADMAP.md` so the required and optional halves of
+   Slices 2, 5, and 7 are separated, and Slice 4 formally precedes Slice 3.
+   That narrows V1 and is a scope change.
 
 Production BUILD does not begin until this revision is approved.
