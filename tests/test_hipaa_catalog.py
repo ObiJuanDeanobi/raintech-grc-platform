@@ -24,6 +24,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "catalog"))
 
 from hipaa_ingest import (  # noqa: E402
+    APPENDIX_A_KNOWN_OMISSIONS,
+    APPENDIX_A_SCOPE,
     DESIGNATION_RE,
     EXCLUDED_SECTIONS,
     LEVEL_TYPES,
@@ -33,6 +35,8 @@ from hipaa_ingest import (  # noqa: E402
     STANDARD_RE,
     classify,
     italic_text,
+    matrix_citation_resolves,
+    parse_appendix_a,
 )
 
 SNAPSHOT = "2026-07-01"
@@ -43,11 +47,11 @@ SOURCE_DIR = REPO_ROOT / "catalog" / "sources"
 # eCFR text by test_counts_are_justified_by_the_source, which recounts from
 # the source XML rather than trusting these numbers.
 EXPECTED = {
-    "security": {"standard": 21, "implementation_specification": 41, "section": 0},
+    "security": {"standard": 22, "implementation_specification": 41, "section": 0},
     "privacy": {"standard": 55, "implementation_specification": 58, "section": 0},
     "breach": {"standard": 0, "implementation_specification": 9, "section": 6},
 }
-EXPECTED_TOTAL = 190
+EXPECTED_TOTAL = 191
 
 # The Required/Addressable distinction exists only in the Security Rule,
 # per 45 CFR 164.306(d).
@@ -249,15 +253,30 @@ class SourceReconciliationTest(unittest.TestCase):
             self.assertTrue(path.exists(), f"missing pinned source for subpart {subpart}")
 
     def test_standard_counts_match_the_source(self):
+        """Catalog standards equal the labelled ones plus those Appendix A adds.
+
+        One Security Rule standard -- 164.308(b)(1) -- is not written
+        "Standard:" in the section text and is recoverable only from Appendix
+        A. Counting labels alone would under-count the catalog by exactly the
+        promoted records, so they are added back explicitly rather than the
+        expectation being loosened.
+        """
         for subpart, area in (("C", "security"), ("E", "privacy"), ("D", "breach")):
             with self.subTest(subpart=subpart):
                 source = self.labelled_paragraphs(subpart)
-                catalog = sum(
-                    1
+                standards = [
+                    r
                     for r in self.records
                     if r["work_area"] == area and r["record_type"] == "standard"
+                ]
+                promoted = [r for r in standards if r["notes"]]
+                self.assertEqual(
+                    len(standards) - len(promoted), source["standard"]
                 )
-                self.assertEqual(catalog, source["standard"])
+                if subpart == "C":
+                    self.assertEqual(
+                        [r["id"] for r in promoted], ["164.308(b)(1)"]
+                    )
 
     def test_every_designated_paragraph_became_a_record(self):
         """All 41 Subpart C designations must survive ingestion.
@@ -310,6 +329,103 @@ class SourceReconciliationTest(unittest.TestCase):
         # Nothing excluded may also appear as a record.
         for record in self.records:
             self.assertNotIn(record["section"], excluded_sections)
+
+
+class AppendixAControlTest(unittest.TestCase):
+    """Diff the catalog against HHS's own Security Standards Matrix.
+
+    Appendix A to Subpart C is published regulation and enumerates the
+    standards and implementation specifications of 164.308, .310 and .312
+    independently of how those sections are worded. It is therefore an
+    external control on the parse rather than a restatement of it.
+
+    Two caveats, both load-bearing:
+
+    - The matrix covers only the three safeguard sections. It says nothing
+      about 164.314 or 164.316, so it is a lower bound on the Security Rule.
+    - The matrix omits the (A) on Workforce Clearance Procedure. The section
+      text carries it and the section text is controlling.
+
+    This control is what caught 164.308(b)(1) missing from the catalog.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.catalog = load_catalog()
+        cls.records = cls.catalog["records"]
+        payload = (SOURCE_DIR / f"title-45-part-164-subpart-C-{SNAPSHOT}.xml").read_bytes()
+        cls.inventory = parse_appendix_a(payload)
+
+    @staticmethod
+    def norm(value: str) -> str:
+        return re.sub(r"[^a-z0-9]", "", value.lower())
+
+    def test_matrix_parsed(self):
+        self.assertEqual(len(self.inventory["standards"]), 18)
+        self.assertEqual(len(self.inventory["specifications"]), 36)
+
+    def test_every_matrix_standard_is_in_the_catalog(self):
+        """A standard HHS lists must exist, however its paragraph is worded."""
+        catalog_standards = {
+            r["id"] for r in self.records if r["record_type"] == "standard"
+        }
+        missing = [
+            f"{citation} ({name})"
+            for citation, name in self.inventory["standards"].items()
+            if not matrix_citation_resolves(citation, catalog_standards)
+        ]
+        self.assertEqual(missing, [], "standards in Appendix A but not the catalog")
+
+    def test_every_matrix_specification_is_in_the_catalog(self):
+        catalog_titles = {
+            self.norm(r["title"])
+            for r in self.records
+            if r["work_area"] == "security"
+        }
+        missing = [
+            title
+            for title, _, _ in self.inventory["specifications"]
+            # The matrix singularizes a couple of titles ("Testing and Revision
+            # Procedure" for "...Procedures"); compare on a prefix to absorb it.
+            if not any(
+                catalog.startswith(self.norm(title)[:24])
+                for catalog in catalog_titles
+            )
+        ]
+        self.assertEqual(missing, [], "specifications in Appendix A but not the catalog")
+
+    def test_designations_agree_with_the_matrix(self):
+        by_title = {}
+        for record in self.records:
+            if record["work_area"] == "security" and record["designation"]:
+                by_title[self.norm(record["title"])[:24]] = record["designation"]
+
+        disagreements = []
+        for title, designation, _ in self.inventory["specifications"]:
+            if title in APPENDIX_A_KNOWN_OMISSIONS or designation is None:
+                continue
+            key = self.norm(title)[:24]
+            if key in by_title and by_title[key] != designation:
+                disagreements.append((title, designation, by_title[key]))
+        self.assertEqual(disagreements, [], "matrix and catalog disagree on designation")
+
+    def test_safeguard_section_counts_match_the_matrix(self):
+        """Restricted to the matrix's scope, the counts must agree exactly."""
+        in_scope = [
+            r for r in self.records if r["section"] in APPENDIX_A_SCOPE
+        ]
+        standards = [r for r in in_scope if r["record_type"] == "standard"]
+        specs = [
+            r for r in in_scope if r["record_type"] == "implementation_specification"
+        ]
+        self.assertEqual(len(standards), len(self.inventory["standards"]))
+        self.assertEqual(len(specs), len(self.inventory["specifications"]))
+        self.assertEqual(
+            sum(1 for r in specs if r["designation"] == "required"), 14
+        )
+        self.assertEqual(
+            sum(1 for r in specs if r["designation"] == "addressable"), 22
+        )
 
 
 class ContentConstraintTest(unittest.TestCase):
