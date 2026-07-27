@@ -1,0 +1,58 @@
+name: Verify
+
+# Independent verification of what agents report. Every gate in AGENTS.md and
+# docs/PROJECT_OPERATING_MODEL.md is otherwise self-reported by the agent doing
+# the work; this workflow is the part that cannot be talked around.
+#
+# Production jobs (API tests, Python static checks, lint) are added here as the
+# vertical slices land. The prototype job no-ops on branches without a prototype.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  prototype:
+    name: Prototype typecheck and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect prototype workspace
+        id: detect
+        run: |
+          if [ -f prototypes/v1-project-workspace/package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No prototype workspace on this branch; nothing to verify."
+          fi
+
+      - name: Set up pnpm
+        if: steps.detect.outputs.present == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.3
+
+      - name: Set up Node
+        if: steps.detect.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: prototypes/v1-project-workspace/pnpm-lock.yaml
+
+      - name: Install
+        if: steps.detect.outputs.present == 'true'
+        working-directory: prototypes/v1-project-workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        if: steps.detect.outputs.present == 'true'
+        working-directory: prototypes/v1-project-workspace
+        run: pnpm run typecheck
+
+      - name: Build
+        if: steps.detect.outputs.present == 'true'
+        working-directory: prototypes/v1-project-workspace
+        run: pnpm run build
