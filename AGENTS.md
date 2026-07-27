@@ -94,6 +94,18 @@ Use the default Matt Pocock triage labels: `needs-triage`, `needs-info`, `ready-
 
 This is a single-context repo. Read `docs/PROJECT_OPERATING_MODEL.md`, `ROADMAP.md`, relevant `docs/decisions/`, and `docs/specification.md` before software delivery work. See `docs/agents/domain.md`.
 
+## UI and workflow review
+
+Review is iterative and visual. Present one representative surface at a time and say which decision it tests. Do not prototype every screen before the interaction model is settled.
+
+Feedback is cumulative unless the user explicitly reverses a decision. When feedback is given:
+
+- Record the decision in the relevant prototype review document or decision record.
+- Check whether the same terminology or hierarchy must also change on other surfaces.
+- Preserve the established distinctions: Dashboard vs client workspace, Unified Queue vs Client Queue, project completion vs profile completeness, onboarding baseline vs current implementation state, and Overview orientation vs objective-level assessment work.
+
+If a visual element does not help the user make a decision or perform work, question whether it belongs.
+
 ## Repository Notes
 
 - Do not modify application source code during workflow setup or planning-only tasks.

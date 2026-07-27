@@ -133,20 +133,9 @@ Build complete workflows instead of disconnected modules. Each slice must:
 
 ## Bloat and Tech-Debt Gates
 
-Every production ticket passes four lightweight gates:
-
-1. **Ticket gate:** explain why the capability is needed now, what is explicitly
-   deferred, and the simplest acceptable implementation.
-2. **Design gate:** add an abstraction only for a demonstrated requirement or a
-   second real use case; do not build generic engines for imagined needs.
-3. **Review gate:** check for speculative configurability, unnecessary
-   dependencies, duplicate lifecycle logic, scope creep, and premature migration
-   complexity.
-4. **Milestone gate:** remove dead paths, revisit accepted debt, and verify that
-   deferred work has not quietly entered the release.
-
-Accepted debt must have a concrete reason and revisit point. Track it as a
-GitHub issue labeled `tech-debt`; do not maintain a second speculative backlog.
+Every production ticket passes the ticket, design, review, and milestone gates
+defined in `docs/agents/tech-debt-gates.md`. That file is the working checklist
+and the single source for the gate questions and the accepted-debt requirements.
 
 The following are V1-late enhancements and do not block initial operational use:
 
@@ -186,3 +175,22 @@ Each production slice must run applicable:
 - ARM64/x64 compatibility review
 
 Framework fixture checks must verify the expected catalog counts and stable IDs.
+
+Continuous integration runs the automated portion of these checks on every push
+and pull request. Agent self-reporting is not the verification of record.
+
+## Test Depth
+
+Test depth follows consequence, not code coverage. The following logic produces
+compliance conclusions or can lose data, and requires real unit tests:
+
+- CMMC scoring, and the assessment-objective to requirement rollup rule
+- 5x5 inherent and residual risk calculation, including band boundaries
+- HIPAA Security Risk Analysis scope-completeness enforcement before issue
+- evidence staleness, replacement, detachment, and mapping lifecycle
+- reassessment carry-forward and `Needs Revalidation` state
+- immutability of issued assessments and reports, and revision creation
+- backup retention limits and restore verification
+
+Presentation, layout, and navigation do not require unit tests. They are verified
+by type checking, production build, and visual review at the supported viewports.
