@@ -42,6 +42,13 @@ structural lead-ins or optional permissions. Only an `assessment_check` renders
 a checkbox. None of the roles changes the parent determination or produces a
 finding. Approved by Johnathan, July 28, 2026.
 
+Security Rule guidance routes to the determination-bearing record. When a NIST
+SP 800-66r2 key activity identifies an implementation specification, its
+questions attach to that specification. Genuinely standard-wide questions stay
+on the parent as introductory guidance. A parent with implementation
+specifications remains a derived rollup without an editable determination.
+Approved by Johnathan, July 28, 2026.
+
 **Ingestion stays bespoke per source and is deliberately not generalized.**
 eCFR publishes structured XML, the CMMC Assessment Guide is a converted PDF,
 and practitioner guidance arrives as a spreadsheet. A framework-agnostic
@@ -98,6 +105,9 @@ explicitly excluded.
   Presentation must preserve each child's source citation and must not allow a
   child prompt to carry status or produce a finding. Presentation roles control
   whether the child renders as a check, applicability note, or context.
+- Guidance attachment follows the framework's determination location. For
+  Security Rule records, NIST-labelled implementation-specification questions
+  attach to that specification rather than accumulating on the parent standard.
 - Framework-specific *workflow* beyond assessment — the HIPAA Security Risk
   Analysis area, CMMC scoring — remains framework-specific, per ADR 0009. This
   decision covers the assessment surface and the catalog, not every engine.

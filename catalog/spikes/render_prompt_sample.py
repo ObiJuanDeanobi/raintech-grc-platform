@@ -30,10 +30,11 @@ KIND = {
 PATH_INTRO = {
     "nist-800-66r2": (
         "Security Rule path",
-        "Prompts are the sample questions NIST publishes for this standard, "
-        "grouped by the key activity they belong to. NIST documents the "
-        "standard as a whole, so they attach to the standard rather than being "
-        "split across its implementation specifications.",
+        "This is raw pre-routing output grouped under the standard. The approved "
+        "implementation routes a NIST key activity's questions to the "
+        "implementation specification it identifies; genuinely standard-wide "
+        "questions remain parent guidance. The standard-only attachment below "
+        "is known superseded behavior.",
     ),
     "cfr-enumeration": (
         "Privacy Rule path",
@@ -74,10 +75,11 @@ def render(catalog: dict, sample: dict) -> str:
     add("2. **Is the volume right?** "
         f"{total} prompts across {with_prompts} records here. Extrapolated over "
         f"{catalog_record_count} records that is several hundred. Structure, or noise?")
-    add("3. **Where should Security Rule prompts sit?** NIST documents the "
-        "standard as a whole, so they currently attach to the standard — while "
-        "the determinations sit on the four implementation specifications "
-        "beneath it. Push them down, or leave them at the standard?")
+    add("3. **Security routing is settled.** This raw sample groups NIST "
+        "questions under the standard. Production routes questions to the "
+        "NIST-identified implementation specification and retains only "
+        "genuinely standard-wide guidance on the parent. Review the volume, "
+        "not the attachment rule.")
     add("")
 
     add("## Provenance")

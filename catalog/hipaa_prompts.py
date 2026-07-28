@@ -278,10 +278,11 @@ def build_sample() -> dict:
     warnings: list[str] = []
     entries: list[dict] = []
 
-    # Security Rule path. 800-66r2 documents the standard as a whole, so the
-    # prompts attach to the standard rather than being split across its
-    # implementation specifications. Whether they should be pushed down is a
-    # design question this sample exists to surface, not one to settle here.
+    # Security Rule path. This spike preserves the raw 800-66r2 standard-level
+    # extraction so prompt volume can be reviewed. Production routing is
+    # settled separately: NIST-labelled key activities route to their
+    # implementation specification, while genuinely standard-wide questions
+    # remain parent guidance.
     security_std = f"{SAMPLE_SECURITY}(i)"
     nist_prompts, nist_warnings = extract_nist_prompts(SAMPLE_SECURITY)
     warnings.extend(nist_warnings)
