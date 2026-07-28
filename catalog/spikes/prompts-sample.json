@@ -22,27 +22,14 @@
     {
       "record_id": "164.308(a)(1)(i)",
       "path": "nist-800-66r2",
+      "prompts": []
+    },
+    {
+      "record_id": "164.308(a)(1)(ii)(A)",
+      "path": "nist-800-66r2",
       "prompts": [
         {
           "text": "Has all ePHI generated, stored, processed, and transmitted within the organization been identified?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Identify All ePHI and Relevant Information Systems",
-          "cfr_paragraph": "",
-          "group": "Identify All ePHI and Relevant Information Systems",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Are all hardware and software for which the organization is responsible periodically inventoried?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Identify All ePHI and Relevant Information Systems",
-          "cfr_paragraph": "",
-          "group": "Identify All ePHI and Relevant Information Systems",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Is the hardware and software inventory updated on a regular basis?",
           "source": "NIST SP 800-66r2",
           "source_detail": "Key activity: Identify All ePHI and Relevant Information Systems",
           "cfr_paragraph": "",
@@ -69,15 +56,6 @@
           "notes": []
         },
         {
-          "text": "Has a BIA been performed?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Identify All ePHI and Relevant Information Systems",
-          "cfr_paragraph": "",
-          "group": "Identify All ePHI and Relevant Information Systems",
-          "designation": null,
-          "notes": []
-        },
-        {
           "text": "Are there any prior risk assessments, audit comments, security requirements, and/or security test results?",
           "source": "NIST SP 800-66r2",
           "source_detail": "Key activity: Conduct Risk Assessment",
@@ -94,7 +72,13 @@
           "group": "Conduct Risk Assessment",
           "designation": "required",
           "notes": []
-        },
+        }
+      ]
+    },
+    {
+      "record_id": "164.308(a)(1)(ii)(B)",
+      "path": "nist-800-66r2",
+      "prompts": [
         {
           "text": "Is executive leadership and/or management involved in risk management decisions?",
           "source": "NIST SP 800-66r2",
@@ -114,25 +98,7 @@
           "notes": []
         },
         {
-          "text": "Does the regulated entity need to engage other resources (e.g., external expertise) to assist in risk management?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Implement a Risk Management Program",
-          "cfr_paragraph": "",
-          "group": "Implement a Risk Management Program",
-          "designation": "required",
-          "notes": []
-        },
-        {
           "text": "Do current safeguards ensure the confidentiality, integrity, and availability of all ePHI?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Implement a Risk Management Program",
-          "cfr_paragraph": "",
-          "group": "Implement a Risk Management Program",
-          "designation": "required",
-          "notes": []
-        },
-        {
-          "text": "Do current safeguards protect against reasonably anticipated uses or disclosures of ePHI that are not permitted by the Privacy Rule?",
           "source": "NIST SP 800-66r2",
           "source_detail": "Key activity: Implement a Risk Management Program",
           "cfr_paragraph": "",
@@ -159,15 +125,6 @@
           "notes": []
         },
         {
-          "text": "Have the security requirements of the organization been compared to the security features of existing or proposed hardware and software?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Acquire Information Technology (IT) Systems and Services",
-          "cfr_paragraph": "",
-          "group": "Acquire Information Technology (IT) Systems and Services",
-          "designation": null,
-          "notes": []
-        },
-        {
           "text": "Has a cost-benefit analysis been conducted to determine the reasonableness of the investment given the security risks identified?",
           "source": "NIST SP 800-66r2",
           "source_detail": "Key activity: Acquire Information Technology (IT) Systems and Services",
@@ -175,70 +132,13 @@
           "group": "Acquire Information Technology (IT) Systems and Services",
           "designation": null,
           "notes": []
-        },
-        {
-          "text": "Has a training strategy been developed?37",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Acquire Information Technology (IT) Systems and Services",
-          "cfr_paragraph": "",
-          "group": "Acquire Information Technology (IT) Systems and Services",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Has the regulated entity documented an organizational risk assessment/management policy that outlines the duties, responsible parties, frequency, and required documentation of the risk management program?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Create and Deploy Policies and Procedures",
-          "cfr_paragraph": "",
-          "group": "Create and Deploy Policies and Procedures",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Are policies and procedures in place for security?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Create and Deploy Policies and Procedures",
-          "cfr_paragraph": "",
-          "group": "Create and Deploy Policies and Procedures",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Is there a formal (documented) system security plan?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Create and Deploy Policies and Procedures",
-          "cfr_paragraph": "",
-          "group": "Create and Deploy Policies and Procedures",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Is there a formal contingency plan?41",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Create and Deploy Policies and Procedures",
-          "cfr_paragraph": "",
-          "group": "Create and Deploy Policies and Procedures",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Is there a process for communicating policies and procedures to the affected employees?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Create procedures to be followed to accomplish particular security-related tasks. • Establish a frequency for reviewing policy and procedures.",
-          "cfr_paragraph": "",
-          "group": "• Create procedures to be followed to accomplish particular security-related tasks. • Establish a frequency for reviewing policy and procedures.",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Are policies and procedures reviewed and updated as needed?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Create procedures to be followed to accomplish particular security-related tasks. • Establish a frequency for reviewing policy and procedures.",
-          "cfr_paragraph": "",
-          "group": "• Create procedures to be followed to accomplish particular security-related tasks. • Establish a frequency for reviewing policy and procedures.",
-          "designation": null,
-          "notes": []
-        },
+        }
+      ]
+    },
+    {
+      "record_id": "164.308(a)(1)(ii)(C)",
+      "path": "nist-800-66r2",
+      "prompts": [
         {
           "text": "Does the regulated entity have existing sanction policies and procedures to meet the requirements of this implementation specification? If not, can existing sanction policies be modified to include language related to violations of these policies and procedures?",
           "source": "NIST SP 800-66r2",
@@ -274,16 +174,13 @@
           "group": "Develop and Implement a Sanction Policy",
           "designation": "required",
           "notes": []
-        },
-        {
-          "text": "How will managers and workforce members be notified regarding suspect activity?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Develop and Implement a Sanction Policy",
-          "cfr_paragraph": "",
-          "group": "Develop and Implement a Sanction Policy",
-          "designation": "required",
-          "notes": []
-        },
+        }
+      ]
+    },
+    {
+      "record_id": "164.308(a)(1)(ii)(D)",
+      "path": "nist-800-66r2",
+      "prompts": [
         {
           "text": "Is there a policy that establishes what reviews will be conducted?",
           "source": "NIST SP 800-66r2",
@@ -303,7 +200,7 @@
           "notes": []
         },
         {
-          "text": "Who is responsible for the overall process and results?43",
+          "text": "Who is responsible for the overall process and results?",
           "source": "NIST SP 800-66r2",
           "source_detail": "Key activity: Develop and Deploy the Information System Activity Review Process",
           "cfr_paragraph": "",
@@ -313,33 +210,6 @@
         },
         {
           "text": "How often will reviews take place?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Develop and Deploy the Information System Activity Review Process",
-          "cfr_paragraph": "",
-          "group": "Develop and Deploy the Information System Activity Review Process",
-          "designation": "required",
-          "notes": []
-        },
-        {
-          "text": "How often will review results be analyzed?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Develop and Deploy the Information System Activity Review Process",
-          "cfr_paragraph": "",
-          "group": "Develop and Deploy the Information System Activity Review Process",
-          "designation": "required",
-          "notes": []
-        },
-        {
-          "text": "Has the regulated entity considered all available capabilities to automate the reviews?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Develop and Deploy the Information System Activity Review Process",
-          "cfr_paragraph": "",
-          "group": "Develop and Deploy the Information System Activity Review Process",
-          "designation": "required",
-          "notes": []
-        },
-        {
-          "text": "Where will audit information reside (e.g., separate server)? Will it be stored external to the organization (e.g., cloud service provider)?",
           "source": "NIST SP 800-66r2",
           "source_detail": "Key activity: Develop and Deploy the Information System Activity Review Process",
           "cfr_paragraph": "",
@@ -373,82 +243,8 @@
           "group": "Implement the Information System Activity Review and Audit Process",
           "designation": null,
           "notes": []
-        },
-        {
-          "text": "What is the plan to revise the review process when needed?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Implement the Information System Activity Review and Audit Process",
-          "cfr_paragraph": "",
-          "group": "Implement the Information System Activity Review and Audit Process",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Who in the organization: o Oversees the development and communication of security policies and procedures? o Is responsible for conducting the risk assessment? o Is responsible for conducting risk management? o Handles the results of periodic security evaluations and continuous monitoring? o Directs IT security purchasing and investment? o Ensures that security concerns have been addressed in system implementation?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Select a Security Official to be Assigned Responsibility for HIPAA Security",
-          "cfr_paragraph": "",
-          "group": "Select a Security Official to be Assigned Responsibility for HIPAA Security",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Does the security official have adequate access and communications with senior officials in the organization, such as executives, chief information officers, chief compliance officers, and in-house counsel?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Select a Security Official to be Assigned Responsibility for HIPAA Security",
-          "cfr_paragraph": "",
-          "group": "Select a Security Official to be Assigned Responsibility for HIPAA Security",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Who in the organization is authorized to accept risks from systems on behalf of the organization?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Select a Security Official to be Assigned Responsibility for HIPAA Security",
-          "cfr_paragraph": "",
-          "group": "Select a Security Official to be Assigned Responsibility for HIPAA Security",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Is there a complete job description that accurately reflects assigned security duties and responsibilities?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Assign and Document the Individual’s Responsibility",
-          "cfr_paragraph": "",
-          "group": "Assign and Document the Individual’s Responsibility",
-          "designation": null,
-          "notes": []
-        },
-        {
-          "text": "Have the staff members in the organization been notified as to whom to call in the event of a security problem?48",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Assign and Document the Individual’s Responsibility",
-          "cfr_paragraph": "",
-          "group": "Assign and Document the Individual’s Responsibility",
-          "designation": null,
-          "notes": []
         }
       ]
-    },
-    {
-      "record_id": "164.308(a)(1)(ii)(A)",
-      "path": "nist-800-66r2",
-      "prompts": []
-    },
-    {
-      "record_id": "164.308(a)(1)(ii)(B)",
-      "path": "nist-800-66r2",
-      "prompts": []
-    },
-    {
-      "record_id": "164.308(a)(1)(ii)(C)",
-      "path": "nist-800-66r2",
-      "prompts": []
-    },
-    {
-      "record_id": "164.308(a)(1)(ii)(D)",
-      "path": "nist-800-66r2",
-      "prompts": []
     },
     {
       "record_id": "164.520(a)",
@@ -821,5 +617,12 @@
       "path": "cfr-enumeration",
       "prompts": []
     }
-  ]
+  ],
+  "review_summary": {
+    "security": {
+      "raw_prompt_count": 45,
+      "kept_prompt_count": 22,
+      "omitted_prompt_count": 23
+    }
+  }
 }
