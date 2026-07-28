@@ -103,6 +103,10 @@ stays open until that lands.
 - GitHub issue #20 closed. Three acceptance criteria were superseded when the
   prototype collapsed to the selected Variant A, as recorded in
   `docs/prototypes/v1-ui-prototype-review.md`.
+- ADR 0012 accepted: a framework is defined by data, not application code.
+  Record shape, rollup rule, status set and presentation mode are declared per
+  framework version. Ingestion stays bespoke per source. This constrains the
+  Slice 1 data model and is the reason that ticket is not yet written.
 
 ## In progress
 
@@ -136,6 +140,10 @@ stays open until that lands.
   preserved until a separate backup/retention decision is made.
 - Launcher, offline operation, packaging, and backup/restore cannot be verified
   from a cloud session. Those belong to Slices 1 and 7 on the Windows machine.
+- Which additional frameworks are intended is undecided, and ADR 0012 depends on
+  it. Most decompose into citable requirements carrying a met-or-not judgement
+  and fit the model; SOC 2, PCI DSS and ISO 27001 each strain it in a different
+  place. Worth settling before Slice 1 fixes the data model.
 
 ## Next recommended action
 
