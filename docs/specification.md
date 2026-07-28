@@ -105,9 +105,13 @@ context, risks, and outputs.
   - Published subordinate CFR paragraphs beneath a HIPAA record do not become
     separate determination-bearing records. The record retains its lead
     regulation text; its subordinate paragraphs are displayed beneath it as
-    individually cited, non-determinative prompts. The complete official context
-    is the parent text plus those nested paragraphs. Do not duplicate all child
-    text into the parent record, and do not promote those children into separate
+    individually cited, non-determinative guidance entries. Each entry has one
+    presentation role: `assessment_check` for an operative requirement,
+    `applicability_note` for an exception, exemption, or N/A condition, or
+    `context` for a structural lead-in or optional permission. Only
+    `assessment_check` renders a checkbox. The complete official context is the
+    parent text plus those nested paragraphs. Do not duplicate all child text
+    into the parent record, and do not promote those children into separate
     assessment results.
   - The OCR Audit Protocol's key activities and audit inquiries populate the
     implementation guidance and expected evidence fields. They are not records
@@ -674,6 +678,24 @@ The parent record text is not expanded to duplicate all child text; the complete
 official context is presented as the parent lead plus its nested cited
 paragraphs. **Approved by Johnathan on July 28, 2026.**
 
+### Privacy prompt filter — approved July 28, 2026
+
+Privacy Rule child paragraphs are not all checklist questions. Each cited entry
+is classified for presentation:
+
+- `assessment_check`: an operative `must`, `shall`, or conditional requirement;
+  renders a checkbox.
+- `applicability_note`: an exception, exemption, “not required” provision, or
+  other scope/N/A condition; visible for applicability reasoning without a
+  checkbox.
+- `context`: a structural lead-in such as “must contain:” or an optional
+  permission; displayed as a heading or guidance without a checkbox.
+
+Conditional obligations remain assessment checks when their condition applies.
+No role carries its own determination or produces a finding. This replaces the
+spike's raw behavior of rendering every extracted Privacy subparagraph as a
+checkbox. **Approved by Johnathan on July 28, 2026.**
+
 Settled in this revision:
 
 - CMMC objective-to-requirement rollup confirmed by Johnathan, July 27, 2026.
@@ -682,6 +704,9 @@ Settled in this revision:
 - HIPAA subordinate CFR paragraphs remain cited, non-determinative prompts
   beneath their parent record rather than duplicated into parent text or
   promoted to assessment results. Confirmed July 28, 2026.
+- Privacy Rule child paragraphs use the three presentation roles
+  `assessment_check`, `applicability_note`, and `context`; only the first renders
+  a checkbox. Confirmed July 28, 2026.
 - First engagement is a full HIPAA program assessment within weeks. Slice 4
   precedes Slice 3. The platform runs in parallel with existing methods rather
   than on the critical path of live client work. `ROADMAP.md` now records that

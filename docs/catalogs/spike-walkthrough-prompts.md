@@ -212,7 +212,7 @@ Under: 45 CFR 164.308(a)(1)(i) — Security management process
 
 # Privacy Rule path
 
-Prompts are the sub-paragraphs the regulation itself enumerates, quoted rather than paraphrased. Each carries its own CFR citation, so a correction can be written against a paragraph.
+This is raw pre-filter extraction of the sub-paragraphs the regulation enumerates. The approved implementation classifies each cited entry as an assessment check, applicability note, or context; only assessment checks render checkboxes. The raw checkboxes on exceptions, optional permissions, and structural lead-ins below are known incorrect output.
 
 ## 45 CFR 164.520(a)
 

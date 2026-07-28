@@ -35,6 +35,13 @@ the child text is not duplicated into it. The complete official context is the
 parent lead plus its nested cited paragraphs. Approved by Johnathan, July 28,
 2026.
 
+Privacy Rule entries declare one of three presentation roles:
+`assessment_check` for an operative or conditional requirement,
+`applicability_note` for exceptions and scope/N/A conditions, and `context` for
+structural lead-ins or optional permissions. Only an `assessment_check` renders
+a checkbox. None of the roles changes the parent determination or produces a
+finding. Approved by Johnathan, July 28, 2026.
+
 **Ingestion stays bespoke per source and is deliberately not generalized.**
 eCFR publishes structured XML, the CMMC Assessment Guide is a converted PDF,
 and practitioner guidance arrives as a spreadsheet. A framework-agnostic
@@ -89,7 +96,8 @@ explicitly excluded.
 - A framework's published subordinate guidance can be displayed below an
   assessable record without changing record count or determination shape.
   Presentation must preserve each child's source citation and must not allow a
-  child prompt to carry status or produce a finding.
+  child prompt to carry status or produce a finding. Presentation roles control
+  whether the child renders as a check, applicability note, or context.
 - Framework-specific *workflow* beyond assessment — the HIPAA Security Risk
   Analysis area, CMMC scoring — remains framework-specific, per ADR 0009. This
   decision covers the assessment surface and the catalog, not every engine.
