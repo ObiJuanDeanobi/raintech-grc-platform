@@ -102,6 +102,13 @@ context, risks, and outputs.
     No objective layer is created — 45 CFR Part 164 publishes no such
     decomposition, and inventing one would produce assessable records that cannot
     be cited.
+  - Published subordinate CFR paragraphs beneath a HIPAA record do not become
+    separate determination-bearing records. The record retains its lead
+    regulation text; its subordinate paragraphs are displayed beneath it as
+    individually cited, non-determinative prompts. The complete official context
+    is the parent text plus those nested paragraphs. Do not duplicate all child
+    text into the parent record, and do not promote those children into separate
+    assessment results.
   - The OCR Audit Protocol's key activities and audit inquiries populate the
     implementation guidance and expected evidence fields. They are not records
     that carry a determination.
@@ -654,11 +661,27 @@ The two section records are replaced by four published paragraph records:
 invented objectives. Records go 192 to 194; Breach Notification records go 15
 to 17. **Approved by Johnathan on July 28, 2026.**
 
+### Subordinate paragraph presentation — approved July 28, 2026
+
+Source reconciliation found 731 published child paragraphs beneath 84 HIPAA
+catalog records. Many parent texts are lead-ins whose operative detail is in
+those children. They remain under their existing parent record and are
+presented as individually cited, non-determinative prompts under issue #29.
+
+The catalog remains at 194 determination-bearing records. Child paragraphs do
+not carry status, produce findings, or appear as separate assessment results.
+The parent record text is not expanded to duplicate all child text; the complete
+official context is presented as the parent lead plus its nested cited
+paragraphs. **Approved by Johnathan on July 28, 2026.**
+
 Settled in this revision:
 
 - CMMC objective-to-requirement rollup confirmed by Johnathan, July 27, 2026.
 - HIPAA determinations recorded at implementation-specification level, with no
   invented objective layer. Confirmed July 27, 2026.
+- HIPAA subordinate CFR paragraphs remain cited, non-determinative prompts
+  beneath their parent record rather than duplicated into parent text or
+  promoted to assessment results. Confirmed July 28, 2026.
 - First engagement is a full HIPAA program assessment within weeks. Slice 4
   precedes Slice 3. The platform runs in parallel with existing methods rather
   than on the critical path of live client work. `ROADMAP.md` now records that

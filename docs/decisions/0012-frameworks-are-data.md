@@ -27,6 +27,14 @@ Declared per framework version:
    children visible together, or one record at a time. CMMC needs the first,
    HIPAA the second.
 
+For HIPAA, published subordinate CFR paragraphs beneath an assessable record
+are part of the guidance presentation, not additional assessable records. The
+workspace presents them beneath the parent as individually cited prompts with
+no status or finding of their own. The parent retains its lead regulation text;
+the child text is not duplicated into it. The complete official context is the
+parent lead plus its nested cited paragraphs. Approved by Johnathan, July 28,
+2026.
+
 **Ingestion stays bespoke per source and is deliberately not generalized.**
 eCFR publishes structured XML, the CMMC Assessment Guide is a converted PDF,
 and practitioner guidance arrives as a spreadsheet. A framework-agnostic
@@ -78,6 +86,10 @@ explicitly excluded.
 - Adding a framework becomes: write an ingester, pin its source, declare the
   four items above, and have the catalog reviewed by a practitioner. No
   application change.
+- A framework's published subordinate guidance can be displayed below an
+  assessable record without changing record count or determination shape.
+  Presentation must preserve each child's source citation and must not allow a
+  child prompt to carry status or produce a finding.
 - Framework-specific *workflow* beyond assessment — the HIPAA Security Risk
   Analysis area, CMMC scoring — remains framework-specific, per ADR 0009. This
   decision covers the assessment surface and the catalog, not every engine.
