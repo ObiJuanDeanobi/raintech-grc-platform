@@ -56,6 +56,12 @@ be cited. The OCR Audit Protocol's key activities and audit inquiries belong in
 the implementation-guidance and expected-evidence fields; they do not carry
 determinations.
 
+Published subordinate paragraphs beneath a record remain individually cited,
+non-determinative prompts under that parent. They are not duplicated into the
+parent's lead text and do not become separate assessment results. The complete
+official context is the parent text plus its nested cited paragraphs; prompt
+ingestion is scoped separately in GitHub issue #29.
+
 ### Required and Addressable
 
 The Required/Addressable distinction exists **only in the Security Rule**, per
