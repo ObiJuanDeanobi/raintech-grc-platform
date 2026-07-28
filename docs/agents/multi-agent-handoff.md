@@ -7,6 +7,34 @@ that switch uneventful.
 This file is portable. The pattern works in any repository where more than one
 agent — or more than one person — picks work up cold.
 
+## Starting a session
+
+Give either agent this, verbatim:
+
+```
+Read AGENTS.md and PROJECT_STATUS.md, verify repo state against GitHub,
+then tell me where we are and the single next thing. Don't start until I confirm.
+```
+
+It works unchanged for both agents. `AGENTS.md` is the rulebook and points at
+everything else; `CLAUDE.md` is only a pointer to it. `PROJECT_STATUS.md` carries
+the live state.
+
+Each clause is load-bearing:
+
+- **Read AGENTS.md** — loads the classification rules and approval gates, so the
+  agent knows whether it is in CHAT, PLAN, BUILD or REVIEW before it acts.
+- **and PROJECT_STATUS.md** — the active ticket, what is blocked, and the open
+  questions the other agent left behind.
+- **verify repo state against GitHub** — the local working copy is not
+  authoritative. Never assume it matches.
+- **tell me where we are and the single next thing** — forces a report before
+  action. An agent that starts working from a stale picture is worse than one
+  that starts slowly.
+- **don't start until I confirm** — the approval gates in `AGENTS.md` are not
+  optional, and a fresh agent has no way to know which of them have already been
+  cleared.
+
 ## The failure it prevents
 
 Code is never the problem. Code is in git, and git is unambiguous.
