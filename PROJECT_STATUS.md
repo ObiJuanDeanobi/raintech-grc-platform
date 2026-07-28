@@ -22,11 +22,9 @@ paragraph correction approved July 28, 2026. No unapproved changes outstanding.
 ## Active ticket
 
 GitHub issue #21: Slice 4a, ingest and version the HIPAA full-program catalog.
-Practitioner review found two incomplete Breach section fallbacks. The approved
-four-paragraph correction is implemented and verified in draft PR #35, which is
-awaiting merge. Johnathan's practitioner review of
-`docs/catalogs/hipaa-45cfr164-2026-07-01.md` remains the outstanding acceptance
-criterion, so the issue stays open after this correction.
+The approved four-paragraph Breach correction merged in PR #35. Johnathan's
+practitioner review of `docs/catalogs/hipaa-45cfr164-2026-07-01.md` remains the
+outstanding acceptance criterion, so the issue stays open.
 
 ## Completed
 
@@ -101,6 +99,10 @@ criterion, so the issue stays open after this correction.
   as a bare `Standard` were missing, including 45 CFR 164.502(a), and the Breach
   Notification Rule was modelled as sections rather than standards. Corrected;
   all three rules now share one shape. Records 191 to 192.
+- Practitioner review's Breach paragraph correction merged in PR #35. The two
+  incomplete section fallbacks at 164.412 and 164.414 became four complete,
+  citable paragraph records. The catalog now contains 194 records: Security 63,
+  Privacy 114, and Breach Notification 17.
 - GitHub issue #20 closed. Three acceptance criteria were superseded when the
   prototype collapsed to the selected Variant A, as recorded in
   `docs/prototypes/v1-ui-prototype-review.md`.
@@ -111,11 +113,10 @@ criterion, so the issue stays open after this correction.
 
 ## In progress
 
-- GitHub issue #21: the approved Breach paragraph correction is verified in
-  draft PR #35 and awaits merge. It replaces the two incomplete section
-  fallbacks with four published paragraph records, taking the catalog from 192
-  to 194 without inventing an objective layer. Practitioner review of the
-  exported catalog then resumes as the remaining acceptance criterion.
+- GitHub issue #21: practitioner review of the exported 194-record catalog.
+  The next structural question is whether unlabelled subordinate CFR paragraphs
+  belong in each record's displayed regulation text or only in the cited prompt
+  layer planned by issue #29.
 
 ## Blocked
 
@@ -132,6 +133,12 @@ for an issue. Each names who has to answer it.
   45 CFR 164.308(a)(1) alone, which extrapolates to several hundred across 194
   records. Useful structure or noise? If noise, prompts get trimmed to those that
   drive a determination. Blocks the full ingest on issue #29.
+- **Subordinate paragraph visibility — Johnathan.** Source reconciliation found
+  731 unlabelled child paragraphs beneath 84 catalog records. The current record
+  text often stops at the parent lead-in; issue #29 proposes presenting the
+  children as cited, non-determinative prompts. Decide whether that is the
+  accepted split, or whether the parent record text must also embed its complete
+  child text. This blocks closing practitioner review on issue #21.
 - **Privacy prompt filter — Johnathan.** Deriving prompts from the regulation's
   own sub-paragraphs also picks up exceptions and scoping provisions, not only
   obligations. "An inmate does not have a right to notice" is not a prompt. Which
@@ -181,10 +188,10 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Land the approved Breach paragraph correction after CI, then continue reviewing
-`docs/catalogs/hipaa-45cfr164-2026-07-01.md` for assessable-unit and exclusion
-accuracy. Corrections are written against citations, which are stable across
-catalog versions.
+Decide whether subordinate CFR paragraphs remain cited prompts under issue #29
+or must also be embedded in their parent catalog record's regulation text. The
+decision controls whether the current 194-record export is complete enough to
+finish practitioner review.
 
 Slice 4 continues once that lands.
 
