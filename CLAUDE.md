@@ -22,6 +22,12 @@ rules here — a second copy is a place for the two to disagree.
 Prototype work additionally requires `docs/prototypes/v1-ui-prototype-brief.md` and
 `docs/prototypes/v1-ui-prototype-review.md`.
 
+## Switching between agents
+
+Claude and Codex alternate here. `docs/agents/multi-agent-handoff.md` covers what
+has to be written down, where it goes, and the branch discipline that keeps work
+from being destroyed. `AGENTS.md` carries the rules themselves.
+
 ## Skills
 
 Shared agent skills live in `.agents/skills/`. Read them from there.

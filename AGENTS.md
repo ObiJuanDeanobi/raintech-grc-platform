@@ -80,6 +80,53 @@ Generated code is not proof of completion.
 
 Completion requires applicable tests, type checking, linting, builds, and review results.
 
+Completion also requires updating `PROJECT_STATUS.md`. It carries the same weight
+as the checks above. Both Claude and Codex work in this repository and neither can
+see the other's conversation, so a session that ends without updating it hands the
+next agent a stale picture that it will act on confidently.
+
+Before ending a session, `PROJECT_STATUS.md` must say what is in flight, what is
+blocked and on whom, what open questions are awaiting Johnathan, and what the next
+action is.
+
+## Where things get written down
+
+Three places, and the routing rule matters more than the format. An agent that
+cannot find prior reasoning will re-derive it, usually differently.
+
+- **Settled decisions go to `docs/decisions/`.** Anything that constrains future
+  work, with the reasoning and the evidence behind it. Read these before
+  reopening a question.
+- **Scoped work goes to GitHub issues.** One ticket per unit of work, meeting the
+  acceptance criteria in `docs/PROJECT_OPERATING_MODEL.md`.
+- **Live but undecided goes to `PROJECT_STATUS.md`,** under Open questions. This
+  is the bucket most often skipped, and the one whose absence causes the most
+  drift: a question that is being actively worked but is neither settled nor
+  scoped exists nowhere else.
+
+Conversation is not one of the three. Anything that only exists in a chat window
+is lost at the next agent switch.
+
+## Working alongside another agent
+
+Claude and Codex alternate on this repository. Both read this file; neither reads
+the other's history.
+
+- **Merge before switching.** Do not hand over with unmerged commits stacked on a
+  branch. A branch reset by the next agent will discard them, and reasoning that
+  only exists in the abandoned commits goes with them.
+- **One working branch at a time.** Two agents on two long-lived branches produces
+  conflicts neither can resolve without the other's context.
+- **Never reset a branch without checking what is on it.** `git log origin/main..HEAD`
+  before any reset or force push. If it returns anything, that work is not on
+  `main` yet.
+- **CI is the verification of record.** Neither agent's self-report counts.
+  Anything either agent claims to have verified must be reproducible by the
+  other from the repository alone.
+
+See `docs/agents/multi-agent-handoff.md` for the reasoning and for the portable
+version of this pattern.
+
 ## Agent skills
 
 ### Issue tracker

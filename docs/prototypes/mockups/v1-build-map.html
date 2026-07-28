@@ -1,0 +1,708 @@
+<title>RainTech V1 — Build Map</title>
+
+<style>
+  :root {
+    --forest: #17352C;
+    --moss:   #4A7C64;
+    --amber:  #C08422;
+    --clay:   #A6503C;
+
+    --ground:   #F2F5F2;
+    --surface:  #FFFFFF;
+    --sunken:   #E9EEE9;
+    --rule:     #D3DCD5;
+    --rule-soft:#E3E9E3;
+
+    --ink:      #16241E;
+    --ink-mid:  #4C5B53;
+    --ink-soft: #71817A;
+
+    --good:  #2F6B4F;
+    --good-bg:#DCEBE1;
+    --watch: #8A6212;
+    --watch-bg:#F6E9CC;
+    --risk:  #8E4231;
+    --risk-bg:#F3DED8;
+    --idle-bg:#E4E9E5;
+
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+    --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+    --maxw: 68rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:   #0E1A16;
+      --surface:  #16241E;
+      --sunken:   #1B2E26;
+      --rule:     #2A4036;
+      --rule-soft:#223429;
+
+      --ink:      #E7EEE9;
+      --ink-mid:  #A9BBB1;
+      --ink-soft: #7C8F85;
+
+      --moss:  #7FB295;
+      --amber: #D9A24B;
+      --clay:  #C97A62;
+
+      --good:  #8ECBA6;
+      --good-bg:#1D3A2B;
+      --watch: #E3B463;
+      --watch-bg:#3A2E14;
+      --risk:  #E0937C;
+      --risk-bg:#3B211A;
+      --idle-bg:#22322B;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:   #0E1A16;
+    --surface:  #16241E;
+    --sunken:   #1B2E26;
+    --rule:     #2A4036;
+    --rule-soft:#223429;
+    --ink:      #E7EEE9;
+    --ink-mid:  #A9BBB1;
+    --ink-soft: #7C8F85;
+    --moss:  #7FB295;
+    --amber: #D9A24B;
+    --clay:  #C97A62;
+    --good:  #8ECBA6;
+    --good-bg:#1D3A2B;
+    --watch: #E3B463;
+    --watch-bg:#3A2E14;
+    --risk:  #E0937C;
+    --risk-bg:#3B211A;
+    --idle-bg:#22322B;
+  }
+
+  :root[data-theme="light"] {
+    --ground:   #F2F5F2;
+    --surface:  #FFFFFF;
+    --sunken:   #E9EEE9;
+    --rule:     #D3DCD5;
+    --rule-soft:#E3E9E3;
+    --ink:      #16241E;
+    --ink-mid:  #4C5B53;
+    --ink-soft: #71817A;
+    --moss:  #4A7C64;
+    --amber: #C08422;
+    --clay:  #A6503C;
+    --good:  #2F6B4F;
+    --good-bg:#DCEBE1;
+    --watch: #8A6212;
+    --watch-bg:#F6E9CC;
+    --risk:  #8E4231;
+    --risk-bg:#F3DED8;
+    --idle-bg:#E4E9E5;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 3.5rem 1.5rem 6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead { display: flex; flex-direction: column; gap: 1rem; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--moss);
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.1;
+    font-weight: 600;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .standfirst {
+    font-size: 1.05rem;
+    color: var(--ink-mid);
+    max-width: 60ch;
+  }
+
+  .caveat {
+    border-left: 3px solid var(--amber);
+    background: var(--sunken);
+    padding: .9rem 1.1rem;
+    font-size: .92rem;
+    color: var(--ink-mid);
+    max-width: 62ch;
+  }
+  .caveat strong { color: var(--ink); }
+
+  /* ---------- section furniture ---------- */
+
+  section { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  h2 {
+    font-family: var(--serif);
+    font-size: 1.45rem;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    margin: 0;
+    padding-bottom: .6rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  h3 {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .lede { color: var(--ink-mid); font-size: .95rem; max-width: 64ch; margin: 0; }
+
+  /* ---------- tally ---------- */
+
+  .tally {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+  .tally div { background: var(--surface); padding: 1rem 1.1rem; }
+  .tally .n {
+    font-family: var(--serif);
+    font-size: 2rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    display: block;
+  }
+  .tally .k {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    display: block;
+    margin-top: .5rem;
+  }
+  .tally .shipped .n { color: var(--good); }
+  .tally .flight .n  { color: var(--amber); }
+  .tally .queued .n  { color: var(--ink-mid); }
+  .tally .yours .n   { color: var(--clay); }
+
+  /* ---------- register ---------- */
+
+  .register {
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .slice {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr 10rem;
+    gap: 1.5rem;
+    padding: 1.4rem 1.3rem;
+    border-bottom: 1px solid var(--rule-soft);
+    align-items: start;
+  }
+  .slice:last-child { border-bottom: 0; }
+  .slice.done { background: linear-gradient(90deg, var(--good-bg) 0 3px, transparent 3px); }
+  .slice.active { background: linear-gradient(90deg, var(--amber) 0 3px, transparent 3px); }
+
+  .ord { display: flex; flex-direction: column; gap: .3rem; }
+  .ord .step {
+    font-family: var(--serif);
+    font-size: 1.9rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .ord .slicenum {
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .06em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+
+  .body h3 { margin-bottom: .35rem; }
+  .body p { margin: 0; font-size: .92rem; color: var(--ink-mid); }
+
+  .subs {
+    list-style: none;
+    padding: 0;
+    margin: .8rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    border-top: 1px dashed var(--rule);
+    padding-top: .7rem;
+  }
+  .subs li {
+    display: flex;
+    gap: .6rem;
+    align-items: baseline;
+    font-size: .88rem;
+    flex-wrap: wrap;
+  }
+  .tk {
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--moss);
+    white-space: nowrap;
+  }
+  .subs .txt { color: var(--ink-mid); }
+
+  .note {
+    margin-top: .8rem;
+    font-size: .86rem;
+    color: var(--risk);
+    display: flex;
+    gap: .5rem;
+  }
+  .note::before { content: "▲"; font-size: .6rem; line-height: 1.9; }
+
+  .meta { display: flex; flex-direction: column; gap: .6rem; align-items: flex-start; }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    padding: .28rem .55rem;
+    white-space: nowrap;
+  }
+  .chip.shipped { background: var(--good-bg);  color: var(--good); }
+  .chip.now     { background: var(--watch-bg); color: var(--watch); }
+  .chip.ready   { background: var(--idle-bg);  color: var(--ink-mid); }
+  .chip.queued  { background: transparent; color: var(--ink-soft); border: 1px solid var(--rule); }
+  .chip.blocked { background: var(--risk-bg);  color: var(--risk); }
+
+  .size { display: flex; flex-direction: column; gap: .3rem; }
+  .size .lab {
+    font-family: var(--mono);
+    font-size: .62rem;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .meter { display: flex; gap: 3px; }
+  .meter i {
+    width: 1.5rem; height: 5px;
+    background: var(--rule);
+    display: block;
+  }
+  .meter i.on { background: var(--moss); }
+
+  .owner {
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .owner b { color: var(--clay); font-weight: 600; }
+
+  /* ---------- panels ---------- */
+
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    gap: 1.5rem;
+  }
+
+  .panel {
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    padding: 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: .9rem;
+  }
+  .panel h3 { padding-bottom: .5rem; border-bottom: 1px solid var(--rule-soft); }
+  .panel ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .55rem; }
+  .panel li { font-size: .9rem; color: var(--ink-mid); }
+  .panel li strong { color: var(--ink); font-weight: 600; }
+  .panel.risk { border-top: 3px solid var(--clay); }
+  .panel.you  { border-top: 3px solid var(--amber); }
+
+  .trigger {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    padding: .9rem 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .trigger:last-child { border-bottom: 0; padding-bottom: 0; }
+  .trigger .when {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .trigger .what { font-size: .92rem; color: var(--ink); }
+  .trigger .why { font-size: .85rem; color: var(--ink-soft); }
+
+  /* ---------- tickets ---------- */
+
+  .tickets { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .tickets caption {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding-bottom: .7rem;
+  }
+  .tickets th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    font-weight: 400;
+    padding: .5rem .7rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .tickets td {
+    padding: .7rem;
+    border-bottom: 1px solid var(--rule-soft);
+    color: var(--ink-mid);
+    vertical-align: top;
+  }
+  .tickets td:first-child { font-family: var(--mono); color: var(--moss); white-space: nowrap; }
+  .tickets tr:last-child td { border-bottom: 0; }
+  .scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); padding: 1.1rem; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.3rem;
+    font-size: .85rem;
+    color: var(--ink-soft);
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+  }
+  code { font-family: var(--mono); font-size: .88em; }
+
+  @media (max-width: 34rem) {
+    .slice { grid-template-columns: 3rem 1fr; }
+    .meta { grid-column: 2; flex-direction: row; flex-wrap: wrap; align-items: center; gap: .8rem; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <span class="eyebrow">RainTech GRC Platform · V1</span>
+    <h1>Build map for the rest of V1</h1>
+    <p class="standfirst">
+      Seven slices, built in dependency order rather than numeric order. One slice piece
+      has shipped. Everything else is ahead.
+    </p>
+    <p class="caveat">
+      <strong>This is a sequence, not a schedule.</strong> There is deliberately no time
+      axis — no dates, no durations, no calendar estimates. Size is shown relative to the
+      work already completed, which is the only honest yardstick available. What the map
+      encodes is order, size, ownership and dependency.
+    </p>
+  </header>
+
+  <section>
+    <h2>Where things stand</h2>
+    <div class="tally">
+      <div class="shipped"><span class="n">1</span><span class="k">Shipped</span></div>
+      <div class="flight"><span class="n">2</span><span class="k">In flight</span></div>
+      <div class="queued"><span class="n">7</span><span class="k">Slices remaining</span></div>
+      <div class="yours"><span class="n">4</span><span class="k">Waiting on you</span></div>
+    </div>
+    <p class="lede">
+      Shipped means merged to <code>main</code> with tests and CI. The HIPAA catalog —
+      192 assessable records across the Security, Privacy and Breach Notification Rules —
+      is the whole of it so far.
+    </p>
+  </section>
+
+  <section>
+    <h2>The build sequence</h2>
+    <p class="lede">
+      The large numeral is build order. The label beneath it is the slice number, which
+      does not match — Slice 4 is built before Slice 3 because the first real engagement
+      is HIPAA. Slice numbers are stable identifiers and are never renumbered.
+    </p>
+
+    <div class="register">
+
+      <article class="slice active">
+        <div class="ord"><span class="step">1</span><span class="slicenum">Slice 1</span></div>
+        <div class="body">
+          <h3>Foundation and project workspace</h3>
+          <p>
+            The application starts existing here. Launcher, React/TypeScript, FastAPI,
+            SQLite, managed file storage, account context and audit attribution, clients,
+            projects, Overview, autosave, and the framework-version registry the catalogs
+            plug into.
+          </p>
+          <ul class="subs">
+            <li><span class="tk">#32</span><span class="txt">Packaging spike — prove Windows ARM64/x64 launch before committing</span></li>
+            <li><span class="tk">no ticket</span><span class="txt">Slice 1 proper, still unwritten</span></li>
+          </ul>
+          <p class="note">
+            Architectural commitment. The hardest thing to change later, and everything
+            downstream rests on it.
+          </p>
+        </div>
+        <div class="meta">
+          <span class="chip ready">Ticket needed</span>
+          <div class="size"><span class="lab">Size</span><div class="meter"><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+          <span class="owner">Mine · <b>your machine to verify</b></span>
+        </div>
+      </article>
+
+      <article class="slice">
+        <div class="ord"><span class="step">2</span><span class="slicenum">Slice 2</span></div>
+        <div class="body">
+          <h3>Progressive profile and CMMC estimate</h3>
+          <p>
+            Onboarding questionnaire and the progressive environment profile — current
+            state, target state, implementation deltas, systems, owners, service
+            providers, information flows. Plus a CMMC preliminary estimate from versioned
+            pricing rules, with a customer-facing PDF.
+          </p>
+          <p class="note">
+            The estimate half is not needed for the HIPAA engagement. This is where the
+            deferred V1 narrowing decision first bites.
+          </p>
+        </div>
+        <div class="meta">
+          <span class="chip queued">Not started</span>
+          <div class="size"><span class="lab">Size</span><div class="meter"><i class="on"></i><i class="on"></i><i></i></div></div>
+          <span class="owner">Mine · <b>your pricing rules</b></span>
+        </div>
+      </article>
+
+      <article class="slice done">
+        <div class="ord"><span class="step">3</span><span class="slicenum">Slice 4</span></div>
+        <div class="body">
+          <h3>HIPAA program delivery</h3>
+          <p>
+            Security, Privacy, Breach Notification and Security Risk Analysis work areas.
+            Determinations, N/A rationale, addressable decisions, rollup, findings and
+            corrective action, the 5×5 inherent/residual risk engine with ePHI
+            scope-completeness checks, HIPAA reports, and reassessment by copy.
+          </p>
+          <ul class="subs">
+            <li><span class="tk">4a ✓</span><span class="txt">Catalog — 192 records, merged, 27 tests, CI-verified</span></li>
+            <li><span class="tk">#29</span><span class="txt">Walkthrough prompts — spike built, awaiting your verdict</span></li>
+            <li><span class="tk">4c</span><span class="txt">The assessment workspace itself — not yet ticketed</span></li>
+          </ul>
+          <p class="note">
+            The risk engine and scope-completeness rules are real logic, not screens.
+            Test depth follows consequence here.
+          </p>
+        </div>
+        <div class="meta">
+          <span class="chip now">In flight</span>
+          <div class="size"><span class="lab">Size</span><div class="meter"><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+          <span class="owner">Mine · <b>your review</b></span>
+        </div>
+      </article>
+
+      <article class="slice">
+        <div class="ord"><span class="step">4</span><span class="slicenum">Slice 3</span></div>
+        <div class="body">
+          <h3>CMMC Level 2 delivery</h3>
+          <p>
+            Requirement-centred gap analysis across all 110 requirements and 320
+            assessment objectives, official CMMC scoring only, findings, Pending and
+            Not Met handling, validation, continuous POA&amp;M, reports, and reassessment.
+          </p>
+          <ul class="subs">
+            <li><span class="tk">#30</span><span class="txt">CMMC catalog — ticket ready, source verified at 110 / 320</span></li>
+            <li><span class="tk">#31</span><span class="txt">Guidance layer from your worksheet — blocked on #30</span></li>
+          </ul>
+          <p class="note">
+            Your worksheet contains real client data and never enters the repository.
+            Only a scanned, verified extract is committed.
+          </p>
+        </div>
+        <div class="meta">
+          <span class="chip ready">Ready to start</span>
+          <div class="size"><span class="lab">Size</span><div class="meter"><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+          <span class="owner">Mine · <b>your review</b></span>
+        </div>
+      </article>
+
+      <article class="slice">
+        <div class="ord"><span class="step">5</span><span class="slicenum">Slice 5</span></div>
+        <div class="body">
+          <h3>Evidence and recurring reviews</h3>
+          <p>
+            Upload, reuse across requirements, mapping rationale, versioning, replace,
+            detach, recycle bin, archive, deduplication, staleness, manifest export,
+            evidence requests with assignee and due date, and configurable recurring
+            review schedules with in-app reminders.
+          </p>
+          <p class="note">
+            Broad surface, heavy on lifecycle logic. A strong candidate for the V1
+            narrowing decision.
+          </p>
+        </div>
+        <div class="meta">
+          <span class="chip queued">Not started</span>
+          <div class="size"><span class="lab">Size</span><div class="meter"><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+          <span class="owner">Mine</span>
+        </div>
+      </article>
+
+      <article class="slice">
+        <div class="ord"><span class="step">6</span><span class="slicenum">Slice 6</span></div>
+        <div class="body">
+          <h3>Policies, documents and reports</h3>
+          <p>
+            Versioned templates with named fields, conditional sections and approved
+            content blocks. Editable drafts, approval, no-change review events,
+            supersession, browser preview, and PDF, XLSX, DOCX and ZIP exports built from
+            reproducible source snapshots.
+          </p>
+          <p class="note">
+            Blocked on you. RainTech policy, procedure, report and SSP templates are
+            still an open input and nothing here can be finished without them.
+          </p>
+        </div>
+        <div class="meta">
+          <span class="chip blocked">Blocked</span>
+          <div class="size"><span class="lab">Size</span><div class="meter"><i class="on"></i><i class="on"></i><i></i></div></div>
+          <span class="owner"><b>Your templates</b></span>
+        </div>
+      </article>
+
+      <article class="slice">
+        <div class="ord"><span class="step">7</span><span class="slicenum">Slice 7</span></div>
+        <div class="body">
+          <h3>Recovery and V1 hardening</h3>
+          <p>
+            Configurable backup destination including RainTech OneDrive, fourteen daily
+            and two weekly backups, manual backup, verified restore, workspace
+            export/import, Windows ARM64 and x64 packaging, offline verification, and a
+            final end-to-end review against the approved specification.
+          </p>
+          <p class="note">
+            Verification concentrates here and only your machine can do any of it. The
+            #32 spike exists to pull that risk forward.
+          </p>
+        </div>
+        <div class="meta">
+          <span class="chip queued">Not started</span>
+          <div class="size"><span class="lab">Size</span><div class="meter"><i class="on"></i><i class="on"></i><i></i></div></div>
+          <span class="owner"><b>Your machine</b></span>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>Dependencies and open decisions</h2>
+    <div class="cols">
+
+      <div class="panel you">
+        <h3>Only you can do these</h3>
+        <ul>
+          <li><strong>Windows verification</strong> — launcher, packaging, offline operation, backup and restore. No cloud session can test any of it.</li>
+          <li><strong>Practitioner review of both catalogs</strong> — HIPAA is open on #21; CMMC follows #30. Yours is the cheap one, since you know the framework cold.</li>
+          <li><strong>RainTech templates</strong> — policy, procedure, report and SSP. Unstarted, and Slice 6 cannot finish without them.</li>
+          <li><strong>CMMC pricing rules</strong> — the baselines exist in the specification but need your confirmation before the estimate is built.</li>
+        </ul>
+      </div>
+
+      <div class="panel risk">
+        <h3>What could still bite</h3>
+        <ul>
+          <li><strong>Packaging discovered late.</strong> If the stack will not package for Windows ARM64, the current plan finds out in the final slice. #32 exists to answer it now.</li>
+          <li><strong>Privacy and Breach have no independent control.</strong> The Security Rule has Appendix A, which caught one missing standard. The other two rules have nothing — and practitioner review then found a second standard missing.</li>
+          <li><strong>Prompt extraction is unreliable.</strong> The OCR Audit Protocol is a filterable web page, not a structured download. Two of four sample entries could not be retrieved.</li>
+          <li><strong>Catalog staleness is silent.</strong> Nothing detects a change to 45 CFR Part 164. The mitigation is entirely procedural today.</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>Deferred decisions</h2>
+    <p class="lede">
+      Parked deliberately, each with a trigger, so they resurface on their own rather than
+      when somebody happens to remember.
+    </p>
+    <div class="panel">
+      <div class="trigger">
+        <span class="when">Trigger · first engagement complete</span>
+        <span class="what">Narrow the V1 boundary — split the required and optional halves of Slices 2, 5 and 7.</span>
+        <span class="why">The single biggest lever on how long V1 takes. Deferred rather than dropped because running one engagement is what tells us which half is genuinely required. It blocks nothing before Slice 2.</span>
+      </div>
+      <div class="trigger">
+        <span class="when">Trigger · final Security Rule published</span>
+        <span class="what">Re-ingest the HIPAA catalog. Currently manual, tracked on #25.</span>
+        <span class="why">The January 2025 NPRM would remove the addressable category. Currently targeted July 2027. That produces a new catalog version, not a schema migration.</span>
+      </div>
+      <div class="trigger">
+        <span class="when">Decided · out of scope</span>
+        <span class="what">Shared responsibility modelling — the MSP responsibility matrix.</span>
+        <span class="why">Not ingested and not modelled. Recorded so it is not reopened by whoever next opens the workbook. If it returns it is a specification change, not an extraction task.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Open tickets</h2>
+    <div class="scroll">
+      <table class="tickets">
+        <caption>Six open · none currently being worked</caption>
+        <thead>
+          <tr><th>Issue</th><th>What</th><th>State</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>#21</td><td>HIPAA catalog — Slice 4a</td><td>Code merged. Open on your practitioner review, its last acceptance criterion.</td></tr>
+          <tr><td>#25</td><td>Accepted debt — manual re-ingestion</td><td>Nothing to do until the trigger fires.</td></tr>
+          <tr><td>#29</td><td>HIPAA walkthrough prompts — Slice 4b</td><td>Sample spike built. Awaiting your verdict on the shape.</td></tr>
+          <tr><td>#30</td><td>CMMC catalog — Slice 3a</td><td>Ready to start. Source verified at 110 requirements, 320 objectives.</td></tr>
+          <tr><td>#31</td><td>CMMC guidance layer — Slice 3b</td><td>Blocked on #30.</td></tr>
+          <tr><td>#32</td><td>Windows packaging spike</td><td>Ready. Needs your machine to complete.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <span>Build order 1 · 2 · 4 · 3 · 5 · 6 · 7. Slice numbers are stable identifiers and are not renumbered.</span>
+    <span>Sizes are relative to the HIPAA catalog already delivered — three bars means substantially larger than that entire piece of work.</span>
+    <span>Sources: <code>ROADMAP.md</code>, <code>docs/specification.md</code>, <code>PROJECT_STATUS.md</code>, and open issues as of this session.</span>
+  </footer>
+
+</div>

@@ -119,6 +119,35 @@ stays open until that lands.
   assessment surface on unreviewed assessable units risks reworking every
   determination made against them.
 
+## Open questions
+
+Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
+for an issue. Each names who has to answer it.
+
+- **Prompt volume — Johnathan.** The Security Rule path yields 45 prompts on
+  45 CFR 164.308(a)(1) alone, which extrapolates to several hundred across 192
+  records. Useful structure or noise? If noise, prompts get trimmed to those that
+  drive a determination. Blocks the full ingest on issue #29.
+- **Privacy prompt filter — Johnathan.** Deriving prompts from the regulation's
+  own sub-paragraphs also picks up exceptions and scoping provisions, not only
+  obligations. "An inmate does not have a right to notice" is not a prompt. Which
+  sub-paragraphs make good prompts is a practitioner judgement.
+- **Where Security Rule prompts attach — Johnathan.** NIST SP 800-66r2 documents
+  the standard as a whole, so prompts currently sit on the standard while
+  determinations sit on the implementation specifications beneath it. Push them
+  down, or leave them at the standard?
+- **Evidence mapping in Slice 4 — Johnathan.** Neither assessment mockup has an
+  evidence attachment point, because Evidence is Slice 5, after both assessment
+  surfaces. Recording is the stated focus, and a determination you cannot attach
+  evidence to is half a record. Pulling minimal evidence mapping forward would
+  widen Slice 4. Note the mechanic is *map*, not *attach*: one artifact serves
+  many records, each mapping carrying its own rationale and lifecycle, per
+  AC-007.
+- **Launcher in Slice 1 or 1b — Johnathan.** Slice 1 cannot be fully verified
+  from a cloud session. Either it lands half-verified until the Windows machine
+  catches up, or the launcher splits into its own sub-slice. Blocks writing the
+  Slice 1 ticket.
+
 ## Known risks
 
 - The HIPAA catalog is ingested but unreviewed, and the first engagement is weeks
