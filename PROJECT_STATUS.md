@@ -103,6 +103,10 @@ stays open until that lands.
 - GitHub issue #20 closed. Three acceptance criteria were superseded when the
   prototype collapsed to the selected Variant A, as recorded in
   `docs/prototypes/v1-ui-prototype-review.md`.
+- ADR 0012 accepted: a framework is defined by data, not application code.
+  Record shape, rollup rule, status set and presentation mode are declared per
+  framework version. Ingestion stays bespoke per source. This constrains the
+  Slice 1 data model and is the reason that ticket is not yet written.
 
 ## In progress
 
@@ -136,6 +140,11 @@ stays open until that lands.
   preserved until a separate backup/retention decision is made.
 - Launcher, offline operation, packaging, and backup/restore cannot be verified
   from a cloud session. Those belong to Slices 1 and 7 on the Windows machine.
+- No additional frameworks in V1. SOC 2 and possibly PCI DSS are considered for
+  later with no commitment. Both strain the ADR 0012 model in the same place:
+  each wants a client-defined control sitting between the published requirement
+  and the determination, which neither CMMC nor HIPAA needs. Nothing is built
+  for it; the analysis is recorded in ADR 0012 so it is not rediscovered.
 
 ## Next recommended action
 
@@ -144,5 +153,15 @@ the assessable units are right, that the recorded exclusions are correct, and th
 section-level records read correctly for the Breach Notification Rule. Corrections
 are written against citations, which are stable across catalog versions.
 
-Slice 4 continues once that lands. The required/optional split of Slices 2, 5, and
-7 remains deferred until after the first engagement.
+Slice 4 continues once that lands.
+
+## Deferred decisions and their triggers
+
+Recorded so they resurface on their own rather than when someone remembers.
+
+- **Narrow the V1 boundary — split the required and optional halves of Slices 2, 5
+  and 7.** Trigger: **completion of the first real engagement.** This is the single
+  biggest lever on how long V1 takes. It is deferred rather than dropped because
+  running one engagement is what tells us which half is required; deciding now
+  would be guessing. It blocks nothing before Slice 2 — Slice 1's foundation is
+  needed at any V1 scope.
