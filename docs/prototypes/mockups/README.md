@@ -16,6 +16,12 @@ is not promoted; production is reimplemented against the real architecture.
 | `cmmc-assessment-workspace.html` | CMMC Level 2 surface, running on the real 110 requirements and 320 objectives |
 | `v1-build-map.html` | The remaining V1 slices in dependency order |
 
+**Superseded HIPAA prompt behavior:** the historical HIPAA mockup predates the
+approved Privacy role filter. It renders every raw Privacy child paragraph as a
+checkbox. That behavior is known incorrect and must not be reused. Production
+classifies entries as assessment checks, applicability notes, or context; only
+assessment checks render checkboxes.
+
 ## What the two workspaces are arguing
 
 They are deliberately different shapes, and that difference is the point.

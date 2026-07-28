@@ -107,6 +107,9 @@ outstanding acceptance criterion, so the issue stays open.
   published child paragraphs beneath 84 HIPAA records remain individually cited,
   non-determinative prompts under their parent. They are neither duplicated into
   parent text nor promoted to assessment results. Record count remains 194.
+- Practitioner review approved the Privacy prompt filter. Cited child paragraphs
+  are classified as assessment checks, applicability notes, or context; only
+  operative assessment checks render checkboxes.
 - GitHub issue #20 closed. Three acceptance criteria were superseded when the
   prototype collapsed to the selected Variant A, as recorded in
   `docs/prototypes/v1-ui-prototype-review.md`.
@@ -121,8 +124,8 @@ outstanding acceptance criterion, so the issue stays open.
   The subordinate-paragraph presentation decision is settled. Review continues
   against stable citation-based record boundaries.
 - GitHub issue #29: prompt-layer design is approved at the record boundary.
-  Privacy prompt filtering, Security prompt attachment, and total prompt volume
-  remain practitioner decisions before full ingestion begins.
+  Privacy prompt filtering is settled. Security prompt attachment and total
+  prompt volume remain practitioner decisions before full ingestion begins.
 
 ## Blocked
 
@@ -139,10 +142,6 @@ for an issue. Each names who has to answer it.
   45 CFR 164.308(a)(1) alone, which extrapolates to several hundred across 194
   records. Useful structure or noise? If noise, prompts get trimmed to those that
   drive a determination. Blocks the full ingest on issue #29.
-- **Privacy prompt filter — Johnathan.** Deriving prompts from the regulation's
-  own sub-paragraphs also picks up exceptions and scoping provisions, not only
-  obligations. "An inmate does not have a right to notice" is not a prompt. Which
-  sub-paragraphs make good prompts is a practitioner judgement.
 - **Where Security Rule prompts attach — Johnathan.** NIST SP 800-66r2 documents
   the standard as a whole, so prompts currently sit on the standard while
   determinations sit on the implementation specifications beneath it. Push them
@@ -188,9 +187,9 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Review the Privacy-rule prompt sample and decide which subordinate CFR
-paragraphs are useful assessment prompts versus exceptions or scoping text.
-That is the next practitioner decision required by issue #29.
+Decide where Security Rule prompts attach. NIST SP 800-66r2 publishes questions
+at the standard/key-activity level while determinations sit on implementation
+specifications beneath the standard.
 
 Slice 4 continues once that lands.
 

@@ -62,6 +62,12 @@ parent's lead text and do not become separate assessment results. The complete
 official context is the parent text plus its nested cited paragraphs; prompt
 ingestion is scoped separately in GitHub issue #29.
 
+For Privacy Rule entries, `assessment_check` marks an operative requirement,
+`applicability_note` marks an exception or scope/N/A condition, and `context`
+marks a structural lead-in or optional permission. Only an assessment check
+renders a checkbox. All three retain their CFR citation and remain
+non-determinative.
+
 ### Required and Addressable
 
 The Required/Addressable distinction exists **only in the Security Rule**, per
