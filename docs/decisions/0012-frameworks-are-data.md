@@ -98,8 +98,39 @@ RAMPs — fit without strain. The three above would need new workflow, not a new
 catalog, and adopting one is a specification change rather than an ingestion
 task.
 
-### Open
+### Intended frameworks
 
-Which frameworks are actually intended has not been decided. That answer
-determines how much of the strain above is theoretical, and it should be
-settled before Slice 1 fixes the data model.
+Settled by Johnathan, July 2026: **no additional frameworks in V1.** SOC 2 and
+possibly PCI DSS are considered for later, with no commitment and no date.
+
+Both are on the strained list above, so the strain is real rather than
+hypothetical. What each would actually need, recorded now while the analysis is
+cheap and before anyone assumes "it is just another catalog":
+
+- **PCI DSS** fits the record shape well — requirements decompose into
+  sub-requirements and testing procedures, close to CMMC's shape. It needs a
+  richer status set than met-or-not, and it needs the compensating control
+  worksheet, which is a parallel artefact attached to a requirement rather than
+  a determination on it.
+- **SOC 2** fits the record shape for the Trust Services Criteria and their
+  points of focus, but its conclusion model does not fit at all. The opinion is
+  formed at report level over a system description, and what gets tested is the
+  entity's *own* controls mapped to criteria.
+
+Both therefore want the same thing, and it is the one thing neither CMMC nor
+HIPAA needs: **a client-defined control that satisfies a framework record**,
+sitting between the published requirement and the determination. HIPAA hints at
+it — an addressable specification may be met by "an equivalent alternative
+measure" — but nothing in V1 models a client control as an object.
+
+Nothing is built for this now. The one property worth preserving, and it is
+already the case in `docs/specification.md`, is that determinations live on an
+assessment result that references a catalog record, rather than on the record
+itself. That separation is what would later allow a result to reference a
+client-defined control without disturbing the catalog. It costs nothing to keep
+and would be expensive to reintroduce.
+
+No ticket, no debt issue, no further design. Per the tech-debt gate, debt issues
+are not created for hypothetical future work. If either framework is actually
+adopted it is a specification change, and this section is the starting point for
+that conversation rather than its conclusion.

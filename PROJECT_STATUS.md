@@ -140,10 +140,11 @@ stays open until that lands.
   preserved until a separate backup/retention decision is made.
 - Launcher, offline operation, packaging, and backup/restore cannot be verified
   from a cloud session. Those belong to Slices 1 and 7 on the Windows machine.
-- Which additional frameworks are intended is undecided, and ADR 0012 depends on
-  it. Most decompose into citable requirements carrying a met-or-not judgement
-  and fit the model; SOC 2, PCI DSS and ISO 27001 each strain it in a different
-  place. Worth settling before Slice 1 fixes the data model.
+- No additional frameworks in V1. SOC 2 and possibly PCI DSS are considered for
+  later with no commitment. Both strain the ADR 0012 model in the same place:
+  each wants a client-defined control sitting between the published requirement
+  and the determination, which neither CMMC nor HIPAA needs. Nothing is built
+  for it; the analysis is recorded in ADR 0012 so it is not rediscovered.
 
 ## Next recommended action
 
