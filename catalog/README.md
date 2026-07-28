@@ -41,12 +41,14 @@ Only what the regulation itself labels:
   45 CFR 164.502(a) and all four Breach Notification Rule standards are written
   the bare way; matching only the named form loses all five.
 - paragraphs marked `Implementation specification(s)`
-- section-level records for the two provisions that carry obligations under no
-  standard label at all: 45 CFR 164.412 and 164.414
+- published paragraph records for provisions that carry distinct obligations
+  under no standard or implementation-specification label: 45 CFR 164.412(a),
+  164.412(b), 164.414(a), and 164.414(b)
 
 **All three rules share one shape** — a standard with its implementation
-specifications beneath it. Section-level records are the documented exception,
-two of 192, not a parallel model for a whole rule.
+specifications beneath it. Four published paragraph records are the documented
+exception where neither label exists. The catalog contains 194 records and no
+whole-section fallback records.
 
 No objective layer is created. 45 CFR Part 164 publishes no such
 decomposition, and inventing one would produce assessable records that cannot

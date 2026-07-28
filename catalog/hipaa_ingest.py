@@ -16,10 +16,10 @@ process") or bare, where the section heading supplies the subject -- and
 paragraphs marked "Implementation specification(s)". All three rules share
 one shape: a standard with its implementation specifications beneath it.
 
-Two provisions, 164.412 and 164.414, carry obligations under no standard
-label at all and fall back to a section-level record. A section is a
-published, citable unit of the CFR, so this invents nothing. It is the
-documented exception, not a parallel model.
+Two provisions, 164.412 and 164.414, carry distinct obligations under no
+standard or implementation-specification label. Their published paragraphs
+are the assessable records: 164.412(a), 164.412(b), 164.414(a), and
+164.414(b). These are citable CFR units, not invented objectives.
 
 No objective layer is invented anywhere; 45 CFR Part 164 publishes no such
 decomposition and inventing one would produce assessable records that
@@ -87,6 +87,16 @@ EXCLUDED_SECTIONS = {
     "164.501": "Definitions. Defined terms, not obligations.",
     "164.534": "Compliance dates for initial implementation. Historical dates, expired.",
     "164.535": "Severability. Construction provision; carries no assessable obligation.",
+}
+
+# Published paragraphs that carry distinct obligations without a Standard or
+# Implementation specification label. Practitioner review rejected whole-section
+# fallbacks because they silently dropped 164.412(a)/(b) and 164.414(b).
+UNLABELLED_ASSESSABLE_PARAGRAPHS = {
+    "164.412(a)": "Written law-enforcement statement",
+    "164.412(b)": "Oral law-enforcement statement",
+    "164.414(a)": "Administrative requirements",
+    "164.414(b)": "Burden of proof",
 }
 
 # Appendix A to Subpart C is the Security Standards Matrix -- a summary table
@@ -176,7 +186,7 @@ class Record:
     subpart: str
     section: str
     paragraph: str
-    record_type: str  # "standard" | "implementation_specification" | "section"
+    record_type: str  # "standard" | "implementation_specification" | "paragraph"
     parent_id: str | None
     title: str
     text: str
@@ -818,7 +828,7 @@ def parse_section(
     return records
 
 
-def add_section_records(
+def add_unlabelled_paragraph_records(
     records: list[Record],
     payload: bytes,
     subpart: str,
@@ -826,65 +836,74 @@ def add_section_records(
     source: str,
     retrieved: str,
 ) -> list[Record]:
-    """Add section-level records where a section publishes no standard.
+    """Add approved paragraph records where the rule publishes no label.
 
-    The Breach Notification Rule labels nothing "Standard:". Without a
-    section-level record, obligations such as 164.412 (law enforcement delay)
-    and 164.414 (burden of proof) would have no assessable record at all, and
-    the implementation specifications under 164.404-164.410 would have no
-    parent to roll up to.
+    The unnumbered opening clause of 164.412 is repeated in both child records
+    so neither conditional procedure loses the context needed to understand it.
     """
     root = ET.fromstring(payload)
-    by_section: dict[str, list[Record]] = {}
-    for record in records:
-        by_section.setdefault(record.section, []).append(record)
+    existing_ids = {record.id for record in records}
 
     additions: list[Record] = []
     for section_div in root.iter("DIV8"):
         if section_div.attrib.get("TYPE") != "SECTION":
             continue
         section = section_div.attrib.get("N", "")
-        if section in EXCLUDED_SECTIONS:
+        target_ids = {
+            record_id
+            for record_id in UNLABELLED_ASSESSABLE_PARAGRAPHS
+            if record_id.startswith(f"{section}(")
+        }
+        if not target_ids:
             continue
 
-        existing = by_section.get(section, [])
-        if any(record.record_type == "standard" for record in existing):
-            continue
+        introduction = ""
+        added_ids: set[str] = set()
+        for paragraph_path, label, body, _ in iter_section_paragraphs(section_div):
+            if not paragraph_path:
+                introduction = body
+                continue
 
-        head = section_div.find("HEAD")
-        heading = " ".join("".join(head.itertext()).split()) if head is not None else ""
-        heading = re.sub(r"^§\s*[\d.]+\s*", "", heading).strip().rstrip(".")
+            record_id = f"{section}{paragraph_path}"
+            if record_id not in target_ids or record_id in existing_ids:
+                continue
 
-        first = section_div.find("P")
-        text = paragraph_text(first) if first is not None else ""
+            text = body[len(label):] if label and body.startswith(label) else body
+            text = clean_body(text)
+            if introduction:
+                text = f"{introduction} {text}"
 
-        record_id = section
-        additions.append(
-            Record(
-                id=record_id,
-                citation=f"45 CFR {section}",
-                work_area=work_area,
-                subpart=subpart,
-                section=section,
-                paragraph="",
-                record_type="section",
-                parent_id=None,
-                title=heading,
-                text=text,
-                designation=None,
-                source=source,
-                retrieved=retrieved,
-                notes=[
-                    "Section-level record. This subpart publishes no "
-                    '"Standard:" label, so the section is the assessable unit. '
-                    "The section is a published, citable unit of the CFR; no "
-                    "structure is invented."
-                ],
+            additions.append(
+                Record(
+                    id=record_id,
+                    citation=f"45 CFR {record_id}",
+                    work_area=work_area,
+                    subpart=subpart,
+                    section=section,
+                    paragraph=paragraph_path,
+                    record_type="paragraph",
+                    parent_id=None,
+                    title=UNLABELLED_ASSESSABLE_PARAGRAPHS[record_id],
+                    text=text,
+                    designation=None,
+                    source=source,
+                    retrieved=retrieved,
+                    notes=[
+                        "Published paragraph record. This provision carries a "
+                        "distinct obligation under no Standard or Implementation "
+                        "specification label; the CFR paragraph is the assessable "
+                        "unit."
+                    ],
+                )
             )
-        )
-        for record in existing:
-            if record.parent_id is None:
-                record.parent_id = record_id
+            added_ids.add(record_id)
+
+        missing = target_ids - added_ids - existing_ids
+        if missing:
+            raise ValueError(
+                f"approved assessable paragraphs missing from {section}: "
+                f"{sorted(missing)}"
+            )
 
     return additions
 
@@ -911,7 +930,9 @@ def build(snapshot: str, retrieved: str, cache_dir: Path | None) -> dict:
                 )
             )
         parsed.extend(
-            add_section_records(parsed, payload, subpart, work_area, source, retrieved)
+            add_unlabelled_paragraph_records(
+                parsed, payload, subpart, work_area, source, retrieved
+            )
         )
         records.extend(parsed)
         exclusions.extend(parsed_exclusions)
@@ -923,7 +944,7 @@ def build(snapshot: str, retrieved: str, cache_dir: Path | None) -> dict:
         area = counts.setdefault(
             record.work_area,
             {"total": 0, "standard": 0, "implementation_specification": 0,
-             "section": 0, "required": 0, "addressable": 0},
+             "paragraph": 0, "section": 0, "required": 0, "addressable": 0},
         )
         area["total"] += 1
         area[record.record_type] += 1
@@ -994,6 +1015,7 @@ def main(argv: list[str] | None = None) -> int:
             f"  {area:9} total={counts['total']:3} "
             f"standard={counts['standard']:3} "
             f"spec={counts['implementation_specification']:3} "
+            f"paragraph={counts['paragraph']:2} "
             f"section={counts['section']:2} "
             f"required={counts['required']:3} "
             f"addressable={counts['addressable']:3}"

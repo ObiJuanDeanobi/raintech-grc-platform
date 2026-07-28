@@ -35,15 +35,17 @@
       "total": 63,
       "standard": 22,
       "implementation_specification": 41,
+      "paragraph": 0,
       "section": 0,
       "required": 19,
       "addressable": 22
     },
     "breach": {
-      "total": 15,
+      "total": 17,
       "standard": 4,
       "implementation_specification": 9,
-      "section": 2,
+      "paragraph": 4,
+      "section": 0,
       "required": 0,
       "addressable": 0
     },
@@ -51,6 +53,7 @@
       "total": 114,
       "standard": 56,
       "implementation_specification": 58,
+      "paragraph": 0,
       "section": 0,
       "required": 0,
       "addressable": 0
@@ -1343,39 +1346,75 @@
       "notes": []
     },
     {
-      "id": "164.412",
-      "citation": "45 CFR 164.412",
+      "id": "164.412(a)",
+      "citation": "45 CFR 164.412(a)",
       "work_area": "breach",
       "subpart": "D",
       "section": "164.412",
-      "paragraph": "",
-      "record_type": "section",
+      "paragraph": "(a)",
+      "record_type": "paragraph",
       "parent_id": null,
-      "title": "Law enforcement delay",
-      "text": "If a law enforcement official states to a covered entity or business associate that a notification, notice, or posting required under this subpart would impede a criminal investigation or cause damage to national security, a covered entity or business associate shall:",
+      "title": "Written law-enforcement statement",
+      "text": "If a law enforcement official states to a covered entity or business associate that a notification, notice, or posting required under this subpart would impede a criminal investigation or cause damage to national security, a covered entity or business associate shall: If the statement is in writing and specifies the time for which a delay is required, delay such notification, notice, or posting for the time period specified by the official; or",
       "designation": null,
       "source": "eCFR Title 45 Part 164 Subpart D (Breach Notification Rule), snapshot 2026-07-01",
       "retrieved": "2026-07-27",
       "notes": [
-        "Section-level record. This subpart publishes no \"Standard:\" label, so the section is the assessable unit. The section is a published, citable unit of the CFR; no structure is invented."
+        "Published paragraph record. This provision carries a distinct obligation under no Standard or Implementation specification label; the CFR paragraph is the assessable unit."
       ]
     },
     {
-      "id": "164.414",
-      "citation": "45 CFR 164.414",
+      "id": "164.412(b)",
+      "citation": "45 CFR 164.412(b)",
       "work_area": "breach",
       "subpart": "D",
-      "section": "164.414",
-      "paragraph": "",
-      "record_type": "section",
+      "section": "164.412",
+      "paragraph": "(b)",
+      "record_type": "paragraph",
       "parent_id": null,
-      "title": "Administrative requirements and burden of proof",
-      "text": "(a) Administrative requirements. A covered entity is required to comply with the administrative requirements of § 164.530(b), (d), (e), (g), (h), (i), and (j) with respect to the requirements of this subpart.",
+      "title": "Oral law-enforcement statement",
+      "text": "If a law enforcement official states to a covered entity or business associate that a notification, notice, or posting required under this subpart would impede a criminal investigation or cause damage to national security, a covered entity or business associate shall: If the statement is made orally, document the statement, including the identity of the official making the statement, and delay the notification, notice, or posting temporarily and no longer than 30 days from the date of the oral statement, unless a written statement as described in paragraph (a) of this section is submitted during that time.",
       "designation": null,
       "source": "eCFR Title 45 Part 164 Subpart D (Breach Notification Rule), snapshot 2026-07-01",
       "retrieved": "2026-07-27",
       "notes": [
-        "Section-level record. This subpart publishes no \"Standard:\" label, so the section is the assessable unit. The section is a published, citable unit of the CFR; no structure is invented."
+        "Published paragraph record. This provision carries a distinct obligation under no Standard or Implementation specification label; the CFR paragraph is the assessable unit."
+      ]
+    },
+    {
+      "id": "164.414(a)",
+      "citation": "45 CFR 164.414(a)",
+      "work_area": "breach",
+      "subpart": "D",
+      "section": "164.414",
+      "paragraph": "(a)",
+      "record_type": "paragraph",
+      "parent_id": null,
+      "title": "Administrative requirements",
+      "text": "A covered entity is required to comply with the administrative requirements of § 164.530(b), (d), (e), (g), (h), (i), and (j) with respect to the requirements of this subpart.",
+      "designation": null,
+      "source": "eCFR Title 45 Part 164 Subpart D (Breach Notification Rule), snapshot 2026-07-01",
+      "retrieved": "2026-07-27",
+      "notes": [
+        "Published paragraph record. This provision carries a distinct obligation under no Standard or Implementation specification label; the CFR paragraph is the assessable unit."
+      ]
+    },
+    {
+      "id": "164.414(b)",
+      "citation": "45 CFR 164.414(b)",
+      "work_area": "breach",
+      "subpart": "D",
+      "section": "164.414",
+      "paragraph": "(b)",
+      "record_type": "paragraph",
+      "parent_id": null,
+      "title": "Burden of proof",
+      "text": "In the event of a use or disclosure in violation of subpart E, the covered entity or business associate, as applicable, shall have the burden of demonstrating that all notifications were made as required by this subpart or that the use or disclosure did not constitute a breach, as defined at § 164.402.",
+      "designation": null,
+      "source": "eCFR Title 45 Part 164 Subpart D (Breach Notification Rule), snapshot 2026-07-01",
+      "retrieved": "2026-07-27",
+      "notes": [
+        "Published paragraph record. This provision carries a distinct obligation under no Standard or Implementation specification label; the CFR paragraph is the assessable unit."
       ]
     },
     {

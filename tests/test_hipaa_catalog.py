@@ -48,11 +48,26 @@ SOURCE_DIR = REPO_ROOT / "catalog" / "sources"
 # eCFR text by test_counts_are_justified_by_the_source, which recounts from
 # the source XML rather than trusting these numbers.
 EXPECTED = {
-    "security": {"standard": 22, "implementation_specification": 41, "section": 0},
-    "privacy": {"standard": 56, "implementation_specification": 58, "section": 0},
-    "breach": {"standard": 4, "implementation_specification": 9, "section": 2},
+    "security": {
+        "standard": 22,
+        "implementation_specification": 41,
+        "paragraph": 0,
+        "section": 0,
+    },
+    "privacy": {
+        "standard": 56,
+        "implementation_specification": 58,
+        "paragraph": 0,
+        "section": 0,
+    },
+    "breach": {
+        "standard": 4,
+        "implementation_specification": 9,
+        "paragraph": 4,
+        "section": 0,
+    },
 }
-EXPECTED_TOTAL = 192
+EXPECTED_TOTAL = 194
 
 # The Required/Addressable distinction exists only in the Security Rule,
 # per 45 CFR 164.306(d).
@@ -159,10 +174,68 @@ class CatalogStructureTest(unittest.TestCase):
                 # section heading.
                 self.assertTrue(record["title"].startswith(heading))
 
-    def test_section_records_are_the_documented_exception(self):
-        """Only provisions with no standard at all fall back to section level."""
-        sections = [r["id"] for r in self.records if r["record_type"] == "section"]
-        self.assertEqual(sorted(sections), ["164.412", "164.414"])
+    def test_unlabelled_breach_obligations_are_citable_paragraph_records(self):
+        """Distinct published obligations remain distinct assessable units."""
+        by_id = {r["id"]: r for r in self.records}
+        expected = {
+            "164.412(a)": "Written law-enforcement statement",
+            "164.412(b)": "Oral law-enforcement statement",
+            "164.414(a)": "Administrative requirements",
+            "164.414(b)": "Burden of proof",
+        }
+        for record_id, title in expected.items():
+            with self.subTest(record=record_id):
+                self.assertIn(record_id, by_id)
+                record = by_id[record_id]
+                self.assertEqual(record["record_type"], "paragraph")
+                self.assertEqual(record["title"], title)
+                self.assertIsNone(record["parent_id"])
+
+        self.assertFalse(
+            [r["id"] for r in self.records if r["record_type"] == "section"],
+            "no whole-section fallback records remain",
+        )
+
+    def test_unlabelled_breach_text_matches_the_pinned_source(self):
+        """All four records retain their complete independently parsed source text."""
+        by_id = {r["id"]: r for r in self.records}
+        source = SOURCE_DIR / f"title-45-part-164-subpart-D-{SNAPSHOT}.xml"
+        root = ET.parse(source).getroot()
+        expected: dict[str, str] = {}
+
+        for section_node in root.iter("DIV8"):
+            section = section_node.attrib.get("N")
+            if section not in {"164.412", "164.414"}:
+                continue
+
+            paragraphs = section_node.findall("P")
+            introduction = ""
+            if section == "164.412":
+                introduction = " ".join("".join(paragraphs[0].itertext()).split())
+                paragraphs = paragraphs[1:]
+
+            for paragraph in paragraphs:
+                text = " ".join("".join(paragraph.itertext()).split())
+                marker = re.match(r"^\(([a-z])\)\s*", text)
+                self.assertIsNotNone(marker, text)
+                record_id = f"{section}({marker.group(1)})"
+                text = text[marker.end():]
+
+                label_node = paragraph.find("I")
+                if label_node is not None:
+                    label = " ".join("".join(label_node.itertext()).split())
+                    self.assertTrue(text.startswith(label), text)
+                    text = text[len(label):].lstrip()
+
+                expected[record_id] = f"{introduction} {text}".strip()
+
+        self.assertEqual(
+            set(expected),
+            {"164.412(a)", "164.412(b)", "164.414(a)", "164.414(b)"},
+        )
+        for record_id, source_text in expected.items():
+            with self.subTest(record=record_id):
+                self.assertEqual(by_id[record_id]["text"], source_text)
 
     def test_standards_have_no_parent(self):
         for record in self.records:

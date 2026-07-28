@@ -46,11 +46,13 @@ PATH_INTRO = {
 
 def render(catalog: dict, sample: dict) -> str:
     by_id = {r["id"]: r for r in catalog["records"]}
+    catalog_record_count = len(catalog["records"])
     lines: list[str] = []
     add = lines.append
 
     total = sum(len(e["prompts"]) for e in sample["entries"])
     with_prompts = sum(1 for e in sample["entries"] if e["prompts"])
+    sampled_record_count = len(sample["entries"])
 
     add("# Walkthrough prompts — two sample standards")
     add("")
@@ -69,7 +71,7 @@ def render(catalog: dict, sample: dict) -> str:
         "document against. Both are legitimate; both need to work for you.")
     add("2. **Is the volume right?** "
         f"{total} prompts across {with_prompts} records here. Extrapolated over "
-        "192 records that is several hundred. Structure, or noise?")
+        f"{catalog_record_count} records that is several hundred. Structure, or noise?")
     add("3. **Where should Security Rule prompts sit?** NIST documents the "
         "standard as a whole, so they currently attach to the standard — while "
         "the determinations sit on the four implementation specifications "
@@ -169,8 +171,9 @@ def render(catalog: dict, sample: dict) -> str:
     add("## If the answer to question 1 is no")
     add("")
     add(
-        "Stop. The approach needs rethinking and ingesting 190 more records "
-        "would not have helped."
+        "Stop. The approach needs rethinking and ingesting "
+        f"{catalog_record_count - sampled_record_count} more records would not "
+        "have helped."
     )
     add("")
 
