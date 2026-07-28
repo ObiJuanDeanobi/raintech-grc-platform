@@ -30,11 +30,9 @@ KIND = {
 PATH_INTRO = {
     "nist-800-66r2": (
         "Security Rule path",
-        "This is raw pre-routing output grouped under the standard. The approved "
-        "implementation routes a NIST key activity's questions to the "
-        "implementation specification it identifies; genuinely standard-wide "
-        "questions remain parent guidance. The standard-only attachment below "
-        "is known superseded behavior.",
+        "This is the cleaned, determination-centered volume-review sample. "
+        "NIST questions are attached to the implementation specification whose "
+        "determination they inform; the parent displays a derived status.",
     ),
     "cfr-enumeration": (
         "Privacy Rule path",
@@ -50,11 +48,28 @@ PATH_INTRO = {
 def render(catalog: dict, sample: dict) -> str:
     by_id = {r["id"]: r for r in catalog["records"]}
     catalog_record_count = len(catalog["records"])
+    security_labels = {
+        "164.308(a)(1)(ii)(A)": "Risk Analysis",
+        "164.308(a)(1)(ii)(B)": "Risk Management",
+        "164.308(a)(1)(ii)(C)": "Sanction Policy",
+        "164.308(a)(1)(ii)(D)": "Activity Review",
+    }
+    security_counts = {
+        entry["record_id"]: len(entry["prompts"])
+        for entry in sample["entries"]
+        if entry["record_id"] in security_labels
+    }
+    security_count_text = ", ".join(
+        f"{security_counts.get(record_id, 0)} {label}"
+        for record_id, label in security_labels.items()
+    )
+    security_summary = sample.get("review_summary", {}).get("security", {})
+    kept_security_count = security_summary.get(
+        "kept_prompt_count", sum(security_counts.values())
+    )
     lines: list[str] = []
     add = lines.append
 
-    total = sum(len(e["prompts"]) for e in sample["entries"])
-    with_prompts = sum(1 for e in sample["entries"] if e["prompts"])
     sampled_record_count = len(sample["entries"])
 
     add("# Walkthrough prompts — two sample standards")
@@ -72,14 +87,14 @@ def render(catalog: dict, sample: dict) -> str:
     add("1. **Does each path read well in the room?** The Security path gives you "
         "questions to ask. The Privacy path gives you requirements to check a "
         "document against. Both are legitimate; both need to work for you.")
-    add("2. **Is the volume right?** "
-        f"{total} prompts across {with_prompts} records here. Extrapolated over "
-        f"{catalog_record_count} records that is several hundred. Structure, or noise?")
-    add("3. **Security routing is settled.** This raw sample groups NIST "
-        "questions under the standard. Production routes questions to the "
-        "NIST-identified implementation specification and retains only "
-        "genuinely standard-wide guidance on the parent. Review the volume, "
-        "not the attachment rule.")
+    add(f"2. **Is the Security volume right?** The cleaned sample has "
+        f"{kept_security_count} prompts across four determinations: "
+        f"{security_count_text}. As you simulate the "
+        "conversation, which would you keep, merge, treat as context, or remove?")
+    add(f"3. **Security routing is settled.** Review whether the "
+        f"{kept_security_count} kept "
+        "questions provide enough signal for the four determinations without "
+        "slowing a live or mock assessment.")
     add("")
 
     add("## Provenance")
@@ -117,6 +132,16 @@ def render(catalog: dict, sample: dict) -> str:
             add("")
             add(blurb)
             add("")
+            if current_path == "nist-800-66r2":
+                summary = sample.get("review_summary", {}).get("security", {})
+                if summary:
+                    add(
+                        f"**Volume-review sample:** {summary['raw_prompt_count']} "
+                        f"raw NIST questions → {summary['kept_prompt_count']} kept "
+                        f"and routed; {summary['omitted_prompt_count']} omitted as "
+                        "duplicate, context-only, or belonging to another record."
+                    )
+                    add("")
 
         designation = ""
         if record.get("designation"):
@@ -138,13 +163,23 @@ def render(catalog: dict, sample: dict) -> str:
         add(f"> {record['text']}")
         add("")
 
-        add("**Determination** — one for this record")
-        add("")
-        add("`Blank` · `Met` · `Not Met` · `Pending` · `N/A (rationale required)`")
+        has_children = any(r.get("parent_id") == record["id"] for r in by_id.values())
+        if current_path == "nist-800-66r2" and has_children:
+            add("**Derived status** — calculated from child determinations; not editable")
+        else:
+            add("**Determination** — one for this record")
+            add("")
+            add("`Blank` · `Met` · `Not Met` · `Pending` · `N/A (rationale required)`")
         add("")
 
         if not entry["prompts"]:
-            add("**Prompts** — none extracted for this record.")
+            if current_path == "nist-800-66r2" and has_children:
+                add(
+                    "**Prompts** — none attached to the parent; applicable "
+                    "questions are routed to child determinations."
+                )
+            else:
+                add("**Prompts** — none extracted for this record.")
             add("")
             add("---")
             add("")

@@ -7,8 +7,8 @@ Two standards, one per source path, because the paths produce differently shaped
 ## What to tell me
 
 1. **Does each path read well in the room?** The Security path gives you questions to ask. The Privacy path gives you requirements to check a document against. Both are legitimate; both need to work for you.
-2. **Is the volume right?** 83 prompts across 5 records here. Extrapolated over 194 records that is several hundred. Structure, or noise?
-3. **Security routing is settled.** This raw sample groups NIST questions under the standard. Production routes questions to the NIST-identified implementation specification and retains only genuinely standard-wide guidance on the parent. Review the volume, not the attachment rule.
+2. **Is the Security volume right?** The cleaned sample has 22 prompts across four determinations: 5 Risk Analysis, 6 Risk Management, 4 Sanction Policy, 7 Activity Review. As you simulate the conversation, which would you keep, merge, treat as context, or remove?
+3. **Security routing is settled.** Review whether the 22 kept questions provide enough signal for the four determinations without slowing a live or mock assessment.
 
 ## Provenance
 
@@ -27,7 +27,9 @@ _Prompts carry no status, produce no findings, and never appear in a report as a
 
 # Security Rule path
 
-This is raw pre-routing output grouped under the standard. The approved implementation routes a NIST key activity's questions to the implementation specification it identifies; genuinely standard-wide questions remain parent guidance. The standard-only attachment below is known superseded behavior.
+This is the cleaned, determination-centered volume-review sample. NIST questions are attached to the implementation specification whose determination they inform; the parent displays a derived status.
+
+**Volume-review sample:** 45 raw NIST questions → 22 kept and routed; 23 omitted as duplicate, context-only, or belonging to another record.
 
 ## 45 CFR 164.308(a)(1)(i)
 
@@ -39,92 +41,9 @@ _Standard_
 
 > Implement policies and procedures to prevent, detect, contain, and correct security violations.
 
-**Determination** — one for this record
+**Derived status** — calculated from child determinations; not editable
 
-`Blank` · `Met` · `Not Met` · `Pending` · `N/A (rationale required)`
-
-**Prompts** — 45
-
-**Identify All ePHI and Relevant Information Systems**
-
-- [ ] Has all ePHI generated, stored, processed, and transmitted within the organization been identified?
-- [ ] Are all hardware and software for which the organization is responsible periodically inventoried?
-- [ ] Is the hardware and software inventory updated on a regular basis?
-- [ ] Have hardware and software that maintains or transmits ePHI been identified? Does this inventory include removable media and remote access devices?
-- [ ] Is the current configuration of organizational systems documented, including connections to other systems?
-- [ ] Has a BIA been performed?
-
-**Conduct Risk Assessment** _(required)_
-
-- [ ] Are there any prior risk assessments, audit comments, security requirements, and/or security test results?
-- [ ] Is there intelligence available from agencies, the Office of the Inspector General (OIG), the United States Computer Emergency Readiness Team (US-CERT), virus alerts, and/or vendors?
-
-**Implement a Risk Management Program** _(required)_
-
-- [ ] Is executive leadership and/or management involved in risk management decisions?
-- [ ] Has a risk management program been created with related policies?
-- [ ] Does the regulated entity need to engage other resources (e.g., external expertise) to assist in risk management?
-- [ ] Do current safeguards ensure the confidentiality, integrity, and availability of all ePHI?
-- [ ] Do current safeguards protect against reasonably anticipated uses or disclosures of ePHI that are not permitted by the Privacy Rule?
-- [ ] Has the regulated entity used the results of risk assessment and risk management processes to guide the selection and implementation of appropriate controls to protect ePHI?
-
-**Acquire Information Technology (IT) Systems and Services**
-
-- [ ] Will new security controls work with the existing IT architecture?
-- [ ] Have the security requirements of the organization been compared to the security features of existing or proposed hardware and software?
-- [ ] Has a cost-benefit analysis been conducted to determine the reasonableness of the investment given the security risks identified?
-- [ ] Has a training strategy been developed?37
-
-**Create and Deploy Policies and Procedures**
-
-- [ ] Has the regulated entity documented an organizational risk assessment/management policy that outlines the duties, responsible parties, frequency, and required documentation of the risk management program?
-- [ ] Are policies and procedures in place for security?
-- [ ] Is there a formal (documented) system security plan?
-- [ ] Is there a formal contingency plan?41
-
-**• Create procedures to be followed to accomplish particular security-related tasks. • Establish a frequency for reviewing policy and procedures.**
-
-- [ ] Is there a process for communicating policies and procedures to the affected employees?
-- [ ] Are policies and procedures reviewed and updated as needed?
-
-**Develop and Implement a Sanction Policy** _(required)_
-
-- [ ] Does the regulated entity have existing sanction policies and procedures to meet the requirements of this implementation specification? If not, can existing sanction policies be modified to include language related to violations of these policies and procedures?
-- [ ] Is there a formal process in place to address system misuse, abuse, and fraudulent activity?
-- [ ] Have workforce members been made aware of policies concerning sanctions for inappropriate access, use, and disclosure of ePHI?
-- [ ] Has the need and appropriateness of a tiered structure of sanctions that accounts for the magnitude of harm and possible types of inappropriate disclosures been considered?
-- [ ] How will managers and workforce members be notified regarding suspect activity?
-
-**Develop and Deploy the Information System Activity Review Process** _(required)_
-
-- [ ] Is there a policy that establishes what reviews will be conducted?
-- [ ] Are there corresponding procedures that describe the specifics of the reviews?
-- [ ] Who is responsible for the overall process and results?43
-- [ ] How often will reviews take place?
-- [ ] How often will review results be analyzed?
-- [ ] Has the regulated entity considered all available capabilities to automate the reviews?
-- [ ] Where will audit information reside (e.g., separate server)? Will it be stored external to the organization (e.g., cloud service provider)?
-
-**Develop Appropriate Standard Operating Procedures**
-
-- [ ] How will exception reports or logs be reviewed?
-- [ ] Where will monitoring reports and their reviews be documented and maintained?
-
-**Implement the Information System Activity Review and Audit Process**
-
-- [ ] What mechanisms will be implemented to assess the effectiveness of the review process (measures)?
-- [ ] What is the plan to revise the review process when needed?
-
-**Select a Security Official to be Assigned Responsibility for HIPAA Security**
-
-- [ ] Who in the organization: o Oversees the development and communication of security policies and procedures? o Is responsible for conducting the risk assessment? o Is responsible for conducting risk management? o Handles the results of periodic security evaluations and continuous monitoring? o Directs IT security purchasing and investment? o Ensures that security concerns have been addressed in system implementation?
-- [ ] Does the security official have adequate access and communications with senior officials in the organization, such as executives, chief information officers, chief compliance officers, and in-house counsel?
-- [ ] Who in the organization is authorized to accept risks from systems on behalf of the organization?
-
-**Assign and Document the Individual’s Responsibility**
-
-- [ ] Is there a complete job description that accurately reflects assigned security duties and responsibilities?
-- [ ] Have the staff members in the organization been notified as to whom to call in the event of a security problem?48
+**Prompts** — none attached to the parent; applicable questions are routed to child determinations.
 
 ---
 
@@ -144,7 +63,18 @@ Under: 45 CFR 164.308(a)(1)(i) — Security management process
 
 `Blank` · `Met` · `Not Met` · `Pending` · `N/A (rationale required)`
 
-**Prompts** — none extracted for this record.
+**Prompts** — 5
+
+**Identify All ePHI and Relevant Information Systems**
+
+- [ ] Has all ePHI generated, stored, processed, and transmitted within the organization been identified?
+- [ ] Have hardware and software that maintains or transmits ePHI been identified? Does this inventory include removable media and remote access devices?
+- [ ] Is the current configuration of organizational systems documented, including connections to other systems?
+
+**Conduct Risk Assessment** _(required)_
+
+- [ ] Are there any prior risk assessments, audit comments, security requirements, and/or security test results?
+- [ ] Is there intelligence available from agencies, the Office of the Inspector General (OIG), the United States Computer Emergency Readiness Team (US-CERT), virus alerts, and/or vendors?
 
 ---
 
@@ -164,7 +94,19 @@ Under: 45 CFR 164.308(a)(1)(i) — Security management process
 
 `Blank` · `Met` · `Not Met` · `Pending` · `N/A (rationale required)`
 
-**Prompts** — none extracted for this record.
+**Prompts** — 6
+
+**Implement a Risk Management Program** _(required)_
+
+- [ ] Is executive leadership and/or management involved in risk management decisions?
+- [ ] Has a risk management program been created with related policies?
+- [ ] Do current safeguards ensure the confidentiality, integrity, and availability of all ePHI?
+- [ ] Has the regulated entity used the results of risk assessment and risk management processes to guide the selection and implementation of appropriate controls to protect ePHI?
+
+**Acquire Information Technology (IT) Systems and Services**
+
+- [ ] Will new security controls work with the existing IT architecture?
+- [ ] Has a cost-benefit analysis been conducted to determine the reasonableness of the investment given the security risks identified?
 
 ---
 
@@ -184,7 +126,14 @@ Under: 45 CFR 164.308(a)(1)(i) — Security management process
 
 `Blank` · `Met` · `Not Met` · `Pending` · `N/A (rationale required)`
 
-**Prompts** — none extracted for this record.
+**Prompts** — 4
+
+**Develop and Implement a Sanction Policy** _(required)_
+
+- [ ] Does the regulated entity have existing sanction policies and procedures to meet the requirements of this implementation specification? If not, can existing sanction policies be modified to include language related to violations of these policies and procedures?
+- [ ] Is there a formal process in place to address system misuse, abuse, and fraudulent activity?
+- [ ] Have workforce members been made aware of policies concerning sanctions for inappropriate access, use, and disclosure of ePHI?
+- [ ] Has the need and appropriateness of a tiered structure of sanctions that accounts for the magnitude of harm and possible types of inappropriate disclosures been considered?
 
 ---
 
@@ -204,7 +153,23 @@ Under: 45 CFR 164.308(a)(1)(i) — Security management process
 
 `Blank` · `Met` · `Not Met` · `Pending` · `N/A (rationale required)`
 
-**Prompts** — none extracted for this record.
+**Prompts** — 7
+
+**Develop and Deploy the Information System Activity Review Process** _(required)_
+
+- [ ] Is there a policy that establishes what reviews will be conducted?
+- [ ] Are there corresponding procedures that describe the specifics of the reviews?
+- [ ] Who is responsible for the overall process and results?
+- [ ] How often will reviews take place?
+
+**Develop Appropriate Standard Operating Procedures**
+
+- [ ] How will exception reports or logs be reviewed?
+- [ ] Where will monitoring reports and their reviews be documented and maintained?
+
+**Implement the Information System Activity Review and Audit Process**
+
+- [ ] What mechanisms will be implemented to assess the effectiveness of the review process (measures)?
 
 ---
 

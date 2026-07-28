@@ -39,7 +39,7 @@ import json
 import re
 import sys
 import xml.etree.ElementTree as ET
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -63,6 +63,7 @@ SPEC_MARKER_RE = re.compile(
 )
 # Footnote markers ride along on the activity name: "Conduct Risk Assessment31 32".
 FOOTNOTE_TAIL_RE = re.compile(r"(?<=[a-z)])\d{1,3}(?:\s+\d{1,3})*\s*$")
+QUESTION_FOOTNOTE_RE = re.compile(r"(?<=\?)\d{1,3}\b")
 ACTIVITY_NUM_RE = re.compile(r"^\s*(\d+)\.\s*")
 BULLET_SPLIT_RE = re.compile(r"\n?\s*•\s*")
 
@@ -80,6 +81,65 @@ class Prompt:
     notes: list[str] = field(default_factory=list)
 
 
+# Explicit curation for the one approved 164.308(a)(1) volume-review sample.
+# The NIST source remains pinned and unchanged. This selects the smallest
+# representative set whose answers can affect a determination or evidence
+# request; it is not a generic prompt-scoring engine.
+SECURITY_SAMPLE_CURATION: dict[str, tuple[str, tuple[str, ...]]] = {
+    "Identify All ePHI and Relevant Information Systems": (
+        "164.308(a)(1)(ii)(A)",
+        (
+            "Has all ePHI generated",
+            "Have hardware and software that maintains",
+            "Is the current configuration",
+        ),
+    ),
+    "Conduct Risk Assessment": (
+        "164.308(a)(1)(ii)(A)",
+        ("Are there any prior risk assessments", "Is there intelligence available"),
+    ),
+    "Implement a Risk Management Program": (
+        "164.308(a)(1)(ii)(B)",
+        (
+            "Is executive leadership",
+            "Has a risk management program",
+            "Do current safeguards ensure",
+            "Has the regulated entity used the results",
+        ),
+    ),
+    "Acquire Information Technology (IT) Systems and Services": (
+        "164.308(a)(1)(ii)(B)",
+        ("Will new security controls", "Has a cost-benefit analysis"),
+    ),
+    "Develop and Implement a Sanction Policy": (
+        "164.308(a)(1)(ii)(C)",
+        (
+            "Does the regulated entity have existing sanction policies",
+            "Is there a formal process in place to address system misuse",
+            "Have workforce members been made aware",
+            "Has the need and appropriateness of a tiered structure",
+        ),
+    ),
+    "Develop and Deploy the Information System Activity Review Process": (
+        "164.308(a)(1)(ii)(D)",
+        (
+            "Is there a policy that establishes",
+            "Are there corresponding procedures",
+            "Who is responsible for the overall process",
+            "How often will reviews take place",
+        ),
+    ),
+    "Develop Appropriate Standard Operating Procedures": (
+        "164.308(a)(1)(ii)(D)",
+        ("How will exception reports", "Where will monitoring reports"),
+    ),
+    "Implement the Information System Activity Review and Audit Process": (
+        "164.308(a)(1)(ii)(D)",
+        ("What mechanisms will be implemented",),
+    ),
+}
+
+
 def clean(text: str) -> str:
     return " ".join((text or "").split())
 
@@ -87,6 +147,48 @@ def clean(text: str) -> str:
 def strip_footnotes(name: str) -> str:
     """Remove trailing footnote digits from a key activity name."""
     return FOOTNOTE_TAIL_RE.sub("", clean(name)).strip()
+
+
+def strip_question_footnotes(text: str) -> str:
+    """Remove PDF footnote digits attached directly to question marks."""
+    return QUESTION_FOOTNOTE_RE.sub("", clean(text))
+
+
+def route_security_sample(
+    prompts: list[Prompt], *, require_complete: bool = False
+) -> dict[str, list[Prompt]]:
+    """Route and curate the approved 164.308(a)(1) volume-review sample."""
+    if require_complete:
+        for group, (_, prefixes) in SECURITY_SAMPLE_CURATION.items():
+            group_prompts = [
+                strip_question_footnotes(prompt.text)
+                for prompt in prompts
+                if prompt.group == group
+            ]
+            for prefix in prefixes:
+                matches = [text for text in group_prompts if text.startswith(prefix)]
+                if len(matches) != 1:
+                    raise ValueError(
+                        f"Security sample selector {group!r} / {prefix!r} "
+                        f"matched {len(matches)} prompts; expected exactly 1"
+                    )
+
+    routed = {
+        "164.308(a)(1)(ii)(A)": [],
+        "164.308(a)(1)(ii)(B)": [],
+        "164.308(a)(1)(ii)(C)": [],
+        "164.308(a)(1)(ii)(D)": [],
+    }
+    for prompt in prompts:
+        rule = SECURITY_SAMPLE_CURATION.get(prompt.group)
+        if rule is None:
+            continue
+        record_id, prefixes = rule
+        text = strip_question_footnotes(prompt.text)
+        if not any(text.startswith(prefix) for prefix in prefixes):
+            continue
+        routed[record_id].append(replace(prompt, text=text))
+    return routed
 
 
 # --------------------------------------------------------------------------
@@ -176,7 +278,7 @@ def extract_nist_prompts(citation: str) -> tuple[list[Prompt], list[str]]:
                 activity = strip_footnotes(ACTIVITY_NUM_RE.sub("", activity))
 
                 for question in BULLET_SPLIT_RE.split(questions_raw):
-                    question = clean(question)
+                    question = strip_question_footnotes(question)
                     if len(question) < 12 or "?" not in question:
                         continue
                     prompts.append(
@@ -278,25 +380,34 @@ def build_sample() -> dict:
     warnings: list[str] = []
     entries: list[dict] = []
 
-    # Security Rule path. This spike preserves the raw 800-66r2 standard-level
-    # extraction so prompt volume can be reviewed. Production routing is
-    # settled separately: NIST-labelled key activities route to their
-    # implementation specification, while genuinely standard-wide questions
-    # remain parent guidance.
+    # Security Rule path. The source extraction stays intact, while this
+    # representative sample is cleaned, curated, and routed to the four
+    # determination-bearing implementation specifications for volume review.
     security_std = f"{SAMPLE_SECURITY}(i)"
     nist_prompts, nist_warnings = extract_nist_prompts(SAMPLE_SECURITY)
+    if not nist_prompts:
+        detail = "; ".join(nist_warnings) or "no NIST prompts were extracted"
+        raise RuntimeError(f"Security sample generation cannot continue: {detail}")
+    routed_security = route_security_sample(nist_prompts, require_complete=True)
+    kept_security_count = sum(len(rows) for rows in routed_security.values())
     warnings.extend(nist_warnings)
     if security_std in records:
         entries.append(
             {
                 "record_id": security_std,
                 "path": "nist-800-66r2",
-                "prompts": [asdict(p) for p in nist_prompts],
+                "prompts": [],
             }
         )
     for rid, record in records.items():
         if rid.startswith(SAMPLE_SECURITY) and rid != security_std:
-            entries.append({"record_id": rid, "path": "nist-800-66r2", "prompts": []})
+            entries.append(
+                {
+                    "record_id": rid,
+                    "path": "nist-800-66r2",
+                    "prompts": [asdict(p) for p in routed_security.get(rid, [])],
+                }
+            )
 
     # Privacy Rule path. Prompts come from the rule's own enumeration and
     # attach to the record whose sub-paragraphs they are.
@@ -338,6 +449,13 @@ def build_sample() -> dict:
             },
         ],
         "warnings": warnings,
+        "review_summary": {
+            "security": {
+                "raw_prompt_count": len(nist_prompts),
+                "kept_prompt_count": kept_security_count,
+                "omitted_prompt_count": len(nist_prompts) - kept_security_count,
+            }
+        },
         "entries": entries,
     }
 
@@ -348,7 +466,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
 
-    data = build_sample()
+    try:
+        data = build_sample()
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n",
                         encoding="utf-8")

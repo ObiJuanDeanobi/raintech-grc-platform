@@ -113,6 +113,10 @@ outstanding acceptance criterion, so the issue stays open.
 - Practitioner review approved determination-centered Security prompt routing.
   NIST questions route to the implementation specification identified by the
   key activity; genuinely standard-wide questions remain parent guidance.
+- Issue #29 now has a representative cleaned Security volume sample for
+  164.308(a)(1): 45 raw NIST questions were reduced to 22 determination-useful
+  prompts and routed across Risk Analysis (5), Risk Management (6), Sanction
+  Policy (4), and Activity Review (7). This is a review sample, not full ingest.
 - GitHub issue #20 closed. Three acceptance criteria were superseded when the
   prototype collapsed to the selected Variant A, as recorded in
   `docs/prototypes/v1-ui-prototype-review.md`.
@@ -127,8 +131,8 @@ outstanding acceptance criterion, so the issue stays open.
   The subordinate-paragraph presentation decision is settled. Review continues
   against stable citation-based record boundaries.
 - GitHub issue #29: prompt-layer design is approved at the record boundary.
-  Privacy filtering and Security attachment are settled. Total prompt volume
-  remains the practitioner decision before full ingestion begins.
+  Privacy filtering and Security attachment are settled. The 22-prompt Security
+  sample awaits practitioner volume review before full ingestion begins.
 
 ## Blocked
 
@@ -141,10 +145,11 @@ outstanding acceptance criterion, so the issue stays open.
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
-- **Prompt volume — Johnathan.** The Security Rule path yields 45 prompts on
-  45 CFR 164.308(a)(1) alone, which extrapolates to several hundred across 194
-  records. Useful structure or noise? If noise, prompts get trimmed to those that
-  drive a determination. Blocks the full ingest on issue #29.
+- **Prompt volume — Johnathan.** For 45 CFR 164.308(a)(1), the cleaned sample
+  keeps 22 of 45 raw NIST questions: 5 for Risk Analysis, 6 for Risk Management,
+  4 for Sanction Policy, and 7 for Activity Review. Is roughly five or six
+  prompts per determination useful during a live or mock assessment, or should
+  the set be thinner? Blocks the full ingest on issue #29.
 - **Evidence mapping in Slice 4 — Johnathan.** Neither assessment mockup has an
   evidence attachment point, because Evidence is Slice 5, after both assessment
   surfaces. Recording is the stated focus, and a determination you cannot attach
@@ -186,9 +191,10 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Decide whether the full prompt volume is useful in a live assessment. The
-current Security sample yields 45 questions for the 164.308(a)(1) family before
-the routing rule distributes them across its determination records.
+Review the 22 cleaned and routed Security prompts in
+`docs/catalogs/spike-walkthrough-prompts.md` as if conducting a mock or live
+assessment. Mark any prompt that should be kept, merged, treated as context, or
+removed; then decide whether issue #29 should proceed to full ingestion.
 
 Slice 4 continues once that lands.
 
