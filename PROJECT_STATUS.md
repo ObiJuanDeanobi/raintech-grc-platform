@@ -110,6 +110,9 @@ outstanding acceptance criterion, so the issue stays open.
 - Practitioner review approved the Privacy prompt filter. Cited child paragraphs
   are classified as assessment checks, applicability notes, or context; only
   operative assessment checks render checkboxes.
+- Practitioner review approved determination-centered Security prompt routing.
+  NIST questions route to the implementation specification identified by the
+  key activity; genuinely standard-wide questions remain parent guidance.
 - GitHub issue #20 closed. Three acceptance criteria were superseded when the
   prototype collapsed to the selected Variant A, as recorded in
   `docs/prototypes/v1-ui-prototype-review.md`.
@@ -124,8 +127,8 @@ outstanding acceptance criterion, so the issue stays open.
   The subordinate-paragraph presentation decision is settled. Review continues
   against stable citation-based record boundaries.
 - GitHub issue #29: prompt-layer design is approved at the record boundary.
-  Privacy prompt filtering is settled. Security prompt attachment and total
-  prompt volume remain practitioner decisions before full ingestion begins.
+  Privacy filtering and Security attachment are settled. Total prompt volume
+  remains the practitioner decision before full ingestion begins.
 
 ## Blocked
 
@@ -142,10 +145,6 @@ for an issue. Each names who has to answer it.
   45 CFR 164.308(a)(1) alone, which extrapolates to several hundred across 194
   records. Useful structure or noise? If noise, prompts get trimmed to those that
   drive a determination. Blocks the full ingest on issue #29.
-- **Where Security Rule prompts attach — Johnathan.** NIST SP 800-66r2 documents
-  the standard as a whole, so prompts currently sit on the standard while
-  determinations sit on the implementation specifications beneath it. Push them
-  down, or leave them at the standard?
 - **Evidence mapping in Slice 4 — Johnathan.** Neither assessment mockup has an
   evidence attachment point, because Evidence is Slice 5, after both assessment
   surfaces. Recording is the stated focus, and a determination you cannot attach
@@ -187,9 +186,9 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Decide where Security Rule prompts attach. NIST SP 800-66r2 publishes questions
-at the standard/key-activity level while determinations sit on implementation
-specifications beneath the standard.
+Decide whether the full prompt volume is useful in a live assessment. The
+current Security sample yields 45 questions for the 164.308(a)(1) family before
+the routing rule distributes them across its determination records.
 
 Slice 4 continues once that lands.
 

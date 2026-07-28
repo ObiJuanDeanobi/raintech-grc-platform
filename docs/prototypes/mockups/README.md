@@ -20,7 +20,10 @@ is not promoted; production is reimplemented against the real architecture.
 approved Privacy role filter. It renders every raw Privacy child paragraph as a
 checkbox. That behavior is known incorrect and must not be reused. Production
 classifies entries as assessment checks, applicability notes, or context; only
-assessment checks render checkboxes.
+assessment checks render checkboxes. It also leaves all Security questions on
+the parent standard; production routes NIST-labelled questions to their
+implementation specification and retains only genuinely standard-wide guidance
+on the parent.
 
 ## What the two workspaces are arguing
 

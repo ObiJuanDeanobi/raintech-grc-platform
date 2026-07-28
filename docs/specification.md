@@ -116,6 +116,12 @@ context, risks, and outputs.
   - The OCR Audit Protocol's key activities and audit inquiries populate the
     implementation guidance and expected evidence fields. They are not records
     that carry a determination.
+  - **Security prompt routing:** when NIST SP 800-66r2 identifies a key activity
+    with a specific implementation specification, its questions attach to that
+    implementation-specification record. Questions that genuinely address the
+    whole standard remain on the parent as introductory guidance. A parent with
+    implementation specifications has no editable determination; its status is
+    derived from its children.
 - The three HIPAA rules are not structurally uniform, but they diverge on the
   Required/Addressable designation rather than on the standard-and-implementation-
   specification model itself. Do not treat the Privacy Rule as standard-only; that
@@ -696,6 +702,20 @@ No role carries its own determination or produces a finding. This replaces the
 spike's raw behavior of rendering every extracted Privacy subparagraph as a
 checkbox. **Approved by Johnathan on July 28, 2026.**
 
+### Security prompt routing — approved July 28, 2026
+
+Security Rule prompts follow the same working rhythm as CMMC: focused questions,
+implementation discussion, evidence, and determination stay on the assessable
+unit being decided. NIST SP 800-66r2 key activities that identify a specific
+implementation specification route their questions to that record. Questions
+that genuinely address the standard as a whole remain on the parent as
+introductory guidance.
+
+The parent standard remains a derived rollup where it has implementation
+specifications; it does not gain an editable determination. Prompts carry no
+status and produce no finding by themselves. This replaces the spike's raw
+standard-only attachment behavior. **Approved by Johnathan on July 28, 2026.**
+
 Settled in this revision:
 
 - CMMC objective-to-requirement rollup confirmed by Johnathan, July 27, 2026.
@@ -707,6 +727,9 @@ Settled in this revision:
 - Privacy Rule child paragraphs use the three presentation roles
   `assessment_check`, `applicability_note`, and `context`; only the first renders
   a checkbox. Confirmed July 28, 2026.
+- Security Rule questions route to the NIST-identified implementation
+  specification, with genuinely standard-wide questions retained as parent
+  guidance. Confirmed July 28, 2026.
 - First engagement is a full HIPAA program assessment within weeks. Slice 4
   precedes Slice 3. The platform runs in parallel with existing methods rather
   than on the critical path of live client work. `ROADMAP.md` now records that

@@ -8,7 +8,7 @@ Two standards, one per source path, because the paths produce differently shaped
 
 1. **Does each path read well in the room?** The Security path gives you questions to ask. The Privacy path gives you requirements to check a document against. Both are legitimate; both need to work for you.
 2. **Is the volume right?** 83 prompts across 5 records here. Extrapolated over 194 records that is several hundred. Structure, or noise?
-3. **Where should Security Rule prompts sit?** NIST documents the standard as a whole, so they currently attach to the standard — while the determinations sit on the four implementation specifications beneath it. Push them down, or leave them at the standard?
+3. **Security routing is settled.** This raw sample groups NIST questions under the standard. Production routes questions to the NIST-identified implementation specification and retains only genuinely standard-wide guidance on the parent. Review the volume, not the attachment rule.
 
 ## Provenance
 
@@ -27,7 +27,7 @@ _Prompts carry no status, produce no findings, and never appear in a report as a
 
 # Security Rule path
 
-Prompts are the sample questions NIST publishes for this standard, grouped by the key activity they belong to. NIST documents the standard as a whole, so they attach to the standard rather than being split across its implementation specifications.
+This is raw pre-routing output grouped under the standard. The approved implementation routes a NIST key activity's questions to the implementation specification it identifies; genuinely standard-wide questions remain parent guidance. The standard-only attachment below is known superseded behavior.
 
 ## 45 CFR 164.308(a)(1)(i)
 

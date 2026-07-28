@@ -68,6 +68,12 @@ marks a structural lead-in or optional permission. Only an assessment check
 renders a checkbox. All three retain their CFR citation and remain
 non-determinative.
 
+For Security Rule guidance, a NIST SP 800-66r2 key activity that identifies an
+implementation specification routes its questions to that specification.
+Genuinely standard-wide questions remain on the parent as introductory guidance.
+A standard with implementation specifications keeps only its derived rollup;
+the editable determination, notes, and evidence stay with the specification.
+
 ### Required and Addressable
 
 The Required/Addressable distinction exists **only in the Security Rule**, per
