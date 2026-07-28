@@ -1,11 +1,7 @@
 """Render the issue #29 prompt sample as a walkthrough document.
 
-Spike. Throwaway, and deliberately not wired into the catalog build. It exists
-to answer one question, on one standard: could a HIPAA assessment be walked
-question-by-question with a client the way a CMMC gap analysis already is?
-
-Joins the sample prompt data to the real catalog so the record text, citation
-and designation come from the pinned catalog rather than being restated here.
+Spike. Two standards, one per source path, so both can be judged before the
+full ingest commits to either.
 
 Usage:
     python catalog/spikes/render_prompt_sample.py --out docs/catalogs/<name>.md
@@ -18,85 +14,103 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import OrderedDict
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CATALOG = REPO_ROOT / "catalog" / "versions" / "hipaa-45cfr164-2026-07-01.json"
-SAMPLE = Path(__file__).parent / "prompts-sample-164.308(a)(1).json"
+SAMPLE = Path(__file__).parent / "prompts-sample.json"
+
+KIND = {
+    "standard": "Standard",
+    "implementation_specification": "Implementation specification",
+    "section": "Section",
+}
+
+PATH_INTRO = {
+    "nist-800-66r2": (
+        "Security Rule path",
+        "Prompts are the sample questions NIST publishes for this standard, "
+        "grouped by the key activity they belong to. NIST documents the "
+        "standard as a whole, so they attach to the standard rather than being "
+        "split across its implementation specifications.",
+    ),
+    "cfr-enumeration": (
+        "Privacy Rule path",
+        "Prompts are the sub-paragraphs the regulation itself enumerates, "
+        "quoted rather than paraphrased. Each carries its own CFR citation, so "
+        "a correction can be written against a paragraph.",
+    ),
+}
 
 
 def render(catalog: dict, sample: dict) -> str:
     by_id = {r["id"]: r for r in catalog["records"]}
-    source = sample["source"]
-    extraction = sample["extraction"]
-
     lines: list[str] = []
     add = lines.append
 
-    add("# Walkthrough sample — 45 CFR 164.308(a)(1) Security Management Process")
+    total = sum(len(e["prompts"]) for e in sample["entries"])
+    with_prompts = sum(1 for e in sample["entries"] if e["prompts"])
+
+    add("# Walkthrough prompts — two sample standards")
     add("")
     add("**Spike for GitHub issue #29. Not an approved catalog artefact.**")
     add("")
     add(
-        "One question to answer while reading this: **could you run this with a "
-        "client in the room?** Not whether the wording is perfect — whether the "
-        "shape of it works."
+        "Two standards, one per source path, because the paths produce "
+        "differently shaped prompts and both have to read well."
     )
     add("")
 
-    add("## How to read it")
+    add("## What to tell me")
     add("")
-    add(
-        "Each **record** is a citable unit of 45 CFR Part 164 and carries exactly "
-        "one determination. That is what ends up in a report and what a finding "
-        "attaches to."
-    )
-    add("")
-    add(
-        "The **prompts** beneath it are what you actually ask and look at. They "
-        "carry no status of their own, produce no findings, and never appear in a "
-        "report as assessable items. They exist to structure the conversation — "
-        "the job CMMC assessment objectives do for you today."
-    )
-    add("")
-    add(
-        "The checkboxes on prompts are working aids for the walkthrough, not "
-        "determinations."
-    )
+    add("1. **Does each path read well in the room?** The Security path gives you "
+        "questions to ask. The Privacy path gives you requirements to check a "
+        "document against. Both are legitimate; both need to work for you.")
+    add("2. **Is the volume right?** "
+        f"{total} prompts across {with_prompts} records here. Extrapolated over "
+        "192 records that is several hundred. Structure, or noise?")
+    add("3. **Where should Security Rule prompts sit?** NIST documents the "
+        "standard as a whole, so they currently attach to the standard — while "
+        "the determinations sit on the four implementation specifications "
+        "beneath it. Push them down, or leave them at the standard?")
     add("")
 
     add("## Provenance")
     add("")
-    add("| | |")
-    add("|---|---|")
-    add(f"| Record text and citations | {catalog['framework_version']['source']}, "
-        f"snapshot {catalog['framework_version']['snapshot_date']} |")
-    add(f"| Prompts | {source['name']}, revision {source['revision']} |")
-    add(f"| Prompts retrieved | {source['retrieved']} |")
-    add("")
-    add(f"_{source['note']}_")
-    add("")
-
-    add("## Extraction limitation — read this before judging coverage")
-    add("")
-    add(f"**Coverage: {extraction['coverage']}.**")
-    add("")
-    add(extraction["limitation"])
+    add("| Source | Covers | Standing |")
+    add("|---|---|---|")
+    for src in sample["sources"]:
+        add(f"| {src['label']} | {src['covers']} | {src['note']} |")
     add("")
     add(
-        "The two records without prompts are shown as they are. Judge the model on "
-        "the two that are populated; the gaps are an extraction problem, not a "
-        "modelling one."
+        "_Prompts carry no status, produce no findings, and never appear in a "
+        "report as assessable items. The determination stays on the record._"
     )
     add("")
 
-    add("---")
-    add("")
+    if sample.get("warnings"):
+        add("## Extraction warnings")
+        add("")
+        for warning in sample["warnings"]:
+            add(f"- {warning}")
+        add("")
 
-    for entry in sample["records"]:
+    current_path = None
+    for entry in sample["entries"]:
         record = by_id.get(entry["record_id"])
         if record is None:
             continue
+
+        if entry["path"] != current_path:
+            current_path = entry["path"]
+            title, blurb = PATH_INTRO.get(current_path, (current_path, ""))
+            add("---")
+            add("")
+            add(f"# {title}")
+            add("")
+            add(blurb)
+            add("")
 
         designation = ""
         if record.get("designation"):
@@ -106,65 +120,57 @@ def render(catalog: dict, sample: dict) -> str:
         add("")
         add(f"### {record['title']}")
         add("")
-        kind = {
-            "standard": "Standard",
-            "implementation_specification": "Implementation specification",
-            "section": "Section",
-        }.get(record["record_type"], record["record_type"])
-        add(f"_{kind}_")
+        add(f"_{KIND.get(record['record_type'], record['record_type'])}_")
         add("")
-        if record.get("parent_id"):
-            parent = by_id.get(record["parent_id"])
-            if parent:
-                add(f"Under: {parent['citation']} — {parent['title']}")
-                add("")
+        if record.get("parent_id") and record["parent_id"] in by_id:
+            parent = by_id[record["parent_id"]]
+            add(f"Under: {parent['citation']} — {parent['title']}")
+            add("")
 
         add("**Regulation text**")
         add("")
         add(f"> {record['text']}")
         add("")
 
-        if entry.get("established_performance_criteria"):
-            add("**Established performance criteria** _(OCR Audit Protocol)_")
-            add("")
-            add(f"> {entry['established_performance_criteria']}")
-            add("")
-
-        if entry.get("key_activity"):
-            add(f"**Key activity** _(OCR Audit Protocol)_ — {entry['key_activity']}")
-            add("")
-
         add("**Determination** — one for this record")
         add("")
-        add("`Blank`  ·  `Met`  ·  `Not Met`  ·  `Pending`  ·  `N/A (rationale required)`")
+        add("`Blank` · `Met` · `Not Met` · `Pending` · `N/A (rationale required)`")
         add("")
 
-        if entry["prompts"]:
-            add("**Walkthrough prompts** _(OCR Audit Protocol — no status of their own)_")
+        if not entry["prompts"]:
+            add("**Prompts** — none extracted for this record.")
             add("")
-            for prompt in entry["prompts"]:
-                add(f"- [ ] {prompt}")
+            add("---")
             add("")
-        else:
-            note = entry.get("note", "No prompts available.")
-            add(f"**Walkthrough prompts** — none. {note}")
+            continue
+
+        groups: OrderedDict[str, list[dict]] = OrderedDict()
+        for prompt in entry["prompts"]:
+            groups.setdefault(prompt.get("group") or "", []).append(prompt)
+
+        add(f"**Prompts** — {len(entry['prompts'])}")
+        add("")
+        for group, items in groups.items():
+            if group:
+                marker = ""
+                if items[0].get("designation"):
+                    marker = f" _({items[0]['designation']})_"
+                add(f"**{group}**{marker}")
+                add("")
+            for prompt in items:
+                cite = prompt.get("cfr_paragraph")
+                suffix = f"  \n  <sub>{cite}</sub>" if cite else ""
+                add(f"- [ ] {prompt['text']}{suffix}")
             add("")
 
         add("---")
         add("")
 
-    add("## What to tell me")
-    add("")
-    add("1. **Does the shape work?** One determination on the record, prompts "
-        "beneath it that structure the conversation.")
-    add("2. **Is the prompt volume right?** Risk analysis has five. Across 192 "
-        "records this runs to several hundred. Useful structure, or noise?")
-    add("3. **Is anything missing** that you would want in front of you at the "
-        "moment of determining this record?")
+    add("## If the answer to question 1 is no")
     add("")
     add(
-        "If the answer to 1 is no, stop — the approach needs rethinking and "
-        "ingesting 191 more records would not have helped."
+        "Stop. The approach needs rethinking and ingesting 190 more records "
+        "would not have helped."
     )
     add("")
 
@@ -178,7 +184,6 @@ def main(argv: list[str] | None = None) -> int:
 
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
     sample = json.loads(SAMPLE.read_text(encoding="utf-8"))
-
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(render(catalog, sample), encoding="utf-8")
     print(f"Wrote {args.out}")

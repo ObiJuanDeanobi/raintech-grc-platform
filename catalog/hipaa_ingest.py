@@ -517,6 +517,17 @@ def strip_designators(text: str) -> tuple[str, str]:
     return match.group(1), text[match.end():].strip()
 
 
+def clean_body(text: str) -> str:
+    """Trim the separator a paragraph uses between its title and first child.
+
+    The regulation writes "Standard-(1) General rule. ..." with an em dash
+    joining the label to its inline first child. Once the label is stripped the
+    dash is left stranded at the head of the requirement text, where it is
+    punctuation from a join that no longer exists.
+    """
+    return text.lstrip("\u2014\u2013- ").strip()
+
+
 def fetch_subpart(subpart: str, snapshot: str, cache_dir: Path | None) -> bytes:
     """Fetch one subpart's XML, preferring a cached snapshot when present."""
     if cache_dir is not None:
@@ -587,33 +598,22 @@ def parse_subpart(
     return records, exclusions, candidates
 
 
-def parse_section(
-    section_div: ET.Element,
-    section: str,
-    heading: str,
-    subpart: str,
-    work_area: str,
-    source: str,
-    retrieved: str,
-    candidates: dict | None = None,
-) -> list[Record]:
-    """Parse one section's paragraphs into records."""
-    if candidates is None:
-        candidates = {}
-    records: list[Record] = []
-    path: list[tuple[str, str]] = []
-    # Innermost enclosing standard, held as (scope_depth, id).
-    #
-    # A standard's scope is its *parent's* subtree, not its own depth. The
-    # regulation places the standard at 164.308(a)(1)(i) and the
-    # specifications it governs at 164.308(a)(1)(ii) -- siblings, both
-    # children of (a)(1). Scoping a standard to its own depth pops it the
-    # moment its sibling specification header arrives, orphaning every
-    # specification under it.
-    standard_stack: list[tuple[int, str]] = []
-    spec_header_depth: int | None = None
+def iter_section_paragraphs(section_div: ET.Element):
+    """Walk one section's paragraphs, yielding each with its CFR path.
 
+    Single source of truth for paragraph-path computation. Everything that
+    needs to locate text inside a section goes through here -- duplicating
+    this loop is how the inline-descent handling gets silently dropped.
+
+    Yields ``(paragraph_path, label, body, depth)`` where ``paragraph_path``
+    is the path of the paragraph itself. Any inline first child it carries is
+    pushed only *after* the caller has been handed the paragraph, so the
+    paragraph keeps its own citation while the next one lands correctly
+    beneath it.
+    """
     paragraphs = list(section_div.iter("P"))
+    path: list[tuple[str, str]] = []
+
     for index, paragraph in enumerate(paragraphs):
         raw = paragraph_text(paragraph)
         designators, body = strip_designators(raw)
@@ -633,25 +633,49 @@ def parse_section(
                 hint = following if position == len(tokens) - 1 else None
                 path = place(path, token, hint)
 
-        depth = len(path)
+        label = italic_text(paragraph)
+        descent = inline_descent(body, label)
+
+        yield "".join(f"({token})" for _, token in path), label, body, len(path)
+
+        if descent:
+            path = place(path, descent)
+
+
+def parse_section(
+    section_div: ET.Element,
+    section: str,
+    heading: str,
+    subpart: str,
+    work_area: str,
+    source: str,
+    retrieved: str,
+    candidates: dict | None = None,
+) -> list[Record]:
+    """Parse one section's paragraphs into records."""
+    if candidates is None:
+        candidates = {}
+    records: list[Record] = []
+    # Innermost enclosing standard, held as (scope_depth, id).
+    #
+    # A standard's scope is its *parent's* subtree, not its own depth. The
+    # regulation places the standard at 164.308(a)(1)(i) and the
+    # specifications it governs at 164.308(a)(1)(ii) -- siblings, both
+    # children of (a)(1). Scoping a standard to its own depth pops it the
+    # moment its sibling specification header arrives, orphaning every
+    # specification under it.
+    standard_stack: list[tuple[int, str]] = []
+    spec_header_depth: int | None = None
+
+    for paragraph_path, label, body, depth in iter_section_paragraphs(section_div):
         while standard_stack and standard_stack[-1][0] >= depth:
             standard_stack.pop()
         if spec_header_depth is not None and depth <= spec_header_depth:
             spec_header_depth = None
 
-        label = italic_text(paragraph)
-
-        # A paragraph may carry its own first child inline. Push that
-        # designator after this paragraph is recorded at its own path, so the
-        # next paragraph -- a sibling of the inline child -- lands correctly.
-        descent = inline_descent(body, label)
-
         if label is None:
-            if descent:
-                path = place(path, descent)
             continue
 
-        paragraph_path = "".join(f"({token})" for _, token in path)
         citation = f"45 CFR {section}{paragraph_path}"
         record_id = f"{section}{paragraph_path}"
 
@@ -671,7 +695,7 @@ def parse_section(
                 if standard_match
                 else heading
             )
-            text = body[len(label):].strip() if body.startswith(label) else body
+            text = clean_body(body[len(label):] if body.startswith(label) else body)
             records.append(
                 Record(
                     id=record_id,
@@ -690,14 +714,12 @@ def parse_section(
                 )
             )
             standard_stack.append((max(depth - 1, 0), record_id))
-            if descent:
-                path = place(path, descent)
             continue
 
         if designated_match:
             # "Implementation specifications (Required)" -- the paragraph is
             # itself the record and carries the designation.
-            text = body[len(label):].strip() if body.startswith(label) else body
+            text = clean_body(body[len(label):] if body.startswith(label) else body)
             parent = standard_stack[-1][1] if standard_stack else None
             records.append(
                 Record(
@@ -710,22 +732,18 @@ def parse_section(
                     record_type="implementation_specification",
                     parent_id=parent,
                     title="Implementation specifications",
-                    text=text.lstrip("-— ").strip(),
+                    text=clean_body(text),
                     designation=designated_match.group("designation").lower(),
                     source=source,
                     retrieved=retrieved,
                 )
             )
-            if descent:
-                path = place(path, descent)
             continue
 
         if header_match:
             # A bare "Implementation specifications:" header. Its lettered
             # children are the records; the header itself is not one.
             spec_header_depth = depth
-            if descent:
-                path = place(path, descent)
             continue
 
         if inline_match:
@@ -737,7 +755,7 @@ def parse_section(
                 else None
             )
             title = DESIGNATION_RE.sub("", raw_title).rstrip(". ").strip()
-            text = body[len(label):].strip() if body.startswith(label) else body
+            text = clean_body(body[len(label):] if body.startswith(label) else body)
             parent = standard_stack[-1][1] if standard_stack else None
             records.append(
                 Record(
@@ -756,8 +774,6 @@ def parse_section(
                     retrieved=retrieved,
                 )
             )
-            if descent:
-                path = place(path, descent)
             continue
 
         if spec_header_depth is not None and depth > spec_header_depth:
@@ -769,7 +785,7 @@ def parse_section(
                 else None
             )
             title = DESIGNATION_RE.sub("", label).rstrip(". ").strip()
-            text = body[len(label):].strip() if body.startswith(label) else body
+            text = clean_body(body[len(label):] if body.startswith(label) else body)
             parent = standard_stack[-1][1] if standard_stack else None
             records.append(
                 Record(
@@ -788,21 +804,16 @@ def parse_section(
                     retrieved=retrieved,
                 )
             )
-            if descent:
-                path = place(path, descent)
             continue
 
         # The paragraph is labelled but is neither a standard nor an
         # implementation specification -- an ordinary titled paragraph such as
-        # 45 CFR 164.514(f). It produces no record here, but Appendix A may
-        # declare it a standard, so keep it as a candidate. Its inline first
-        # child still has to reach the path.
+        # 45 CFR 164.514(f). It produces no record, but Appendix A may declare
+        # it a standard, so keep it as a candidate.
         candidates[record_id] = (
             label,
             body[len(label):].strip() if body.startswith(label) else body,
         )
-        if descent:
-            path = place(path, descent)
 
     return records
 
