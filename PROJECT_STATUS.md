@@ -144,5 +144,15 @@ the assessable units are right, that the recorded exclusions are correct, and th
 section-level records read correctly for the Breach Notification Rule. Corrections
 are written against citations, which are stable across catalog versions.
 
-Slice 4 continues once that lands. The required/optional split of Slices 2, 5, and
-7 remains deferred until after the first engagement.
+Slice 4 continues once that lands.
+
+## Deferred decisions and their triggers
+
+Recorded so they resurface on their own rather than when someone remembers.
+
+- **Narrow the V1 boundary — split the required and optional halves of Slices 2, 5
+  and 7.** Trigger: **completion of the first real engagement.** This is the single
+  biggest lever on how long V1 takes. It is deferred rather than dropped because
+  running one engagement is what tells us which half is required; deciding now
+  would be guessing. It blocks nothing before Slice 2 — Slice 1's foundation is
+  needed at any V1 scope.
