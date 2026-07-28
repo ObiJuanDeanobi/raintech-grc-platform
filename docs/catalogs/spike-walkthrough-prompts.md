@@ -7,7 +7,7 @@ Two standards, one per source path, because the paths produce differently shaped
 ## What to tell me
 
 1. **Does each path read well in the room?** The Security path gives you questions to ask. The Privacy path gives you requirements to check a document against. Both are legitimate; both need to work for you.
-2. **Is the volume right?** 83 prompts across 5 records here. Extrapolated over 192 records that is several hundred. Structure, or noise?
+2. **Is the volume right?** 83 prompts across 5 records here. Extrapolated over 194 records that is several hundred. Structure, or noise?
 3. **Where should Security Rule prompts sit?** NIST documents the standard as a whole, so they currently attach to the standard — while the determinations sit on the four implementation specifications beneath it. Push them down, or leave them at the standard?
 
 ## Provenance
@@ -442,4 +442,4 @@ Under: 45 CFR 164.520(a) — Notice of privacy practices
 
 ## If the answer to question 1 is no
 
-Stop. The approach needs rethinking and ingesting 190 more records would not have helped.
+Stop. The approach needs rethinking and ingesting 184 more records would not have helped.

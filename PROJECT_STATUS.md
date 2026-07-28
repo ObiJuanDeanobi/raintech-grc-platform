@@ -16,15 +16,17 @@ confirmed before any HIPAA assessment surface is built on them.
 ## Approved specification
 
 `docs/specification.md`. Approved July 23, 2026; post-prototype revision, catalog
-count correction and bare-standard correction approved July 27, 2026. No
-unapproved changes outstanding.
+count correction and bare-standard correction approved July 27, 2026; Breach
+paragraph correction approved July 28, 2026. No unapproved changes outstanding.
 
 ## Active ticket
 
 GitHub issue #21: Slice 4a, ingest and version the HIPAA full-program catalog.
-Code complete and merged. One acceptance criterion is outstanding: Johnathan's
-practitioner review of `docs/catalogs/hipaa-45cfr164-2026-07-01.md`. The issue
-stays open until that lands.
+Practitioner review found two incomplete Breach section fallbacks. The approved
+four-paragraph correction is implemented and verified in draft PR #35, which is
+awaiting merge. Johnathan's practitioner review of
+`docs/catalogs/hipaa-45cfr164-2026-07-01.md` remains the outstanding acceptance
+criterion, so the issue stays open after this correction.
 
 ## Completed
 
@@ -88,10 +90,9 @@ stays open until that lands.
 - `chore/agent-workflow-hardening` deleted after confirming it was fully merged
   into `main`.
 - HIPAA full-program catalog ingested and pinned as framework version
-  `hipaa-45cfr164-2026-07-01`: 190 assessable records over three catalog areas,
-  stable citation-based identifiers, 20 structure and count tests, a readable
-  export, and CI that rebuilds the catalog from its pinned source and fails on any
-  difference.
+  `hipaa-45cfr164-2026-07-01`: initially 190 assessable records over three
+  catalog areas, stable citation-based identifiers, a readable export, and CI
+  that rebuilds the catalog from its pinned source and fails on any difference.
 - Specification catalog counts replaced with the authoritative figures established
   by ingestion. Two indicative counts were wrong and are corrected.
 - Practitioner review, decisions 1 to 3. The 164.306 exclusion is confirmed and
@@ -110,8 +111,11 @@ stays open until that lands.
 
 ## In progress
 
-- GitHub issue #21: practitioner review of the exported catalog. Code is merged;
-  the review is the remaining acceptance criterion.
+- GitHub issue #21: the approved Breach paragraph correction is verified in
+  draft PR #35 and awaits merge. It replaces the two incomplete section
+  fallbacks with four published paragraph records, taking the catalog from 192
+  to 194 without inventing an objective layer. Practitioner review of the
+  exported catalog then resumes as the remaining acceptance criterion.
 
 ## Blocked
 
@@ -125,7 +129,7 @@ Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
 - **Prompt volume — Johnathan.** The Security Rule path yields 45 prompts on
-  45 CFR 164.308(a)(1) alone, which extrapolates to several hundred across 192
+  45 CFR 164.308(a)(1) alone, which extrapolates to several hundred across 194
   records. Useful structure or noise? If noise, prompts get trimmed to those that
   drive a determination. Blocks the full ingest on issue #29.
 - **Privacy prompt filter — Johnathan.** Deriving prompts from the regulation's
@@ -177,10 +181,10 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Review `docs/catalogs/hipaa-45cfr164-2026-07-01.md` and confirm three things: that
-the assessable units are right, that the recorded exclusions are correct, and that
-section-level records read correctly for the Breach Notification Rule. Corrections
-are written against citations, which are stable across catalog versions.
+Land the approved Breach paragraph correction after CI, then continue reviewing
+`docs/catalogs/hipaa-45cfr164-2026-07-01.md` for assessable-unit and exclusion
+accuracy. Corrections are written against citations, which are stable across
+catalog versions.
 
 Slice 4 continues once that lands.
 

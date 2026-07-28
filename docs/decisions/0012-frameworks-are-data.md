@@ -14,8 +14,9 @@ Declared per framework version:
 
 1. **Record shape.** The hierarchy of assessable units and what may parent
    what. CMMC is requirement to assessment objective. HIPAA is standard to
-   implementation specification, with a section-level exception where the rule
-   labels no standard.
+   implementation specification, with four paragraph-level exceptions where
+   the rule publishes distinct citable obligations under neither label:
+   164.412(a), 164.412(b), 164.414(a), and 164.414(b).
 2. **Rollup rule.** How a parent's status derives from its children, including
    precedence. Currently written as prose in `docs/specification.md`; it
    becomes data.

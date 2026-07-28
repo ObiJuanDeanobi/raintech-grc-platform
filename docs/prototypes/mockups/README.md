@@ -12,7 +12,7 @@ is not promoted; production is reimplemented against the real architecture.
 
 | File | What it shows |
 |---|---|
-| `hipaa-assessment-workspace.html` | HIPAA assessment surface, running on the real 192-record catalog |
+| `hipaa-assessment-workspace.html` | HIPAA assessment surface, preserving the historical 192-record catalog snapshot used during prototyping |
 | `cmmc-assessment-workspace.html` | CMMC Level 2 surface, running on the real 110 requirements and 320 objectives |
 | `v1-build-map.html` | The remaining V1 slices in dependency order |
 
@@ -45,7 +45,7 @@ Five things the earlier prototype on `codex/v1-ui-prototype` left open:
    CMMC does not, because CMMC has no addressable concept.
 3. **Rollup is displayed and never edited.** A parent's status is derived from
    its children with the reason stated.
-4. **Navigation is exercised at real scale** — 192 and 320 rather than four
+4. **Navigation was exercised at real scale** — the then-current 192-record HIPAA snapshot and 320 CMMC objectives rather than four
    fixtures. Search, filters, and `j`/`k` movement.
 5. **Guidance sits with the record it belongs to**, attributed to its source and
    carrying no status of its own.

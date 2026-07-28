@@ -31,6 +31,7 @@ DESIGNATION_LABEL = {
 RECORD_TYPE_LABEL = {
     "standard": "Standard",
     "implementation_specification": "Implementation specification",
+    "paragraph": "Paragraph",
     "section": "Section",
 }
 
@@ -79,16 +80,16 @@ def render(catalog: dict) -> str:
         "the reason each was excluded. Those are judgement calls, not facts."
     )
     add(
-        "3. **Section-level records.** The Breach Notification Rule labels "
-        "nothing a standard, so its sections are the assessable unit. Check "
-        "that reads correctly to you."
+        "3. **Unlabelled obligations.** Confirm that the four published "
+        "paragraph records at 164.412(a)/(b) and 164.414(a)/(b) remain "
+        "independently usable assessment units."
     )
     add("")
 
     add("## Counts")
     add("")
-    add("| Catalog area | Standards | Implementation specifications | Sections | Required | Addressable | Total |")
-    add("|---|---:|---:|---:|---:|---:|---:|")
+    add("| Catalog area | Standards | Implementation specifications | Paragraphs | Sections | Required | Addressable | Total |")
+    add("|---|---:|---:|---:|---:|---:|---:|---:|")
     for area_id in AREA_ORDER:
         counts = catalog["counts"].get(area_id)
         if not counts:
@@ -97,6 +98,7 @@ def render(catalog: dict) -> str:
             f"| {areas[area_id]['label']} "
             f"| {counts['standard']} "
             f"| {counts['implementation_specification']} "
+            f"| {counts['paragraph']} "
             f"| {counts['section']} "
             f"| {counts['required']} "
             f"| {counts['addressable']} "

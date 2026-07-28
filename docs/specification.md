@@ -3,7 +3,8 @@
 ## Status
 
 Approved. Originally approved July 23, 2026; the post-prototype revision, the
-catalog count correction and the bare-standard correction approved July 27, 2026.
+catalog count correction and the bare-standard correction approved July 27, 2026;
+the Breach paragraph correction approved July 28, 2026.
 
 No unapproved changes are outstanding. Production BUILD is unblocked. Each slice
 still requires an approved ticket and applicable verification, and changing this
@@ -95,9 +96,12 @@ context, risks, and outputs.
     statements. Requirement status derives from its objectives.
   - **HIPAA:** determinations are recorded at implementation-specification level,
     or at the standard itself where a standard has no implementation
-    specifications. Standard status derives from its specifications. No
-    objective layer is created — 45 CFR Part 164 publishes no such decomposition,
-    and inventing one would produce assessable records that cannot be cited.
+    specifications. Four published paragraphs carry distinct obligations under
+    neither label and are independently assessable: 164.412(a), 164.412(b),
+    164.414(a), and 164.414(b). Standard status derives from its specifications.
+    No objective layer is created — 45 CFR Part 164 publishes no such
+    decomposition, and inventing one would produce assessable records that cannot
+    be cited.
   - The OCR Audit Protocol's key activities and audit inquiries populate the
     implementation guidance and expected evidence fields. They are not records
     that carry a determination.
@@ -118,18 +122,19 @@ context, risks, and outputs.
     from the section heading — 164.404(a), .406(a), .408(a) and .410(a). The
     same bare form appears once in the Privacy Rule, at 164.502(a).
   - Two provisions, 45 CFR 164.412 and 164.414, carry obligations under no
-    standard label at all. For those the section is the assessable unit — a
-    published, citable unit of the CFR, so no structure is invented. This is the
-    documented exception across the whole catalog, two records of 192, not a
-    parallel model for any rule.
+    standard or implementation-specification label. Their four top-level
+    paragraphs are published, independently citable obligations and are the
+    assessable units: 164.412(a), 164.412(b), 164.414(a), and 164.414(b). This is
+    the documented exception across the whole catalog, four records of 194, not
+    an invented objective layer or a parallel model for any rule.
   - Authoritative record counts, established by ingestion on July 27, 2026 and
     asserted by the catalog tests:
 
-    | Catalog area | Standards | Implementation specifications | Sections | Required | Addressable |
-    |---|---:|---:|---:|---:|---:|
-    | Security Rule (Subpart C) | 22 | 41 | 0 | 19 | 22 |
-    | Privacy Rule (Subpart E) | 56 | 58 | 0 | 0 | 0 |
-    | Breach Rule (Subpart D) | 4 | 9 | 2 | 0 | 0 |
+    | Catalog area | Standards | Implementation specifications | Paragraphs | Sections | Required | Addressable |
+    |---|---:|---:|---:|---:|---:|---:|
+    | Security Rule (Subpart C) | 22 | 41 | 0 | 0 | 19 | 22 |
+    | Privacy Rule (Subpart E) | 56 | 58 | 0 | 0 | 0 | 0 |
+    | Breach Rule (Subpart D) | 4 | 9 | 4 | 0 | 0 | 0 |
 
     Source: eCFR Title 45 Part 164, snapshot 2026-07-01, retrieved July 27, 2026
     via the eCFR versioner API. Pinned as framework version
@@ -618,9 +623,11 @@ five were absent from the catalog, and the Breach Notification Rule was modelled
 as section-level records rather than as standards with implementation
 specifications beneath them.
 
-All three rules now share one shape. Section-level records are the documented
-exception — 164.412 and 164.414 — rather than a parallel model. Records go 191
-to 192. **Approved by Johnathan on July 27, 2026.**
+All three rules now share one primary shape. At this revision, 164.412 and
+164.414 were represented as the two section-level exceptions and records went
+191 to 192. Practitioner review later replaced those incomplete fallbacks with
+four paragraph records, as recorded below. **Approved by Johnathan on July 27,
+2026.**
 
 ### Catalog count correction — approved July 27, 2026
 
@@ -632,6 +639,20 @@ it publishes nine, and Subpart E was recorded as 56 standards and roughly 77
 specification references rather than 55 and 58. The indicative counts were
 explicitly provisional and the section said ingestion would establish the
 authoritative figures. **Approved by Johnathan on July 27, 2026.**
+
+### Breach paragraph correction — approved July 28, 2026
+
+Practitioner review found that the two section-level fallback records at
+164.412 and 164.414 did not preserve the complete assessable text. The 164.412
+record contained only the introductory clause and omitted its written and oral
+law-enforcement-delay procedures. The 164.414 record contained its
+administrative-requirements paragraph but omitted the separate burden-of-proof
+obligation.
+
+The two section records are replaced by four published paragraph records:
+164.412(a), 164.412(b), 164.414(a), and 164.414(b). These are CFR citations, not
+invented objectives. Records go 192 to 194; Breach Notification records go 15
+to 17. **Approved by Johnathan on July 28, 2026.**
 
 Settled in this revision:
 
