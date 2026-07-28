@@ -23,9 +23,10 @@ paragraph correction approved July 28, 2026. No unapproved changes outstanding.
 
 GitHub issue #21: Slice 4a, ingest and version the HIPAA full-program catalog.
 Practitioner review found two incomplete Breach section fallbacks. The approved
-four-paragraph correction is implemented and awaiting CI and merge. Johnathan's
-practitioner review of `docs/catalogs/hipaa-45cfr164-2026-07-01.md` remains the
-outstanding acceptance criterion, so the issue stays open after this correction.
+four-paragraph correction is implemented and verified in draft PR #35, which is
+awaiting merge. Johnathan's practitioner review of
+`docs/catalogs/hipaa-45cfr164-2026-07-01.md` remains the outstanding acceptance
+criterion, so the issue stays open after this correction.
 
 ## Completed
 
@@ -110,11 +111,11 @@ outstanding acceptance criterion, so the issue stays open after this correction.
 
 ## In progress
 
-- GitHub issue #21: the approved Breach paragraph correction is awaiting CI and
-  merge. It replaces the two incomplete section fallbacks with four published
-  paragraph records, taking the catalog from 192 to 194 without inventing an
-  objective layer. Practitioner review of the exported catalog then resumes as
-  the remaining acceptance criterion.
+- GitHub issue #21: the approved Breach paragraph correction is verified in
+  draft PR #35 and awaits merge. It replaces the two incomplete section
+  fallbacks with four published paragraph records, taking the catalog from 192
+  to 194 without inventing an objective layer. Practitioner review of the
+  exported catalog then resumes as the remaining acceptance criterion.
 
 ## Blocked
 
