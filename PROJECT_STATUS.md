@@ -130,9 +130,19 @@ outstanding acceptance criterion, so the issue stays open.
 - GitHub issue #21: practitioner review of the exported 194-record catalog.
   The subordinate-paragraph presentation decision is settled. Review continues
   against stable citation-based record boundaries.
-- GitHub issue #29: prompt-layer design is approved at the record boundary.
-  Privacy filtering and Security attachment are settled. The 22-prompt Security
-  sample awaits practitioner volume review before full ingestion begins.
+- GitHub issue #29: prompt volume accepted July 29, 2026, so full ingestion is
+  authorised. Ingestion has **not** started. A blocking defect in NIST section
+  resolution was found and verified first, and is recorded in the issue:
+  seven of eight 164.308(a)(N) standards extracted Security Management Process's
+  prompts instead of their own, and seven further standards extracted nothing.
+  Only 164.308(a)(1) -- the standard the approved sample was built from -- was
+  correct, so a single-standard sample could not expose it. The fix is verified
+  and gives 22/22 standards resolving with 443 distinct raw prompts. The
+  approved 22-prompt curated set is unaffected; only the raw count for that
+  standard changes, from 45 to 40.
+  Three pieces remain unbuilt: general Security routing to replace the
+  eight-entry hand table, general curation under the July 29 delegation, and
+  Privacy and Breach role classification across 731 child paragraphs.
 
 ## Blocked
 
@@ -163,6 +173,12 @@ for an issue. Each names who has to answer it.
   Slice 1 ticket.
 
 ## Known risks
+
+- A guidance extractor verified on one unit can be wrong on every other unit.
+  The NIST section-resolution defect passed a full sample review because the
+  sample was the only standard the code handled correctly. Extraction work
+  should be measured across the whole corpus before any sample is treated as
+  representative.
 
 - The HIPAA catalog is ingested but unreviewed, and the first engagement is weeks
   away. The platform runs in parallel with the existing method and is not on the
