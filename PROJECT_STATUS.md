@@ -128,6 +128,17 @@ outstanding acceptance criterion, so the issue stays open.
   corpus-wide by design: every standard resolves, no two share a prompt list,
   and per-standard counts are pinned. CI installs a pinned PyMuPDF for that one
   step and fails rather than skips if it is unavailable.
+- General Security routing built and committed at
+  `docs/catalogs/security-prompt-routing.md`. Replaces the eight-entry hand
+  table with the marker rule; all 22 standards route, every implementation
+  specification receives prompts, 444 routed with no warnings.
+- Unmarked-key-activity routing decided (issue #29): route by the marker rule,
+  render parent guidance in view while a child determination is worked, and
+  promote individual questions to a child by exception on rendered output. The
+  implementation specification is treated as the CMMC-style objective that
+  carries the determination; the standard is its rollup. Chosen to keep the
+  HIPAA walkthrough as close as possible to how a CMMC gap analysis is run,
+  without authoring an uncitable question-to-record mapping.
 - ADR 0012 accepted: a framework is defined by data, not application code.
   Record shape, rollup rule, status set and presentation mode are declared per
   framework version. Ingestion stays bespoke per source. This constrains the
@@ -167,15 +178,6 @@ outstanding acceptance criterion, so the issue stays open.
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
-- **Unmarked key activities — Johnathan.** The general routing rule and the
-  approved 164.308(a)(1) sample agree on 14 of 22 prompts and disagree on 8.
-  All 8 are unmarked key activities the hand curation routed to a specification
-  by judgement — "Identify All ePHI" plainly informs Risk analysis, but NIST
-  attaches no marker and the phrase shares no vocabulary with the title, so no
-  mechanical rule recovers it. Either unmarked activities stay parent guidance
-  as the July 28 decision reads, or the rule is followed by per-standard
-  judgement over 67 unmarked activities. Recorded in full on issue #29.
-  Blocks general curation.
 - **Evidence mapping in Slice 4 — Johnathan.** Neither assessment mockup has an
   evidence attachment point, because Evidence is Slice 5, after both assessment
   surfaces. Recording is the stated focus, and a determination you cannot attach
