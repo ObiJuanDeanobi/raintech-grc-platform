@@ -120,6 +120,14 @@ outstanding acceptance criterion, so the issue stays open.
 - GitHub issue #20 closed. Three acceptance criteria were superseded when the
   prototype collapsed to the selected Variant A, as recorded in
   `docs/prototypes/v1-ui-prototype-review.md`.
+- Prompt volume accepted July 29, 2026, authorising full ingestion on issue #29,
+  with the governing assessment/guidance boundary and the curation rule
+  delegated to the implementation agent.
+- NIST section resolution fixed and guarded. 22/22 Security standards now
+  resolve to distinct 800-66r2 sections yielding 443 raw prompts. The guard is
+  corpus-wide by design: every standard resolves, no two share a prompt list,
+  and per-standard counts are pinned. CI installs a pinned PyMuPDF for that one
+  step and fails rather than skips if it is unavailable.
 - ADR 0012 accepted: a framework is defined by data, not application code.
   Record shape, rollup rule, status set and presentation mode are declared per
   framework version. Ingestion stays bespoke per source. This constrains the
@@ -131,18 +139,17 @@ outstanding acceptance criterion, so the issue stays open.
   The subordinate-paragraph presentation decision is settled. Review continues
   against stable citation-based record boundaries.
 - GitHub issue #29: prompt volume accepted July 29, 2026, so full ingestion is
-  authorised. Ingestion has **not** started. A blocking defect in NIST section
-  resolution was found and verified first, and is recorded in the issue:
-  seven of eight 164.308(a)(N) standards extracted Security Management Process's
-  prompts instead of their own, and seven further standards extracted nothing.
-  Only 164.308(a)(1) -- the standard the approved sample was built from -- was
-  correct, so a single-standard sample could not expose it. The fix is verified
-  and gives 22/22 standards resolving with 443 distinct raw prompts. The
-  approved 22-prompt curated set is unaffected; only the raw count for that
-  standard changes, from 45 to 40.
-  Three pieces remain unbuilt: general Security routing to replace the
-  eight-entry hand table, general curation under the July 29 delegation, and
-  Privacy and Breach role classification across 731 child paragraphs.
+  authorised. The blocking NIST section-resolution defect is **fixed**. Section
+  headings are now parsed once with balanced-paren citation capture, page ranges
+  come from consecutive headings, and a NIST citation resolves to a catalog
+  standard allowing a trailing `(1)` and/or `(i)`. All 22 Security standards
+  resolve to distinct sections, 443 raw prompts, no two standards sharing a
+  prompt list. The approved 22-prompt curated set is unchanged; only the raw
+  count for 164.308(a)(1) moves, from 45 to 40.
+  Ingestion itself has **not** started. Three pieces remain unbuilt: general
+  Security routing to replace the eight-entry hand table, general curation under
+  the July 29 delegation, and Privacy and Breach role classification across 731
+  child paragraphs.
 
 ## Blocked
 
@@ -155,11 +162,6 @@ outstanding acceptance criterion, so the issue stays open.
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
-- **Prompt volume — Johnathan.** For 45 CFR 164.308(a)(1), the cleaned sample
-  keeps 22 of 45 raw NIST questions: 5 for Risk Analysis, 6 for Risk Management,
-  4 for Sanction Policy, and 7 for Activity Review. Is roughly five or six
-  prompts per determination useful during a live or mock assessment, or should
-  the set be thinner? Blocks the full ingest on issue #29.
 - **Evidence mapping in Slice 4 — Johnathan.** Neither assessment mockup has an
   evidence attachment point, because Evidence is Slice 5, after both assessment
   surfaces. Recording is the stated focus, and a determination you cannot attach
@@ -207,12 +209,21 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Review the 22 cleaned and routed Security prompts in
-`docs/catalogs/spike-walkthrough-prompts.md` as if conducting a mock or live
-assessment. Mark any prompt that should be kept, merged, treated as context, or
-removed; then decide whether issue #29 should proceed to full ingestion.
+Full issue #29 prompt ingestion, in the order the fix unblocked:
 
-Slice 4 continues once that lands.
+1. General Security routing. Replace `SECURITY_SAMPLE_CURATION`, a hand-written
+   table covering one standard, with the approved rule: a key activity carrying
+   an `Implementation Specification (Required|Addressable)` marker routes to the
+   specification it names; the 95 unmarked activities stay on the parent as
+   introductory guidance. The general rule must reproduce the approved
+   164.308(a)(1) result, or the rule is wrong.
+2. General curation under the July 29 delegation.
+3. Privacy and Breach role classification across 731 child paragraphs beneath
+   84 records, as `assessment_check` / `applicability_note` / `context`.
+4. Full ingest and export, records unchanged at 194.
+
+Then Johnathan reviews one fully-prompted standard from each source path. No
+assessment UI work before that.
 
 ## Deferred decisions and their triggers
 

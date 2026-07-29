@@ -18,6 +18,13 @@
   "warnings": [
     "No enumerated sub-paragraphs found beneath 164.520(e)."
   ],
+  "review_summary": {
+    "security": {
+      "raw_prompt_count": 40,
+      "kept_prompt_count": 22,
+      "omitted_prompt_count": 18
+    }
+  },
   "entries": [
     {
       "record_id": "164.308(a)(1)(i)",
@@ -617,12 +624,5 @@
       "path": "cfr-enumeration",
       "prompts": []
     }
-  ],
-  "review_summary": {
-    "security": {
-      "raw_prompt_count": 45,
-      "kept_prompt_count": 22,
-      "omitted_prompt_count": 23
-    }
-  }
+  ]
 }

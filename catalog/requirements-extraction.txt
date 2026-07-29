@@ -1,0 +1,6 @@
+# Ingestion-only dependencies. Needed to extract key-activity tables from the
+# pinned NIST SP 800-66r2 PDF; never imported by the application.
+#
+# Pinned because extraction must be deterministic: a different PyMuPDF can
+# find table boundaries differently and silently change the prompt corpus.
+pymupdf==1.28.0

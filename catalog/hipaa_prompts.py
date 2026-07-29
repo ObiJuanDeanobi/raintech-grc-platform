@@ -196,40 +196,86 @@ def route_security_sample(
 # --------------------------------------------------------------------------
 
 
-def nist_section_bounds(doc, citation: str) -> tuple[int, int]:
-    """Page range covering one standard's section in 800-66r2.
+# A section heading reads "5.1.1. Security Management Process (§ 164.308(a)(1))".
+# The citation group is greedy over balanced (x) parts, so a heading is never
+# matched on a truncated prefix of its citation. Matching on a prefix is what
+# made every 164.308(a)(N) standard resolve to §5.1.1 and return Security
+# Management Process's prompts.
+NIST_HEADING_RE = re.compile(
+    r"^(5\.\d+\.\d+)\.\s+(.+?)\s+\(§\s*(164\.\d+(?:\([0-9a-zA-Z]+\))*)\)",
+    re.M,
+)
+# Section 5 ends where the back matter begins; the last standard has no
+# following heading to bound it.
+NIST_BODY_END_RE = re.compile(r"^(?:6\.\s|References\b|Appendix\s+A\b)", re.M)
+# The table of contents repeats every heading verbatim in the front matter.
+# Only the body occurrences carry the key-activity tables.
+NIST_BODY_START_PAGE = 20
 
-    Section headings look like "5.1.1. Security Management Process
-    (§ 164.308(a)(1))". The body heading is the one that matters; contents
-    entries repeat the same text early in the document, so the search starts
-    past the front matter.
+# NIST cites a standard by its containing CFR paragraph; the catalog cites the
+# record. They diverge wherever the regulation nests the standard one or two
+# levels deeper -- NIST's §164.310(a) is the catalog's 164.310(a)(1), and
+# §164.308(a)(1) is 164.308(a)(1)(i). These are the suffixes that difference
+# can take. Anything beyond them is a genuine mismatch and stays unresolved.
+NIST_CITATION_SUFFIXES = ("", "(1)", "(i)", "(1)(i)")
+
+_HEADING_CACHE: dict[int, list[tuple[str, str, str, int]]] = {}
+
+
+def nist_headings(doc) -> list[tuple[str, str, str, int]]:
+    """Every section-5 body heading as (number, title, citation, page).
+
+    Parsed once per document and ordered by page, so each section's page range
+    is derived from where the next one starts rather than re-scanned per
+    standard.
     """
-    stem = citation.split("(")[0]
-    para = citation[len(stem):]
-    heading = re.compile(
-        r"^5\.\d+\.\d+\.\s+.+?\(§\s*" + re.escape(stem) + re.escape(para[:4]),
-        re.M,
+    cached = _HEADING_CACHE.get(id(doc))
+    if cached is not None:
+        return cached
+
+    headings: list[tuple[str, str, str, int]] = []
+    for pno in range(NIST_BODY_START_PAGE, doc.page_count):
+        for match in NIST_HEADING_RE.finditer(doc[pno].get_text()):
+            headings.append(
+                (match.group(1), clean(match.group(2)), match.group(3), pno)
+            )
+
+    _HEADING_CACHE[id(doc)] = headings
+    return headings
+
+
+def nist_body_end(doc) -> int:
+    """First page of the back matter, bounding the final standard."""
+    last_start = max((page for _, _, _, page in nist_headings(doc)), default=-1)
+    for pno in range(last_start + 1, doc.page_count):
+        if NIST_BODY_END_RE.search(doc[pno].get_text()):
+            return pno
+    return doc.page_count
+
+
+def resolve_nist_citation(nist_citation: str, catalog_citation: str) -> bool:
+    """Does a NIST heading citation name this catalog standard?"""
+    return any(
+        nist_citation + suffix == catalog_citation
+        for suffix in NIST_CITATION_SUFFIXES
     )
-    any_heading = re.compile(r"^5\.\d+\.\d+\.\s+.+?\(§\s*164\.", re.M)
 
-    start = None
-    for pno in range(20, doc.page_count):
-        if heading.search(doc[pno].get_text()):
-            start = pno
-            break
-    if start is None:
-        return (-1, -1)
 
-    end = doc.page_count
-    for pno in range(start + 1, doc.page_count):
-        text = doc[pno].get_text()
-        for m in any_heading.finditer(text):
-            if not heading.search(m.group(0)):
-                end = pno + 1
-                break
-        if end != doc.page_count:
-            break
-    return (start, end)
+def nist_section_bounds(doc, citation: str) -> tuple[int, int]:
+    """Page range covering one catalog standard's section in 800-66r2.
+
+    Returns (-1, -1) when 800-66r2 documents no section for the standard.
+    """
+    headings = nist_headings(doc)
+    for index, (_, _, nist_citation, page) in enumerate(headings):
+        if not resolve_nist_citation(nist_citation, citation):
+            continue
+        if index + 1 < len(headings):
+            end = headings[index + 1][3]
+            # A heading can share a page with the tail of the section above it.
+            return (page, max(end, page + 1))
+        return (page, nist_body_end(doc))
+    return (-1, -1)
 
 
 def extract_nist_prompts(citation: str) -> tuple[list[Prompt], list[str]]:
