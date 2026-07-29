@@ -146,10 +146,15 @@ outstanding acceptance criterion, so the issue stays open.
   resolve to distinct sections, 443 raw prompts, no two standards sharing a
   prompt list. The approved 22-prompt curated set is unchanged; only the raw
   count for 164.308(a)(1) moves, from 45 to 40.
-  Ingestion itself has **not** started. Three pieces remain unbuilt: general
-  Security routing to replace the eight-entry hand table, general curation under
-  the July 29 delegation, and Privacy and Breach role classification across 731
-  child paragraphs.
+  General Security routing is **built** and replaces the eight-entry hand
+  table: marked key activities route to the specification they name, unmarked
+  activities stay on the parent as introductory guidance, and collectively
+  marked activities are split question by question. All 22 standards route with
+  no warnings, every implementation specification receives prompts, and the
+  result is committed at `docs/catalogs/security-prompt-routing.md`.
+  Two pieces remain unbuilt: general curation under the July 29 delegation,
+  which is blocked on the routing question below, and Privacy and Breach role
+  classification across 731 child paragraphs, which is not blocked.
 
 ## Blocked
 
@@ -162,6 +167,15 @@ outstanding acceptance criterion, so the issue stays open.
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
+- **Unmarked key activities — Johnathan.** The general routing rule and the
+  approved 164.308(a)(1) sample agree on 14 of 22 prompts and disagree on 8.
+  All 8 are unmarked key activities the hand curation routed to a specification
+  by judgement — "Identify All ePHI" plainly informs Risk analysis, but NIST
+  attaches no marker and the phrase shares no vocabulary with the title, so no
+  mechanical rule recovers it. Either unmarked activities stay parent guidance
+  as the July 28 decision reads, or the rule is followed by per-standard
+  judgement over 67 unmarked activities. Recorded in full on issue #29.
+  Blocks general curation.
 - **Evidence mapping in Slice 4 — Johnathan.** Neither assessment mockup has an
   evidence attachment point, because Evidence is Slice 5, after both assessment
   surfaces. Recording is the stated focus, and a determination you cannot attach
@@ -209,18 +223,17 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Full issue #29 prompt ingestion, in the order the fix unblocked:
+Johnathan answers the unmarked-key-activity question above, on issue #29. It
+decides the shape of every Security prompt set, so curating before it is
+answered would curate the wrong input.
 
-1. General Security routing. Replace `SECURITY_SAMPLE_CURATION`, a hand-written
-   table covering one standard, with the approved rule: a key activity carrying
-   an `Implementation Specification (Required|Addressable)` marker routes to the
-   specification it names; the 95 unmarked activities stay on the parent as
-   introductory guidance. The general rule must reproduce the approved
-   164.308(a)(1) result, or the rule is wrong.
-2. General curation under the July 29 delegation.
-3. Privacy and Breach role classification across 731 child paragraphs beneath
+In parallel, and not blocked by it:
+
+1. Privacy and Breach role classification across 731 child paragraphs beneath
    84 records, as `assessment_check` / `applicability_note` / `context`.
-4. Full ingest and export, records unchanged at 194.
+2. General curation under the July 29 delegation, once the routing question is
+   answered.
+3. Full ingest and export, records unchanged at 194.
 
 Then Johnathan reviews one fully-prompted standard from each source path. No
 assessment UI work before that.
