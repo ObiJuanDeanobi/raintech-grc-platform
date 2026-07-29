@@ -58,8 +58,18 @@ SAMPLE_PRIVACY = "164.520"
 # A 800-66r2 key activity cell names its implementation specification and
 # designation when it has one, e.g. "2. Conduct Risk Assessment / Implementation
 # Specification (Required)".
+#
+# One activity can cover several specifications, and the source marks those
+# collectively -- "Implementation Specifications (Both Required)", "(All
+# Addressable)". Missing the plural form leaves those specifications with no
+# prompts at all, which is how seven of them came to be unrouted.
+#
+# The parenthesis is load-bearing: 164.308(a)(8) has an activity about
+# "Reviewing All Standards and Implementation Specifications of the Security
+# Rule", which is prose about the Rule and not a marker.
 SPEC_MARKER_RE = re.compile(
-    r"Implementation Specification\s*\((Required|Addressable)\)", re.I
+    r"Implementation Specifications?\s*\((?:Both\s+|All\s+)?(Required|Addressable)\)",
+    re.I,
 )
 # Footnote markers ride along on the activity name: "Conduct Risk Assessment31 32".
 FOOTNOTE_TAIL_RE = re.compile(r"(?<=[a-z)])\d{1,3}(?:\s+\d{1,3})*\s*$")
@@ -142,6 +152,129 @@ SECURITY_SAMPLE_CURATION: dict[str, tuple[str, tuple[str, ...]]] = {
 
 def clean(text: str) -> str:
     return " ".join((text or "").split())
+
+
+# --------------------------------------------------------------------------
+# Routing a key activity to the record whose determination it informs
+# --------------------------------------------------------------------------
+
+# Words carrying no discriminating power between one implementation
+# specification title and another.
+TITLE_STOPWORDS = frozenset(
+    {
+        "a", "an", "and", "andor", "as", "at", "by", "for", "from", "in", "is",
+        "of", "or", "that", "the", "to", "with",
+    }
+)
+# NIST paraphrases a specification's title rather than quoting it, and the two
+# inflect differently -- "Authorizing Access" against "Access authorization",
+# "Documentation is Available" against "Availability". Comparing a fixed-length
+# prefix is crude, but it is transparent, it is testable, and every pairing it
+# produces is committed to a reviewable artifact rather than trusted silently.
+STEM_LENGTH = 5
+# Every title word present. Strong enough to let one activity name two or three
+# specifications, which the source does: "Data Backup Plan and Disaster
+# Recovery Plan", "Protection from Malicious Software, Login Monitoring, and
+# Password Management".
+STRONG_MATCH = 1.0
+# Enough shared title words to be the best candidate, used only when a single
+# specification outscores the rest. "Isolate Healthcare Clearinghouse
+# Functions" reaches this against "Isolating health care clearinghouse
+# functions" but not STRONG_MATCH, because the source writes "healthcare" where
+# the regulation writes "health care".
+WEAK_MATCH = 0.5
+
+
+def stems(text: str) -> set[str]:
+    """Discriminating word stems in a title or activity name.
+
+    Hyphens and slashes are dropped rather than split on, so the source's
+    "Login" matches the regulation's "Log-in" and "re-use" matches "reuse".
+    """
+    flattened = re.sub(r"[-/']", "", (text or "").lower())
+    words = re.findall(r"[a-z0-9]+", flattened)
+    return {
+        word[:STEM_LENGTH]
+        for word in words
+        if word not in TITLE_STOPWORDS and len(word) > 1
+    }
+
+
+def title_match_score(spec_title: str, activity: str) -> float:
+    """How much of a specification's title the activity name accounts for."""
+    title_stems = stems(spec_title)
+    if not title_stems:
+        return 0.0
+    return len(title_stems & stems(activity)) / len(title_stems)
+
+
+def route_activities_to_specs(
+    activities: list[str], specs: list[dict], standard_id: str
+) -> tuple[dict[str, list[str]], list[str]]:
+    """Map each marked key activity to the specification records it names.
+
+    Only activities carrying an "Implementation Specification (Required |
+    Addressable)" marker are routed; an unmarked activity addresses the
+    standard as a whole and stays on the parent as introductory guidance.
+
+    Returns (activity -> record ids, warnings). Nothing is guessed: an activity
+    that cannot be resolved is reported rather than attached to a plausible
+    record, because a prompt on the wrong determination is worse than a prompt
+    that is missing.
+    """
+    warnings: list[str] = []
+    if not specs:
+        return {}, warnings
+
+    routed: dict[str, list[str]] = {}
+    spec_ids = [spec["id"] for spec in specs]
+
+    # A standard with one specification needs no title matching, and would not
+    # survive it: 164.314(a)(1)'s sole child is titled "Implementation
+    # specifications", which shares no vocabulary with any activity naming it.
+    if len(specs) == 1:
+        return {activity: [spec_ids[0]] for activity in activities}, warnings
+
+    unresolved: list[str] = []
+    for activity in activities:
+        scores = [
+            (title_match_score(spec["title"], activity), spec["id"]) for spec in specs
+        ]
+        strong = [spec_id for score, spec_id in scores if score >= STRONG_MATCH]
+        if strong:
+            routed[activity] = strong
+            continue
+
+        best = max(scores)
+        contenders = [spec_id for score, spec_id in scores if score == best[0]]
+        if best[0] >= WEAK_MATCH and len(contenders) == 1:
+            routed[activity] = contenders
+            continue
+        unresolved.append(activity)
+
+    # An activity whose paraphrase shares no vocabulary with its specification
+    # -- "Retain Documentation for at Least Six Years" against "Time limit" --
+    # is resolvable only when it and one specification are all that remain.
+    # Anything less certain is reported.
+    covered = {spec_id for ids in routed.values() for spec_id in ids}
+    remaining = [spec_id for spec_id in spec_ids if spec_id not in covered]
+    if len(unresolved) == 1 and len(remaining) == 1:
+        routed[unresolved[0]] = remaining
+        unresolved = []
+        remaining = []
+
+    for activity in unresolved:
+        warnings.append(
+            f"{standard_id}: key activity {activity!r} is marked as an "
+            "implementation specification but names no specification of this "
+            "standard; its questions stay on the parent."
+        )
+    for spec_id in remaining:
+        warnings.append(
+            f"{spec_id}: no 800-66r2 key activity routes to this "
+            "implementation specification."
+        )
+    return routed, warnings
 
 
 def strip_footnotes(name: str) -> str:
@@ -295,6 +428,9 @@ def extract_nist_prompts(citation: str) -> tuple[list[Prompt], list[str]]:
 
     prompts: list[Prompt] = []
     warnings: list[str] = []
+    # A marker applies to every question of its activity, including questions
+    # extracted from an earlier row of the same activity.
+    group_designation: dict[str, str] = {}
 
     for pno in range(start, min(end, doc.page_count)):
         for table in doc[pno].find_tables():
@@ -323,6 +459,19 @@ def extract_nist_prompts(citation: str) -> tuple[list[Prompt], list[str]]:
                 activity = SPEC_MARKER_RE.sub("", activity_raw)
                 activity = strip_footnotes(ACTIVITY_NUM_RE.sub("", activity))
 
+                # A marker can land in its own row, separated from the activity
+                # it belongs to: 164.312(a)(1) splits "Automatic Logoff and
+                # Encryption and Decryption" from "Implementation
+                # Specifications (Both Addressable)". Without rejoining them
+                # the activity looks unmarked and its two specifications go
+                # unrouted.
+                if not activity and prompts:
+                    activity = prompts[-1].group
+                if not activity:
+                    continue
+                if designation:
+                    group_designation[activity] = designation
+
                 for question in BULLET_SPLIT_RE.split(questions_raw):
                     question = strip_question_footnotes(question)
                     if len(question) < 12 or "?" not in question:
@@ -337,11 +486,86 @@ def extract_nist_prompts(citation: str) -> tuple[list[Prompt], list[str]]:
                         )
                     )
 
+    prompts = [
+        replace(prompt, designation=group_designation.get(prompt.group))
+        for prompt in prompts
+    ]
+
     if not prompts:
         warnings.append(
             f"800-66r2 section for {citation} found but no sample questions parsed."
         )
     return prompts, warnings
+
+
+def route_security_prompts(
+    standard_id: str, records: dict[str, dict], prompts: list[Prompt]
+) -> tuple[dict[str, list[Prompt]], list[str]]:
+    """Attach a standard's prompts to the records that carry the determination.
+
+    Approved July 28, 2026: questions from a key activity that identifies an
+    implementation specification attach to that specification, because the
+    determination they inform is made there. Genuinely standard-wide questions
+    stay on the parent as introductory guidance.
+
+    A parent with implementation specifications has no editable determination,
+    so guidance is all a prompt on it can be. A bare standard carries its own
+    determination and every prompt attaches to it.
+    """
+    specs = [
+        record
+        for record in records.values()
+        if record.get("parent_id") == standard_id
+        and record["record_type"] == "implementation_specification"
+    ]
+    marked = sorted({prompt.group for prompt in prompts if prompt.designation})
+    routed_activities, warnings = route_activities_to_specs(
+        marked, specs, standard_id
+    )
+
+    by_id = {spec["id"]: spec for spec in specs}
+    routed: dict[str, list[Prompt]] = {standard_id: []}
+    for spec in specs:
+        routed[spec["id"]] = []
+    for prompt in prompts:
+        targets = routed_activities.get(prompt.group, [standard_id])
+        if len(targets) > 1:
+            targets = route_question_within_activity(prompt.text, targets, by_id)
+        for record_id in targets:
+            routed[record_id].append(prompt)
+    return routed, warnings
+
+
+def route_question_within_activity(
+    question: str, spec_ids: list[str], by_id: dict[str, dict]
+) -> list[str]:
+    """Narrow a collectively-marked activity's question to the specifications
+    it actually addresses.
+
+    Where one activity covers several specifications the source still writes
+    its questions one specification at a time -- under 164.312(a)(1)'s
+    "Automatic Logoff and Encryption and Decryption", three questions ask about
+    logoff and five about encryption. Attaching all eight to both records would
+    put five irrelevant questions on each determination.
+
+    A question that addresses several of them genuinely, such as "Is there a
+    formal, written contingency plan? Does it address disaster recovery and
+    data backup?", keeps all the specifications it names.
+    """
+    scores = [
+        (title_match_score(by_id[spec_id]["title"], question), spec_id)
+        for spec_id in spec_ids
+    ]
+    strong = [spec_id for score, spec_id in scores if score >= STRONG_MATCH]
+    if strong:
+        return strong
+
+    best = max(score for score, _ in scores)
+    contenders = [spec_id for score, spec_id in scores if score == best]
+    if best >= WEAK_MATCH and len(contenders) == 1:
+        return contenders
+    # Undecidable at the question level; the activity's own reading stands.
+    return spec_ids
 
 
 # --------------------------------------------------------------------------
@@ -506,11 +730,134 @@ def build_sample() -> dict:
     }
 
 
+def security_standards(records: dict[str, dict]) -> list[str]:
+    return [
+        record["id"]
+        for record in records.values()
+        if record["work_area"] == "security" and record["record_type"] == "standard"
+    ]
+
+
+def build_security_routing() -> tuple[dict, list[str]]:
+    """Route every Security Rule standard's prompts across the whole corpus."""
+    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
+    records = {record["id"]: record for record in catalog["records"]}
+
+    routing: dict[str, dict] = {}
+    warnings: list[str] = []
+    for standard_id in security_standards(records):
+        prompts, extract_warnings = extract_nist_prompts(standard_id)
+        warnings.extend(extract_warnings)
+        routed, route_warnings = route_security_prompts(standard_id, records, prompts)
+        warnings.extend(route_warnings)
+        routing[standard_id] = {
+            "raw_prompt_count": len(prompts),
+            "records": routed,
+        }
+    return routing, warnings
+
+
+def render_security_routing(routing: dict, warnings: list[str]) -> str:
+    """A reviewable account of where every Security prompt landed and why.
+
+    Committed so the routing can be read by a practitioner rather than trusted
+    because a test passed.
+    """
+    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
+    records = {record["id"]: record for record in catalog["records"]}
+
+    total = sum(
+        len(prompts)
+        for entry in routing.values()
+        for prompts in entry["records"].values()
+    )
+    lines = [
+        "# Security Rule prompt routing",
+        "",
+        "_Generated by `catalog/hipaa_prompts.py --routing`. Do not edit by hand._",
+        "",
+        "Every NIST SP 800-66r2 sample question for the 22 Security Rule "
+        "standards, and the record whose determination it informs.",
+        "",
+        "A key activity carrying an `Implementation Specification "
+        "(Required | Addressable)` marker routes its questions to the "
+        "specification it names. An unmarked activity addresses the standard "
+        "as a whole, so its questions stay on the parent as introductory "
+        "guidance; the parent's status is derived from its children and it "
+        "carries no editable determination.",
+        "",
+        "Prompts carry no status, produce no findings, and never appear in a "
+        "report as assessable items.",
+        "",
+        f"**{len(routing)} standards · {total} routed prompts · "
+        f"{len(warnings)} warnings**",
+        "",
+    ]
+
+    for standard_id, entry in routing.items():
+        standard = records[standard_id]
+        lines.append(f"## 45 CFR {standard_id} — {standard['title']}")
+        lines.append("")
+        lines.append(f"_{entry['raw_prompt_count']} questions in 800-66r2._")
+        lines.append("")
+        lines.append("| Record | Title | Designation | Prompts |")
+        lines.append("|---|---|---|---|")
+        for record_id, prompts in entry["records"].items():
+            record = records[record_id]
+            role = (
+                "parent guidance"
+                if record_id == standard_id and len(entry["records"]) > 1
+                else record.get("designation") or "determination"
+            )
+            lines.append(
+                f"| {record_id} | {record['title']} | {role} | {len(prompts)} |"
+            )
+        lines.append("")
+        for record_id, prompts in entry["records"].items():
+            if not prompts:
+                continue
+            lines.append(f"**{record_id}**")
+            lines.append("")
+            for prompt in prompts:
+                lines.append(f"- {prompt.text}  \n  _{prompt.source_detail}_")
+            lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    if warnings:
+        lines.append("## Warnings")
+        lines.append("")
+        lines.extend(f"- {warning}" for warning in warnings)
+        lines.append("")
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sample", action="store_true", default=True)
+    parser.add_argument(
+        "--routing",
+        action="store_true",
+        help="Render Security Rule prompt routing across all 22 standards.",
+    )
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+
+    if args.routing:
+        routing, warnings = build_security_routing()
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(
+            render_security_routing(routing, warnings), encoding="utf-8"
+        )
+        total = sum(
+            len(prompts)
+            for entry in routing.values()
+            for prompts in entry["records"].values()
+        )
+        print(f"Wrote {args.out}: {len(routing)} standards, {total} prompts")
+        for warning in warnings:
+            print(f"  WARNING: {warning}")
+        return 0
 
     try:
         data = build_sample()

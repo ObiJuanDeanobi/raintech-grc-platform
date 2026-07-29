@@ -171,6 +171,96 @@ class ExtractionCorpusTest(unittest.TestCase):
         self.assertEqual(sum(counts.values()), 443)
 
 
+class SecurityRoutingTest(unittest.TestCase):
+    """The general routing rule, measured across all 22 standards.
+
+    The rule it implements was approved July 28, 2026: a key activity that
+    identifies an implementation specification routes its questions there;
+    genuinely standard-wide activities stay on the parent as guidance.
+    """
+
+    _routing = None
+
+    def routing(self):
+        # Extracting all 22 sections takes seconds, so it is done once for the
+        # whole class rather than once per assertion.
+        if SecurityRoutingTest._routing is None:
+            open_pdf()
+            from hipaa_prompts import build_security_routing
+
+            SecurityRoutingTest._routing = build_security_routing()
+        return SecurityRoutingTest._routing
+
+    def test_routing_covers_the_corpus_without_warnings(self):
+        routing, warnings = self.routing()
+        self.assertEqual(len(routing), 22)
+        self.assertEqual(warnings, [])
+
+    def test_every_implementation_specification_receives_prompts(self):
+        """An empty determination is a gap in the walkthrough, not a result."""
+        routing, _ = self.routing()
+        empty = [
+            record_id
+            for standard_id, entry in routing.items()
+            for record_id, prompts in entry["records"].items()
+            if not prompts and record_id != standard_id
+        ]
+        self.assertEqual(empty, [])
+
+    def test_no_prompt_is_dropped_or_duplicated_without_cause(self):
+        """Routing moves prompts; it must not lose them.
+
+        One question above the raw total is expected and is the only one:
+        164.308(a)(7)(i) asks whether the contingency plan "address[es]
+        disaster recovery and data backup", naming two specifications, so it
+        informs both determinations.
+        """
+        routing, _ = self.routing()
+        raw = sum(entry["raw_prompt_count"] for entry in routing.values())
+        routed = sum(
+            len(prompts)
+            for entry in routing.values()
+            for prompts in entry["records"].values()
+        )
+        self.assertEqual(raw, 443)
+        self.assertEqual(routed, 444)
+
+    def test_a_bare_standard_keeps_every_prompt_on_itself(self):
+        """With no specifications there is nowhere else a determination lives."""
+        routing, _ = self.routing()
+        for standard_id in ("164.308(a)(2)", "164.310(b)", "164.316(a)"):
+            entry = routing[standard_id]
+            self.assertEqual(list(entry["records"]), [standard_id])
+            self.assertEqual(
+                len(entry["records"][standard_id]), entry["raw_prompt_count"]
+            )
+
+    def test_collectively_marked_activities_split_by_question(self):
+        """164.312(a)(1) marks logoff and encryption in one activity.
+
+        Attaching all eight questions to both records would put four
+        irrelevant questions on each determination.
+        """
+        routing, _ = self.routing()
+        records = routing["164.312(a)(1)"]["records"]
+        logoff = [p.text for p in records["164.312(a)(2)(iii)"]]
+        encryption = [p.text for p in records["164.312(a)(2)(iv)"]]
+        self.assertTrue(logoff and encryption)
+        self.assertEqual(set(logoff) & set(encryption), set())
+        self.assertTrue(any("automatic logoff" in t.lower() for t in logoff))
+        self.assertTrue(any("encryption" in t.lower() for t in encryption))
+
+    def test_committed_routing_artifact_is_current(self):
+        from hipaa_prompts import render_security_routing
+
+        routing, warnings = self.routing()
+        committed = REPO_ROOT / "docs" / "catalogs" / "security-prompt-routing.md"
+        self.assertEqual(
+            committed.read_text(encoding="utf-8"),
+            render_security_routing(routing, warnings),
+        )
+
+
 class SampleReproducibilityTest(unittest.TestCase):
     def test_committed_sample_is_reproducible_from_the_pinned_source(self):
         """The committed fixture had drifted from the script that emits it."""
