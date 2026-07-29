@@ -157,15 +157,17 @@ outstanding acceptance criterion, so the issue stays open.
   resolve to distinct sections, 443 raw prompts, no two standards sharing a
   prompt list. The approved 22-prompt curated set is unchanged; only the raw
   count for 164.308(a)(1) moves, from 45 to 40.
-  General Security routing is **built** and replaces the eight-entry hand
-  table: marked key activities route to the specification they name, unmarked
-  activities stay on the parent as introductory guidance, and collectively
-  marked activities are split question by question. All 22 standards route with
-  no warnings, every implementation specification receives prompts, and the
-  result is committed at `docs/catalogs/security-prompt-routing.md`.
-  Two pieces remain unbuilt: general curation under the July 29 delegation,
-  which is blocked on the routing question below, and Privacy and Breach role
-  classification across 731 child paragraphs, which is not blocked.
+  General Security routing is **built** and committed at
+  `docs/catalogs/security-prompt-routing.md`: 22/22 standards route, every
+  implementation specification receives prompts, no warnings.
+  Privacy and Breach role classification is **built** and committed at
+  `docs/catalogs/privacy-breach-classification.md`: 721 child paragraphs
+  beneath 81 records, 514 assessment checks, 169 context, 38 applicability
+  notes, each with the signal that decided it. Tested that no operative
+  must/shall requirement is hidden as a non-check.
+  Two review artifacts now await Johnathan's practitioner read — one Security
+  standard and one Privacy standard, the CMMC-feel check. General curation and
+  the full nested ingest follow that read.
 
 ## Blocked
 
@@ -225,20 +227,19 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Johnathan answers the unmarked-key-activity question above, on issue #29. It
-decides the shape of every Security prompt set, so curating before it is
-answered would curate the wrong input.
+Johnathan reads the two committed review artifacts as if running an assessment
+and says whether they feel right:
 
-In parallel, and not blocked by it:
+- `docs/catalogs/security-prompt-routing.md` — where every NIST question landed
+  across the 22 Security standards, and whether any parent-guidance question
+  should be promoted onto a specific child determination.
+- `docs/catalogs/privacy-breach-classification.md` — the role given to every
+  Privacy and Breach child paragraph, and whether any check / note / context
+  call reads wrong.
 
-1. Privacy and Breach role classification across 731 child paragraphs beneath
-   84 records, as `assessment_check` / `applicability_note` / `context`.
-2. General curation under the July 29 delegation, once the routing question is
-   answered.
-3. Full ingest and export, records unchanged at 194.
-
-Then Johnathan reviews one fully-prompted standard from each source path. No
-assessment UI work before that.
+Both are mechanical first passes built to be corrected. Corrections feed the
+general curation pass; then the full nested ingest and export, records
+unchanged at 194. No assessment UI work before that.
 
 ## Deferred decisions and their triggers
 
