@@ -165,9 +165,11 @@ outstanding acceptance criterion, so the issue stays open.
   beneath 81 records, 514 assessment checks, 169 context, 38 applicability
   notes, each with the signal that decided it. Tested that no operative
   must/shall requirement is hidden as a non-check.
-  Two review artifacts now await Johnathan's practitioner read — one Security
-  standard and one Privacy standard, the CMMC-feel check. General curation and
-  the full nested ingest follow that read.
+  Full ingestion is **done**: 1163 prompts beneath 142 of the 194 records,
+  pinned at `catalog/versions/hipaa-45cfr164-2026-07-01-prompts.json` and
+  nested under each record in the export. The catalog itself is untouched and
+  still rebuilds byte-identically. What remains is Johnathan's practitioner
+  read of the rendered walkthrough.
 
 ## Blocked
 
@@ -227,19 +229,23 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Johnathan reads the two committed review artifacts as if running an assessment
-and says whether they feel right:
+Johnathan reads `docs/catalogs/hipaa-45cfr164-2026-07-01.md` — the catalog with
+its prompts nested beneath each record — as if conducting a mock assessment.
+Two standards carry the acceptance criterion, one per source path:
 
-- `docs/catalogs/security-prompt-routing.md` — where every NIST question landed
-  across the 22 Security standards, and whether any parent-guidance question
-  should be promoted onto a specific child determination.
-- `docs/catalogs/privacy-breach-classification.md` — the role given to every
-  Privacy and Breach child paragraph, and whether any check / note / context
-  call reads wrong.
+- **45 CFR 164.308(a)(1)** (Security, from 800-66r2) — do the questions sit on
+  the determination they inform, and does any parent-guidance question belong
+  on a specific child?
+- **45 CFR 164.520** (Privacy, from the rule's own enumeration) — does any
+  check / applicability-note / context call read wrong?
 
-Both are mechanical first passes built to be corrected. Corrections feed the
-general curation pass; then the full nested ingest and export, records
-unchanged at 194. No assessment UI work before that.
+Marks become an explicit exceptions list, applied on top of the mechanical
+rules rather than replacing them. Two supporting artifacts explain *why* a
+prompt landed where it did, for use when something looks wrong:
+`docs/catalogs/security-prompt-routing.md` and
+`docs/catalogs/privacy-breach-classification.md`.
+
+Slice 4's assessment surface follows that review. No UI work before it.
 
 ## Deferred decisions and their triggers
 
