@@ -16,11 +16,11 @@ _40 questions in 800-66r2._
 
 | Record | Title | Designation | Prompts |
 |---|---|---|---|
-| 164.308(a)(1)(i) | Security management process | parent guidance | 20 |
+| 164.308(a)(1)(i) | Security management process | parent guidance | 18 |
 | 164.308(a)(1)(ii)(A) | Risk analysis | required | 2 |
 | 164.308(a)(1)(ii)(B) | Risk management | required | 6 |
 | 164.308(a)(1)(ii)(C) | Sanction policy | required | 5 |
-| 164.308(a)(1)(ii)(D) | Information system activity review | required | 7 |
+| 164.308(a)(1)(ii)(D) | Information system activity review | required | 9 |
 
 **164.308(a)(1)(i)**
 
@@ -53,17 +53,13 @@ _40 questions in 800-66r2._
 - Is there a formal contingency plan?  
   _Key activity: Create and Deploy Policies and Procedures_
 - Is there a process for communicating policies and procedures to the affected employees?  
-  _Key activity: • Create procedures to be followed to accomplish particular security-related tasks. • Establish a frequency for reviewing policy and procedures._
+  _Key activity: Create and Deploy Policies and Procedures_
 - Are policies and procedures reviewed and updated as needed?  
-  _Key activity: • Create procedures to be followed to accomplish particular security-related tasks. • Establish a frequency for reviewing policy and procedures._
+  _Key activity: Create and Deploy Policies and Procedures_
 - How will exception reports or logs be reviewed?  
   _Key activity: Develop Appropriate Standard Operating Procedures_
 - Where will monitoring reports and their reviews be documented and maintained?  
   _Key activity: Develop Appropriate Standard Operating Procedures_
-- What mechanisms will be implemented to assess the effectiveness of the review process (measures)?  
-  _Key activity: Implement the Information System Activity Review and Audit Process_
-- What is the plan to revise the review process when needed?  
-  _Key activity: Implement the Information System Activity Review and Audit Process_
 
 **164.308(a)(1)(ii)(A)**
 
@@ -116,6 +112,10 @@ _40 questions in 800-66r2._
   _Key activity: Develop and Deploy the Information System Activity Review Process_
 - Where will audit information reside (e.g., separate server)? Will it be stored external to the organization (e.g., cloud service provider)?  
   _Key activity: Develop and Deploy the Information System Activity Review Process_
+- What mechanisms will be implemented to assess the effectiveness of the review process (measures)?  
+  _Key activity: Implement the Information System Activity Review and Audit Process_
+- What is the plan to revise the review process when needed?  
+  _Key activity: Implement the Information System Activity Review and Audit Process_
 
 ---
 
@@ -205,19 +205,13 @@ _21 questions in 800-66r2._
 
 | Record | Title | Designation | Prompts |
 |---|---|---|---|
-| 164.308(a)(4)(i) | Information access management | parent guidance | 6 |
+| 164.308(a)(4)(i) | Information access management | parent guidance | 3 |
 | 164.308(a)(4)(ii)(A) | Isolating health care clearinghouse functions | required | 5 |
-| 164.308(a)(4)(ii)(B) | Access authorization | addressable | 5 |
+| 164.308(a)(4)(ii)(B) | Access authorization | addressable | 8 |
 | 164.308(a)(4)(ii)(C) | Access establishment and modification | addressable | 5 |
 
 **164.308(a)(4)(i)**
 
-- What methods of access control are used (e.g., identity- based, role-based, location-based, or a combination) to protect ePHI?  
-  _Key activity: • Ensure that there is a list of personnel with authority to approve user requests to access ePHI and systems with ePHI. • Identify authorized users with access to ePHI, including data owners and data custodians. • Consider whether multiple access control methods are needed to protect ePHI according to the results of the risk assessment. • Determine whether direct access to ePHI will ever be appropriate for individuals external to the organization (e.g., business partners or patients seeking access to their own ePHI)._
-- Are there additional access control requirements for users who will be accessing privileged functions?  
-  _Key activity: • Ensure that there is a list of personnel with authority to approve user requests to access ePHI and systems with ePHI. • Identify authorized users with access to ePHI, including data owners and data custodians. • Consider whether multiple access control methods are needed to protect ePHI according to the results of the risk assessment. • Determine whether direct access to ePHI will ever be appropriate for individuals external to the organization (e.g., business partners or patients seeking access to their own ePHI)._
-- Have organizational personnel been explicitly authorized to approve user requests to access ePHI and/or systems with ePHI?  
-  _Key activity: • Ensure that there is a list of personnel with authority to approve user requests to access ePHI and systems with ePHI. • Identify authorized users with access to ePHI, including data owners and data custodians. • Consider whether multiple access control methods are needed to protect ePHI according to the results of the risk assessment. • Determine whether direct access to ePHI will ever be appropriate for individuals external to the organization (e.g., business partners or patients seeking access to their own ePHI)._
 - Are there policies and procedures related to the security of access controls? If so, are they updated regularly?  
   _Key activity: Evaluate Existing Security Measures Related to Access Controls_
 - Are authentication mechanisms used to verify the identity of those accessing systems protected from inappropriate manipulation?  
@@ -249,6 +243,12 @@ _21 questions in 800-66r2._
 - Has the organization documented procedures that specify how authorized personnel will be granted access to ePHI?  
   _Key activity: Implement Policies and Procedures for Authorizing Access_
 - Does the organization grant remote access to ePHI?  
+  _Key activity: Implement Policies and Procedures for Authorizing Access_
+- What methods of access control are used (e.g., identity- based, role-based, location-based, or a combination) to protect ePHI?  
+  _Key activity: Implement Policies and Procedures for Authorizing Access_
+- Are there additional access control requirements for users who will be accessing privileged functions?  
+  _Key activity: Implement Policies and Procedures for Authorizing Access_
+- Have organizational personnel been explicitly authorized to approve user requests to access ePHI and/or systems with ePHI?  
   _Key activity: Implement Policies and Procedures for Authorizing Access_
 
 **164.308(a)(4)(ii)(C)**
@@ -426,12 +426,12 @@ _30 questions in 800-66r2._
 
 | Record | Title | Designation | Prompts |
 |---|---|---|---|
-| 164.308(a)(7)(i) | Contingency plan | parent guidance | 11 |
+| 164.308(a)(7)(i) | Contingency plan | parent guidance | 10 |
 | 164.308(a)(7)(ii)(A) | Data backup plan | required | 2 |
 | 164.308(a)(7)(ii)(B) | Disaster recovery plan | required | 2 |
 | 164.308(a)(7)(ii)(C) | Emergency mode operation plan | required | 4 |
 | 164.308(a)(7)(ii)(D) | Testing and revision procedures | addressable | 7 |
-| 164.308(a)(7)(ii)(E) | Applications and data criticality analysis | addressable | 5 |
+| 164.308(a)(7)(ii)(E) | Applications and data criticality analysis | addressable | 6 |
 
 **164.308(a)(7)(i)**
 
@@ -439,8 +439,6 @@ _30 questions in 800-66r2._
   _Key activity: Develop a Contingency Planning Policy_
 - Have cross-functional dependencies been identified to determine how a failure in one system may negatively impact another one?  
   _Key activity: Develop a Contingency Planning Policy_
-- Has the organization sufficiently addressed the availability and reliability of these services (e.g., via service-level agreements, contracts)?  
-  _Key activity: • Consider whether any vendor/service provider arrangements are critical to operations and address them as appropriate to ensure availability and reliability. • Establish cost-effective strategies for recovering these critical services or processes._
 - What alternatives for continuing operations of the organization are available in case of the loss of any critical function or resource?  
   _Key activity: Identify Preventive Measures_
 - What is the cost associated with the preventive measures that may be considered?  
@@ -511,6 +509,8 @@ _30 questions in 800-66r2._
 - What is the nature and degree of impact on the operation if any of the critical resources or service providers are not available?  
   _Key activity: Conduct an Applications and Data Criticality Analysis_
 - Has the organization identified vendors or service providers that are critical to business operations?  
+  _Key activity: Conduct an Applications and Data Criticality Analysis_
+- Has the organization sufficiently addressed the availability and reliability of these services (e.g., via service-level agreements, contracts)?  
   _Key activity: Conduct an Applications and Data Criticality Analysis_
 
 ---
@@ -625,10 +625,10 @@ _32 questions in 800-66r2._
 
 | Record | Title | Designation | Prompts |
 |---|---|---|---|
-| 164.310(a)(1) | Facility access controls | parent guidance | 17 |
+| 164.310(a)(1) | Facility access controls | parent guidance | 14 |
 | 164.310(a)(2)(i) | Contingency operations | addressable | 6 |
 | 164.310(a)(2)(ii) | Facility security plan | addressable | 4 |
-| 164.310(a)(2)(iii) | Access control and validation procedures | addressable | 2 |
+| 164.310(a)(2)(iii) | Access control and validation procedures | addressable | 5 |
 | 164.310(a)(2)(iv) | Maintenance records | addressable | 3 |
 
 **164.310(a)(1)**
@@ -661,12 +661,6 @@ _32 questions in 800-66r2._
   _Key activity: Identify Corrective Measures_
 - Is a property owner or external party (e.g., cloud service provider) required to make physical changes to meet the requirements?  
   _Key activity: Identify Corrective Measures_
-- How many access points exist in each facility? Is there an inventory?  
-  _Key activity: • Implement procedures to provide facility access to authorized personnel and visitors and exclude unauthorized persons._
-- Is monitoring equipment necessary?  
-  _Key activity: • Implement procedures to provide facility access to authorized personnel and visitors and exclude unauthorized persons._
-- Is there a periodic review of personnel with physical access?  
-  _Key activity: • Implement procedures to provide facility access to authorized personnel and visitors and exclude unauthorized persons._
 
 **164.310(a)(2)(i)**
 
@@ -699,6 +693,12 @@ _32 questions in 800-66r2._
 - What are the policies and procedures in place for controlling access by staff, contractors, visitors, and probationary employees?  
   _Key activity: Develop Access Control and Validation Procedures_
 - Do the procedures identify individuals, roles, or job functions that are authorized to access software programs for testing and revision?  
+  _Key activity: Develop Access Control and Validation Procedures_
+- How many access points exist in each facility? Is there an inventory?  
+  _Key activity: Develop Access Control and Validation Procedures_
+- Is monitoring equipment necessary?  
+  _Key activity: Develop Access Control and Validation Procedures_
+- Is there a periodic review of personnel with physical access?  
   _Key activity: Develop Access Control and Validation Procedures_
 
 **164.310(a)(2)(iv)**
@@ -802,13 +802,13 @@ _15 questions in 800-66r2._
 - Do any devices need to be relocated to enhance physical security?  
   _Key activity: Identify and Implement Physical Safeguards for Workstations and Devices_
 - Are safeguards such as anti-theft devices, physical privacy screens, or other procedures used to help prevent unauthorized audio and video recording?  
-  _Key activity: o Device management (e.g., mobile device management [MDM], endpoint detection and response [EDR]) o Workforce education and training related to mobile and remote computing risks to ePHI_
+  _Key activity: Identify and Implement Physical Safeguards for Workstations and Devices_
 - Have workforce members been trained on security?  
-  _Key activity: o Device management (e.g., mobile device management [MDM], endpoint detection and response [EDR]) o Workforce education and training related to mobile and remote computing risks to ePHI_
+  _Key activity: Identify and Implement Physical Safeguards for Workstations and Devices_
 - Are some devices not owned by the organization? Do these ownership considerations preclude the use of any physical security controls on the device?  
-  _Key activity: o Device management (e.g., mobile device management [MDM], endpoint detection and response [EDR]) o Workforce education and training related to mobile and remote computing risks to ePHI_
+  _Key activity: Identify and Implement Physical Safeguards for Workstations and Devices_
 - Do the policies and procedures specify the use of additional security measures to protect devices with ePHI, such as using privacy screens, enabling password- protected screen savers, or logging off the device?  
-  _Key activity: o Device management (e.g., mobile device management [MDM], endpoint detection and response [EDR]) o Workforce education and training related to mobile and remote computing risks to ePHI_
+  _Key activity: Identify and Implement Physical Safeguards for Workstations and Devices_
 
 ---
 
@@ -818,24 +818,11 @@ _19 questions in 800-66r2._
 
 | Record | Title | Designation | Prompts |
 |---|---|---|---|
-| 164.310(d)(1) | Device and media controls | parent guidance | 5 |
+| 164.310(d)(1) | Device and media controls | parent guidance | 0 |
 | 164.310(d)(2)(i) | Disposal | required | 6 |
 | 164.310(d)(2)(ii) | Media re-use | required | 4 |
-| 164.310(d)(2)(iii) | Accountability | addressable | 1 |
+| 164.310(d)(2)(iii) | Accountability | addressable | 6 |
 | 164.310(d)(2)(iv) | Data backup and storage | addressable | 3 |
-
-**164.310(d)(1)**
-
-- Has a process been implemented to maintain a record of the movements of and persons responsible for hardware and electronic media that contain ePHI?  
-  _Key activity: • Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI._
-- Where is data stored (i.e., what type of media)?  
-  _Key activity: • Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI._
-- What procedures already exist to track hardware and software within the organization (e.g., an enterprise inventory management system)?  
-  _Key activity: • Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI._
-- If workforce members are allowed to remove electronic media that contain or may be used to access ePHI, do procedures exist to track the media externally?  
-  _Key activity: • Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI._
-- Who is responsible for maintaining records of hardware and software?  
-  _Key activity: • Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI._
 
 **164.310(d)(2)(i)**
 
@@ -866,6 +853,16 @@ _19 questions in 800-66r2._
 **164.310(d)(2)(iii)**
 
 - Have policies and procedures been implemented that govern the receipt and removal of hardware and electronic media that contain ePHI into and out of a facility and the movement of these items within the facility?  
+  _Key activity: Maintain Accountability for Hardware and Electronic Media_
+- Has a process been implemented to maintain a record of the movements of and persons responsible for hardware and electronic media that contain ePHI?  
+  _Key activity: Maintain Accountability for Hardware and Electronic Media_
+- Where is data stored (i.e., what type of media)?  
+  _Key activity: Maintain Accountability for Hardware and Electronic Media_
+- What procedures already exist to track hardware and software within the organization (e.g., an enterprise inventory management system)?  
+  _Key activity: Maintain Accountability for Hardware and Electronic Media_
+- If workforce members are allowed to remove electronic media that contain or may be used to access ePHI, do procedures exist to track the media externally?  
+  _Key activity: Maintain Accountability for Hardware and Electronic Media_
+- Who is responsible for maintaining records of hardware and software?  
   _Key activity: Maintain Accountability for Hardware and Electronic Media_
 
 **164.310(d)(2)(iv)**
