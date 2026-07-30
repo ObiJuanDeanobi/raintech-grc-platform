@@ -10,8 +10,8 @@ Build
 
 ## Current objective
 
-Practitioner review of the ingested HIPAA catalog, so the assessable units are
-confirmed before any HIPAA assessment surface is built on them.
+Build the foundation and the HIPAA assessment workspace, so the reviewed
+catalog and prompt layer become something an assessment can be run in.
 
 ## Approved specification
 
@@ -21,10 +21,12 @@ paragraph correction approved July 28, 2026. No unapproved changes outstanding.
 
 ## Active ticket
 
-GitHub issue #21: Slice 4a, ingest and version the HIPAA full-program catalog.
-The approved four-paragraph Breach correction merged in PR #35. Johnathan's
-practitioner review of `docs/catalogs/hipaa-45cfr164-2026-07-01.md` remains the
-outstanding acceptance criterion, so the issue stays open.
+GitHub issue #44: Slice 1a, foundation and HIPAA assessment workspace, launcher
+deferred to 1b. **Awaiting Johnathan's approval before BUILD begins**, since it
+starts the application.
+
+GitHub issue #29 is closed. The prompt layer is ingested, practitioner-reviewed
+on a clickable walkthrough, and merged.
 
 ## Completed
 
@@ -159,50 +161,45 @@ outstanding acceptance criterion, so the issue stays open.
 - ADR 0012 accepted: a framework is defined by data, not application code.
   Record shape, rollup rule, status set and presentation mode are declared per
   framework version. Ingestion stays bespoke per source. This constrains the
-  Slice 1 data model and is the reason that ticket is not yet written.
+  Slice 1a data model, which is now written as issue #44.
+- Issue #29 closed. The prompt layer is ingested and practitioner-reviewed on a
+  clickable walkthrough built over the real catalog: 1163 prompts beneath 142 of
+  the 194 records. Reviewing the working shape rather than a Markdown table is
+  what made the review possible, and it changed two decisions on contact --
+  standard-level questions now collapse by default, because 20 of them pushed
+  the determination below the fold.
 
 ## In progress
 
+- GitHub issue #44: Slice 1a, foundation and HIPAA assessment workspace.
+  Awaiting Johnathan's approval before BUILD begins. The launcher, offline
+  packaging, and backup/restore are split to Slice 1b because none can be
+  verified from a cloud session and none is needed to answer whether the
+  workspace works. Slice 2 is skipped for now; the build order becomes
+  1a, 4, 2, 3, 5, 6, 7 without renumbering.
 - GitHub issue #21: practitioner review of the exported 194-record catalog.
-  The subordinate-paragraph presentation decision is settled. Review continues
-  against stable citation-based record boundaries.
-- GitHub issue #29: prompt volume accepted July 29, 2026, so full ingestion is
-  authorised. The blocking NIST section-resolution defect is **fixed**. Section
-  headings are now parsed once with balanced-paren citation capture, page ranges
-  come from consecutive headings, and a NIST citation resolves to a catalog
-  standard allowing a trailing `(1)` and/or `(i)`. All 22 Security standards
-  resolve to distinct sections, 443 raw prompts, no two standards sharing a
-  prompt list. The approved 22-prompt curated set is unchanged; only the raw
-  count for 164.308(a)(1) moves, from 45 to 40.
-  General Security routing is **built** and committed at
-  `docs/catalogs/security-prompt-routing.md`: 22/22 standards route, every
-  implementation specification receives prompts, no warnings.
-  Privacy and Breach role classification is **built** and committed at
-  `docs/catalogs/privacy-breach-classification.md`: 721 child paragraphs
-  beneath 81 records, 514 assessment checks, 169 context, 38 applicability
-  notes, each with the signal that decided it. Tested that no operative
-  must/shall requirement is hidden as a non-check.
-  Full ingestion is **done**: 1163 prompts beneath 142 of the 194 records,
-  pinned at `catalog/versions/hipaa-45cfr164-2026-07-01-prompts.json` and
-  nested under each record in the export. The catalog itself is untouched and
-  still rebuilds byte-identically. What remains is Johnathan's practitioner
-  read of the rendered walkthrough.
+  Record boundaries are settled and citation-stable. The catalog was reviewed
+  in its working shape through the walkthrough; the issue stays open for the
+  remaining soundness read.
 
 ## Blocked
 
-- Slice 4 beyond the catalog is blocked on practitioner review. Building an
-  assessment surface on unreviewed assessable units risks reworking every
-  determination made against them.
+- Issue #44 is blocked on Johnathan's approval. Starting the application is an
+  approval gate in `AGENTS.md`.
+- Slice 1b, and every claim about offline operation, packaging, launcher, and
+  backup/restore, is blocked on the Windows machine. A cloud session cannot
+  verify any of it.
 
 ## Open questions
 
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
-- **Launcher in Slice 1 or 1b — Johnathan.** Slice 1 cannot be fully verified
-  from a cloud session. Either it lands half-verified until the Windows machine
-  catches up, or the launcher splits into its own sub-slice. Blocks writing the
-  Slice 1 ticket.
+None. All three standing questions closed on July 30, 2026: prompt volume was
+accepted, evidence mapping came forward into Slice 4, and the launcher moved to
+Slice 1b. The next question is expected to come from running issue #44's
+workspace, not from reasoning about it.
+
 
 ## Known risks
 
@@ -212,9 +209,13 @@ for an issue. Each names who has to answer it.
   should be measured across the whole corpus before any sample is treated as
   representative.
 
-- The HIPAA catalog is ingested but unreviewed, and the first engagement is weeks
-  away. The platform runs in parallel with the existing method and is not on the
-  critical path of client work.
+- The first engagement is weeks away. The platform runs in parallel with the
+  existing method and is not on the critical path of client work, which is what
+  makes the remaining schedule risk tolerable.
+- No application code exists yet. Everything built so far is data and documents,
+  so there is no observed rate for application work to forecast from. Treat any
+  date for issue #44 as an estimate to be revised after the first build session,
+  not a commitment already earned.
 - The catalog is verified to reproduce the regulation faithfully. It is not
   verified to be a sound assessment instrument; that is a practitioner judgement
   and is the open acceptance criterion on issue #21.
@@ -239,23 +240,19 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Johnathan reads `docs/catalogs/hipaa-45cfr164-2026-07-01.md` — the catalog with
-its prompts nested beneath each record — as if conducting a mock assessment.
-Two standards carry the acceptance criterion, one per source path:
+Johnathan approves GitHub issue #44 so BUILD can begin, or says what to change
+in its scope.
 
-- **45 CFR 164.308(a)(1)** (Security, from 800-66r2) — do the questions sit on
-  the determination they inform, and does any parent-guidance question belong
-  on a specific child?
-- **45 CFR 164.520** (Privacy, from the rule's own enumeration) — does any
-  check / applicability-note / context call read wrong?
+The target is the first thing he can actually test: open the app, select a
+HIPAA project, work 45 CFR 164.308(a)(1) as a mock assessment, record
+determinations with notes and mapped evidence, restart, and find it all still
+there. Estimated mid-August at the cadence of the last week of July, with his
+availability the dominant variable by a wide margin.
 
-Marks become an explicit exceptions list, applied on top of the mechanical
-rules rather than replacing them. Two supporting artifacts explain *why* a
-prompt landed where it did, for use when something looks wrong:
-`docs/catalogs/security-prompt-routing.md` and
-`docs/catalogs/privacy-breach-classification.md`.
-
-Slice 4's assessment surface follows that review. No UI work before it.
+The clickable walkthrough at `catalog/render_walkthrough.py` is the reference
+for how that workspace should feel. It is a review instrument and is not
+promoted into production; the production surface is reimplemented against the
+real architecture.
 
 ## Deferred decisions and their triggers
 
