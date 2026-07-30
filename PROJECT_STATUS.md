@@ -2,13 +2,13 @@
 
 ## Current phase
 
-Slice 4a complete. Slice 1a written and awaiting approval. No application code
-exists yet; everything built to date is framework data, review artifacts, and
-their verification.
+Slice 4a complete. Slice 1a is implemented and independently reviewed on
+`codex/issue-44-slice-1a`; publication and CI are the remaining gates.
 
 ## Current mode
 
-Plan. BUILD on issue #44 has not been approved and must not begin without it.
+Review. Johnathan approved Issue #44 on July 30, 2026; the 22-criterion BUILD
+is complete locally and must not be called merged until the PR and CI pass.
 
 ## Current objective
 
@@ -23,9 +23,9 @@ paragraph correction approved July 28, 2026. No unapproved changes outstanding.
 
 ## Active ticket
 
-GitHub issue #44: Slice 1a, foundation and HIPAA assessment workspace, launcher
-deferred to 1b. **Awaiting Johnathan's approval before BUILD begins**, since it
-starts the application.
+GitHub issue #44: Slice 1a, foundation and HIPAA assessment workspace. Approved
+July 30, 2026 and implemented on `codex/issue-44-slice-1a`. Launcher, offline
+packaging, and backup/restore remain Issue #32.
 
 GitHub issue #29 is closed. The prompt layer is ingested, practitioner-reviewed
 on a clickable walkthrough, and merged.
@@ -196,15 +196,34 @@ on a clickable walkthrough, and merged.
   a documented interview/observation record, N/A requires rationale, addressable
   specifications require a disposition, every question has its own answer field,
   and a parent standard records notes and evidence but never an editable status.
+- Issue #44 implemented as the first production vertical slice: Alembic-managed
+  SQLite schema; read-only framework seeding; clients, projects, assessments,
+  determinations, notes, prompt answers and placements, evidence mappings, and
+  audit attribution; plus the React determination-centered workspace.
+- The Slice 1a service enforces the approved rollup, N/A, addressable, and Met
+  evidence/interview rules at the API boundary. One artifact maps to multiple
+  records with independent rationales, and prompt placements persist separately
+  from the rebuilt prompt layer.
+- Local verification passed: 5 API/service tests, 3 component/integration tests,
+  73 existing catalog tests, all 17 required NIST/PDF tests, Python lint/types,
+  frontend typecheck/lint/build, byte-identical regeneration of the catalog,
+  prompt layer, and export, and browser QA at 1440x900 and 1280x720 with no
+  console warnings or errors. Screenshots are in `docs/screenshots/issue-44/`.
+- Independent review closed the production-CI gap, made parent guidance
+  questions visible in their collapsed context panel, preserved context-routed
+  questions on a dedicated surface, prevented removal of the final evidence
+  supporting a Met determination, exposed the approved rejection ledger, and
+  made statuses and rollups consume the framework declarations.
+- The production Overview and post-setup client/project creator are implemented
+  and browser-verified. The live browser pass found no console errors.
 
 ## In progress
 
 - **GitHub issue #44: Slice 1a**, foundation and HIPAA assessment workspace.
-  Written, 22 acceptance criteria, awaiting approval. Not started. Launcher,
-  offline packaging, and backup/restore are excluded because none can be
-  verified from a cloud session and none is needed to answer whether the
-  workspace works. Slice 2 is skipped for now, making the build order
-  1a, 4, 2, 3, 5, 6, 7 without renumbering.
+  Implemented locally against all 22 acceptance criteria; push, pull request,
+  and GitHub CI remain before merge. Launcher, offline
+  packaging, and backup/restore are excluded. Slice 2 remains skipped for now,
+  making the build order 1a, 4, 2, 3, 5, 6, 7 without renumbering.
   **The excluded work is GitHub issue #32, which already existed** — the spike
   proving the stack packages and launches on Windows ARM64 and x64. Issue #44
   originally called that work "Slice 1b", inventing a second name for a ticket
@@ -219,12 +238,11 @@ on a clickable walkthrough, and merged.
   soundness read, which is a judgement about whether these are the right
   assessable units rather than whether they reproduce the regulation.
 
-Nothing is being built. No application code exists in the repository.
+No second production slice is in flight.
 
 ## Blocked
 
-- Issue #44 is blocked on Johnathan's approval. Starting the application is an
-  approval gate in `AGENTS.md`.
+- Issue #44 has no product-decision blocker. Merge is gated on review and CI.
 - GitHub issue #32, and every claim about offline operation, packaging,
   launcher, and backup/restore, is blocked on the Windows machine. A cloud
   session cannot verify any of it. #32 blocks only the launcher and packaging
@@ -275,10 +293,9 @@ for an issue. Each names who has to answer it.
 - The first engagement is weeks away. The platform runs in parallel with the
   existing method and is not on the critical path of client work, which is what
   makes the remaining schedule risk tolerable.
-- No application code exists yet. Everything built so far is data and documents,
-  so there is no observed rate for application work to forecast from. Treat any
-  date for issue #44 as an estimate to be revised after the first build session,
-  not a commitment already earned.
+- Slice 1a has not yet run during a real engagement. Local restart persistence,
+  rule enforcement, and representative UI flows are verified; operational
+  feedback begins with the first sanitized assessment.
 - The catalog is verified to reproduce the regulation faithfully. It is not
   verified to be a sound assessment instrument; that is a practitioner judgement
   and is the open acceptance criterion on issue #21.
@@ -303,14 +320,8 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-**Johnathan approves GitHub issue #44**, or says what to change in its scope.
-Nothing else is blocked on anyone else. BUILD must not begin without that
-approval; starting the application is an approval gate in `AGENTS.md`.
-
-On approval, the first build session should go at the data model and the API,
-because ADR 0012 constrains them most and they are the most expensive to change
-later. The walkthrough is the reference for how the workspace should behave, not
-code to lift.
+Publish the Issue #44 branch, open the pull request, and use GitHub CI as the
+verification of record. Do not start another slice until #44 is merged.
 
 Independently and at any time, Johnathan can make a pass over the Security
 routing in the walkthrough using the `move…` control and send the exported JSON;

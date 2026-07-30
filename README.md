@@ -5,9 +5,10 @@ delivery work.
 
 ## Current Status
 
-The new platform is in specification and UI-prototype planning. Existing
-application code is legacy reference material and is not the approved
-production direction.
+The first production vertical slice is implemented on Issue #44: a local
+FastAPI/SQLite service and React assessment workspace for the pinned HIPAA
+catalog. Existing application code remains legacy reference material and is not
+the production direction.
 
 ## Direction
 
@@ -43,8 +44,47 @@ PROJECT_STATUS.md    Current phase, objective, risks, and next action
 ROADMAP.md           Approved product sequencing
 ```
 
-The future production application will receive its own clearly named source
-folders after the specification and prototype are approved.
+Production code lives under `api/` and `web/`. The committed framework layer in
+`catalog/versions/` is a read-only application input.
+
+## Run the Slice 1a Workspace
+
+Prerequisites: Python 3.12, Node 24, and pnpm 11.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -e ".[dev]"
+pnpm install
+```
+
+Start the API:
+
+```powershell
+.\.venv\Scripts\python -m uvicorn api.main:app --host 127.0.0.1 --port 8000
+```
+
+In a second terminal, start the UI:
+
+```powershell
+pnpm dev
+```
+
+Open http://127.0.0.1:5173. The first launch creates `data/workspace.db` and
+`data/files/`; both are intentionally ignored because they hold local
+engagement data. Launcher, packaging, and backup/restore remain Issue #32.
+
+## Verify
+
+```powershell
+pytest
+ruff check .
+mypy catalog api
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm build
+python -m unittest discover -s tests
+```
 
 ## Legacy Reference App
 
