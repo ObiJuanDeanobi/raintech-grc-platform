@@ -1010,6 +1010,215 @@ def render_privacy_classification(classified: dict, warnings: list[str]) -> str:
     return "\n".join(lines)
 
 
+# Curation under the July 29, 2026 delegation.
+#
+# The delegation is to keep a prompt when it materially helps determine
+# applicability, implementation, or evidence, to remove duplicates and
+# administrative noise, and to keep recommendations beyond the CFR only as
+# clearly labelled context.
+#
+# Measured against the corpus, the first clause has almost nothing mechanical
+# to act on: 444 routed prompts contain 2 near-duplicate pairs. The 18 prompts
+# the approved sample dropped went on topical judgement -- "Has a BIA been
+# performed?" is not a CFR requirement, and "Has a training strategy been
+# developed?" belongs to 164.308(a)(5). No rule recovers that, and the obvious
+# proxy fails immediately: the sample *kept* planning questions such as "How
+# will exception reports or logs be reviewed?".
+#
+# So curation removes only what is demonstrably duplicate, and demotes rather
+# than deletes what is demonstrably beyond the CFR. Everything else is retained
+# -- the July 29 decision accepted this density -- and the practitioner's marks
+# on the rendered walkthrough become an explicit exceptions list, the same
+# pattern used for routing promotion. Deleting a citable question on a rule I
+# cannot defend is worse than showing it under a heading that says what it is.
+
+# Practices these questions ask about are recommended by 800-66r2 and are not
+# required by 45 CFR Part 164. Kept as labelled context so the assessor can use
+# them in conversation, never as assessment criteria.
+BEYOND_CFR_RE = re.compile(
+    r"\b(?:"
+    r"business impact analysis|\bBIA\b"
+    r"|cost-benefit analysis"
+    r"|automated tools?\b"
+    r"|external expertise"
+    r"|outside (?:vendor|consultant|expertise)"
+    r")",
+    re.I,
+)
+# Near-duplicate threshold. Two questions on the same record whose meaningful
+# vocabulary overlaps this much are the same question asked twice.
+NEAR_DUPLICATE_JACCARD = 0.55
+
+
+def _content_words(text: str) -> set[str]:
+    return {
+        word
+        for word in re.findall(r"[a-z]+", (text or "").lower())
+        if word not in TITLE_STOPWORDS and len(word) > 3
+    }
+
+
+def curate_prompts(prompts: list[Prompt]) -> tuple[list[Prompt], list[str]]:
+    """Apply the July 29 curation delegation to one record's prompts.
+
+    Returns (kept, removed-reasons). A prompt is dropped only as a duplicate;
+    a prompt recommending practice beyond the CFR is demoted to context rather
+    than removed.
+    """
+    kept: list[Prompt] = []
+    removed: list[str] = []
+    for prompt in prompts:
+        words = _content_words(prompt.text)
+        duplicate = False
+        for existing in kept:
+            other = _content_words(existing.text)
+            if not words or not other:
+                continue
+            overlap = len(words & other) / len(words | other)
+            if overlap >= NEAR_DUPLICATE_JACCARD:
+                duplicate = True
+                removed.append(prompt.text)
+                break
+        if duplicate:
+            continue
+        if BEYOND_CFR_RE.search(prompt.text):
+            kept.append(
+                replace(
+                    prompt,
+                    role=CONTEXT,
+                    role_reason="recommended practice beyond the CFR requirement",
+                )
+            )
+        else:
+            kept.append(
+                replace(
+                    prompt,
+                    role=ASSESSMENT_CHECK,
+                    role_reason="bears on the mapped CFR determination",
+                )
+            )
+    return kept, removed
+
+
+def build_prompt_layer() -> dict:
+    """The full prompt layer for every record in the pinned catalog version.
+
+    One structure covering both source paths: Security prompts routed from
+    800-66r2 key activities, Privacy and Breach prompts quoted from the rule's
+    own enumeration. Records with no prompts are listed explicitly rather than
+    left silently empty.
+
+    Adds a layer; changes no record. The catalog's 194 determinations, their
+    citations, and their text are untouched.
+    """
+    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
+    records = {record["id"]: record for record in catalog["records"]}
+
+    entries: dict[str, dict] = {}
+    warnings: list[str] = []
+    removed_total = 0
+
+    routing, routing_warnings = build_security_routing()
+    warnings.extend(routing_warnings)
+    for standard_id, entry in routing.items():
+        for record_id, prompts in entry["records"].items():
+            curated, removed = curate_prompts(prompts)
+            removed_total += len(removed)
+            entries[record_id] = {
+                "path": "nist-800-66r2",
+                "prompts": [asdict(prompt) for prompt in curated],
+            }
+
+    classified, classify_warnings = build_privacy_classification()
+    warnings.extend(classify_warnings)
+    for record_id, entry in classified.items():
+        entries[record_id] = {
+            "path": "cfr-enumeration",
+            "prompts": [
+                asdict(
+                    Prompt(
+                        text=item["text"],
+                        source="45 CFR Part 164",
+                        source_detail=f"snapshot {SNAPSHOT}",
+                        cfr_paragraph=item["cfr_paragraph"],
+                        group=item["label"],
+                        role=item["role"],
+                        role_reason=item["role_reason"],
+                    )
+                )
+                for item in entry["entries"]
+            ],
+        }
+
+    # Acceptance criterion: a record with no prompts is reported and explained,
+    # never silently empty. Each reason below is a property of the source, not
+    # a gap in extraction.
+    without: list[dict] = []
+    for record_id, record in records.items():
+        entry = entries.get(record_id)
+        if entry and entry["prompts"]:
+            continue
+        if record["work_area"] == "security":
+            reason = (
+                "every 800-66r2 key activity for this standard identifies an "
+                "implementation specification, so all questions route to its "
+                "children; this parent's status is derived and it carries no "
+                "editable determination"
+            )
+        else:
+            reason = (
+                "the rule states this requirement in full without enumerating "
+                "sub-paragraphs, so the record text is itself the prompt"
+            )
+        without.append({"record_id": record_id, "reason": reason})
+
+    entries = {
+        record_id: entry for record_id, entry in entries.items() if entry["prompts"]
+    }
+    prompt_total = sum(len(entry["prompts"]) for entry in entries.values())
+
+    return {
+        "framework_version": catalog["framework_version"]["id"],
+        "purpose": (
+            "Walkthrough prompts beneath each HIPAA catalog record. Prompts "
+            "structure the conversation during an assessment. They carry no "
+            "status, produce no findings, and never appear in a report as "
+            "assessable items; the determination stays on the citable record."
+        ),
+        "sources": [
+            {
+                "id": "nist-800-66r2",
+                "label": NIST_LABEL,
+                "covers": "Security Rule (45 CFR 164.308-164.316)",
+                "revision": "Rev. 2, February 2024",
+                "note": "Published NIST guidance. Secondary to the rule text.",
+            },
+            {
+                "id": "cfr-enumeration",
+                "label": "45 CFR Part 164",
+                "covers": "Privacy Rule and Breach Notification Rule",
+                "revision": f"eCFR snapshot {SNAPSHOT}",
+                "note": (
+                    "The rules enumerate their own checklists. Prompts quote "
+                    "the regulation and are citable to a paragraph."
+                ),
+            },
+        ],
+        "counts": {
+            "records_total": len(records),
+            "records_with_prompts": len(entries),
+            "records_without_prompts": len(without),
+            "prompts_total": prompt_total,
+            "duplicates_removed": removed_total,
+        },
+        "records_without_prompts": sorted(
+            without, key=lambda item: item["record_id"]
+        ),
+        "warnings": warnings,
+        "entries": entries,
+    }
+
+
 def security_standards(records: dict[str, dict]) -> list[str]:
     return [
         record["id"]
@@ -1125,8 +1334,31 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Render Privacy and Breach child-paragraph role classification.",
     )
+    parser.add_argument(
+        "--layer",
+        action="store_true",
+        help="Build the full prompt layer for every record in the catalog.",
+    )
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+
+    if args.layer:
+        data = build_prompt_layer()
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        counts = data["counts"]
+        print(
+            f"Wrote {args.out}: {counts['records_with_prompts']} of "
+            f"{counts['records_total']} records, "
+            f"{counts['prompts_total']} prompts, "
+            f"{counts['duplicates_removed']} duplicates removed"
+        )
+        print(f"  {counts['records_without_prompts']} records without prompts")
+        for warning in data["warnings"]:
+            print(f"  WARNING: {warning}")
+        return 0
 
     if args.classification:
         classified, warnings = build_privacy_classification()

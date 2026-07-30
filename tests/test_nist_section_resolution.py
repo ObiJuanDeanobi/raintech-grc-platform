@@ -261,6 +261,29 @@ class SecurityRoutingTest(unittest.TestCase):
         )
 
 
+class PromptLayerReproducibilityTest(unittest.TestCase):
+    """The committed layer must be what the pinned sources produce.
+
+    Without this the layer is just a file someone generated once, and the
+    'rebuilds from its pinned source' property the catalog already has would
+    not extend to the prompts nested beneath it.
+    """
+
+    def test_committed_layer_rebuilds_from_its_pinned_sources(self):
+        open_pdf()
+        from hipaa_prompts import build_prompt_layer
+
+        committed = json.loads(
+            (
+                REPO_ROOT
+                / "catalog"
+                / "versions"
+                / "hipaa-45cfr164-2026-07-01-prompts.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(build_prompt_layer(), committed)
+
+
 class SampleReproducibilityTest(unittest.TestCase):
     def test_committed_sample_is_reproducible_from_the_pinned_source(self):
         """The committed fixture had drifted from the script that emits it."""
