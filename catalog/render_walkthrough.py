@@ -273,6 +273,18 @@ a { color: var(--accent); }
   display: block; font-family: var(--mono); font-size: 10.5px;
   color: var(--ink-faint); margin-top: 3px;
 }
+.answer-add {
+  font: inherit; font-size: 11px; cursor: pointer; margin-top: 4px;
+  padding: 1px 7px; border-radius: 3px; color: var(--ink-faint);
+  background: none; border: 1px dashed var(--line-strong);
+}
+.prompt:hover .answer-add { color: var(--accent); border-color: var(--accent); }
+textarea.answer {
+  display: block; width: 100%; margin-top: 5px; font: inherit; font-size: 13px;
+  padding: 6px 9px; border-radius: 3px; resize: vertical; color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--accent); background: var(--surface);
+}
 .role-tag {
   display: inline-block; font-size: 9.5px; text-transform: uppercase;
   letter-spacing: .07em; font-weight: 700; padding: 1px 5px; border-radius: 2px;
@@ -393,6 +405,7 @@ const $ = (s, r) => (r || document).querySelector(s);
 const state = {
   determinations: {}, ticks: {}, notes: {}, naRationale: {},
   disposition: {}, dispositionNote: {}, evidence: [], mappings: {},
+  answers: {},
 };
 try {
   const saved = localStorage.getItem('hipaa-walkthrough');
@@ -478,6 +491,20 @@ function refreshDots() {
 }
 
 /* ---------- prompt rendering ---------- */
+// A prompt carries no status and no evidence of its own -- the determination
+// and its evidence belong to the record. What it does need is somewhere to put
+// the answer: eighteen questions sharing one notes box loses which question
+// produced which fact. The answer field is collapsed until it holds something,
+// so a long question list stays readable.
+function answerHtml(key) {
+  const answer = state.answers[key] || '';
+  if (!answer) {
+    return `<button class="answer-add" data-answer-open="${esc(key)}">+ answer</button>`;
+  }
+  return `<textarea class="answer" data-answer="${esc(key)}" rows="2"
+    aria-label="Answer to this question">${esc(answer)}</textarea>`;
+}
+
 function promptHtml(recordId, p, i) {
   const key = recordId + '#' + i;
   const role = p.role || 'assessment_check';
@@ -485,8 +512,8 @@ function promptHtml(recordId, p, i) {
   if (role === 'assessment_check') {
     const on = state.ticks[key] ? ' checked' : '';
     return `<li class="prompt">
-      <input type="checkbox" data-tick="${esc(key)}"${on} aria-label="Reviewed">
-      <p>${esc(p.text)}<span class="src">${esc(src)}</span></p>
+      <input type="checkbox" data-tick="${esc(key)}"${on} aria-label="Asked">
+      <p>${esc(p.text)}<span class="src">${esc(src)}</span>${answerHtml(key)}</p>
     </li>`;
   }
   const tag = role === 'applicability_note'
@@ -712,7 +739,7 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => {
   const el = e.target;
   const bind = [['data-note', 'notes'], ['data-na', 'naRationale'],
-                ['data-dispnote', 'dispositionNote']];
+                ['data-dispnote', 'dispositionNote'], ['data-answer', 'answers']];
   for (const [attr, key] of bind) {
     const id = el.getAttribute && el.getAttribute(attr);
     if (id) {
@@ -725,6 +752,18 @@ document.addEventListener('input', e => {
 });
 
 document.addEventListener('click', e => {
+  const open = e.target.closest('[data-answer-open]');
+  if (open) {
+    const key = open.dataset.answerOpen;
+    // Placeholder value so the field renders; cleared again if left empty.
+    const box = document.createElement('textarea');
+    box.className = 'answer'; box.rows = 2;
+    box.setAttribute('data-answer', key);
+    box.setAttribute('aria-label', 'Answer to this question');
+    open.replaceWith(box);
+    box.focus();
+    return;
+  }
   const disp = e.target.closest('[data-disp]');
   if (disp) {
     const id = disp.dataset.disp;
