@@ -176,6 +176,39 @@ a { color: var(--accent); }
   background: var(--surface); border-left-color: var(--accent);
 }
 .nav-item.child { padding-left: 38px; }
+/* A rollup header is not a stop on the walkthrough. It reads as a heading so
+   the eye skips it, because five separate rounds of confusion traced back to
+   it looking like something to work. */
+.nav-item.rollup .nav-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--ink-faint); font-weight: 700;
+}
+.nav-item.rollup .nav-cite { font-size: 10px; }
+.rail.worklist .nav-item.rollup { display: none; }
+.rail-tools {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center;
+  gap: 8px; padding: 9px 16px 9px 22px; background: var(--surface-sunk);
+  border-bottom: 1px solid var(--line);
+}
+.rail-tools label {
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  font-size: 11.5px; color: var(--ink-muted);
+}
+.rail-tools input { accent-color: var(--accent); cursor: pointer; }
+.walk-nav {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line);
+}
+.walk-nav button {
+  font: inherit; font-size: 13px; cursor: pointer; padding: 6px 16px;
+  border-radius: 3px; border: 1px solid var(--accent);
+  background: var(--accent); color: #fff; font-weight: 600;
+}
+.walk-nav button.ghost { background: none; color: var(--accent); }
+.walk-nav button:disabled { opacity: .4; cursor: default; }
+.walk-nav .pos {
+  font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums;
+}
 .nav-cite {
   display: block; font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
 }
@@ -502,7 +535,8 @@ function buildRail() {
         html += `<div class="sec-head">45 CFR ${esc(section)}</div>`;
       }
       const child = r.parent_id ? ' child' : '';
-      html += `<button class="nav-item${child}" data-id="${esc(r.id)}" aria-current="false">
+      const roll = isDerived(r.id) ? ' rollup' : '';
+      html += `<button class="nav-item${child}${roll}" data-id="${esc(r.id)}" aria-current="false">
         <span class="dot" data-dot="${esc(r.id)}"></span>
         <span>
           <span class="nav-cite">${esc(r.id)}</span>
@@ -511,7 +545,13 @@ function buildRail() {
       </button>`;
     });
   });
-  rail.innerHTML = html;
+  const determinable = DATA.records.filter(r => !isDerived(r.id)).length;
+  rail.innerHTML = `<div class="rail-tools"><label>
+      <input type="checkbox" id="worklist"> Only what I determine (${determinable})
+    </label></div>` + html;
+  rail.addEventListener('change', e => {
+    if (e.target.id === 'worklist') rail.classList.toggle('worklist', e.target.checked);
+  });
   rail.addEventListener('click', e => {
     const btn = e.target.closest('.nav-item');
     if (btn) select(btn.dataset.id);
@@ -738,6 +778,28 @@ function workingRecord(r, options) {
   return html + '</div>';
 }
 
+// The walk is over the records that carry a determination. A rollup header is
+// passed through on the way, not stopped at.
+const WALK = DATA.records.filter(r => !isDerived(r.id)).map(r => r.id);
+
+function walkNavHtml(id) {
+  // Selecting a rollup header shows its children, so the walk position is the
+  // first child being worked rather than the header itself.
+  let i = WALK.indexOf(id);
+  if (i < 0) {
+    const firstChild = (childrenOf[id] || []).find(c => WALK.includes(c));
+    i = firstChild ? WALK.indexOf(firstChild) : -1;
+  }
+  if (i < 0) return '';
+  const prev = i > 0 ? WALK[i - 1] : null;
+  const next = i < WALK.length - 1 ? WALK[i + 1] : null;
+  return `<div class="walk-nav">
+    <button class="ghost" data-go="${esc(prev || '')}" ${prev ? '' : 'disabled'}>← Previous</button>
+    <button data-go="${esc(next || '')}" ${next ? '' : 'disabled'}>Next requirement →</button>
+    <span class="pos">${i + 1} of ${WALK.length}</span>
+  </div>`;
+}
+
 /* ---------- selecting a record ---------- */
 function select(id) {
   const r = byId[id];
@@ -782,6 +844,7 @@ function select(id) {
     html += unitHtml(standard);
   }
 
+  html += walkNavHtml(r.id);
   $('#work').innerHTML = html;
   document.querySelectorAll('.nav-item').forEach(b =>
     b.setAttribute('aria-current', String(b.dataset.id === id)));
@@ -868,6 +931,8 @@ function movePanelHtml(key) {
 }
 
 document.addEventListener('click', e => {
+  const nav = e.target.closest('[data-go]');
+  if (nav && nav.dataset.go) { select(nav.dataset.go); return; }
   const mv = e.target.closest('[data-move]');
   if (mv) {
     const key = mv.dataset.move;
@@ -972,7 +1037,7 @@ function reselect() {
 
 buildRail();
 refreshDots();
-select(DATA.records[0].id);
+select(WALK[0]);
 """
 
 
