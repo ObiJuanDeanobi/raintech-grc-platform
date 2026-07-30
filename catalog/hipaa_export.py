@@ -36,8 +36,27 @@ RECORD_TYPE_LABEL = {
 }
 
 
-def render(catalog: dict) -> str:
+ROLE_PREFIX = {
+    "assessment_check": "[ ] ",
+    # An applicability note or context entry never renders a checkbox: it
+    # supports the scope or N/A decision, or orients the conversation. Neither
+    # is something to tick off.
+    "applicability_note": "",
+    "context": "",
+}
+ROLE_SUFFIX = {
+    "assessment_check": "",
+    "applicability_note": " _(applicability)_",
+    "context": " _(context)_",
+}
+
+
+def render(catalog: dict, prompt_layer: dict | None = None) -> str:
     version = catalog["framework_version"]
+    prompts_by_record = {
+        record_id: entry["prompts"]
+        for record_id, entry in (prompt_layer or {}).get("entries", {}).items()
+    }
     areas = {area["id"]: area for area in catalog["catalog_areas"]}
     records = catalog["records"]
     by_id = {record["id"]: record for record in records}
@@ -142,6 +161,25 @@ def render(catalog: dict) -> str:
             add(f"  - {record['text']}")
             for note in record["notes"]:
                 add(f"  - Note: {note}")
+
+            # Prompts nest under the record whose determination they inform.
+            # They carry no status and are never assessable items themselves;
+            # only an assessment check renders a checkbox.
+            for prompt in prompts_by_record.get(record["id"], []):
+                role = prompt.get("role") or "assessment_check"
+                # Every prompt states where it came from: a CFR paragraph for
+                # the rule's own enumeration, the source and key activity for
+                # NIST guidance.
+                citation = prompt.get("cfr_paragraph")
+                if not citation:
+                    citation = prompt.get("source", "")
+                    if prompt.get("source_detail"):
+                        citation += f" — {prompt['source_detail']}"
+                add(
+                    f"    - {ROLE_PREFIX.get(role, '')}{prompt['text']}"
+                    f"{ROLE_SUFFIX.get(role, '')}"
+                )
+                add(f"      - _{citation}_")
             add("")
 
     add("## Exclusions")
@@ -165,12 +203,20 @@ def render(catalog: dict) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--catalog", type=Path, required=True)
+    parser.add_argument(
+        "--prompts",
+        type=Path,
+        help="Optional prompt layer to nest beneath each record.",
+    )
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
 
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
+    prompt_layer = (
+        json.loads(args.prompts.read_text(encoding="utf-8")) if args.prompts else None
+    )
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(render(catalog), encoding="utf-8")
+    args.out.write_text(render(catalog, prompt_layer), encoding="utf-8")
     print(f"Wrote {args.out} from {args.catalog}.")
     return 0
 

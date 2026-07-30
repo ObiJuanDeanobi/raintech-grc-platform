@@ -73,6 +73,28 @@ jobs:
           RAINTECH_REQUIRE_NIST: '1'
         run: python -m unittest tests.test_nist_section_resolution -v
 
+      # The prompt layer gets the same reproducibility guarantee as the
+      # catalog: it must be exactly what the pinned sources produce, not a
+      # file that was generated once and then drifted.
+      - name: Prompt layer and export are reproducible from pinned sources
+        if: steps.detect.outputs.present == 'true'
+        run: |
+          python catalog/hipaa_prompts.py --layer --out /tmp/regenerated-prompts.json
+          if ! diff -q catalog/versions/hipaa-45cfr164-2026-07-01-prompts.json /tmp/regenerated-prompts.json; then
+            echo "::error::Committed prompt layer does not match what the ingestion script produces."
+            diff catalog/versions/hipaa-45cfr164-2026-07-01-prompts.json /tmp/regenerated-prompts.json | head -40
+            exit 1
+          fi
+          python catalog/hipaa_export.py \
+            --catalog catalog/versions/hipaa-45cfr164-2026-07-01.json \
+            --prompts catalog/versions/hipaa-45cfr164-2026-07-01-prompts.json \
+            --out /tmp/regenerated-export.md
+          if ! diff -q docs/catalogs/hipaa-45cfr164-2026-07-01.md /tmp/regenerated-export.md; then
+            echo "::error::Committed export does not match what the export script produces."
+            diff docs/catalogs/hipaa-45cfr164-2026-07-01.md /tmp/regenerated-export.md | head -40
+            exit 1
+          fi
+
   prototype:
     name: Prototype typecheck and build
     runs-on: ubuntu-latest

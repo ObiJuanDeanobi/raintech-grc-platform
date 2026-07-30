@@ -132,6 +132,23 @@ outstanding acceptance criterion, so the issue stays open.
   `docs/catalogs/security-prompt-routing.md`. Replaces the eight-entry hand
   table with the marker rule; all 22 standards route, every implementation
   specification receives prompts, 444 routed with no warnings.
+- Minimal evidence mapping pulled forward into Slice 4, confirmed by Johnathan
+  on review of the clickable walkthrough, July 30, 2026. This closes the
+  standing open question. The mechanic is *map*, not upload: one artifact
+  supports many records, each mapping keeping its own rationale and lifecycle,
+  per AC-007. The specification already makes this non-optional — a final Met
+  determination requires mapped evidence or a documented interview/observation
+  record — so a Slice 4 assessment surface without it cannot produce a valid
+  Met. Slice 5 still owns the full evidence lifecycle: versioning, replace,
+  detach, recycle bin, archive, deduplication, staleness, manifest export, and
+  evidence requests.
+- Three further recording fields are required by the specification and were
+  missing from the walkthrough alongside evidence: N/A rationale, which HIPAA
+  requires on every N/A; the addressable disposition recording whether the
+  standard measure, an equivalent alternative, or a documented
+  non-implementation decision is used, which applies to 22 of the 41 Security
+  implementation specifications and has no CMMC equivalent; and per-record
+  notes for the implementation discussion.
 - Unmarked-key-activity routing decided (issue #29): route by the marker rule,
   render parent guidance in view while a child determination is worked, and
   promote individual questions to a child by exception on rendered output. The
@@ -165,9 +182,11 @@ outstanding acceptance criterion, so the issue stays open.
   beneath 81 records, 514 assessment checks, 169 context, 38 applicability
   notes, each with the signal that decided it. Tested that no operative
   must/shall requirement is hidden as a non-check.
-  Two review artifacts now await Johnathan's practitioner read — one Security
-  standard and one Privacy standard, the CMMC-feel check. General curation and
-  the full nested ingest follow that read.
+  Full ingestion is **done**: 1163 prompts beneath 142 of the 194 records,
+  pinned at `catalog/versions/hipaa-45cfr164-2026-07-01-prompts.json` and
+  nested under each record in the export. The catalog itself is untouched and
+  still rebuilds byte-identically. What remains is Johnathan's practitioner
+  read of the rendered walkthrough.
 
 ## Blocked
 
@@ -180,13 +199,6 @@ outstanding acceptance criterion, so the issue stays open.
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
-- **Evidence mapping in Slice 4 — Johnathan.** Neither assessment mockup has an
-  evidence attachment point, because Evidence is Slice 5, after both assessment
-  surfaces. Recording is the stated focus, and a determination you cannot attach
-  evidence to is half a record. Pulling minimal evidence mapping forward would
-  widen Slice 4. Note the mechanic is *map*, not *attach*: one artifact serves
-  many records, each mapping carrying its own rationale and lifecycle, per
-  AC-007.
 - **Launcher in Slice 1 or 1b — Johnathan.** Slice 1 cannot be fully verified
   from a cloud session. Either it lands half-verified until the Windows machine
   catches up, or the launcher splits into its own sub-slice. Blocks writing the
@@ -227,19 +239,23 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Johnathan reads the two committed review artifacts as if running an assessment
-and says whether they feel right:
+Johnathan reads `docs/catalogs/hipaa-45cfr164-2026-07-01.md` — the catalog with
+its prompts nested beneath each record — as if conducting a mock assessment.
+Two standards carry the acceptance criterion, one per source path:
 
-- `docs/catalogs/security-prompt-routing.md` — where every NIST question landed
-  across the 22 Security standards, and whether any parent-guidance question
-  should be promoted onto a specific child determination.
-- `docs/catalogs/privacy-breach-classification.md` — the role given to every
-  Privacy and Breach child paragraph, and whether any check / note / context
-  call reads wrong.
+- **45 CFR 164.308(a)(1)** (Security, from 800-66r2) — do the questions sit on
+  the determination they inform, and does any parent-guidance question belong
+  on a specific child?
+- **45 CFR 164.520** (Privacy, from the rule's own enumeration) — does any
+  check / applicability-note / context call read wrong?
 
-Both are mechanical first passes built to be corrected. Corrections feed the
-general curation pass; then the full nested ingest and export, records
-unchanged at 194. No assessment UI work before that.
+Marks become an explicit exceptions list, applied on top of the mechanical
+rules rather than replacing them. Two supporting artifacts explain *why* a
+prompt landed where it did, for use when something looks wrong:
+`docs/catalogs/security-prompt-routing.md` and
+`docs/catalogs/privacy-breach-classification.md`.
+
+Slice 4's assessment surface follows that review. No UI work before it.
 
 ## Deferred decisions and their triggers
 
