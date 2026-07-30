@@ -29,7 +29,7 @@ _Prompts carry no status, produce no findings, and never appear in a report as a
 
 This is the cleaned, determination-centered volume-review sample. NIST questions are attached to the implementation specification whose determination they inform; the parent displays a derived status.
 
-**Volume-review sample:** 45 raw NIST questions → 22 kept and routed; 23 omitted as duplicate, context-only, or belonging to another record.
+**Volume-review sample:** 40 raw NIST questions → 22 kept and routed; 18 omitted as duplicate, context-only, or belonging to another record.
 
 ## 45 CFR 164.308(a)(1)(i)
 
