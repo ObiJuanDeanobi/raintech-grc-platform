@@ -3,12 +3,12 @@
 ## Current phase
 
 Slice 4a complete. Slice 1a is implemented and independently reviewed on
-`codex/issue-44-slice-1a`; publication and CI are the remaining gates.
+`codex/issue-44-slice-1a`. Draft PR #46 is open and GitHub CI is green.
 
 ## Current mode
 
 Review. Johnathan approved Issue #44 on July 30, 2026; the 22-criterion BUILD
-is complete locally and must not be called merged until the PR and CI pass.
+is complete and CI-verified, but must not be called merged until PR #46 merges.
 
 ## Current objective
 
@@ -24,8 +24,8 @@ paragraph correction approved July 28, 2026. No unapproved changes outstanding.
 ## Active ticket
 
 GitHub issue #44: Slice 1a, foundation and HIPAA assessment workspace. Approved
-July 30, 2026 and implemented on `codex/issue-44-slice-1a`. Launcher, offline
-packaging, and backup/restore remain Issue #32.
+July 30, 2026 and implemented in draft PR #46. Launcher, offline packaging,
+and backup/restore remain Issue #32.
 
 GitHub issue #29 is closed. The prompt layer is ingested, practitioner-reviewed
 on a clickable walkthrough, and merged.
@@ -220,8 +220,8 @@ on a clickable walkthrough, and merged.
 ## In progress
 
 - **GitHub issue #44: Slice 1a**, foundation and HIPAA assessment workspace.
-  Implemented locally against all 22 acceptance criteria; push, pull request,
-  and GitHub CI remain before merge. Launcher, offline
+  Implemented against all 22 acceptance criteria in draft PR #46; independent
+  review and GitHub CI are complete, leaving human review and merge. Launcher, offline
   packaging, and backup/restore are excluded. Slice 2 remains skipped for now,
   making the build order 1a, 4, 2, 3, 5, 6, 7 without renumbering.
   **The excluded work is GitHub issue #32, which already existed** — the spike
@@ -242,7 +242,8 @@ No second production slice is in flight.
 
 ## Blocked
 
-- Issue #44 has no product-decision blocker. Merge is gated on review and CI.
+- Issue #44 has no product-decision blocker. Merge is gated on human review of
+  draft PR #46.
 - GitHub issue #32, and every claim about offline operation, packaging,
   launcher, and backup/restore, is blocked on the Windows machine. A cloud
   session cannot verify any of it. #32 blocks only the launcher and packaging
@@ -320,8 +321,8 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Publish the Issue #44 branch, open the pull request, and use GitHub CI as the
-verification of record. Do not start another slice until #44 is merged.
+Review draft PR #46 and merge it when satisfied. Do not start another slice
+until #44 is merged.
 
 Independently and at any time, Johnathan can make a pass over the Security
 routing in the walkthrough using the `move…` control and send the exported JSON;
