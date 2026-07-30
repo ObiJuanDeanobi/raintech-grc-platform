@@ -200,11 +200,19 @@ on a clickable walkthrough, and merged.
 ## In progress
 
 - **GitHub issue #44: Slice 1a**, foundation and HIPAA assessment workspace.
-  Written, 17 acceptance criteria, awaiting approval. Not started. The launcher,
-  offline packaging, and backup/restore are split to Slice 1b because none can
-  be verified from a cloud session and none is needed to answer whether the
+  Written, 22 acceptance criteria, awaiting approval. Not started. Launcher,
+  offline packaging, and backup/restore are excluded because none can be
+  verified from a cloud session and none is needed to answer whether the
   workspace works. Slice 2 is skipped for now, making the build order
   1a, 4, 2, 3, 5, 6, 7 without renumbering.
+  **The excluded work is GitHub issue #32, which already existed** — the spike
+  proving the stack packages and launches on Windows ARM64 and x64. Issue #44
+  originally called that work "Slice 1b", inventing a second name for a ticket
+  already open. There is no Slice 1b: #32 is the launcher and packaging track,
+  and it already states the same split, that the data model, API, audit,
+  clients and projects are unaffected and can proceed in parallel.
+- **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
+  needs Johnathan's machine, and gates nothing in #44 except the launcher.
 - **GitHub issue #21**: practitioner review of the exported 194-record catalog.
   Record boundaries are settled and citation-stable, and the catalog was read in
   its working shape through the walkthrough. Stays open for the remaining
@@ -217,9 +225,10 @@ Nothing is being built. No application code exists in the repository.
 
 - Issue #44 is blocked on Johnathan's approval. Starting the application is an
   approval gate in `AGENTS.md`.
-- Slice 1b, and every claim about offline operation, packaging, launcher, and
-  backup/restore, is blocked on the Windows machine. A cloud session cannot
-  verify any of it.
+- GitHub issue #32, and every claim about offline operation, packaging,
+  launcher, and backup/restore, is blocked on the Windows machine. A cloud
+  session cannot verify any of it. #32 blocks only the launcher and packaging
+  part of the foundation, not #44's workspace.
 
 ## Open questions
 
@@ -308,6 +317,34 @@ routing in the walkthrough using the `move…` control and send the exported JSO
 it is folded into `ROUTING_EXCEPTIONS` as recorded decisions. Partial passes are
 useful — the worst three standards are 164.308(a)(5) with 24 questions on the
 parent, 164.312(a)(1) with 21, and 164.308(a)(1) with 18.
+
+## Branch inventory
+
+Recorded so the next agent does not re-derive it, and because a branch reset in
+this repository has already destroyed a day of work once. **Nothing here has
+been deleted.** `main` is the only branch carrying current work.
+
+Provably merged — every commit has an equivalent already on `main`, verified
+with `git cherry origin/main origin/<branch>`. Safe to delete:
+
+- `agent/record-hipaa-child-paragraph-decision`
+- `agent/record-nist-section-defect`
+- `agent/record-privacy-prompt-filter`
+- `agent/record-security-prompt-routing`
+- `agent/resume-hipaa-practitioner-review`
+
+Not provably merged. `git cherry` reports commits with no equivalent on `main`,
+which is expected after a squash merge rewrote them but is **not proof** either
+way. Check with `git log origin/main..origin/<branch>` and a content diff before
+touching any of these:
+
+- `agent/hipaa-breach-paragraph-records` — 2 commits. Its work reached `main`
+  through PR #35.
+- `claude/raintech-spec-approval-rhze0u` — 2 commits. PR #41 recorded it as
+  holding nothing that is not on `main`, and older than it.
+- `codex/v1-ui-prototype` — 12 commits, ~2800 lines. The V1 UI prototype, whose
+  outcome was deliberately collapsed into `legacy/prototypes`. Largest and least
+  certain; leave it alone unless Johnathan says otherwise.
 
 ## Deferred decisions and their triggers
 
