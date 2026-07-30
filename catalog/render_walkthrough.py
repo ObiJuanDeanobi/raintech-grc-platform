@@ -311,6 +311,10 @@ a { color: var(--accent); }
   padding: 0 18px 14px; background: var(--surface-sunk);
   display: flex; flex-direction: column; gap: 12px;
 }
+.guidance .record-work {
+  padding: 12px 0 0; margin-top: 10px; background: none;
+  border-top: 1px solid var(--line);
+}
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field > label {
   font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em;
@@ -534,7 +538,17 @@ const DISPOSITIONS = {
   none: 'Not implemented',
 };
 
-function workingRecord(r) {
+// `rollup` renders the working record for a parent standard: the scoping
+// conversation and the artifacts that support the standard as a whole, but no
+// determination controls. 45 CFR 164.306(c) makes the standard itself
+// mandatory, so the work done at that level is real and has to be recorded --
+// losing the ePHI-scoping discussion because it belonged to no single child
+// was a genuine gap. What the parent still does not get is an editable status:
+// 164.306(d)(2) satisfies a standard through its implementation
+// specifications, and an independently settable parent status would allow a
+// standard to read Met while one of its specifications reads Not Met.
+function workingRecord(r, options) {
+  const rollup = options && options.rollup;
   const id = r.id;
   const det = state.determinations[id];
   let html = '<div class="record-work">';
@@ -542,7 +556,7 @@ function workingRecord(r) {
   // Addressable specifications must record which route was taken. This has no
   // CMMC equivalent: "addressable" is not optional, and a non-implementation
   // has to carry its documented reasoning.
-  if (r.designation === 'addressable') {
+  if (!rollup && r.designation === 'addressable') {
     const d = state.disposition[id];
     html += `<div class="field">
       <label>Addressable disposition${d ? '' : ' <span class="required-flag">required</span>'}</label>
@@ -559,7 +573,7 @@ function workingRecord(r) {
     html += '</div>';
   }
 
-  if (det === 'na') {
+  if (!rollup && det === 'na') {
     html += `<div class="field">
       <label>N/A rationale <span class="required-flag">required</span></label>
       <textarea data-na="${esc(id)}" aria-label="N/A rationale"
@@ -567,15 +581,22 @@ function workingRecord(r) {
     </div>`;
   }
 
+  const noteLabel = rollup ? 'Standard-level notes' : 'Implementation notes';
+  const notePlaceholder = rollup
+    ? 'Scope and context for the whole standard: where ePHI lives, which systems and owners are in scope, what the client described.'
+    : 'What the client described, what was observed, what was demonstrated.';
   html += `<div class="field">
-    <label>Implementation notes</label>
-    <textarea data-note="${esc(id)}" aria-label="Implementation notes"
-      placeholder="What the client described, what was observed, what was demonstrated.">${esc(state.notes[id] || '')}</textarea>
+    <label>${noteLabel}</label>
+    <textarea data-note="${esc(id)}" aria-label="${noteLabel}"
+      placeholder="${esc(notePlaceholder)}">${esc(state.notes[id] || '')}</textarea>
   </div>`;
 
   // Evidence is mapped from the project library, not uploaded per record.
   const maps = state.mappings[id] || [];
-  html += `<div class="field"><label>Evidence mapped (${maps.length})</label><div class="evidence">`;
+  const evLabel = rollup
+    ? `Evidence supporting the standard (${maps.length})`
+    : `Evidence mapped (${maps.length})`;
+  html += `<div class="field"><label>${evLabel}</label><div class="evidence">`;
   maps.forEach((m, i) => {
     const uses = Object.values(state.mappings)
       .filter(list => list.some(x => x.artifact === m.artifact)).length;
@@ -645,8 +666,11 @@ function select(id) {
     const rolled = ds
       ? ` Currently <b class="roll ${ds}">${LABEL[ds]}</b>.`
       : ' Currently <b class="roll">Blank</b>.';
-    html += `<p class="why">Determinations are made on the implementation
-      specifications below. This standard's status is derived from them.${rolled}</p></div>`;
+    html += `<p class="why">45 CFR 164.306(c) makes this standard mandatory, and
+      164.306(d)(2) satisfies it through the implementation specifications below,
+      so its status is derived rather than set here.${rolled}</p>`;
+    html += workingRecord(standard, { rollup: true });
+    html += `</div>`;
     kids.forEach(k => { html += unitHtml(k); });
   } else {
     html += unitHtml(standard);
