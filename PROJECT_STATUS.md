@@ -2,11 +2,13 @@
 
 ## Current phase
 
-Production build, Slice 4a
+Slice 4a complete. Slice 1a written and awaiting approval. No application code
+exists yet; everything built to date is framework data, review artifacts, and
+their verification.
 
 ## Current mode
 
-Build
+Plan. BUILD on issue #44 has not been approved and must not begin without it.
 
 ## Current objective
 
@@ -163,24 +165,53 @@ on a clickable walkthrough, and merged.
   framework version. Ingestion stays bespoke per source. This constrains the
   Slice 1a data model, which is now written as issue #44.
 - Issue #29 closed. The prompt layer is ingested and practitioner-reviewed on a
-  clickable walkthrough built over the real catalog: 1163 prompts beneath 142 of
+  clickable walkthrough built over the real catalog: 1163 prompts beneath 141 of
   the 194 records. Reviewing the working shape rather than a Markdown table is
-  what made the review possible, and it changed two decisions on contact --
-  standard-level questions now collapse by default, because 20 of them pushed
-  the determination below the fold.
+  what made the review possible, and every design change below came from
+  clicking it rather than from reasoning about it.
+- Clickable walkthrough built at `catalog/render_walkthrough.py`. It reads the
+  same two pinned files the Markdown export reads, so it cannot drift from the
+  catalog. **It is a review instrument and is not promoted into production**;
+  the Slice 4 surface is reimplemented against the real architecture. Regenerate
+  with `python catalog/render_walkthrough.py --out <path.html>` and open the
+  file directly. It carries: the 149-record work list with Next/Previous,
+  per-question answers, per-record determination, notes, evidence mapping,
+  addressable disposition, N/A rationale, standard-level notes and evidence, and
+  in-place question moving with JSON export.
+- Bullet-fragment key-activity names fixed. A wrapped 800-66r2 cell continues on
+  a row beginning with its bullet, and that spill was read as a new activity
+  name, producing six phantom activities that competed for routing. 443 raw
+  prompts either way, but ten records' prompts moved onto the child they
+  belonged to.
+- Routing exceptions mechanism added, with the first two decisions recorded:
+  `Implement the Information System Activity Review and Audit Process` promoted
+  to 164.308(a)(1)(ii)(D), and `Draft, Maintain, and Update Required
+  Documentation` rejected for promotion to Updates because it spans all three
+  children. Rejections are kept so the same proposal is not re-litigated.
+- Automatic title matching for untagged key activities measured and **rejected**:
+  2 of 3 candidates correct at the strict threshold, roughly a quarter at a
+  looser one, and it fails silently. Kept as a candidate generator only.
+- Evidence, notes, and the recording fields settled on the walkthrough: evidence
+  is mapped rather than uploaded, the Met gate honours either mapped evidence or
+  a documented interview/observation record, N/A requires rationale, addressable
+  specifications require a disposition, every question has its own answer field,
+  and a parent standard records notes and evidence but never an editable status.
 
 ## In progress
 
-- GitHub issue #44: Slice 1a, foundation and HIPAA assessment workspace.
-  Awaiting Johnathan's approval before BUILD begins. The launcher, offline
-  packaging, and backup/restore are split to Slice 1b because none can be
-  verified from a cloud session and none is needed to answer whether the
-  workspace works. Slice 2 is skipped for now; the build order becomes
+- **GitHub issue #44: Slice 1a**, foundation and HIPAA assessment workspace.
+  Written, 17 acceptance criteria, awaiting approval. Not started. The launcher,
+  offline packaging, and backup/restore are split to Slice 1b because none can
+  be verified from a cloud session and none is needed to answer whether the
+  workspace works. Slice 2 is skipped for now, making the build order
   1a, 4, 2, 3, 5, 6, 7 without renumbering.
-- GitHub issue #21: practitioner review of the exported 194-record catalog.
-  Record boundaries are settled and citation-stable. The catalog was reviewed
-  in its working shape through the walkthrough; the issue stays open for the
-  remaining soundness read.
+- **GitHub issue #21**: practitioner review of the exported 194-record catalog.
+  Record boundaries are settled and citation-stable, and the catalog was read in
+  its working shape through the walkthrough. Stays open for the remaining
+  soundness read, which is a judgement about whether these are the right
+  assessable units rather than whether they reproduce the regulation.
+
+Nothing is being built. No application code exists in the repository.
 
 ## Blocked
 
@@ -195,10 +226,33 @@ on a clickable walkthrough, and merged.
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
-None. All three standing questions closed on July 30, 2026: prompt volume was
-accepted, evidence mapping came forward into Slice 4, and the launcher moved to
-Slice 1b. The next question is expected to come from running issue #44's
-workspace, not from reasoning about it.
+- **Security prompt routing sweep — Johnathan.** 143 questions sit on parent
+  standards across 11 standards with five or more each. 800-66r2 tags a key
+  activity with its implementation specification inconsistently, so an untagged
+  activity lands on the standard whether or not it belongs there. Hand-checking
+  45 CFR 164.308(a)(1) found only 2 of 18 survive: ten belong to that
+  standard's own children, six belong to entirely different standards. The test
+  is the practitioner's: *to mark a question Met, name the rule it would be Met
+  against; name it and the question belongs on that rule's record, fail to and
+  it is context.* Automating it was measured and rejected -- title matching
+  agreed on 2 of 3 candidates at best and fails silently. The walkthrough
+  carries the mechanism (`move…` on every question, with export), so this is a
+  pass through the tool, not a decision to reason out. Blocks nothing; the
+  routing is usable now and improves with each pass.
+- **Editable status on a parent standard — Johnathan.** Raised repeatedly on
+  July 30 and answered no, on the grounds that 164.306(d)(2) satisfies a
+  standard through its implementation specifications and an independently
+  settable parent status would let a standard read Met while one of its own
+  specifications reads Not Met. Notes and evidence were added to the parent
+  instead, which carry no such contradiction. Recorded here rather than in
+  `docs/decisions/` because the question was asked more than once and may not be
+  settled in the asker's mind; reopening it is a specification change.
+- **Client-defined control layer — Johnathan.** Surfaced from ADR 0012 during
+  the same discussion. SOC 2 and PCI DSS both want a client control sitting
+  between the published requirement and the determination, and HIPAA hints at it
+  through the addressable "equivalent alternative measure". Nothing is built and
+  nothing should be; ADR 0012 preserved the architecture that would allow it.
+  Live only because Johnathan showed interest in the shape of it.
 
 
 ## Known risks
@@ -240,19 +294,20 @@ workspace, not from reasoning about it.
 
 ## Next recommended action
 
-Johnathan approves GitHub issue #44 so BUILD can begin, or says what to change
-in its scope.
+**Johnathan approves GitHub issue #44**, or says what to change in its scope.
+Nothing else is blocked on anyone else. BUILD must not begin without that
+approval; starting the application is an approval gate in `AGENTS.md`.
 
-The target is the first thing he can actually test: open the app, select a
-HIPAA project, work 45 CFR 164.308(a)(1) as a mock assessment, record
-determinations with notes and mapped evidence, restart, and find it all still
-there. Estimated mid-August at the cadence of the last week of July, with his
-availability the dominant variable by a wide margin.
+On approval, the first build session should go at the data model and the API,
+because ADR 0012 constrains them most and they are the most expensive to change
+later. The walkthrough is the reference for how the workspace should behave, not
+code to lift.
 
-The clickable walkthrough at `catalog/render_walkthrough.py` is the reference
-for how that workspace should feel. It is a review instrument and is not
-promoted into production; the production surface is reimplemented against the
-real architecture.
+Independently and at any time, Johnathan can make a pass over the Security
+routing in the walkthrough using the `move…` control and send the exported JSON;
+it is folded into `ROUTING_EXCEPTIONS` as recorded decisions. Partial passes are
+useful — the worst three standards are 164.308(a)(5) with 24 questions on the
+parent, 164.312(a)(1) with 21, and 164.308(a)(1) with 18.
 
 ## Deferred decisions and their triggers
 
