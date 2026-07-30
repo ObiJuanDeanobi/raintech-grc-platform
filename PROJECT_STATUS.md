@@ -2,16 +2,18 @@
 
 ## Current phase
 
-Production build, Slice 4a
+Slice 4a complete. Slice 1a written and awaiting approval. No application code
+exists yet; everything built to date is framework data, review artifacts, and
+their verification.
 
 ## Current mode
 
-Build
+Plan. BUILD on issue #44 has not been approved and must not begin without it.
 
 ## Current objective
 
-Practitioner review of the ingested HIPAA catalog, so the assessable units are
-confirmed before any HIPAA assessment surface is built on them.
+Build the foundation and the HIPAA assessment workspace, so the reviewed
+catalog and prompt layer become something an assessment can be run in.
 
 ## Approved specification
 
@@ -21,10 +23,12 @@ paragraph correction approved July 28, 2026. No unapproved changes outstanding.
 
 ## Active ticket
 
-GitHub issue #21: Slice 4a, ingest and version the HIPAA full-program catalog.
-The approved four-paragraph Breach correction merged in PR #35. Johnathan's
-practitioner review of `docs/catalogs/hipaa-45cfr164-2026-07-01.md` remains the
-outstanding acceptance criterion, so the issue stays open.
+GitHub issue #44: Slice 1a, foundation and HIPAA assessment workspace, launcher
+deferred to 1b. **Awaiting Johnathan's approval before BUILD begins**, since it
+starts the application.
+
+GitHub issue #29 is closed. The prompt layer is ingested, practitioner-reviewed
+on a clickable walkthrough, and merged.
 
 ## Completed
 
@@ -159,50 +163,106 @@ outstanding acceptance criterion, so the issue stays open.
 - ADR 0012 accepted: a framework is defined by data, not application code.
   Record shape, rollup rule, status set and presentation mode are declared per
   framework version. Ingestion stays bespoke per source. This constrains the
-  Slice 1 data model and is the reason that ticket is not yet written.
+  Slice 1a data model, which is now written as issue #44.
+- Issue #29 closed. The prompt layer is ingested and practitioner-reviewed on a
+  clickable walkthrough built over the real catalog: 1163 prompts beneath 141 of
+  the 194 records. Reviewing the working shape rather than a Markdown table is
+  what made the review possible, and every design change below came from
+  clicking it rather than from reasoning about it.
+- Clickable walkthrough built at `catalog/render_walkthrough.py`. It reads the
+  same two pinned files the Markdown export reads, so it cannot drift from the
+  catalog. **It is a review instrument and is not promoted into production**;
+  the Slice 4 surface is reimplemented against the real architecture. Regenerate
+  with `python catalog/render_walkthrough.py --out <path.html>` and open the
+  file directly. It carries: the 149-record work list with Next/Previous,
+  per-question answers, per-record determination, notes, evidence mapping,
+  addressable disposition, N/A rationale, standard-level notes and evidence, and
+  in-place question moving with JSON export.
+- Bullet-fragment key-activity names fixed. A wrapped 800-66r2 cell continues on
+  a row beginning with its bullet, and that spill was read as a new activity
+  name, producing six phantom activities that competed for routing. 443 raw
+  prompts either way, but ten records' prompts moved onto the child they
+  belonged to.
+- Routing exceptions mechanism added, with the first two decisions recorded:
+  `Implement the Information System Activity Review and Audit Process` promoted
+  to 164.308(a)(1)(ii)(D), and `Draft, Maintain, and Update Required
+  Documentation` rejected for promotion to Updates because it spans all three
+  children. Rejections are kept so the same proposal is not re-litigated.
+- Automatic title matching for untagged key activities measured and **rejected**:
+  2 of 3 candidates correct at the strict threshold, roughly a quarter at a
+  looser one, and it fails silently. Kept as a candidate generator only.
+- Evidence, notes, and the recording fields settled on the walkthrough: evidence
+  is mapped rather than uploaded, the Met gate honours either mapped evidence or
+  a documented interview/observation record, N/A requires rationale, addressable
+  specifications require a disposition, every question has its own answer field,
+  and a parent standard records notes and evidence but never an editable status.
 
 ## In progress
 
-- GitHub issue #21: practitioner review of the exported 194-record catalog.
-  The subordinate-paragraph presentation decision is settled. Review continues
-  against stable citation-based record boundaries.
-- GitHub issue #29: prompt volume accepted July 29, 2026, so full ingestion is
-  authorised. The blocking NIST section-resolution defect is **fixed**. Section
-  headings are now parsed once with balanced-paren citation capture, page ranges
-  come from consecutive headings, and a NIST citation resolves to a catalog
-  standard allowing a trailing `(1)` and/or `(i)`. All 22 Security standards
-  resolve to distinct sections, 443 raw prompts, no two standards sharing a
-  prompt list. The approved 22-prompt curated set is unchanged; only the raw
-  count for 164.308(a)(1) moves, from 45 to 40.
-  General Security routing is **built** and committed at
-  `docs/catalogs/security-prompt-routing.md`: 22/22 standards route, every
-  implementation specification receives prompts, no warnings.
-  Privacy and Breach role classification is **built** and committed at
-  `docs/catalogs/privacy-breach-classification.md`: 721 child paragraphs
-  beneath 81 records, 514 assessment checks, 169 context, 38 applicability
-  notes, each with the signal that decided it. Tested that no operative
-  must/shall requirement is hidden as a non-check.
-  Full ingestion is **done**: 1163 prompts beneath 142 of the 194 records,
-  pinned at `catalog/versions/hipaa-45cfr164-2026-07-01-prompts.json` and
-  nested under each record in the export. The catalog itself is untouched and
-  still rebuilds byte-identically. What remains is Johnathan's practitioner
-  read of the rendered walkthrough.
+- **GitHub issue #44: Slice 1a**, foundation and HIPAA assessment workspace.
+  Written, 22 acceptance criteria, awaiting approval. Not started. Launcher,
+  offline packaging, and backup/restore are excluded because none can be
+  verified from a cloud session and none is needed to answer whether the
+  workspace works. Slice 2 is skipped for now, making the build order
+  1a, 4, 2, 3, 5, 6, 7 without renumbering.
+  **The excluded work is GitHub issue #32, which already existed** — the spike
+  proving the stack packages and launches on Windows ARM64 and x64. Issue #44
+  originally called that work "Slice 1b", inventing a second name for a ticket
+  already open. There is no Slice 1b: #32 is the launcher and packaging track,
+  and it already states the same split, that the data model, API, audit,
+  clients and projects are unaffected and can proceed in parallel.
+- **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
+  needs Johnathan's machine, and gates nothing in #44 except the launcher.
+- **GitHub issue #21**: practitioner review of the exported 194-record catalog.
+  Record boundaries are settled and citation-stable, and the catalog was read in
+  its working shape through the walkthrough. Stays open for the remaining
+  soundness read, which is a judgement about whether these are the right
+  assessable units rather than whether they reproduce the regulation.
+
+Nothing is being built. No application code exists in the repository.
 
 ## Blocked
 
-- Slice 4 beyond the catalog is blocked on practitioner review. Building an
-  assessment surface on unreviewed assessable units risks reworking every
-  determination made against them.
+- Issue #44 is blocked on Johnathan's approval. Starting the application is an
+  approval gate in `AGENTS.md`.
+- GitHub issue #32, and every claim about offline operation, packaging,
+  launcher, and backup/restore, is blocked on the Windows machine. A cloud
+  session cannot verify any of it. #32 blocks only the launcher and packaging
+  part of the foundation, not #44's workspace.
 
 ## Open questions
 
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
-- **Launcher in Slice 1 or 1b — Johnathan.** Slice 1 cannot be fully verified
-  from a cloud session. Either it lands half-verified until the Windows machine
-  catches up, or the launcher splits into its own sub-slice. Blocks writing the
-  Slice 1 ticket.
+- **Security prompt routing sweep — Johnathan.** 143 questions sit on parent
+  standards across 11 standards with five or more each. 800-66r2 tags a key
+  activity with its implementation specification inconsistently, so an untagged
+  activity lands on the standard whether or not it belongs there. Hand-checking
+  45 CFR 164.308(a)(1) found only 2 of 18 survive: ten belong to that
+  standard's own children, six belong to entirely different standards. The test
+  is the practitioner's: *to mark a question Met, name the rule it would be Met
+  against; name it and the question belongs on that rule's record, fail to and
+  it is context.* Automating it was measured and rejected -- title matching
+  agreed on 2 of 3 candidates at best and fails silently. The walkthrough
+  carries the mechanism (`move…` on every question, with export), so this is a
+  pass through the tool, not a decision to reason out. Blocks nothing; the
+  routing is usable now and improves with each pass.
+- **Editable status on a parent standard — Johnathan.** Raised repeatedly on
+  July 30 and answered no, on the grounds that 164.306(d)(2) satisfies a
+  standard through its implementation specifications and an independently
+  settable parent status would let a standard read Met while one of its own
+  specifications reads Not Met. Notes and evidence were added to the parent
+  instead, which carry no such contradiction. Recorded here rather than in
+  `docs/decisions/` because the question was asked more than once and may not be
+  settled in the asker's mind; reopening it is a specification change.
+- **Client-defined control layer — Johnathan.** Surfaced from ADR 0012 during
+  the same discussion. SOC 2 and PCI DSS both want a client control sitting
+  between the published requirement and the determination, and HIPAA hints at it
+  through the addressable "equivalent alternative measure". Nothing is built and
+  nothing should be; ADR 0012 preserved the architecture that would allow it.
+  Live only because Johnathan showed interest in the shape of it.
+
 
 ## Known risks
 
@@ -212,9 +272,13 @@ for an issue. Each names who has to answer it.
   should be measured across the whole corpus before any sample is treated as
   representative.
 
-- The HIPAA catalog is ingested but unreviewed, and the first engagement is weeks
-  away. The platform runs in parallel with the existing method and is not on the
-  critical path of client work.
+- The first engagement is weeks away. The platform runs in parallel with the
+  existing method and is not on the critical path of client work, which is what
+  makes the remaining schedule risk tolerable.
+- No application code exists yet. Everything built so far is data and documents,
+  so there is no observed rate for application work to forecast from. Treat any
+  date for issue #44 as an estimate to be revised after the first build session,
+  not a commitment already earned.
 - The catalog is verified to reproduce the regulation faithfully. It is not
   verified to be a sound assessment instrument; that is a practitioner judgement
   and is the open acceptance criterion on issue #21.
@@ -239,23 +303,48 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Johnathan reads `docs/catalogs/hipaa-45cfr164-2026-07-01.md` — the catalog with
-its prompts nested beneath each record — as if conducting a mock assessment.
-Two standards carry the acceptance criterion, one per source path:
+**Johnathan approves GitHub issue #44**, or says what to change in its scope.
+Nothing else is blocked on anyone else. BUILD must not begin without that
+approval; starting the application is an approval gate in `AGENTS.md`.
 
-- **45 CFR 164.308(a)(1)** (Security, from 800-66r2) — do the questions sit on
-  the determination they inform, and does any parent-guidance question belong
-  on a specific child?
-- **45 CFR 164.520** (Privacy, from the rule's own enumeration) — does any
-  check / applicability-note / context call read wrong?
+On approval, the first build session should go at the data model and the API,
+because ADR 0012 constrains them most and they are the most expensive to change
+later. The walkthrough is the reference for how the workspace should behave, not
+code to lift.
 
-Marks become an explicit exceptions list, applied on top of the mechanical
-rules rather than replacing them. Two supporting artifacts explain *why* a
-prompt landed where it did, for use when something looks wrong:
-`docs/catalogs/security-prompt-routing.md` and
-`docs/catalogs/privacy-breach-classification.md`.
+Independently and at any time, Johnathan can make a pass over the Security
+routing in the walkthrough using the `move…` control and send the exported JSON;
+it is folded into `ROUTING_EXCEPTIONS` as recorded decisions. Partial passes are
+useful — the worst three standards are 164.308(a)(5) with 24 questions on the
+parent, 164.312(a)(1) with 21, and 164.308(a)(1) with 18.
 
-Slice 4's assessment surface follows that review. No UI work before it.
+## Branch inventory
+
+Recorded so the next agent does not re-derive it, and because a branch reset in
+this repository has already destroyed a day of work once. **Nothing here has
+been deleted.** `main` is the only branch carrying current work.
+
+Provably merged — every commit has an equivalent already on `main`, verified
+with `git cherry origin/main origin/<branch>`. Safe to delete:
+
+- `agent/record-hipaa-child-paragraph-decision`
+- `agent/record-nist-section-defect`
+- `agent/record-privacy-prompt-filter`
+- `agent/record-security-prompt-routing`
+- `agent/resume-hipaa-practitioner-review`
+
+Not provably merged. `git cherry` reports commits with no equivalent on `main`,
+which is expected after a squash merge rewrote them but is **not proof** either
+way. Check with `git log origin/main..origin/<branch>` and a content diff before
+touching any of these:
+
+- `agent/hipaa-breach-paragraph-records` — 2 commits. Its work reached `main`
+  through PR #35.
+- `claude/raintech-spec-approval-rhze0u` — 2 commits. PR #41 recorded it as
+  holding nothing that is not on `main`, and older than it.
+- `codex/v1-ui-prototype` — 12 commits, ~2800 lines. The V1 UI prototype, whose
+  outcome was deliberately collapsed into `legacy/prototypes`. Largest and least
+  certain; leave it alone unless Johnathan says otherwise.
 
 ## Deferred decisions and their triggers
 

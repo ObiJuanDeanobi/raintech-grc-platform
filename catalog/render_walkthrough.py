@@ -176,6 +176,39 @@ a { color: var(--accent); }
   background: var(--surface); border-left-color: var(--accent);
 }
 .nav-item.child { padding-left: 38px; }
+/* A rollup header is not a stop on the walkthrough. It reads as a heading so
+   the eye skips it, because five separate rounds of confusion traced back to
+   it looking like something to work. */
+.nav-item.rollup .nav-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--ink-faint); font-weight: 700;
+}
+.nav-item.rollup .nav-cite { font-size: 10px; }
+.rail.worklist .nav-item.rollup { display: none; }
+.rail-tools {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center;
+  gap: 8px; padding: 9px 16px 9px 22px; background: var(--surface-sunk);
+  border-bottom: 1px solid var(--line);
+}
+.rail-tools label {
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  font-size: 11.5px; color: var(--ink-muted);
+}
+.rail-tools input { accent-color: var(--accent); cursor: pointer; }
+.walk-nav {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line);
+}
+.walk-nav button {
+  font: inherit; font-size: 13px; cursor: pointer; padding: 6px 16px;
+  border-radius: 3px; border: 1px solid var(--accent);
+  background: var(--accent); color: #fff; font-weight: 600;
+}
+.walk-nav button.ghost { background: none; color: var(--accent); }
+.walk-nav button:disabled { opacity: .4; cursor: default; }
+.walk-nav .pos {
+  font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums;
+}
 .nav-cite {
   display: block; font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
 }
@@ -273,6 +306,58 @@ a { color: var(--accent); }
   display: block; font-family: var(--mono); font-size: 10.5px;
   color: var(--ink-faint); margin-top: 3px;
 }
+.answer-add {
+  font: inherit; font-size: 11px; cursor: pointer; margin-top: 4px;
+  padding: 1px 7px; border-radius: 3px; color: var(--ink-faint);
+  background: none; border: 1px dashed var(--line-strong);
+}
+.prompt:hover .answer-add { color: var(--accent); border-color: var(--accent); }
+.prompt-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.move-btn {
+  font: inherit; font-size: 11px; cursor: pointer; padding: 1px 7px;
+  border-radius: 3px; color: var(--ink-faint);
+  background: none; border: 1px dashed var(--line-strong);
+}
+.prompt:hover .move-btn { color: var(--accent); border-color: var(--accent); }
+.moved-from {
+  display: inline-block; margin-left: 7px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; vertical-align: 1px;
+  padding: 1px 6px; border-radius: 2px;
+  background: var(--accent-soft); color: var(--accent);
+}
+.move-panel {
+  margin-top: 6px; padding: 9px 10px; border-radius: 4px;
+  border: 1px solid var(--accent); background: var(--surface);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.move-panel .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.move-panel select, .move-panel input {
+  font: inherit; font-size: 12.5px; padding: 4px 8px; border-radius: 3px;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+}
+.move-panel select { max-width: 100%; }
+.move-panel input { flex: 1 1 200px; min-width: 0; }
+.move-panel .go {
+  border-color: var(--accent); background: var(--accent); color: #fff;
+  font-weight: 600; cursor: pointer; padding: 4px 12px; border-radius: 3px;
+  font: inherit; font-size: 12.5px; border: 1px solid var(--accent);
+}
+.move-panel .undo {
+  background: none; border: 0; color: var(--ink-faint); cursor: pointer;
+  font: inherit; font-size: 11.5px; text-decoration: underline; padding: 0;
+}
+.move-panel .hint2 { font-size: 11.5px; color: var(--ink-muted); }
+.export-btn {
+  font: inherit; font-size: 12px; cursor: pointer; padding: 3px 11px;
+  border-radius: 3px; border: 1px solid var(--accent);
+  background: var(--accent); color: #fff; font-weight: 600;
+}
+textarea.answer {
+  display: block; width: 100%; margin-top: 5px; font: inherit; font-size: 13px;
+  padding: 6px 9px; border-radius: 3px; resize: vertical; color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--accent); background: var(--surface);
+}
 .role-tag {
   display: inline-block; font-size: 9.5px; text-transform: uppercase;
   letter-spacing: .07em; font-weight: 700; padding: 1px 5px; border-radius: 2px;
@@ -310,6 +395,10 @@ a { color: var(--accent); }
 .record-work {
   padding: 0 18px 14px; background: var(--surface-sunk);
   display: flex; flex-direction: column; gap: 12px;
+}
+.guidance .record-work {
+  padding: 12px 0 0; margin-top: 10px; background: none;
+  border-top: 1px solid var(--line);
 }
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field > label {
@@ -389,6 +478,7 @@ const $ = (s, r) => (r || document).querySelector(s);
 const state = {
   determinations: {}, ticks: {}, notes: {}, naRationale: {},
   disposition: {}, dispositionNote: {}, evidence: [], mappings: {},
+  answers: {}, moves: {},
 };
 try {
   const saved = localStorage.getItem('hipaa-walkthrough');
@@ -445,7 +535,8 @@ function buildRail() {
         html += `<div class="sec-head">45 CFR ${esc(section)}</div>`;
       }
       const child = r.parent_id ? ' child' : '';
-      html += `<button class="nav-item${child}" data-id="${esc(r.id)}" aria-current="false">
+      const roll = isDerived(r.id) ? ' rollup' : '';
+      html += `<button class="nav-item${child}${roll}" data-id="${esc(r.id)}" aria-current="false">
         <span class="dot" data-dot="${esc(r.id)}"></span>
         <span>
           <span class="nav-cite">${esc(r.id)}</span>
@@ -454,7 +545,13 @@ function buildRail() {
       </button>`;
     });
   });
-  rail.innerHTML = html;
+  const determinable = DATA.records.filter(r => !isDerived(r.id)).length;
+  rail.innerHTML = `<div class="rail-tools"><label>
+      <input type="checkbox" id="worklist"> Only what I determine (${determinable})
+    </label></div>` + html;
+  rail.addEventListener('change', e => {
+    if (e.target.id === 'worklist') rail.classList.toggle('worklist', e.target.checked);
+  });
   rail.addEventListener('click', e => {
     const btn = e.target.closest('.nav-item');
     if (btn) select(btn.dataset.id);
@@ -471,18 +568,70 @@ function refreshDots() {
   const done = DATA.records.filter(r => !isDerived(r.id) && state.determinations[r.id]).length;
   $('#tally-done').textContent = done;
   $('#tally-total').textContent = total;
+  const moves = $('#tally-moves');
+  if (moves) moves.textContent = moveCount();
 }
 
 /* ---------- prompt rendering ---------- */
-function promptHtml(recordId, p, i) {
-  const key = recordId + '#' + i;
-  const role = p.role || 'assessment_check';
+// ---- moves -------------------------------------------------------------
+// A question sits where 800-66r2's tagging put it, and that tagging is not
+// consistent. The practitioner's test is the reliable one: if you want to mark
+// a question Met, name the rule it would be Met against. Name it and the
+// question belongs on that rule's record; fail to and it is context. This lets
+// that judgement be applied in place, and exports it so it can be baked into
+// the pipeline as recorded exceptions.
+const PROMPT_INDEX = {};   // key -> {prompt, home}
+Object.entries(DATA.prompts).forEach(([rid, list]) => {
+  list.forEach((prompt, i) => { PROMPT_INDEX[rid + '#' + i] = { prompt, home: rid }; });
+});
+const MOVE_CONTEXT = '__context';
+
+function destinationOf(key) {
+  const m = state.moves[key];
+  return m ? m.to : PROMPT_INDEX[key].home;
+}
+
+// Prompts to render on a record: those that started here and have not left,
+// plus those moved in from elsewhere.
+function promptsFor(recordId) {
+  const out = [];
+  Object.entries(PROMPT_INDEX).forEach(([key, { prompt, home }]) => {
+    const dest = destinationOf(key);
+    if (dest === recordId) out.push({ key, prompt, movedFrom: home === recordId ? null : home });
+  });
+  return out;
+}
+
+function moveCount() { return Object.keys(state.moves).length; }
+
+// A prompt carries no status and no evidence of its own -- the determination
+// and its evidence belong to the record. What it does need is somewhere to put
+// the answer: eighteen questions sharing one notes box loses which question
+// produced which fact. The answer field is collapsed until it holds something,
+// so a long question list stays readable.
+function answerHtml(key) {
+  const answer = state.answers[key] || '';
+  if (!answer) {
+    return `<button class="answer-add" data-answer-open="${esc(key)}">+ answer</button>`;
+  }
+  return `<textarea class="answer" data-answer="${esc(key)}" rows="2"
+    aria-label="Answer to this question">${esc(answer)}</textarea>`;
+}
+
+function promptHtml(recordId, entry) {
+  const { key, prompt: p, movedFrom } = entry;
+  const moved = state.moves[key];
+  const role = (moved && moved.to === MOVE_CONTEXT) ? 'context' : (p.role || 'assessment_check');
   const src = p.cfr_paragraph || (p.source + (p.source_detail ? ' — ' + p.source_detail : ''));
+  const from = movedFrom
+    ? `<span class="moved-from">moved from ${esc(movedFrom)}</span>` : '';
+  const mover = `<button class="move-btn" data-move="${esc(key)}">move…</button>`;
   if (role === 'assessment_check') {
     const on = state.ticks[key] ? ' checked' : '';
     return `<li class="prompt">
-      <input type="checkbox" data-tick="${esc(key)}"${on} aria-label="Reviewed">
-      <p>${esc(p.text)}<span class="src">${esc(src)}</span></p>
+      <input type="checkbox" data-tick="${esc(key)}"${on} aria-label="Asked">
+      <p>${esc(p.text)}${from}<span class="src">${esc(src)}</span>
+        <span class="prompt-tools">${answerHtml(key)}${mover}</span></p>
     </li>`;
   }
   const tag = role === 'applicability_note'
@@ -491,18 +640,19 @@ function promptHtml(recordId, p, i) {
   const cls = role === 'applicability_note' ? 'appl' : 'ctx';
   return `<li class="prompt ${cls}">
     <span class="no-box"></span>
-    <p>${tag}${esc(p.text)}<span class="src">${esc(src)}</span></p>
+    <p>${tag}${esc(p.text)}${from}<span class="src">${esc(src)}</span>
+      <span class="prompt-tools">${mover}</span></p>
   </li>`;
 }
 
 function unitHtml(r) {
-  const prompts = (DATA.prompts[r.id] || []);
+  const prompts = promptsFor(r.id);
   const derived = isDerived(r.id);
   const desig = r.designation
     ? `<span class="chip ${esc(r.designation)}">${esc(r.designation)}</span>` : '';
   let body = `<div class="unit-body"><p class="reg-text">${esc(r.text)}</p>`;
   body += prompts.length
-    ? `<ul class="prompts">${prompts.map((p, i) => promptHtml(r.id, p, i)).join('')}</ul></div>`
+    ? `<ul class="prompts">${prompts.map(e => promptHtml(r.id, e)).join('')}</ul></div>`
     : `</div>`;
   let foot;
   if (derived) {
@@ -534,7 +684,17 @@ const DISPOSITIONS = {
   none: 'Not implemented',
 };
 
-function workingRecord(r) {
+// `rollup` renders the working record for a parent standard: the scoping
+// conversation and the artifacts that support the standard as a whole, but no
+// determination controls. 45 CFR 164.306(c) makes the standard itself
+// mandatory, so the work done at that level is real and has to be recorded --
+// losing the ePHI-scoping discussion because it belonged to no single child
+// was a genuine gap. What the parent still does not get is an editable status:
+// 164.306(d)(2) satisfies a standard through its implementation
+// specifications, and an independently settable parent status would allow a
+// standard to read Met while one of its specifications reads Not Met.
+function workingRecord(r, options) {
+  const rollup = options && options.rollup;
   const id = r.id;
   const det = state.determinations[id];
   let html = '<div class="record-work">';
@@ -542,7 +702,7 @@ function workingRecord(r) {
   // Addressable specifications must record which route was taken. This has no
   // CMMC equivalent: "addressable" is not optional, and a non-implementation
   // has to carry its documented reasoning.
-  if (r.designation === 'addressable') {
+  if (!rollup && r.designation === 'addressable') {
     const d = state.disposition[id];
     html += `<div class="field">
       <label>Addressable disposition${d ? '' : ' <span class="required-flag">required</span>'}</label>
@@ -559,7 +719,7 @@ function workingRecord(r) {
     html += '</div>';
   }
 
-  if (det === 'na') {
+  if (!rollup && det === 'na') {
     html += `<div class="field">
       <label>N/A rationale <span class="required-flag">required</span></label>
       <textarea data-na="${esc(id)}" aria-label="N/A rationale"
@@ -567,15 +727,22 @@ function workingRecord(r) {
     </div>`;
   }
 
+  const noteLabel = rollup ? 'Standard-level notes' : 'Implementation notes';
+  const notePlaceholder = rollup
+    ? 'Scope and context for the whole standard: where ePHI lives, which systems and owners are in scope, what the client described.'
+    : 'What the client described, what was observed, what was demonstrated.';
   html += `<div class="field">
-    <label>Implementation notes</label>
-    <textarea data-note="${esc(id)}" aria-label="Implementation notes"
-      placeholder="What the client described, what was observed, what was demonstrated.">${esc(state.notes[id] || '')}</textarea>
+    <label>${noteLabel}</label>
+    <textarea data-note="${esc(id)}" aria-label="${noteLabel}"
+      placeholder="${esc(notePlaceholder)}">${esc(state.notes[id] || '')}</textarea>
   </div>`;
 
   // Evidence is mapped from the project library, not uploaded per record.
   const maps = state.mappings[id] || [];
-  html += `<div class="field"><label>Evidence mapped (${maps.length})</label><div class="evidence">`;
+  const evLabel = rollup
+    ? `Evidence supporting the standard (${maps.length})`
+    : `Evidence mapped (${maps.length})`;
+  html += `<div class="field"><label>${evLabel}</label><div class="evidence">`;
   maps.forEach((m, i) => {
     const uses = Object.values(state.mappings)
       .filter(list => list.some(x => x.artifact === m.artifact)).length;
@@ -611,6 +778,28 @@ function workingRecord(r) {
   return html + '</div>';
 }
 
+// The walk is over the records that carry a determination. A rollup header is
+// passed through on the way, not stopped at.
+const WALK = DATA.records.filter(r => !isDerived(r.id)).map(r => r.id);
+
+function walkNavHtml(id) {
+  // Selecting a rollup header shows its children, so the walk position is the
+  // first child being worked rather than the header itself.
+  let i = WALK.indexOf(id);
+  if (i < 0) {
+    const firstChild = (childrenOf[id] || []).find(c => WALK.includes(c));
+    i = firstChild ? WALK.indexOf(firstChild) : -1;
+  }
+  if (i < 0) return '';
+  const prev = i > 0 ? WALK[i - 1] : null;
+  const next = i < WALK.length - 1 ? WALK[i + 1] : null;
+  return `<div class="walk-nav">
+    <button class="ghost" data-go="${esc(prev || '')}" ${prev ? '' : 'disabled'}>← Previous</button>
+    <button data-go="${esc(next || '')}" ${next ? '' : 'disabled'}>Next requirement →</button>
+    <span class="pos">${i + 1} of ${WALK.length}</span>
+  </div>`;
+}
+
 /* ---------- selecting a record ---------- */
 function select(id) {
   const r = byId[id];
@@ -625,7 +814,7 @@ function select(id) {
     45 CFR ${esc(r.section)} &nbsp;›&nbsp; ${esc(r.id)}</div>`;
 
   if (kids.length) {
-    const gp = DATA.prompts[standard.id] || [];
+    const gp = promptsFor(standard.id);
     html += `<div class="guidance">
       <div class="label">Standard context</div>
       <h2>45 CFR ${esc(standard.id)} — ${esc(standard.title)}</h2>
@@ -638,20 +827,24 @@ function select(id) {
       const open = (standard.id === id) ? ' open' : '';
       html += `<details class="fold"${open}>
         <summary>${gp.length} standard-level question${gp.length === 1 ? '' : 's'}</summary>
-        <ul class="prompts">${gp.map((p, i) => promptHtml(standard.id, p, i)).join('')}</ul>
+        <ul class="prompts">${gp.map(e => promptHtml(standard.id, e)).join('')}</ul>
       </details>`;
     }
     const ds = derivedStatus(standard.id);
     const rolled = ds
       ? ` Currently <b class="roll ${ds}">${LABEL[ds]}</b>.`
       : ' Currently <b class="roll">Blank</b>.';
-    html += `<p class="why">Determinations are made on the implementation
-      specifications below. This standard's status is derived from them.${rolled}</p></div>`;
+    html += `<p class="why">45 CFR 164.306(c) makes this standard mandatory, and
+      164.306(d)(2) satisfies it through the implementation specifications below,
+      so its status is derived rather than set here.${rolled}</p>`;
+    html += workingRecord(standard, { rollup: true });
+    html += `</div>`;
     kids.forEach(k => { html += unitHtml(k); });
   } else {
     html += unitHtml(standard);
   }
 
+  html += walkNavHtml(r.id);
   $('#work').innerHTML = html;
   document.querySelectorAll('.nav-item').forEach(b =>
     b.setAttribute('aria-current', String(b.dataset.id === id)));
@@ -688,7 +881,7 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => {
   const el = e.target;
   const bind = [['data-note', 'notes'], ['data-na', 'naRationale'],
-                ['data-dispnote', 'dispositionNote']];
+                ['data-dispnote', 'dispositionNote'], ['data-answer', 'answers']];
   for (const [attr, key] of bind) {
     const id = el.getAttribute && el.getAttribute(attr);
     if (id) {
@@ -700,7 +893,79 @@ document.addEventListener('input', e => {
   }
 });
 
+// Build the destination list for a prompt: the children of its standard first,
+// then every other record, because a question can belong to a different
+// standard entirely -- "Is there a formal contingency plan?" under Security
+// management process belongs to 164.308(a)(7).
+function movePanelHtml(key) {
+  const { prompt, home } = PROMPT_INDEX[key];
+  const homeRec = byId[home];
+  const standardId = homeRec.parent_id || home;
+  const siblings = [standardId].concat(childrenOf[standardId] || []);
+  const current = destinationOf(key);
+  const opt = (id, label) =>
+    `<option value="${esc(id)}"${current === id ? ' selected' : ''}>${esc(label)}</option>`;
+  let html = '<div class="move-panel"><div class="row"><select data-movepick="' + esc(key) + '">';
+  html += '<optgroup label="This standard">';
+  siblings.forEach(id => {
+    const r = byId[id];
+    html += opt(id, `${id} — ${r.title}${id === standardId ? ' (standard)' : ''}`);
+  });
+  html += '</optgroup><optgroup label="Not a requirement">';
+  html += opt(MOVE_CONTEXT, 'Context only — no rule to be Met against');
+  html += '</optgroup><optgroup label="Another standard">';
+  DATA.records.forEach(r => {
+    if (siblings.includes(r.id)) return;
+    html += opt(r.id, `${r.id} — ${r.title}`);
+  });
+  html += '</optgroup></select>';
+  html += `<input data-movewhy="${esc(key)}" placeholder="Which rule would this be Met against?"
+    value="${esc((state.moves[key] || {}).reason || '')}">`;
+  html += `<button class="go" data-movego="${esc(key)}">Move</button></div>`;
+  html += `<div class="row"><span class="hint2">Currently on ${esc(current === MOVE_CONTEXT ? 'context' : current)}.</span>`;
+  if (state.moves[key]) {
+    html += `<button class="undo" data-moveundo="${esc(key)}">Undo this move</button>`;
+  }
+  html += '</div></div>';
+  return html;
+}
+
 document.addEventListener('click', e => {
+  const nav = e.target.closest('[data-go]');
+  if (nav && nav.dataset.go) { select(nav.dataset.go); return; }
+  const mv = e.target.closest('[data-move]');
+  if (mv) {
+    const key = mv.dataset.move;
+    const existing = mv.parentElement.querySelector('.move-panel');
+    if (existing) { existing.remove(); return; }
+    mv.insertAdjacentHTML('afterend', movePanelHtml(key));
+    return;
+  }
+  const go = e.target.closest('[data-movego]');
+  if (go) {
+    const key = go.dataset.movego;
+    const to = document.querySelector(`[data-movepick="${CSS.escape(key)}"]`).value;
+    const reason = (document.querySelector(`[data-movewhy="${CSS.escape(key)}"]`).value || '').trim();
+    if (to === PROMPT_INDEX[key].home) delete state.moves[key];
+    else state.moves[key] = { to, reason };
+    save(); reselect();
+    return;
+  }
+  const undo = e.target.closest('[data-moveundo]');
+  if (undo) { delete state.moves[undo.dataset.moveundo]; save(); reselect(); return; }
+  if (e.target.closest('#export')) { exportDecisions(); return; }
+  const open = e.target.closest('[data-answer-open]');
+  if (open) {
+    const key = open.dataset.answerOpen;
+    // Placeholder value so the field renders; cleared again if left empty.
+    const box = document.createElement('textarea');
+    box.className = 'answer'; box.rows = 2;
+    box.setAttribute('data-answer', key);
+    box.setAttribute('aria-label', 'Answer to this question');
+    open.replaceWith(box);
+    box.focus();
+    return;
+  }
   const disp = e.target.closest('[data-disp]');
   if (disp) {
     const id = disp.dataset.disp;
@@ -740,6 +1005,30 @@ document.addEventListener('click', e => {
   }
 });
 
+// The practitioner's marks have to reach the pipeline, so they leave as data
+// rather than as a screenshot.
+function exportDecisions() {
+  const rows = Object.entries(state.moves).map(([key, m]) => {
+    const { prompt, home } = PROMPT_INDEX[key];
+    return {
+      from_record: home,
+      to: m.to === MOVE_CONTEXT ? 'context' : m.to,
+      key_activity: prompt.group || null,
+      question: prompt.text,
+      reason: m.reason || '',
+    };
+  });
+  const payload = JSON.stringify(
+    { framework_version: DATA.version, moves: rows,
+      answers: state.answers, determinations: state.determinations }, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'walkthrough-decisions.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function reselect() {
   const cur = document.querySelector('.nav-item[aria-current="true"]');
   if (cur) select(cur.dataset.id);
@@ -748,7 +1037,7 @@ function reselect() {
 
 buildRail();
 refreshDots();
-select(DATA.records[0].id);
+select(WALK[0]);
 """
 
 
@@ -781,6 +1070,7 @@ def build(catalog: dict, layer: dict) -> str:
         "noPrompts": no_prompts,
         "areas": areas,
         "areaLabel": {area["id"]: area["label"] for area in areas},
+        "version": catalog["framework_version"]["id"],
     }
 
     counts = layer["counts"]
@@ -797,6 +1087,8 @@ def build(catalog: dict, layer: dict) -> str:
     <div><b id="tally-total">0</b><span>determinations</span></div>
     <div><b>{counts['prompts_total']}</b><span>prompts</span></div>
     <div><b>{len(records)}</b><span>records</span></div>
+    <div><b id="tally-moves">0</b><span>moves</span></div>
+    <div><button class="export-btn" id="export">Export decisions</button></div>
   </div>
 </header>
 <div class="shell">

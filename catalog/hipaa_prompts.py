@@ -75,6 +75,12 @@ SPEC_MARKER_RE = re.compile(
 FOOTNOTE_TAIL_RE = re.compile(r"(?<=[a-z)])\d{1,3}(?:\s+\d{1,3})*\s*$")
 QUESTION_FOOTNOTE_RE = re.compile(r"(?<=\?)\d{1,3}\b")
 ACTIVITY_NUM_RE = re.compile(r"^\s*(\d+)\.\s*")
+# A key activity cell can spill onto a further row, and the spill begins with
+# the bullet it was wrapped in rather than a numbered activity name. Read as a
+# name it produces phantom activities like "• Ensure that there is a list of
+# personnel with authority to approve user requests", which then compete for
+# routing against the real ones.
+BULLET_LEAD_RE = re.compile(r"^\s*[•o]\s+")
 BULLET_SPLIT_RE = re.compile(r"\n?\s*•\s*")
 
 
@@ -357,6 +363,47 @@ NIST_BODY_START_PAGE = 20
 # can take. Anything beyond them is a genuine mismatch and stays unresolved.
 NIST_CITATION_SUFFIXES = ("", "(1)", "(i)", "(1)(i)")
 
+# Routing exceptions: an untagged key activity that a practitioner has placed on
+# a specific implementation specification.
+#
+# 800-66r2 tags an activity with "Implementation Specification (Required |
+# Addressable)" when it belongs to one, and untagged activities stay on the
+# standard as context. The tagging is not consistent, so a few activities that
+# plainly belong to one child arrive without a tag.
+#
+# Matching untagged activities on title was measured and rejected: it agreed
+# with a practitioner on only two of three candidates at the strict threshold
+# and about a quarter at a looser one, because without a tag there is no signal
+# that the activity belongs to any child at all and spurious word overlap wins.
+# It fails silently, which is the worst way to be wrong. The matcher is kept as
+# a candidate generator, and only a recorded practitioner decision moves a
+# question. Each entry names who decided and why.
+ROUTING_EXCEPTIONS: dict[tuple[str, str], tuple[str, str]] = {
+    (
+        "164.308(a)(1)(i)",
+        "Implement the Information System Activity Review and Audit Process",
+    ): (
+        "164.308(a)(1)(ii)(D)",
+        "Both questions concern the review process itself, not the standard. "
+        "Confirmed by Johnathan on July 30, 2026; the same routing he made in "
+        "the original hand-curated sample.",
+    ),
+}
+
+# Candidates the matcher proposed and a practitioner rejected, kept so the same
+# proposal is not re-litigated at the next review.
+REJECTED_ROUTING_CANDIDATES: dict[tuple[str, str], str] = {
+    (
+        "164.316(b)(1)",
+        "Draft, Maintain, and Update Required Documentation",
+    ): (
+        "Matched 'Updates' on the word 'Update' alone. Its questions span all "
+        "three children -- validity periods are Time limit, who maintains and "
+        "reviews is Availability -- so the activity addresses the standard as a "
+        "whole. Rejected by Johnathan on July 30, 2026."
+    ),
+}
+
 _HEADING_CACHE: dict[int, list[tuple[str, str, str, int]]] = {}
 
 
@@ -462,6 +509,11 @@ def extract_nist_prompts(citation: str) -> tuple[list[Prompt], list[str]]:
                 if spec:
                     designation = spec.group(1).lower()
                 activity = SPEC_MARKER_RE.sub("", activity_raw)
+                # A bullet-led cell is the previous activity's text continuing,
+                # not a new activity. Blanking it here routes it through the
+                # continuation branch below.
+                if BULLET_LEAD_RE.match(activity):
+                    activity = ""
                 activity = strip_footnotes(ACTIVITY_NUM_RE.sub("", activity))
 
                 # A marker can land in its own row, separated from the activity
@@ -527,6 +579,26 @@ def route_security_prompts(
     routed_activities, warnings = route_activities_to_specs(
         marked, specs, standard_id
     )
+
+    # Practitioner-recorded exceptions override the tag-driven result, and are
+    # the only thing that moves an untagged activity off the standard.
+    spec_ids = {spec["id"] for spec in specs}
+    for (exception_standard, activity), (record_id, _) in ROUTING_EXCEPTIONS.items():
+        if exception_standard != standard_id:
+            continue
+        if record_id not in spec_ids:
+            warnings.append(
+                f"{standard_id}: routing exception targets {record_id}, which is "
+                "not an implementation specification of this standard."
+            )
+            continue
+        if not any(prompt.group == activity for prompt in prompts):
+            warnings.append(
+                f"{standard_id}: routing exception names key activity "
+                f"{activity!r}, which 800-66r2 no longer publishes here."
+            )
+            continue
+        routed_activities[activity] = [record_id]
 
     by_id = {spec["id"]: spec for spec in specs}
     routed: dict[str, list[Prompt]] = {standard_id: []}

@@ -250,6 +250,54 @@ class SecurityRoutingTest(unittest.TestCase):
         self.assertTrue(any("automatic logoff" in t.lower() for t in logoff))
         self.assertTrue(any("encryption" in t.lower() for t in encryption))
 
+    def test_routing_exceptions_land_where_the_practitioner_placed_them(self):
+        """An untagged activity moves only by a recorded decision.
+
+        Title-matching untagged activities was measured and rejected: without
+        800-66r2's tag there is no signal that an activity belongs to a child
+        at all, so word overlap alone misfiles them silently.
+        """
+        from hipaa_prompts import ROUTING_EXCEPTIONS
+
+        routing, _ = self.routing()
+        for (standard_id, activity), (record_id, reason) in ROUTING_EXCEPTIONS.items():
+            self.assertTrue(reason.strip(), f"{activity}: an exception needs its reason")
+            landed = routing[standard_id]["records"][record_id]
+            self.assertTrue(
+                [p for p in landed if p.group == activity],
+                f"{activity!r} did not land on {record_id}",
+            )
+            parent = routing[standard_id]["records"][standard_id]
+            self.assertFalse(
+                [p for p in parent if p.group == activity],
+                f"{activity!r} is still on the standard as well",
+            )
+
+    def test_rejected_candidates_stay_on_the_standard(self):
+        """A rejected proposal must not quietly reappear."""
+        from hipaa_prompts import REJECTED_ROUTING_CANDIDATES
+
+        routing, _ = self.routing()
+        for (standard_id, activity), reason in REJECTED_ROUTING_CANDIDATES.items():
+            self.assertTrue(reason.strip())
+            parent = routing[standard_id]["records"][standard_id]
+            self.assertTrue(
+                [p for p in parent if p.group == activity],
+                f"{activity!r} was rejected for promotion but left the standard",
+            )
+
+    def test_a_key_activity_name_is_never_a_bullet_fragment(self):
+        """A wrapped cell continues its activity; it does not name a new one."""
+        routing, _ = self.routing()
+        stray = [
+            p.group
+            for entry in routing.values()
+            for prompts in entry["records"].values()
+            for p in prompts
+            if p.group.startswith(("•", "o ")) or not p.group
+        ]
+        self.assertEqual(stray, [])
+
     def test_committed_routing_artifact_is_current(self):
         from hipaa_prompts import render_security_routing
 

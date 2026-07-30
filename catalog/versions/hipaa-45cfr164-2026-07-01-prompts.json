@@ -19,12 +19,16 @@
   ],
   "counts": {
     "records_total": 194,
-    "records_with_prompts": 142,
-    "records_without_prompts": 52,
+    "records_with_prompts": 141,
+    "records_without_prompts": 53,
     "prompts_total": 1163,
     "duplicates_removed": 2
   },
   "records_without_prompts": [
+    {
+      "record_id": "164.310(d)(1)",
+      "reason": "every 800-66r2 key activity for this standard identifies an implementation specification, so all questions route to its children; this parent's status is derived and it carries no editable determination"
+    },
     {
       "record_id": "164.314(a)(1)",
       "reason": "every 800-66r2 key activity for this standard identifies an implementation specification, so all questions route to its children; this parent's status is derived and it carries no editable determination"
@@ -396,9 +400,9 @@
         {
           "text": "Is there a process for communicating policies and procedures to the affected employees?",
           "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Create procedures to be followed to accomplish particular security-related tasks. • Establish a frequency for reviewing policy and procedures.",
+          "source_detail": "Key activity: Create and Deploy Policies and Procedures",
           "cfr_paragraph": "",
-          "group": "• Create procedures to be followed to accomplish particular security-related tasks. • Establish a frequency for reviewing policy and procedures.",
+          "group": "Create and Deploy Policies and Procedures",
           "designation": null,
           "role": "assessment_check",
           "role_reason": "bears on the mapped CFR determination",
@@ -407,9 +411,9 @@
         {
           "text": "Are policies and procedures reviewed and updated as needed?",
           "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Create procedures to be followed to accomplish particular security-related tasks. • Establish a frequency for reviewing policy and procedures.",
+          "source_detail": "Key activity: Create and Deploy Policies and Procedures",
           "cfr_paragraph": "",
-          "group": "• Create procedures to be followed to accomplish particular security-related tasks. • Establish a frequency for reviewing policy and procedures.",
+          "group": "Create and Deploy Policies and Procedures",
           "designation": null,
           "role": "assessment_check",
           "role_reason": "bears on the mapped CFR determination",
@@ -432,28 +436,6 @@
           "source_detail": "Key activity: Develop Appropriate Standard Operating Procedures",
           "cfr_paragraph": "",
           "group": "Develop Appropriate Standard Operating Procedures",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        },
-        {
-          "text": "What mechanisms will be implemented to assess the effectiveness of the review process (measures)?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Implement the Information System Activity Review and Audit Process",
-          "cfr_paragraph": "",
-          "group": "Implement the Information System Activity Review and Audit Process",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        },
-        {
-          "text": "What is the plan to revise the review process when needed?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: Implement the Information System Activity Review and Audit Process",
-          "cfr_paragraph": "",
-          "group": "Implement the Information System Activity Review and Audit Process",
           "designation": null,
           "role": "assessment_check",
           "role_reason": "bears on the mapped CFR determination",
@@ -695,6 +677,28 @@
           "cfr_paragraph": "",
           "group": "Develop and Deploy the Information System Activity Review Process",
           "designation": "required",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "What mechanisms will be implemented to assess the effectiveness of the review process (measures)?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Implement the Information System Activity Review and Audit Process",
+          "cfr_paragraph": "",
+          "group": "Implement the Information System Activity Review and Audit Process",
+          "designation": null,
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "What is the plan to revise the review process when needed?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Implement the Information System Activity Review and Audit Process",
+          "cfr_paragraph": "",
+          "group": "Implement the Information System Activity Review and Audit Process",
+          "designation": null,
           "role": "assessment_check",
           "role_reason": "bears on the mapped CFR determination",
           "notes": []
@@ -961,39 +965,6 @@
       "path": "nist-800-66r2",
       "prompts": [
         {
-          "text": "What methods of access control are used (e.g., identity- based, role-based, location-based, or a combination) to protect ePHI?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Ensure that there is a list of personnel with authority to approve user requests to access ePHI and systems with ePHI. • Identify authorized users with access to ePHI, including data owners and data custodians. • Consider whether multiple access control methods are needed to protect ePHI according to the results of the risk assessment. • Determine whether direct access to ePHI will ever be appropriate for individuals external to the organization (e.g., business partners or patients seeking access to their own ePHI).",
-          "cfr_paragraph": "",
-          "group": "• Ensure that there is a list of personnel with authority to approve user requests to access ePHI and systems with ePHI. • Identify authorized users with access to ePHI, including data owners and data custodians. • Consider whether multiple access control methods are needed to protect ePHI according to the results of the risk assessment. • Determine whether direct access to ePHI will ever be appropriate for individuals external to the organization (e.g., business partners or patients seeking access to their own ePHI).",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        },
-        {
-          "text": "Are there additional access control requirements for users who will be accessing privileged functions?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Ensure that there is a list of personnel with authority to approve user requests to access ePHI and systems with ePHI. • Identify authorized users with access to ePHI, including data owners and data custodians. • Consider whether multiple access control methods are needed to protect ePHI according to the results of the risk assessment. • Determine whether direct access to ePHI will ever be appropriate for individuals external to the organization (e.g., business partners or patients seeking access to their own ePHI).",
-          "cfr_paragraph": "",
-          "group": "• Ensure that there is a list of personnel with authority to approve user requests to access ePHI and systems with ePHI. • Identify authorized users with access to ePHI, including data owners and data custodians. • Consider whether multiple access control methods are needed to protect ePHI according to the results of the risk assessment. • Determine whether direct access to ePHI will ever be appropriate for individuals external to the organization (e.g., business partners or patients seeking access to their own ePHI).",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        },
-        {
-          "text": "Have organizational personnel been explicitly authorized to approve user requests to access ePHI and/or systems with ePHI?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Ensure that there is a list of personnel with authority to approve user requests to access ePHI and systems with ePHI. • Identify authorized users with access to ePHI, including data owners and data custodians. • Consider whether multiple access control methods are needed to protect ePHI according to the results of the risk assessment. • Determine whether direct access to ePHI will ever be appropriate for individuals external to the organization (e.g., business partners or patients seeking access to their own ePHI).",
-          "cfr_paragraph": "",
-          "group": "• Ensure that there is a list of personnel with authority to approve user requests to access ePHI and systems with ePHI. • Identify authorized users with access to ePHI, including data owners and data custodians. • Consider whether multiple access control methods are needed to protect ePHI according to the results of the risk assessment. • Determine whether direct access to ePHI will ever be appropriate for individuals external to the organization (e.g., business partners or patients seeking access to their own ePHI).",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        },
-        {
           "text": "Are there policies and procedures related to the security of access controls? If so, are they updated regularly?",
           "source": "NIST SP 800-66r2",
           "source_detail": "Key activity: Evaluate Existing Security Measures Related to Access Controls",
@@ -1137,6 +1108,39 @@
         },
         {
           "text": "Does the organization grant remote access to ePHI?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Implement Policies and Procedures for Authorizing Access",
+          "cfr_paragraph": "",
+          "group": "Implement Policies and Procedures for Authorizing Access",
+          "designation": "addressable",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "What methods of access control are used (e.g., identity- based, role-based, location-based, or a combination) to protect ePHI?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Implement Policies and Procedures for Authorizing Access",
+          "cfr_paragraph": "",
+          "group": "Implement Policies and Procedures for Authorizing Access",
+          "designation": "addressable",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "Are there additional access control requirements for users who will be accessing privileged functions?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Implement Policies and Procedures for Authorizing Access",
+          "cfr_paragraph": "",
+          "group": "Implement Policies and Procedures for Authorizing Access",
+          "designation": "addressable",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "Have organizational personnel been explicitly authorized to approve user requests to access ePHI and/or systems with ePHI?",
           "source": "NIST SP 800-66r2",
           "source_detail": "Key activity: Implement Policies and Procedures for Authorizing Access",
           "cfr_paragraph": "",
@@ -1863,17 +1867,6 @@
           "notes": []
         },
         {
-          "text": "Has the organization sufficiently addressed the availability and reliability of these services (e.g., via service-level agreements, contracts)?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Consider whether any vendor/service provider arrangements are critical to operations and address them as appropriate to ensure availability and reliability. • Establish cost-effective strategies for recovering these critical services or processes.",
-          "cfr_paragraph": "",
-          "group": "• Consider whether any vendor/service provider arrangements are critical to operations and address them as appropriate to ensure availability and reliability. • Establish cost-effective strategies for recovering these critical services or processes.",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        },
-        {
           "text": "What alternatives for continuing operations of the organization are available in case of the loss of any critical function or resource?",
           "source": "NIST SP 800-66r2",
           "source_detail": "Key activity: Identify Preventive Measures",
@@ -2197,6 +2190,17 @@
         },
         {
           "text": "Has the organization identified vendors or service providers that are critical to business operations?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Conduct an Applications and Data Criticality Analysis",
+          "cfr_paragraph": "",
+          "group": "Conduct an Applications and Data Criticality Analysis",
+          "designation": "addressable",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "Has the organization sufficiently addressed the availability and reliability of these services (e.g., via service-level agreements, contracts)?",
           "source": "NIST SP 800-66r2",
           "source_detail": "Key activity: Conduct an Applications and Data Criticality Analysis",
           "cfr_paragraph": "",
@@ -2775,39 +2779,6 @@
           "role": "assessment_check",
           "role_reason": "bears on the mapped CFR determination",
           "notes": []
-        },
-        {
-          "text": "How many access points exist in each facility? Is there an inventory?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Implement procedures to provide facility access to authorized personnel and visitors and exclude unauthorized persons.",
-          "cfr_paragraph": "",
-          "group": "• Implement procedures to provide facility access to authorized personnel and visitors and exclude unauthorized persons.",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        },
-        {
-          "text": "Is monitoring equipment necessary?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Implement procedures to provide facility access to authorized personnel and visitors and exclude unauthorized persons.",
-          "cfr_paragraph": "",
-          "group": "• Implement procedures to provide facility access to authorized personnel and visitors and exclude unauthorized persons.",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        },
-        {
-          "text": "Is there a periodic review of personnel with physical access?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Implement procedures to provide facility access to authorized personnel and visitors and exclude unauthorized persons.",
-          "cfr_paragraph": "",
-          "group": "• Implement procedures to provide facility access to authorized personnel and visitors and exclude unauthorized persons.",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
         }
       ]
     },
@@ -2936,6 +2907,39 @@
         },
         {
           "text": "Do the procedures identify individuals, roles, or job functions that are authorized to access software programs for testing and revision?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Develop Access Control and Validation Procedures",
+          "cfr_paragraph": "",
+          "group": "Develop Access Control and Validation Procedures",
+          "designation": "addressable",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "How many access points exist in each facility? Is there an inventory?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Develop Access Control and Validation Procedures",
+          "cfr_paragraph": "",
+          "group": "Develop Access Control and Validation Procedures",
+          "designation": "addressable",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "Is monitoring equipment necessary?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Develop Access Control and Validation Procedures",
+          "cfr_paragraph": "",
+          "group": "Develop Access Control and Validation Procedures",
+          "designation": "addressable",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "Is there a periodic review of personnel with physical access?",
           "source": "NIST SP 800-66r2",
           "source_detail": "Key activity: Develop Access Control and Validation Procedures",
           "cfr_paragraph": "",
@@ -3359,9 +3363,9 @@
         {
           "text": "Are safeguards such as anti-theft devices, physical privacy screens, or other procedures used to help prevent unauthorized audio and video recording?",
           "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: o Device management (e.g., mobile device management [MDM], endpoint detection and response [EDR]) o Workforce education and training related to mobile and remote computing risks to ePHI",
+          "source_detail": "Key activity: Identify and Implement Physical Safeguards for Workstations and Devices",
           "cfr_paragraph": "",
-          "group": "o Device management (e.g., mobile device management [MDM], endpoint detection and response [EDR]) o Workforce education and training related to mobile and remote computing risks to ePHI",
+          "group": "Identify and Implement Physical Safeguards for Workstations and Devices",
           "designation": null,
           "role": "assessment_check",
           "role_reason": "bears on the mapped CFR determination",
@@ -3370,9 +3374,9 @@
         {
           "text": "Have workforce members been trained on security?",
           "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: o Device management (e.g., mobile device management [MDM], endpoint detection and response [EDR]) o Workforce education and training related to mobile and remote computing risks to ePHI",
+          "source_detail": "Key activity: Identify and Implement Physical Safeguards for Workstations and Devices",
           "cfr_paragraph": "",
-          "group": "o Device management (e.g., mobile device management [MDM], endpoint detection and response [EDR]) o Workforce education and training related to mobile and remote computing risks to ePHI",
+          "group": "Identify and Implement Physical Safeguards for Workstations and Devices",
           "designation": null,
           "role": "assessment_check",
           "role_reason": "bears on the mapped CFR determination",
@@ -3381,9 +3385,9 @@
         {
           "text": "Are some devices not owned by the organization? Do these ownership considerations preclude the use of any physical security controls on the device?",
           "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: o Device management (e.g., mobile device management [MDM], endpoint detection and response [EDR]) o Workforce education and training related to mobile and remote computing risks to ePHI",
+          "source_detail": "Key activity: Identify and Implement Physical Safeguards for Workstations and Devices",
           "cfr_paragraph": "",
-          "group": "o Device management (e.g., mobile device management [MDM], endpoint detection and response [EDR]) o Workforce education and training related to mobile and remote computing risks to ePHI",
+          "group": "Identify and Implement Physical Safeguards for Workstations and Devices",
           "designation": null,
           "role": "assessment_check",
           "role_reason": "bears on the mapped CFR determination",
@@ -3392,69 +3396,9 @@
         {
           "text": "Do the policies and procedures specify the use of additional security measures to protect devices with ePHI, such as using privacy screens, enabling password- protected screen savers, or logging off the device?",
           "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: o Device management (e.g., mobile device management [MDM], endpoint detection and response [EDR]) o Workforce education and training related to mobile and remote computing risks to ePHI",
+          "source_detail": "Key activity: Identify and Implement Physical Safeguards for Workstations and Devices",
           "cfr_paragraph": "",
-          "group": "o Device management (e.g., mobile device management [MDM], endpoint detection and response [EDR]) o Workforce education and training related to mobile and remote computing risks to ePHI",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        }
-      ]
-    },
-    "164.310(d)(1)": {
-      "path": "nist-800-66r2",
-      "prompts": [
-        {
-          "text": "Has a process been implemented to maintain a record of the movements of and persons responsible for hardware and electronic media that contain ePHI?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI.",
-          "cfr_paragraph": "",
-          "group": "• Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI.",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        },
-        {
-          "text": "Where is data stored (i.e., what type of media)?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI.",
-          "cfr_paragraph": "",
-          "group": "• Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI.",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        },
-        {
-          "text": "What procedures already exist to track hardware and software within the organization (e.g., an enterprise inventory management system)?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI.",
-          "cfr_paragraph": "",
-          "group": "• Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI.",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        },
-        {
-          "text": "If workforce members are allowed to remove electronic media that contain or may be used to access ePHI, do procedures exist to track the media externally?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI.",
-          "cfr_paragraph": "",
-          "group": "• Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI.",
-          "designation": null,
-          "role": "assessment_check",
-          "role_reason": "bears on the mapped CFR determination",
-          "notes": []
-        },
-        {
-          "text": "Who is responsible for maintaining records of hardware and software?",
-          "source": "NIST SP 800-66r2",
-          "source_detail": "Key activity: • Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI.",
-          "cfr_paragraph": "",
-          "group": "• Ensure that an individual is responsible for and records the receipt and removal of hardware and software with ePHI.",
+          "group": "Identify and Implement Physical Safeguards for Workstations and Devices",
           "designation": null,
           "role": "assessment_check",
           "role_reason": "bears on the mapped CFR determination",
@@ -3587,6 +3531,61 @@
       "prompts": [
         {
           "text": "Have policies and procedures been implemented that govern the receipt and removal of hardware and electronic media that contain ePHI into and out of a facility and the movement of these items within the facility?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Maintain Accountability for Hardware and Electronic Media",
+          "cfr_paragraph": "",
+          "group": "Maintain Accountability for Hardware and Electronic Media",
+          "designation": "addressable",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "Has a process been implemented to maintain a record of the movements of and persons responsible for hardware and electronic media that contain ePHI?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Maintain Accountability for Hardware and Electronic Media",
+          "cfr_paragraph": "",
+          "group": "Maintain Accountability for Hardware and Electronic Media",
+          "designation": "addressable",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "Where is data stored (i.e., what type of media)?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Maintain Accountability for Hardware and Electronic Media",
+          "cfr_paragraph": "",
+          "group": "Maintain Accountability for Hardware and Electronic Media",
+          "designation": "addressable",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "What procedures already exist to track hardware and software within the organization (e.g., an enterprise inventory management system)?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Maintain Accountability for Hardware and Electronic Media",
+          "cfr_paragraph": "",
+          "group": "Maintain Accountability for Hardware and Electronic Media",
+          "designation": "addressable",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "If workforce members are allowed to remove electronic media that contain or may be used to access ePHI, do procedures exist to track the media externally?",
+          "source": "NIST SP 800-66r2",
+          "source_detail": "Key activity: Maintain Accountability for Hardware and Electronic Media",
+          "cfr_paragraph": "",
+          "group": "Maintain Accountability for Hardware and Electronic Media",
+          "designation": "addressable",
+          "role": "assessment_check",
+          "role_reason": "bears on the mapped CFR determination",
+          "notes": []
+        },
+        {
+          "text": "Who is responsible for maintaining records of hardware and software?",
           "source": "NIST SP 800-66r2",
           "source_detail": "Key activity: Maintain Accountability for Hardware and Electronic Media",
           "cfr_paragraph": "",
