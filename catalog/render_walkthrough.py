@@ -306,6 +306,68 @@ a { color: var(--accent); }
 }
 .derived b { color: var(--ink); font-weight: 600; }
 
+/* ---- the working record: notes, rationale, evidence ---- */
+.record-work {
+  padding: 0 18px 14px; background: var(--surface-sunk);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > label {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-faint); font-weight: 700;
+}
+.field textarea {
+  font: inherit; font-size: 13px; resize: vertical; min-height: 52px;
+  padding: 8px 10px; border-radius: 3px; color: var(--ink);
+  border: 1px solid var(--line-strong); background: var(--surface);
+}
+.field textarea::placeholder { color: var(--ink-faint); }
+.required-flag { color: var(--notmet); font-weight: 700; }
+.disposition { display: flex; flex-wrap: wrap; gap: 6px; }
+.disposition button {
+  font: inherit; font-size: 12.5px; cursor: pointer; padding: 4px 10px;
+  border-radius: 3px; border: 1px solid var(--line-strong);
+  background: var(--surface); color: var(--ink-muted);
+}
+.disposition button:hover { border-color: var(--ink-faint); color: var(--ink); }
+.disposition button[aria-pressed="true"] {
+  background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600;
+}
+.evidence { display: flex; flex-direction: column; gap: 6px; }
+.ev-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: 3px;
+  border: 1px solid var(--line); background: var(--surface);
+}
+.ev-row .name { font-size: 13px; font-weight: 600; }
+.ev-row .shared {
+  font-size: 11px; color: var(--accent); background: var(--accent-soft);
+  padding: 1px 6px; border-radius: 2px;
+}
+.ev-row .why { flex: 1 1 100%; font-size: 12px; color: var(--ink-muted); }
+.ev-row button {
+  margin-left: auto; font: inherit; font-size: 11.5px; cursor: pointer;
+  background: none; border: 0; color: var(--ink-faint); text-decoration: underline;
+  padding: 0;
+}
+.ev-add {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+}
+.ev-add select, .ev-add input {
+  font: inherit; font-size: 12.5px; padding: 5px 8px; border-radius: 3px;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+}
+.ev-add input { flex: 1 1 220px; min-width: 0; }
+.ev-add button {
+  font: inherit; font-size: 12.5px; cursor: pointer; padding: 5px 12px;
+  border-radius: 3px; border: 1px solid var(--accent);
+  background: var(--accent); color: #fff; font-weight: 600;
+}
+.gate {
+  font-size: 12px; padding: 7px 10px; border-radius: 3px;
+  background: var(--surface); border: 1px solid var(--notmet); color: var(--notmet);
+}
+
 .empty-note {
   padding: 12px 18px; border-top: 1px solid var(--line);
   font-size: 12.5px; color: var(--ink-faint); font-style: italic;
@@ -320,7 +382,14 @@ a { color: var(--accent); }
 
 SCRIPT = r"""
 const $ = (s, r) => (r || document).querySelector(s);
-const state = { determinations: {}, ticks: {} };
+// evidence: the project's artifact library, one entry per real document.
+// mappings: recordId -> [{artifact, rationale}]. AC-007 -- one artifact
+// supports many records, and each mapping keeps its own rationale, so the
+// same policy can be relevant to two determinations for different reasons.
+const state = {
+  determinations: {}, ticks: {}, notes: {}, naRationale: {},
+  disposition: {}, dispositionNote: {}, evidence: [], mappings: {},
+};
 try {
   const saved = localStorage.getItem('hipaa-walkthrough');
   if (saved) Object.assign(state, JSON.parse(saved));
@@ -450,11 +519,96 @@ function unitHtml(r) {
   }
   const note = (!prompts.length && !derived)
     ? `<div class="empty-note">${esc(DATA.noPrompts[r.id] || 'No prompts.')}</div>` : '';
+  const work = derived ? '' : workingRecord(r);
   return `<section class="unit">
     <div class="unit-head">
       <span class="cite">45 CFR ${esc(r.id)}</span>${desig}
       <h3>${esc(r.title)}</h3>
-    </div>${body}${note}${foot}</section>`;
+    </div>${body}${note}${foot}${work}</section>`;
+}
+
+/* ---------- the working record ---------- */
+const DISPOSITIONS = {
+  standard: 'Standard measure',
+  alternative: 'Equivalent alternative',
+  none: 'Not implemented',
+};
+
+function workingRecord(r) {
+  const id = r.id;
+  const det = state.determinations[id];
+  let html = '<div class="record-work">';
+
+  // Addressable specifications must record which route was taken. This has no
+  // CMMC equivalent: "addressable" is not optional, and a non-implementation
+  // has to carry its documented reasoning.
+  if (r.designation === 'addressable') {
+    const d = state.disposition[id];
+    html += `<div class="field">
+      <label>Addressable disposition${d ? '' : ' <span class="required-flag">required</span>'}</label>
+      <div class="disposition">${Object.entries(DISPOSITIONS).map(([k, v]) =>
+        `<button data-disp="${esc(id)}" data-val="${k}"
+          aria-pressed="${d === k}">${esc(v)}</button>`).join('')}</div>`;
+    if (d === 'alternative' || d === 'none') {
+      const lbl = d === 'alternative'
+        ? 'What equivalent alternative is in place, and why is it reasonable and appropriate?'
+        : 'Why is the standard measure not reasonable and appropriate here?';
+      html += `<textarea data-dispnote="${esc(id)}" placeholder="${esc(lbl)}"
+        aria-label="${esc(lbl)}">${esc(state.dispositionNote[id] || '')}</textarea>`;
+    }
+    html += '</div>';
+  }
+
+  if (det === 'na') {
+    html += `<div class="field">
+      <label>N/A rationale <span class="required-flag">required</span></label>
+      <textarea data-na="${esc(id)}" aria-label="N/A rationale"
+        placeholder="Why does this requirement not apply to this client?">${esc(state.naRationale[id] || '')}</textarea>
+    </div>`;
+  }
+
+  html += `<div class="field">
+    <label>Implementation notes</label>
+    <textarea data-note="${esc(id)}" aria-label="Implementation notes"
+      placeholder="What the client described, what was observed, what was demonstrated.">${esc(state.notes[id] || '')}</textarea>
+  </div>`;
+
+  // Evidence is mapped from the project library, not uploaded per record.
+  const maps = state.mappings[id] || [];
+  html += `<div class="field"><label>Evidence mapped (${maps.length})</label><div class="evidence">`;
+  maps.forEach((m, i) => {
+    const uses = Object.values(state.mappings)
+      .filter(list => list.some(x => x.artifact === m.artifact)).length;
+    html += `<div class="ev-row">
+      <span class="name">${esc(m.artifact)}</span>
+      ${uses > 1 ? `<span class="shared">mapped to ${uses} records</span>` : ''}
+      <button data-unmap="${esc(id)}" data-i="${i}">Remove mapping</button>
+      <span class="why">${esc(m.rationale || 'No rationale recorded for this mapping.')}</span>
+    </div>`;
+  });
+  const opts = state.evidence.map(e =>
+    `<option value="${esc(e)}">${esc(e)}</option>`).join('');
+  html += `<div class="ev-add">
+      <select data-evpick="${esc(id)}" aria-label="Choose an artifact">
+        <option value="">Add artifact…</option>${opts}
+        <option value="__new">＋ New artifact…</option>
+      </select>
+      <input data-evwhy="${esc(id)}" placeholder="Why this artifact supports this record"
+        aria-label="Mapping rationale">
+      <button data-evadd="${esc(id)}">Map</button>
+    </div>`;
+  // The gate applies to Met alone, and the specification allows either route:
+  // mapped evidence *or* a documented interview/observation record. Not Met
+  // and Pending carry no evidence requirement -- Pending is precisely the
+  // state for insufficient evidence while follow-up is requested.
+  const observed = (state.notes[id] || '').trim().length > 0;
+  if (det === 'met' && !maps.length && !observed) {
+    html += `<div class="gate">A final Met determination requires mapped evidence
+      or a documented interview/observation record. Map an artifact above, or
+      record what was observed or demonstrated in the notes.</div>`;
+  }
+  html += '</div></div>';
+  return html + '</div>';
 }
 
 /* ---------- selecting a record ---------- */
@@ -529,6 +683,68 @@ document.addEventListener('change', e => {
     save();
   }
 });
+
+// Text fields save as typed and must not re-render underneath the cursor.
+document.addEventListener('input', e => {
+  const el = e.target;
+  const bind = [['data-note', 'notes'], ['data-na', 'naRationale'],
+                ['data-dispnote', 'dispositionNote']];
+  for (const [attr, key] of bind) {
+    const id = el.getAttribute && el.getAttribute(attr);
+    if (id) {
+      if (el.value.trim()) state[key][id] = el.value;
+      else delete state[key][id];
+      save();
+      return;
+    }
+  }
+});
+
+document.addEventListener('click', e => {
+  const disp = e.target.closest('[data-disp]');
+  if (disp) {
+    const id = disp.dataset.disp;
+    state.disposition[id] = state.disposition[id] === disp.dataset.val
+      ? undefined : disp.dataset.val;
+    if (!state.disposition[id]) delete state.disposition[id];
+    save();
+    reselect();
+    return;
+  }
+  const unmap = e.target.closest('[data-unmap]');
+  if (unmap) {
+    const id = unmap.dataset.unmap;
+    (state.mappings[id] || []).splice(Number(unmap.dataset.i), 1);
+    if (!state.mappings[id].length) delete state.mappings[id];
+    save();
+    reselect();
+    return;
+  }
+  const add = e.target.closest('[data-evadd]');
+  if (add) {
+    const id = add.dataset.evadd;
+    const pick = document.querySelector(`[data-evpick="${CSS.escape(id)}"]`);
+    const why = document.querySelector(`[data-evwhy="${CSS.escape(id)}"]`);
+    let artifact = pick.value;
+    if (artifact === '__new') {
+      artifact = (prompt('Name of the artifact, as the client would recognise it:') || '').trim();
+      if (!artifact) return;
+    }
+    if (!artifact) return;
+    if (!state.evidence.includes(artifact)) state.evidence.push(artifact);
+    (state.mappings[id] = state.mappings[id] || []).push({
+      artifact, rationale: (why.value || '').trim(),
+    });
+    save();
+    reselect();
+  }
+});
+
+function reselect() {
+  const cur = document.querySelector('.nav-item[aria-current="true"]');
+  if (cur) select(cur.dataset.id);
+  refreshDots();
+}
 
 buildRail();
 refreshDots();

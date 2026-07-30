@@ -132,6 +132,23 @@ outstanding acceptance criterion, so the issue stays open.
   `docs/catalogs/security-prompt-routing.md`. Replaces the eight-entry hand
   table with the marker rule; all 22 standards route, every implementation
   specification receives prompts, 444 routed with no warnings.
+- Minimal evidence mapping pulled forward into Slice 4, confirmed by Johnathan
+  on review of the clickable walkthrough, July 30, 2026. This closes the
+  standing open question. The mechanic is *map*, not upload: one artifact
+  supports many records, each mapping keeping its own rationale and lifecycle,
+  per AC-007. The specification already makes this non-optional — a final Met
+  determination requires mapped evidence or a documented interview/observation
+  record — so a Slice 4 assessment surface without it cannot produce a valid
+  Met. Slice 5 still owns the full evidence lifecycle: versioning, replace,
+  detach, recycle bin, archive, deduplication, staleness, manifest export, and
+  evidence requests.
+- Three further recording fields are required by the specification and were
+  missing from the walkthrough alongside evidence: N/A rationale, which HIPAA
+  requires on every N/A; the addressable disposition recording whether the
+  standard measure, an equivalent alternative, or a documented
+  non-implementation decision is used, which applies to 22 of the 41 Security
+  implementation specifications and has no CMMC equivalent; and per-record
+  notes for the implementation discussion.
 - Unmarked-key-activity routing decided (issue #29): route by the marker rule,
   render parent guidance in view while a child determination is worked, and
   promote individual questions to a child by exception on rendered output. The
@@ -182,13 +199,6 @@ outstanding acceptance criterion, so the issue stays open.
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
-- **Evidence mapping in Slice 4 — Johnathan.** Neither assessment mockup has an
-  evidence attachment point, because Evidence is Slice 5, after both assessment
-  surfaces. Recording is the stated focus, and a determination you cannot attach
-  evidence to is half a record. Pulling minimal evidence mapping forward would
-  widen Slice 4. Note the mechanic is *map*, not *attach*: one artifact serves
-  many records, each mapping carrying its own rationale and lifecycle, per
-  AC-007.
 - **Launcher in Slice 1 or 1b — Johnathan.** Slice 1 cannot be fully verified
   from a cloud session. Either it lands half-verified until the Windows machine
   catches up, or the launcher splits into its own sub-slice. Blocks writing the
