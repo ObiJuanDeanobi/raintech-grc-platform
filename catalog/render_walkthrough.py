@@ -279,6 +279,46 @@ a { color: var(--accent); }
   background: none; border: 1px dashed var(--line-strong);
 }
 .prompt:hover .answer-add { color: var(--accent); border-color: var(--accent); }
+.prompt-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.move-btn {
+  font: inherit; font-size: 11px; cursor: pointer; padding: 1px 7px;
+  border-radius: 3px; color: var(--ink-faint);
+  background: none; border: 1px dashed var(--line-strong);
+}
+.prompt:hover .move-btn { color: var(--accent); border-color: var(--accent); }
+.moved-from {
+  display: inline-block; margin-left: 7px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; vertical-align: 1px;
+  padding: 1px 6px; border-radius: 2px;
+  background: var(--accent-soft); color: var(--accent);
+}
+.move-panel {
+  margin-top: 6px; padding: 9px 10px; border-radius: 4px;
+  border: 1px solid var(--accent); background: var(--surface);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.move-panel .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.move-panel select, .move-panel input {
+  font: inherit; font-size: 12.5px; padding: 4px 8px; border-radius: 3px;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+}
+.move-panel select { max-width: 100%; }
+.move-panel input { flex: 1 1 200px; min-width: 0; }
+.move-panel .go {
+  border-color: var(--accent); background: var(--accent); color: #fff;
+  font-weight: 600; cursor: pointer; padding: 4px 12px; border-radius: 3px;
+  font: inherit; font-size: 12.5px; border: 1px solid var(--accent);
+}
+.move-panel .undo {
+  background: none; border: 0; color: var(--ink-faint); cursor: pointer;
+  font: inherit; font-size: 11.5px; text-decoration: underline; padding: 0;
+}
+.move-panel .hint2 { font-size: 11.5px; color: var(--ink-muted); }
+.export-btn {
+  font: inherit; font-size: 12px; cursor: pointer; padding: 3px 11px;
+  border-radius: 3px; border: 1px solid var(--accent);
+  background: var(--accent); color: #fff; font-weight: 600;
+}
 textarea.answer {
   display: block; width: 100%; margin-top: 5px; font: inherit; font-size: 13px;
   padding: 6px 9px; border-radius: 3px; resize: vertical; color: var(--ink);
@@ -405,7 +445,7 @@ const $ = (s, r) => (r || document).querySelector(s);
 const state = {
   determinations: {}, ticks: {}, notes: {}, naRationale: {},
   disposition: {}, dispositionNote: {}, evidence: [], mappings: {},
-  answers: {},
+  answers: {}, moves: {},
 };
 try {
   const saved = localStorage.getItem('hipaa-walkthrough');
@@ -488,9 +528,42 @@ function refreshDots() {
   const done = DATA.records.filter(r => !isDerived(r.id) && state.determinations[r.id]).length;
   $('#tally-done').textContent = done;
   $('#tally-total').textContent = total;
+  const moves = $('#tally-moves');
+  if (moves) moves.textContent = moveCount();
 }
 
 /* ---------- prompt rendering ---------- */
+// ---- moves -------------------------------------------------------------
+// A question sits where 800-66r2's tagging put it, and that tagging is not
+// consistent. The practitioner's test is the reliable one: if you want to mark
+// a question Met, name the rule it would be Met against. Name it and the
+// question belongs on that rule's record; fail to and it is context. This lets
+// that judgement be applied in place, and exports it so it can be baked into
+// the pipeline as recorded exceptions.
+const PROMPT_INDEX = {};   // key -> {prompt, home}
+Object.entries(DATA.prompts).forEach(([rid, list]) => {
+  list.forEach((prompt, i) => { PROMPT_INDEX[rid + '#' + i] = { prompt, home: rid }; });
+});
+const MOVE_CONTEXT = '__context';
+
+function destinationOf(key) {
+  const m = state.moves[key];
+  return m ? m.to : PROMPT_INDEX[key].home;
+}
+
+// Prompts to render on a record: those that started here and have not left,
+// plus those moved in from elsewhere.
+function promptsFor(recordId) {
+  const out = [];
+  Object.entries(PROMPT_INDEX).forEach(([key, { prompt, home }]) => {
+    const dest = destinationOf(key);
+    if (dest === recordId) out.push({ key, prompt, movedFrom: home === recordId ? null : home });
+  });
+  return out;
+}
+
+function moveCount() { return Object.keys(state.moves).length; }
+
 // A prompt carries no status and no evidence of its own -- the determination
 // and its evidence belong to the record. What it does need is somewhere to put
 // the answer: eighteen questions sharing one notes box loses which question
@@ -505,15 +578,20 @@ function answerHtml(key) {
     aria-label="Answer to this question">${esc(answer)}</textarea>`;
 }
 
-function promptHtml(recordId, p, i) {
-  const key = recordId + '#' + i;
-  const role = p.role || 'assessment_check';
+function promptHtml(recordId, entry) {
+  const { key, prompt: p, movedFrom } = entry;
+  const moved = state.moves[key];
+  const role = (moved && moved.to === MOVE_CONTEXT) ? 'context' : (p.role || 'assessment_check');
   const src = p.cfr_paragraph || (p.source + (p.source_detail ? ' — ' + p.source_detail : ''));
+  const from = movedFrom
+    ? `<span class="moved-from">moved from ${esc(movedFrom)}</span>` : '';
+  const mover = `<button class="move-btn" data-move="${esc(key)}">move…</button>`;
   if (role === 'assessment_check') {
     const on = state.ticks[key] ? ' checked' : '';
     return `<li class="prompt">
       <input type="checkbox" data-tick="${esc(key)}"${on} aria-label="Asked">
-      <p>${esc(p.text)}<span class="src">${esc(src)}</span>${answerHtml(key)}</p>
+      <p>${esc(p.text)}${from}<span class="src">${esc(src)}</span>
+        <span class="prompt-tools">${answerHtml(key)}${mover}</span></p>
     </li>`;
   }
   const tag = role === 'applicability_note'
@@ -522,18 +600,19 @@ function promptHtml(recordId, p, i) {
   const cls = role === 'applicability_note' ? 'appl' : 'ctx';
   return `<li class="prompt ${cls}">
     <span class="no-box"></span>
-    <p>${tag}${esc(p.text)}<span class="src">${esc(src)}</span></p>
+    <p>${tag}${esc(p.text)}${from}<span class="src">${esc(src)}</span>
+      <span class="prompt-tools">${mover}</span></p>
   </li>`;
 }
 
 function unitHtml(r) {
-  const prompts = (DATA.prompts[r.id] || []);
+  const prompts = promptsFor(r.id);
   const derived = isDerived(r.id);
   const desig = r.designation
     ? `<span class="chip ${esc(r.designation)}">${esc(r.designation)}</span>` : '';
   let body = `<div class="unit-body"><p class="reg-text">${esc(r.text)}</p>`;
   body += prompts.length
-    ? `<ul class="prompts">${prompts.map((p, i) => promptHtml(r.id, p, i)).join('')}</ul></div>`
+    ? `<ul class="prompts">${prompts.map(e => promptHtml(r.id, e)).join('')}</ul></div>`
     : `</div>`;
   let foot;
   if (derived) {
@@ -673,7 +752,7 @@ function select(id) {
     45 CFR ${esc(r.section)} &nbsp;›&nbsp; ${esc(r.id)}</div>`;
 
   if (kids.length) {
-    const gp = DATA.prompts[standard.id] || [];
+    const gp = promptsFor(standard.id);
     html += `<div class="guidance">
       <div class="label">Standard context</div>
       <h2>45 CFR ${esc(standard.id)} — ${esc(standard.title)}</h2>
@@ -686,7 +765,7 @@ function select(id) {
       const open = (standard.id === id) ? ' open' : '';
       html += `<details class="fold"${open}>
         <summary>${gp.length} standard-level question${gp.length === 1 ? '' : 's'}</summary>
-        <ul class="prompts">${gp.map((p, i) => promptHtml(standard.id, p, i)).join('')}</ul>
+        <ul class="prompts">${gp.map(e => promptHtml(standard.id, e)).join('')}</ul>
       </details>`;
     }
     const ds = derivedStatus(standard.id);
@@ -751,7 +830,65 @@ document.addEventListener('input', e => {
   }
 });
 
+// Build the destination list for a prompt: the children of its standard first,
+// then every other record, because a question can belong to a different
+// standard entirely -- "Is there a formal contingency plan?" under Security
+// management process belongs to 164.308(a)(7).
+function movePanelHtml(key) {
+  const { prompt, home } = PROMPT_INDEX[key];
+  const homeRec = byId[home];
+  const standardId = homeRec.parent_id || home;
+  const siblings = [standardId].concat(childrenOf[standardId] || []);
+  const current = destinationOf(key);
+  const opt = (id, label) =>
+    `<option value="${esc(id)}"${current === id ? ' selected' : ''}>${esc(label)}</option>`;
+  let html = '<div class="move-panel"><div class="row"><select data-movepick="' + esc(key) + '">';
+  html += '<optgroup label="This standard">';
+  siblings.forEach(id => {
+    const r = byId[id];
+    html += opt(id, `${id} — ${r.title}${id === standardId ? ' (standard)' : ''}`);
+  });
+  html += '</optgroup><optgroup label="Not a requirement">';
+  html += opt(MOVE_CONTEXT, 'Context only — no rule to be Met against');
+  html += '</optgroup><optgroup label="Another standard">';
+  DATA.records.forEach(r => {
+    if (siblings.includes(r.id)) return;
+    html += opt(r.id, `${r.id} — ${r.title}`);
+  });
+  html += '</optgroup></select>';
+  html += `<input data-movewhy="${esc(key)}" placeholder="Which rule would this be Met against?"
+    value="${esc((state.moves[key] || {}).reason || '')}">`;
+  html += `<button class="go" data-movego="${esc(key)}">Move</button></div>`;
+  html += `<div class="row"><span class="hint2">Currently on ${esc(current === MOVE_CONTEXT ? 'context' : current)}.</span>`;
+  if (state.moves[key]) {
+    html += `<button class="undo" data-moveundo="${esc(key)}">Undo this move</button>`;
+  }
+  html += '</div></div>';
+  return html;
+}
+
 document.addEventListener('click', e => {
+  const mv = e.target.closest('[data-move]');
+  if (mv) {
+    const key = mv.dataset.move;
+    const existing = mv.parentElement.querySelector('.move-panel');
+    if (existing) { existing.remove(); return; }
+    mv.insertAdjacentHTML('afterend', movePanelHtml(key));
+    return;
+  }
+  const go = e.target.closest('[data-movego]');
+  if (go) {
+    const key = go.dataset.movego;
+    const to = document.querySelector(`[data-movepick="${CSS.escape(key)}"]`).value;
+    const reason = (document.querySelector(`[data-movewhy="${CSS.escape(key)}"]`).value || '').trim();
+    if (to === PROMPT_INDEX[key].home) delete state.moves[key];
+    else state.moves[key] = { to, reason };
+    save(); reselect();
+    return;
+  }
+  const undo = e.target.closest('[data-moveundo]');
+  if (undo) { delete state.moves[undo.dataset.moveundo]; save(); reselect(); return; }
+  if (e.target.closest('#export')) { exportDecisions(); return; }
   const open = e.target.closest('[data-answer-open]');
   if (open) {
     const key = open.dataset.answerOpen;
@@ -803,6 +940,30 @@ document.addEventListener('click', e => {
   }
 });
 
+// The practitioner's marks have to reach the pipeline, so they leave as data
+// rather than as a screenshot.
+function exportDecisions() {
+  const rows = Object.entries(state.moves).map(([key, m]) => {
+    const { prompt, home } = PROMPT_INDEX[key];
+    return {
+      from_record: home,
+      to: m.to === MOVE_CONTEXT ? 'context' : m.to,
+      key_activity: prompt.group || null,
+      question: prompt.text,
+      reason: m.reason || '',
+    };
+  });
+  const payload = JSON.stringify(
+    { framework_version: DATA.version, moves: rows,
+      answers: state.answers, determinations: state.determinations }, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'walkthrough-decisions.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function reselect() {
   const cur = document.querySelector('.nav-item[aria-current="true"]');
   if (cur) select(cur.dataset.id);
@@ -844,6 +1005,7 @@ def build(catalog: dict, layer: dict) -> str:
         "noPrompts": no_prompts,
         "areas": areas,
         "areaLabel": {area["id"]: area["label"] for area in areas},
+        "version": catalog["framework_version"]["id"],
     }
 
     counts = layer["counts"]
@@ -860,6 +1022,8 @@ def build(catalog: dict, layer: dict) -> str:
     <div><b id="tally-total">0</b><span>determinations</span></div>
     <div><b>{counts['prompts_total']}</b><span>prompts</span></div>
     <div><b>{len(records)}</b><span>records</span></div>
+    <div><b id="tally-moves">0</b><span>moves</span></div>
+    <div><button class="export-btn" id="export">Export decisions</button></div>
   </div>
 </header>
 <div class="shell">
