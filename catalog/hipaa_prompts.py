@@ -317,7 +317,7 @@ def route_security_sample(
                         f"matched {len(matches)} prompts; expected exactly 1"
                     )
 
-    routed = {
+    routed: dict[str, list[Prompt]] = {
         "164.308(a)(1)(ii)(A)": [],
         "164.308(a)(1)(ii)(B)": [],
         "164.308(a)(1)(ii)(C)": [],
