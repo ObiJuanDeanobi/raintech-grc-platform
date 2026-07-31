@@ -2,18 +2,17 @@
 
 ## Current phase
 
-Slice 4a complete. Slice 1a is implemented and independently reviewed on
-`codex/issue-44-slice-1a`. Draft PR #46 is open and GitHub CI is green.
+Slice 4a complete. Slice 1a is merged to `main` in PR #46 after independent
+review and green GitHub CI. No production slice is currently in flight.
 
 ## Current mode
 
-Review. Johnathan approved Issue #44 on July 30, 2026; the 22-criterion BUILD
-is complete and CI-verified, but must not be called merged until PR #46 merges.
+Chat. Issue #44's 22-criterion BUILD is complete, CI-verified, and merged.
 
 ## Current objective
 
-Build the foundation and the HIPAA assessment workspace, so the reviewed
-catalog and prompt layer become something an assessment can be run in.
+Choose and approve the next production ticket without expanding Issue #44's
+completed scope. Launcher and packaging remain separately tracked in Issue #32.
 
 ## Approved specification
 
@@ -23,9 +22,8 @@ paragraph correction approved July 28, 2026. No unapproved changes outstanding.
 
 ## Active ticket
 
-GitHub issue #44: Slice 1a, foundation and HIPAA assessment workspace. Approved
-July 30, 2026 and implemented in draft PR #46. Launcher, offline packaging,
-and backup/restore remain Issue #32.
+No production ticket is active. GitHub issue #44 is complete and merged in PR
+#46. Launcher, offline packaging, and backup/restore remain Issue #32.
 
 GitHub issue #29 is closed. The prompt layer is ingested, practitioner-reviewed
 on a clickable walkthrough, and merged.
@@ -216,22 +214,14 @@ on a clickable walkthrough, and merged.
   made statuses and rollups consume the framework declarations.
 - The production Overview and post-setup client/project creator are implemented
   and browser-verified. The live browser pass found no console errors.
+- Issue #44's 22-criterion Slice 1a implementation merged to `main` in PR #46
+  as squash commit `1961cdb` after all GitHub CI jobs passed.
 
 ## In progress
 
-- **GitHub issue #44: Slice 1a**, foundation and HIPAA assessment workspace.
-  Implemented against all 22 acceptance criteria in draft PR #46; independent
-  review and GitHub CI are complete, leaving human review and merge. Launcher, offline
-  packaging, and backup/restore are excluded. Slice 2 remains skipped for now,
-  making the build order 1a, 4, 2, 3, 5, 6, 7 without renumbering.
-  **The excluded work is GitHub issue #32, which already existed** — the spike
-  proving the stack packages and launches on Windows ARM64 and x64. Issue #44
-  originally called that work "Slice 1b", inventing a second name for a ticket
-  already open. There is no Slice 1b: #32 is the launcher and packaging track,
-  and it already states the same split, that the data model, API, audit,
-  clients and projects are unaffected and can proceed in parallel.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
-  needs Johnathan's machine, and gates nothing in #44 except the launcher.
+  needs Johnathan's machine, and now owns the launcher and packaging work that
+  was explicitly excluded from the merged Issue #44 scope.
 - **GitHub issue #21**: practitioner review of the exported 194-record catalog.
   Record boundaries are settled and citation-stable, and the catalog was read in
   its working shape through the walkthrough. Stays open for the remaining
@@ -242,8 +232,6 @@ No second production slice is in flight.
 
 ## Blocked
 
-- Issue #44 has no product-decision blocker. Merge is gated on human review of
-  draft PR #46.
 - GitHub issue #32, and every claim about offline operation, packaging,
   launcher, and backup/restore, is blocked on the Windows machine. A cloud
   session cannot verify any of it. #32 blocks only the launcher and packaging
@@ -321,8 +309,8 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Review draft PR #46 and merge it when satisfied. Do not start another slice
-until #44 is merged.
+Choose the next production ticket and obtain explicit approval before BUILD.
+Issue #32 remains the separate Windows launcher and packaging track.
 
 Independently and at any time, Johnathan can make a pass over the Security
 routing in the walkthrough using the `move…` control and send the exported JSON;
