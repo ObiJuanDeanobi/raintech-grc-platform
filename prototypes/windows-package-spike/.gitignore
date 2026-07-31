@@ -1,0 +1,4 @@
+out/
+work/
+.venv-arm64/
+*.zip
