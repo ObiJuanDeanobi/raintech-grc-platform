@@ -3,16 +3,20 @@
 ## Current phase
 
 Slice 4a complete. Slice 1a is merged to `main` in PR #46 after independent
-review and green GitHub CI. No production slice is currently in flight.
+review and green GitHub CI. The Issue #32 Windows packaging spike has reached a
+provisional verdict on the ARM64 Surface. No production slice is in flight.
 
 ## Current mode
 
-Chat. Issue #44's 22-criterion BUILD is complete, CI-verified, and merged.
+REVIEW. Johnathan approved the Issue #32 spike on July 31, 2026. Its proposed
+architectural verdict is awaiting Johnathan's approval; two hardware checks
+remain incomplete.
 
 ## Current objective
 
-Choose and approve the next production ticket without expanding Issue #44's
-completed scope. Launcher and packaging remain separately tracked in Issue #32.
+Review proposed ADR 0013 without promoting its throwaway implementation. Obtain
+Johnathan's decision on the named changes and retain native x64 and
+adapter-disabled launch as explicit Issue #32 checks.
 
 ## Approved specification
 
@@ -22,8 +26,10 @@ paragraph correction approved July 28, 2026. No unapproved changes outstanding.
 
 ## Active ticket
 
-No production ticket is active. GitHub issue #44 is complete and merged in PR
-#46. Launcher, offline packaging, and backup/restore remain Issue #32.
+GitHub Issue #32 is active as a bounded packaging spike, not a production slice.
+Its ARM64 and x64-emulation work is complete. Native x64 hardware and a manual
+adapter-disabled run remain assigned to Johnathan; backup/restore is not proved
+by this spike.
 
 GitHub issue #29 is closed. The prompt layer is ingested, practitioner-reviewed
 on a clickable walkthrough, and merged.
@@ -216,12 +222,24 @@ on a clickable walkthrough, and merged.
   and browser-verified. The live browser pass found no console errors.
 - Issue #44's 22-criterion Slice 1a implementation merged to `main` in PR #46
   as squash commit `1961cdb` after all GitHub CI jobs passed.
+- Issue #32 produced native ARM64 and x64 packages from the approved stack. The
+  ARM64 package launched from a desktop shortcut, completed a browser read/write
+  flow, survived forced close and restart, and shut down cleanly. The x64 package
+  passed the same persistence/lifecycle driver under Windows ARM64 emulation.
+- The package uses one local FastAPI process to serve compiled React assets.
+  ARM64 measured 34.8 MiB and 4.7 seconds cold; x64 measured 41.8 MiB and 6.9
+  seconds under emulation. Both made zero non-loopback connections.
+- Defender with real-time protection enabled reported no detection for the ARM64
+  package. The executables are unsigned; ADR 0013 records the conditional
+  release-signing decision, current Microsoft Artifact Signing cost, and
+  onboarding lead time.
 
 ## In progress
 
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
-  needs Johnathan's machine, and now owns the launcher and packaging work that
-  was explicitly excluded from the merged Issue #44 scope.
+  and partly executed on Johnathan's ARM64 machine. The throwaway branch is held
+  outside `main` only until the proposed ADR is decided; ADR 0013 records the
+  provisional proceed-with-named-changes verdict.
 - **GitHub issue #21**: practitioner review of the exported 194-record catalog.
   Record boundaries are settled and citation-stable, and the catalog was read in
   its working shape through the walkthrough. Stays open for the remaining
@@ -232,10 +250,12 @@ No second production slice is in flight.
 
 ## Blocked
 
-- GitHub issue #32, and every claim about offline operation, packaging,
-  launcher, and backup/restore, is blocked on the Windows machine. A cloud
-  session cannot verify any of it. #32 blocks only the launcher and packaging
-  part of the foundation, not #44's workspace.
+- **Native x64 launch - Johnathan.** Blocked on access to x64 hardware. Windows
+  11 ARM64 emulation passed but is not a substitute for that Issue #32 check.
+- The unelevated automation session could not safely disable the active network
+  adapter. Complete browser read/write flows used only packaged assets and
+  opened zero non-loopback connections. **Johnathan** owns the brief manual
+  Wi-Fi-off run that remains an Issue #32 check.
 
 ## Open questions
 
@@ -299,8 +319,10 @@ for an issue. Each names who has to answer it.
 - Document templates remain an open input.
 - The local `data/` folder contains legacy evidence and exports that must be
   preserved until a separate backup/retention decision is made.
-- Launcher, offline operation, packaging, and backup/restore cannot be verified
-  from a cloud session. Those belong to Slices 1 and 7 on the Windows machine.
+- ARM64 packaging, shortcut launch, local persistence, browser operation,
+  lifecycle handling, and zero non-loopback connections are now verified on the
+  Windows machine. Native x64, an actual adapter-disabled run, release signing,
+  and backup/restore remain unverified.
 - No additional frameworks in V1. SOC 2 and possibly PCI DSS are considered for
   later with no commitment. Both strain the ADR 0012 model in the same place:
   each wants a client-defined control sitting between the published requirement
@@ -309,8 +331,10 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Choose the next production ticket and obtain explicit approval before BUILD.
-Issue #32 remains the separate Windows launcher and packaging track.
+Johnathan reviews proposed ADR 0013. If approved, merge only the verdict branch
+and delete the throwaway spike branch. Keep Issue #32 open for native x64 and
+manual Wi-Fi-off checks, then choose the next production ticket with explicit
+approval before BUILD.
 
 Independently and at any time, Johnathan can make a pass over the Security
 routing in the walkthrough using the `move…` control and send the exported JSON;
@@ -322,7 +346,13 @@ parent, 164.312(a)(1) with 21, and 164.308(a)(1) with 18.
 
 Recorded so the next agent does not re-derive it, and because a branch reset in
 this repository has already destroyed a day of work once. **Nothing here has
-been deleted.** `main` is the only branch carrying current work.
+been deleted.** `main` remains the production source; these two temporary Issue
+#32 branches are current review artifacts:
+
+- `codex/issue-32-windows-package-verdict` - proposed ADR 0013 and this status
+  update. Intended to merge after Johnathan approves the architecture changes.
+- `codex/issue-32-windows-package-spike` - disposable test code, never to merge.
+  Delete after the verdict is approved and merged.
 
 Provably merged — every commit has an equivalent already on `main`, verified
 with `git cherry origin/main origin/<branch>`. Safe to delete:
