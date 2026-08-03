@@ -3,16 +3,19 @@
 ## Current phase
 
 Slice 4a complete. Slice 1a is merged to `main` in PR #46 after independent
-review and green GitHub CI. No production slice is currently in flight.
+review and green GitHub CI. GitHub issue #49 is now an isolated practitioner
+test of question-level HIPAA working records; it is not approved architecture.
 
 ## Current mode
 
-Chat. Issue #44's 22-criterion BUILD is complete, CI-verified, and merged.
+BUILD. Issue #49 has an approved local test scope and is awaiting practitioner
+feedback before any architecture or specification change.
 
 ## Current objective
 
-Choose and approve the next production ticket without expanding Issue #44's
-completed scope. Launcher and packaging remain separately tracked in Issue #32.
+Validate whether each assessable HIPAA question should be the unit of working
+record while guidance-only prompts remain non-determinative. Launcher and
+packaging remain separately tracked in Issue #32.
 
 ## Approved specification
 
@@ -22,8 +25,10 @@ paragraph correction approved July 28, 2026. No unapproved changes outstanding.
 
 ## Active ticket
 
-No production ticket is active. GitHub issue #44 is complete and merged in PR
-#46. Launcher, offline packaging, and backup/restore remain Issue #32.
+GitHub issue #49 is active on `codex/question-working-record-test` as a local
+practitioner test. It deliberately challenges ADR 0012 without revising it.
+GitHub issue #44 remains complete and merged in PR #46. Launcher, offline
+packaging, and backup/restore remain Issue #32.
 
 GitHub issue #29 is closed. The prompt layer is ingested, practitioner-reviewed
 on a clickable walkthrough, and merged.
@@ -219,6 +224,10 @@ on a clickable walkthrough, and merged.
 
 ## In progress
 
+- **GitHub issue #49**: local practitioner test of question-level working
+  records. Assessable questions own status, notes, evidence, and optional support
+  rationale; CFR records and standards roll up those results. Johnathan's test
+  feedback determines whether ADR 0012 and the specification should change.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
   needs Johnathan's machine, and now owns the launcher and packaging work that
   was explicitly excluded from the merged Issue #44 scope.
@@ -228,7 +237,8 @@ on a clickable walkthrough, and merged.
   soundness read, which is a judgement about whether these are the right
   assessable units rather than whether they reproduce the regulation.
 
-No second production slice is in flight.
+No second approved production slice is in flight. Issue #49 remains an isolated
+test branch until practitioner review is complete.
 
 ## Blocked
 
@@ -255,14 +265,12 @@ for an issue. Each names who has to answer it.
   carries the mechanism (`move…` on every question, with export), so this is a
   pass through the tool, not a decision to reason out. Blocks nothing; the
   routing is usable now and improves with each pass.
-- **Editable status on a parent standard — Johnathan.** Raised repeatedly on
-  July 30 and answered no, on the grounds that 164.306(d)(2) satisfies a
-  standard through its implementation specifications and an independently
-  settable parent status would let a standard read Met while one of its own
-  specifications reads Not Met. Notes and evidence were added to the parent
-  instead, which carry no such contradiction. Recorded here rather than in
-  `docs/decisions/` because the question was asked more than once and may not be
-  settled in the asker's mind; reopening it is a specification change.
+- **Question-level working record model — Johnathan.** Issue #49 tests whether
+  every assessable question, including standard-level questions, should own its
+  status, notes, and evidence while the CFR record or standard derives its
+  result. Guidance-only prompts remain non-determinative. Acceptance requires an
+  ADR 0012 and specification revision before merge; rejection leaves the
+  approved record-level model unchanged.
 - **Client-defined control layer — Johnathan.** Surfaced from ADR 0012 during
   the same discussion. SOC 2 and PCI DSS both want a client control sitting
   between the published requirement and the determination, and HIPAA hints at it
@@ -309,8 +317,10 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Choose the next production ticket and obtain explicit approval before BUILD.
-Issue #32 remains the separate Windows launcher and packaging track.
+Johnathan tests issue #49 locally and accepts, rejects, or refines the
+question-level interaction. If accepted, revise ADR 0012 and the specification
+for explicit approval before merging. Issue #32 remains the separate Windows
+launcher and packaging track.
 
 Independently and at any time, Johnathan can make a pass over the Security
 routing in the walkthrough using the `move…` control and send the exported JSON;

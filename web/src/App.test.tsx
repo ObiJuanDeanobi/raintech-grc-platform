@@ -44,6 +44,14 @@ const assessment = {
       parent_id: "parent-1",
       designation: "required",
       sort_order: 1,
+      determination: {
+        status: "",
+        derived: true,
+        na_rationale: "",
+        addressable_disposition: null,
+        disposition_reason: "",
+        interview_observation: "",
+      },
     },
   ],
   record_index: [],
@@ -59,11 +67,11 @@ const detail = {
     record_type: "implementation_specification",
     parent_id: "parent-1",
     designation: "required",
-    editable_determination: true,
+    editable_determination: false,
   },
   determination: {
     status: "",
-    derived: false,
+    derived: true,
     na_rationale: "",
     addressable_disposition: null,
     disposition_reason: "",
@@ -90,6 +98,15 @@ const detail = {
       role_reason: "bears on the mapped CFR determination",
       render_checkbox: true,
       answer: "",
+      record_id: "parent-1",
+      working_record: {
+        status: "",
+        note: "",
+        na_rationale: "",
+        interview_observation: "",
+        updated_at: null,
+        evidence: [],
+      },
       moved_from: null,
       placement: null,
     },
@@ -108,6 +125,15 @@ const detail = {
       role_reason: "bears on the mapped CFR determination",
       render_checkbox: true,
       answer: "",
+      record_id: "child-1",
+      working_record: {
+        status: "",
+        note: "",
+        na_rationale: "",
+        interview_observation: "",
+        updated_at: null,
+        evidence: [],
+      },
       moved_from: null,
       placement: null,
     },
@@ -122,6 +148,8 @@ const detail = {
       role_reason: "recommended practice beyond the CFR requirement",
       render_checkbox: false,
       answer: "",
+      record_id: "child-1",
+      working_record: null,
       moved_from: null,
       placement: null,
     },
@@ -136,7 +164,10 @@ const detail = {
   },
 };
 
+let workListStatus = "";
+
 beforeEach(() => {
+  workListStatus = "";
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -157,13 +188,34 @@ beforeEach(() => {
         ]);
       }
       if (url === "/api/projects/project-1/assessment") {
-        return Response.json(assessment);
+        return Response.json({
+          ...assessment,
+          work_list: assessment.work_list.map((record) => ({
+            ...record,
+            determination: { ...record.determination, status: workListStatus },
+          })),
+        });
       }
       if (url.includes("/records/child-1")) {
-        return Response.json(detail);
+        return Response.json({
+          ...detail,
+          determination: { ...detail.determination, status: workListStatus },
+          prompts: detail.prompts.map((prompt) =>
+            prompt.id === "prompt-check"
+              ? {
+                  ...prompt,
+                  working_record: { ...prompt.working_record, status: workListStatus },
+                }
+              : prompt,
+          ),
+        });
       }
-      if (url.includes("/determinations/child-1") && init?.method === "PUT") {
-        return Response.json({ ...detail.determination, status: "Pending" });
+      if (url.includes("/prompts/prompt-check/working-record") && init?.method === "PUT") {
+        workListStatus = String(JSON.parse(String(init.body)).status);
+        return Response.json({
+          ...detail.prompts[0].working_record,
+          status: workListStatus,
+        });
       }
       if (url === "/api/projects/project-1/evidence") {
         return Response.json([]);
@@ -173,7 +225,7 @@ beforeEach(() => {
   );
 });
 
-test("renders a determination-only work list with parent context", async () => {
+test("opens assessable questions as working records while guidance stays non-determinative", async () => {
   const user = userEvent.setup();
   render(<App />);
 
@@ -181,31 +233,39 @@ test("renders a determination-only work list with parent context", async () => {
   expect(screen.getByText("1 of 149")).toBeInTheDocument();
   expect(screen.getByText("Security management process")).toBeInTheDocument();
   expect(screen.getByText("Derived · Pending")).toBeInTheDocument();
-  expect(screen.getByRole("checkbox", { name: "Has all ePHI been identified?" })).toBeVisible();
+  expect(await screen.findByRole("heading", { name: "Question record" })).toBeVisible();
+  expect(screen.getByText("Has all ePHI been identified?", { selector: ".working-question-text" })).toBeVisible();
   expect(
-    screen.queryByRole("checkbox", { name: "Consider the broader operating context." }),
-  ).not.toBeInTheDocument();
+    screen.getByRole("button", {
+      name: "Open question working record: Has all ePHI been identified?",
+    }),
+  ).toBeVisible();
+  expect(screen.getByText("Guidance only")).toBeVisible();
   await user.click(screen.getByText("Standard-level questions"));
   expect(screen.getByText("How is the security management process governed?")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Overview" }));
   expect(screen.getByRole("heading", { name: "Northwind Health · HIPAA 2026" })).toBeVisible();
 });
 
-test("autosaves a determination through the API", async () => {
+test("autosaves a question status and reflects it in the work list", async () => {
   const user = userEvent.setup();
   render(<App />);
   await screen.findByRole("heading", { level: 1, name: "Risk analysis" });
+  await screen.findByRole("heading", { name: "Question record" });
 
   await user.click(screen.getByRole("button", { name: "Pending" }));
 
   expect(fetch).toHaveBeenCalledWith(
-    "/api/assessments/assessment-1/determinations/child-1",
+    "/api/assessments/assessment-1/prompts/prompt-check/working-record",
     expect.objectContaining({
       method: "PUT",
       body: expect.stringContaining('"status":"Pending"'),
     }),
   );
   expect(await screen.findByText("Saved")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("button", { name: /Risk analysis.*Pending/ }),
+  ).toBeVisible();
 });
 
 test("opens a creator after the first client project exists", async () => {

@@ -15,6 +15,26 @@ def create_workspace(client: TestClient) -> tuple[str, str]:
     return project["id"], assessment_id
 
 
+def save_assessment_questions(
+    client: TestClient,
+    assessment_id: str,
+    record_id: str,
+    status: str,
+) -> None:
+    detail = client.get(f"/api/assessments/{assessment_id}/records/{record_id}").json()
+    questions = [prompt for prompt in detail["prompts"] if prompt["role"] == "assessment_check"]
+    assert questions
+    for prompt in questions:
+        payload = {"status": status}
+        if status == "Met":
+            payload["interview_observation"] = "Confirmed with the security lead."
+        response = client.put(
+            f"/api/assessments/{assessment_id}/prompts/{prompt['id']}/working-record",
+            json=payload,
+        )
+        assert response.status_code == 200
+
+
 def test_client_project_and_hipaa_assessment_are_created_and_retrievable(
     tmp_path: Path,
 ) -> None:
@@ -58,7 +78,7 @@ def test_record_contract_preserves_parent_context_and_prompt_presentation_roles(
         assert payload["record"]["citation"] == "45 CFR 164.308(a)(1)(ii)(A)"
         assert payload["record"]["title"] == "Risk analysis"
         assert "accurate and thorough assessment" in payload["record"]["regulation_text"]
-        assert payload["record"]["editable_determination"] is True
+        assert payload["record"]["editable_determination"] is False
         assert payload["parent"]["record_id"] == "164.308(a)(1)(i)"
         assert payload["parent"]["editable_determination"] is False
         assert payload["parent"]["prompts_collapsed_by_default"] is True
@@ -70,6 +90,18 @@ def test_record_contract_preserves_parent_context_and_prompt_presentation_roles(
             prompt["render_checkbox"] == (prompt["role"] == "assessment_check")
             for prompt in payload["prompts"]
         )
+        assert all(
+            (prompt["working_record"] is not None)
+            == (prompt["role"] == "assessment_check")
+            for prompt in payload["prompts"]
+        )
+        parent_detail = client.get(
+            f"/api/assessments/{assessment_id}/records/164.308(a)(1)(i)"
+        ).json()
+        guidance = next(
+            prompt for prompt in parent_detail["prompts"] if prompt["role"] == "context"
+        )
+        assert guidance["working_record"] is None
 
 
 def test_determination_rules_and_parent_rollup_are_enforced_at_the_api(
@@ -107,12 +139,8 @@ def test_determination_rules_and_parent_rollup_are_enforced_at_the_api(
             == 422
         )
 
-        for record_id, status in (
-            ("164.308(a)(1)(ii)(A)", "Pending"),
-            ("164.308(a)(1)(ii)(B)", "Not Met"),
-        ):
-            response = client.put(f"{endpoint}/{record_id}", json={"status": status})
-            assert response.status_code == 200
+        save_assessment_questions(client, assessment_id, "164.308(a)(1)(ii)(A)", "Pending")
+        save_assessment_questions(client, assessment_id, "164.308(a)(1)(ii)(B)", "Not Met")
 
         parent = client.get(f"/api/assessments/{assessment_id}/records/164.308(a)(1)(i)").json()
         assert parent["determination"]["status"] == "Not Met"
@@ -124,14 +152,8 @@ def test_determination_rules_and_parent_rollup_are_enforced_at_the_api(
             "164.308(a)(1)(ii)(C)",
             "164.308(a)(1)(ii)(D)",
         ):
-            response = client.put(
-                f"{endpoint}/{record_id}",
-                json={
-                    "status": "Met",
-                    "interview_observation": "Observed with security lead.",
-                },
-            )
-            assert response.status_code == 200
+            save_assessment_questions(client, assessment_id, record_id, "Met")
+        save_assessment_questions(client, assessment_id, "164.308(a)(1)(i)", "Met")
 
         parent = client.get(f"/api/assessments/{assessment_id}/records/164.308(a)(1)(i)").json()
         assert parent["determination"]["status"] == "Met"
@@ -150,15 +172,25 @@ def test_evidence_reuse_notes_audit_and_restart_persistence(tmp_path: Path) -> N
         assert artifact.status_code == 201
         artifact_id = artifact.json()["id"]
 
+        prompt_ids = []
         for record_id, rationale in (
             ("164.308(a)(1)(ii)(A)", "Supports the risk analysis process."),
             ("164.308(a)(1)(ii)(B)", "Supports risk treatment decisions."),
         ):
+            record = client.get(
+                f"/api/assessments/{assessment_id}/records/{record_id}"
+            ).json()
+            prompt_id = next(
+                prompt["id"]
+                for prompt in record["prompts"]
+                if prompt["role"] == "assessment_check"
+            )
+            prompt_ids.append(prompt_id)
             mapped = client.post(
-                f"/api/assessments/{assessment_id}/evidence-mappings",
+                f"/api/assessments/{assessment_id}/prompt-evidence-mappings",
                 json={
                     "artifact_id": artifact_id,
-                    "record_id": record_id,
+                    "prompt_id": prompt_id,
                     "rationale": rationale,
                 },
             )
@@ -170,20 +202,39 @@ def test_evidence_reuse_notes_audit_and_restart_persistence(tmp_path: Path) -> N
         )
         assert note.status_code == 200
         met = client.put(
-            f"/api/assessments/{assessment_id}/determinations/164.308(a)(1)(ii)(A)",
+            f"/api/assessments/{assessment_id}/prompts/{prompt_ids[0]}/working-record",
             json={"status": "Met"},
         )
         assert met.status_code == 200
-        first_mapping = client.get(
-            f"/api/assessments/{assessment_id}/records/164.308(a)(1)(ii)(A)"
-        ).json()["evidence"][0]["mapping_id"]
+        first_prompt = next(
+            prompt
+            for prompt in client.get(
+                f"/api/assessments/{assessment_id}/records/164.308(a)(1)(ii)(A)"
+            ).json()["prompts"]
+            if prompt["id"] == prompt_ids[0]
+        )
+        first_mapping = first_prompt["working_record"]["evidence"][0]["mapping_id"]
         refused_unmap = client.delete(
-            f"/api/assessments/{assessment_id}/evidence-mappings/{first_mapping}"
+            f"/api/assessments/{assessment_id}/prompt-evidence-mappings/{first_mapping}"
         )
         assert refused_unmap.status_code == 422
 
-        detail = client.get(f"/api/assessments/{assessment_id}/records/164.308(a)(1)(ii)(A)").json()
-        assert detail["evidence"][0]["shared_record_count"] == 2
+        detail = client.get(
+            f"/api/assessments/{assessment_id}/records/164.308(a)(1)(ii)(A)"
+        ).json()
+        first_prompt = next(prompt for prompt in detail["prompts"] if prompt["id"] == prompt_ids[0])
+        assert first_prompt["working_record"]["evidence"][0]["shared_record_count"] == 2
+
+        for prompt in detail["prompts"]:
+            if prompt["role"] == "assessment_check" and prompt["id"] != prompt_ids[0]:
+                response = client.put(
+                    f"/api/assessments/{assessment_id}/prompts/{prompt['id']}/working-record",
+                    json={
+                        "status": "Met",
+                        "interview_observation": "Confirmed with the security lead.",
+                    },
+                )
+                assert response.status_code == 200
 
     restarted = create_app(database_path=database_path, storage_path=storage_path)
     with TestClient(restarted) as client:
@@ -191,12 +242,146 @@ def test_evidence_reuse_notes_audit_and_restart_persistence(tmp_path: Path) -> N
         child = client.get(f"/api/assessments/{assessment_id}/records/164.308(a)(1)(ii)(A)").json()
         assert parent["note"] == "Scope confirmed with the security officer."
         assert child["determination"]["status"] == "Met"
-        assert child["evidence"][0]["rationale"] == "Supports the risk analysis process."
+        first_prompt = next(prompt for prompt in child["prompts"] if prompt["id"] == prompt_ids[0])
+        assert (
+            first_prompt["working_record"]["evidence"][0]["rationale"]
+            == "Supports the risk analysis process."
+        )
 
         audit = client.get(f"/api/assessments/{assessment_id}/audit").json()
         assert all(event["actor"]["id"] == "johnathan" for event in audit)
         actions = {event["action"] for event in audit}
-        assert {"record.note_saved", "evidence.mapped", "determination.saved"} <= actions
+        assert {
+            "record.note_saved",
+            "evidence.mapped_to_prompt",
+            "prompt.working_record_saved",
+        } <= actions
+
+
+def test_assessment_questions_have_persistent_working_records_and_drive_status(
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "workspace.db"
+    storage_path = tmp_path / "files"
+    app = create_app(database_path=database_path, storage_path=storage_path)
+
+    with TestClient(app) as client:
+        project_id, assessment_id = create_workspace(client)
+        record_id = "164.308(a)(1)(ii)(A)"
+        detail = client.get(
+            f"/api/assessments/{assessment_id}/records/{record_id}"
+        ).json()
+        assessment_questions = [
+            prompt for prompt in detail["prompts"] if prompt["role"] == "assessment_check"
+        ]
+        assert assessment_questions
+        assert all(prompt["working_record"]["status"] == "" for prompt in assessment_questions)
+        assert all(prompt["working_record"]["note"] == "" for prompt in assessment_questions)
+        assert all(prompt["working_record"]["evidence"] == [] for prompt in assessment_questions)
+        first = assessment_questions[0]
+        working_endpoint = (
+            f"/api/assessments/{assessment_id}/prompts/{first['id']}/working-record"
+        )
+        assert client.put(working_endpoint, json={"status": "N/A"}).status_code == 422
+        assert client.put(working_endpoint, json={"status": "Met"}).status_code == 422
+
+        pending = client.put(
+            working_endpoint,
+            json={
+                "status": "Pending",
+                "note": "Confirm the system inventory with the security lead.",
+            },
+        )
+        assert pending.status_code == 200
+        assert pending.json()["status"] == "Pending"
+        assert pending.json()["note"] == "Confirm the system inventory with the security lead."
+
+        detail = client.get(
+            f"/api/assessments/{assessment_id}/records/{record_id}"
+        ).json()
+        assert detail["determination"]["status"] == "Pending"
+        assert detail["determination"]["derived"] is True
+
+        artifact = client.post(
+            f"/api/projects/{project_id}/evidence",
+            files={"file": ("inventory.txt", b"sanitized inventory", "text/plain")},
+        ).json()
+        mapped = client.post(
+            f"/api/assessments/{assessment_id}/prompt-evidence-mappings",
+            json={
+                "artifact_id": artifact["id"],
+                "prompt_id": first["id"],
+                "rationale": "",
+            },
+        )
+        assert mapped.status_code == 201
+        assert mapped.json()["rationale"] == ""
+
+        assert (
+            client.put(
+                working_endpoint,
+                json={
+                    "status": "Met",
+                    "note": "Confirm the system inventory with the security lead.",
+                },
+            ).status_code
+            == 200
+        )
+        for prompt in assessment_questions[1:]:
+            response = client.put(
+                f"/api/assessments/{assessment_id}/prompts/{prompt['id']}/working-record",
+                json={
+                    "status": "Met",
+                    "interview_observation": "Confirmed with the security lead.",
+                },
+            )
+            assert response.status_code == 200
+
+        detail = client.get(
+            f"/api/assessments/{assessment_id}/records/{record_id}"
+        ).json()
+        assert detail["determination"]["status"] == "Met"
+        assert detail["determination"]["derived"] is True
+        first_reloaded = next(prompt for prompt in detail["prompts"] if prompt["id"] == first["id"])
+        assert first_reloaded["working_record"]["evidence"][0]["rationale"] == ""
+
+        assessment = client.get(f"/api/projects/{project_id}/assessment").json()
+        work_item = next(item for item in assessment["work_list"] if item["record_id"] == record_id)
+        assert work_item["determination"]["status"] == "Met"
+
+    restarted = create_app(database_path=database_path, storage_path=storage_path)
+    with TestClient(restarted) as client:
+        detail = client.get(
+            f"/api/assessments/{assessment_id}/records/{record_id}"
+        ).json()
+        first_reloaded = next(prompt for prompt in detail["prompts"] if prompt["id"] == first["id"])
+        assert first_reloaded["working_record"]["status"] == "Met"
+        assert (
+            first_reloaded["working_record"]["note"]
+            == "Confirm the system inventory with the security lead."
+        )
+
+
+def test_evidence_support_rationale_is_optional_for_record_mappings(tmp_path: Path) -> None:
+    app = create_app(database_path=tmp_path / "workspace.db", storage_path=tmp_path / "files")
+    with TestClient(app) as client:
+        project_id, assessment_id = create_workspace(client)
+        artifact = client.post(
+            f"/api/projects/{project_id}/evidence",
+            files={"file": ("policy.txt", b"sanitized policy", "text/plain")},
+        ).json()
+
+        mapped = client.post(
+            f"/api/assessments/{assessment_id}/evidence-mappings",
+            json={
+                "artifact_id": artifact["id"],
+                "record_id": "164.308(a)(1)(ii)(B)",
+                "rationale": "",
+            },
+        )
+
+        assert mapped.status_code == 201
+        assert mapped.json()["rationale"] == ""
 
 
 def test_prompt_answers_and_cross_record_placements_survive_framework_reseed(

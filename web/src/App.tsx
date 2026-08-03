@@ -27,6 +27,7 @@ import type {
   Determination,
   EvidenceMapping,
   Prompt,
+  PromptWorkingRecord,
   RecordDetail,
   Status,
 } from "./types";
@@ -197,35 +198,22 @@ function WorkspaceCreator({
 function PromptCard({
   prompt,
   assessment,
+  selected,
+  onSelect,
   onChanged,
   onSaveState,
 }: {
   prompt: Prompt;
   assessment: Assessment;
+  selected: boolean;
+  onSelect: () => void;
   onChanged: () => void;
   onSaveState: (state: "saving" | "saved" | "error", message?: string) => void;
 }) {
-  const [answer, setAnswer] = useState(prompt.answer);
   const [moving, setMoving] = useState(false);
   const [destination, setDestination] = useState("");
   const [rule, setRule] = useState("");
   const [reason, setReason] = useState("");
-
-  useEffect(() => setAnswer(prompt.answer), [prompt.answer]);
-
-  async function saveAnswer() {
-    if (answer === prompt.answer) return;
-    onSaveState("saving");
-    try {
-      await request(`/api/assessments/${assessment.id}/prompts/${prompt.id}/answer`, {
-        method: "PUT",
-        body: JSON.stringify({ answer }),
-      });
-      onSaveState("saved");
-    } catch (caught) {
-      onSaveState("error", caught instanceof Error ? caught.message : undefined);
-    }
-  }
 
   async function movePrompt(event: FormEvent) {
     event.preventDefault();
@@ -248,10 +236,10 @@ function PromptCard({
   }
 
   return (
-    <article className={`prompt-card role-${prompt.role}`}>
+    <article className={`prompt-card role-${prompt.role} ${selected ? "selected" : ""}`}>
       <div className="prompt-heading">
-        {prompt.render_checkbox ? (
-          <input aria-label={prompt.text} type="checkbox" tabIndex={-1} />
+        {prompt.working_record ? (
+          <StatusPill status={prompt.working_record.status} />
         ) : (
           <span className="context-dot" aria-hidden="true" />
         )}
@@ -276,14 +264,19 @@ function PromptCard({
           Moved from {prompt.moved_from.citation} · {prompt.placement?.rule_citation}
         </p>
       )}
-      <textarea
-        aria-label={`Answer: ${prompt.text}`}
-        value={answer}
-        onChange={(event) => setAnswer(event.target.value)}
-        onBlur={saveAnswer}
-        placeholder="Record the answer to this question…"
-        rows={2}
-      />
+      {prompt.working_record ? (
+        <button
+          className="open-question-record"
+          type="button"
+          aria-label={`Open question working record: ${prompt.text}`}
+          onClick={onSelect}
+        >
+          {selected ? "Working record open" : "Open working record"}
+          <ArrowRight size={14} />
+        </button>
+      ) : (
+        <span className="guidance-label">Guidance only</span>
+      )}
       {moving && (
         <form className="move-form" onSubmit={movePrompt}>
           <label>
@@ -449,16 +442,192 @@ function DeterminationPanel({
   );
 }
 
+function AddressableDecisionPanel({
+  assessmentId,
+  detail,
+  onChanged,
+  onSaveState,
+}: {
+  assessmentId: string;
+  detail: RecordDetail;
+  onChanged: () => void;
+  onSaveState: (state: "saving" | "saved" | "error", message?: string) => void;
+}) {
+  const [form, setForm] = useState<Determination>(detail.determination);
+
+  useEffect(() => setForm(detail.determination), [detail.determination]);
+
+  if (detail.record.designation !== "addressable") return null;
+
+  async function save(next: Determination) {
+    setForm(next);
+    onSaveState("saving");
+    try {
+      await request(
+        `/api/assessments/${assessmentId}/determinations/${detail.record.record_id}`,
+        { method: "PUT", body: JSON.stringify(next) },
+      );
+      onSaveState("saved");
+      onChanged();
+    } catch (caught) {
+      onSaveState("error", caught instanceof ApiError ? caught.message : undefined);
+    }
+  }
+
+  return (
+    <section className="working-section addressable-shared">
+      <div className="addressable-box">
+        <p className="eyebrow">ADDRESSABLE SPECIFICATION</p>
+        <p className="muted">This decision applies to every assessment question under this cited specification.</p>
+        <label>
+          Disposition <span className="required">required</span>
+          <select
+            value={form.addressable_disposition ?? ""}
+            onChange={(event) => {
+              const next = { ...form, addressable_disposition: event.target.value };
+              setForm(next);
+              if (event.target.value === "standard_measure") void save(next);
+            }}
+          >
+            <option value="">Select a disposition…</option>
+            <option value="standard_measure">Use the standard measure</option>
+            <option value="equivalent_alternative">Equivalent alternative</option>
+            <option value="non_implementation">Documented non-implementation</option>
+          </select>
+        </label>
+        {form.addressable_disposition && form.addressable_disposition !== "standard_measure" && (
+          <label>
+            Reasoning <span className="required">required</span>
+            <textarea
+              rows={3}
+              value={form.disposition_reason}
+              onChange={(event) => setForm({ ...form, disposition_reason: event.target.value })}
+              onBlur={() => void save(form)}
+            />
+          </label>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function QuestionWorkingPanel({
+  assessmentId,
+  statuses,
+  prompt,
+  onChanged,
+  onSaveState,
+}: {
+  assessmentId: string;
+  statuses: Status[];
+  prompt: Prompt;
+  onChanged: () => void;
+  onSaveState: (state: "saving" | "saved" | "error", message?: string) => void;
+}) {
+  const [form, setForm] = useState<PromptWorkingRecord>(prompt.working_record!);
+
+  useEffect(() => setForm(prompt.working_record!), [prompt]);
+
+  async function save(next: PromptWorkingRecord) {
+    setForm(next);
+    onSaveState("saving");
+    try {
+      await request(
+        `/api/assessments/${assessmentId}/prompts/${prompt.id}/working-record`,
+        {
+          method: "PUT",
+          body: JSON.stringify(next),
+        },
+      );
+      onSaveState("saved");
+      onChanged();
+    } catch (caught) {
+      onSaveState("error", caught instanceof ApiError ? caught.message : undefined);
+    }
+  }
+
+  return (
+    <>
+      <section className="working-section question-context">
+        <p className="eyebrow">ASSESSMENT QUESTION</p>
+        <p className="working-question-text">{prompt.text}</p>
+        <span>{prompt.source_detail || prompt.source}</span>
+      </section>
+      <section className="working-section">
+        <div className="section-title">
+          <div><p className="eyebrow">DECISION</p><h3>Question status</h3></div>
+          <StatusPill status={form.status} />
+        </div>
+        <div className="status-grid">
+          {statuses.filter(Boolean).map((status) => (
+            <button
+              key={status}
+              type="button"
+              className={`${statusClass(status)} ${form.status === status ? "selected" : ""}`}
+              onClick={() => {
+                const next = { ...form, status };
+                setForm(next);
+                if (status !== "N/A") void save(next);
+              }}
+            >
+              {status}
+            </button>
+          ))}
+        </div>
+        {form.status === "N/A" && (
+          <label>
+            N/A rationale <span className="required">required</span>
+            <textarea
+              rows={3}
+              value={form.na_rationale}
+              onChange={(event) => setForm({ ...form, na_rationale: event.target.value })}
+              onBlur={() => void save(form)}
+              placeholder="Explain why this question does not apply…"
+            />
+          </label>
+        )}
+        <details className="interview-box">
+          <summary>Document an interview or observation</summary>
+          <p>Use this when a Met decision relies on direct observation instead of evidence.</p>
+          <textarea
+            rows={3}
+            value={form.interview_observation}
+            onChange={(event) => setForm({ ...form, interview_observation: event.target.value })}
+            onBlur={() => form.status && void save(form)}
+            placeholder="Who was interviewed or what was observed?"
+          />
+        </details>
+      </section>
+      <section className="working-section">
+        <div className="section-title">
+          <div><p className="eyebrow">DISCUSSION</p><h3>Assessment notes</h3></div>
+        </div>
+        <textarea
+          key={`${prompt.id}:${form.updated_at ?? "new"}`}
+          defaultValue={form.note}
+          rows={5}
+          placeholder="Record the client's answer, implementation details, and assessor observations…"
+          onBlur={(event) => void save({ ...form, note: event.target.value })}
+        />
+      </section>
+    </>
+  );
+}
+
 function EvidencePanel({
   assessment,
-  detail,
+  evidence,
+  targetKind,
+  targetId,
   artifacts,
   onChanged,
   onArtifactsChanged,
   onSaveState,
 }: {
   assessment: Assessment;
-  detail: RecordDetail;
+  evidence: EvidenceMapping[];
+  targetKind: "record" | "question";
+  targetId: string;
   artifacts: Artifact[];
   onChanged: () => void;
   onArtifactsChanged: () => void;
@@ -492,11 +661,17 @@ function EvidencePanel({
     event.preventDefault();
     onSaveState("saving");
     try {
-      await request(`/api/assessments/${assessment.id}/evidence-mappings`, {
+      const endpoint = targetKind === "question"
+        ? `/api/assessments/${assessment.id}/prompt-evidence-mappings`
+        : `/api/assessments/${assessment.id}/evidence-mappings`;
+      const target = targetKind === "question"
+        ? { prompt_id: targetId }
+        : { record_id: targetId };
+      await request(endpoint, {
         method: "POST",
         body: JSON.stringify({
           artifact_id: artifactId,
-          record_id: detail.record.record_id,
+          ...target,
           rationale,
         }),
       });
@@ -513,8 +688,11 @@ function EvidencePanel({
     if (!window.confirm(`Remove the mapping to “${mapping.name}”? The evidence file is retained.`)) return;
     onSaveState("saving");
     try {
+      const endpoint = targetKind === "question"
+        ? `/api/assessments/${assessment.id}/prompt-evidence-mappings/${mapping.mapping_id}`
+        : `/api/assessments/${assessment.id}/evidence-mappings/${mapping.mapping_id}`;
       await request(
-        `/api/assessments/${assessment.id}/evidence-mappings/${mapping.mapping_id}`,
+        endpoint,
         { method: "DELETE" },
       );
       onSaveState("saved");
@@ -529,18 +707,18 @@ function EvidencePanel({
     <section className="working-section">
       <div className="section-title">
         <div><p className="eyebrow">SUPPORT</p><h3>Mapped evidence</h3></div>
-        <span className="count-badge">{detail.evidence.length}</span>
+        <span className="count-badge">{evidence.length}</span>
       </div>
       <div className="evidence-list">
-        {detail.evidence.length === 0 && (
-          <p className="empty-copy">No evidence mapped to this record yet.</p>
+        {evidence.length === 0 && (
+          <p className="empty-copy">No evidence mapped to this {targetKind} yet.</p>
         )}
-        {detail.evidence.map((mapping) => (
+        {evidence.map((mapping) => (
           <article className="evidence-item" key={mapping.mapping_id}>
             <FileCheck2 size={18} />
             <div>
               <strong>{mapping.name}</strong>
-              <p>{mapping.rationale}</p>
+              <p>{mapping.rationale || "No support rationale added."}</p>
               <span>Shared across {mapping.shared_record_count} record{mapping.shared_record_count === 1 ? "" : "s"}</span>
             </div>
             <button className="icon-button" aria-label={`Unmap ${mapping.name}`} onClick={() => void unmap(mapping)}>
@@ -570,16 +748,15 @@ function EvidencePanel({
           </select>
         </label>
         <label>
-          Support rationale
+          Support rationale <span className="optional">optional</span>
           <textarea
-            required
             rows={2}
             value={rationale}
             onChange={(event) => setRationale(event.target.value)}
             placeholder="What does this artifact support here?"
           />
         </label>
-        <button className="small-button" type="submit">Map to this record</button>
+        <button className="small-button" type="submit">Map to this {targetKind}</button>
       </form>
     </section>
   );
@@ -600,6 +777,7 @@ function Workspace({
   const [recordId, setRecordId] = useState("");
   const [returnRecordId, setReturnRecordId] = useState("");
   const [detail, setDetail] = useState<RecordDetail | null>(null);
+  const [selectedPromptId, setSelectedPromptId] = useState("");
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [search, setSearch] = useState("");
   const [area, setArea] = useState("all");
@@ -630,6 +808,14 @@ function Workspace({
     setArtifacts(await request<Artifact[]>(`/api/projects/${assessment.project.id}/evidence`));
   }, [assessment]);
 
+  const refreshAssessment = useCallback(async () => {
+    setAssessment(await request<Assessment>(`/api/projects/${projectId}/assessment`));
+  }, [projectId]);
+
+  const refreshRecord = useCallback(async () => {
+    await Promise.all([loadDetail(), refreshAssessment()]);
+  }, [loadDetail, refreshAssessment]);
+
   useEffect(() => {
     setAssessment(null);
     setRecordId("");
@@ -643,6 +829,18 @@ function Workspace({
   useEffect(() => {
     void loadArtifacts();
   }, [loadArtifacts]);
+
+  useEffect(() => {
+    if (!detail) return;
+    if (selectedPromptId === "__record__") return;
+    const questions = [...detail.prompts, ...detail.parent_prompts].filter(
+      (prompt) => prompt.working_record,
+    );
+    if (!questions.some((prompt) => prompt.id === selectedPromptId)) {
+      const firstRecordQuestion = detail.prompts.find((prompt) => prompt.working_record);
+      setSelectedPromptId(firstRecordQuestion?.id ?? questions[0]?.id ?? "");
+    }
+  }, [detail, selectedPromptId]);
 
   function updateSaveState(state: "saving" | "saved" | "error", message = "") {
     setSaveState(state);
@@ -664,6 +862,12 @@ function Workspace({
   const projects = clients.flatMap((client) =>
     client.projects.map((project) => ({ ...project, clientName: client.name })),
   );
+
+  const selectedPrompt = detail
+    ? [...detail.prompts, ...detail.parent_prompts].find(
+        (prompt) => prompt.id === selectedPromptId && prompt.working_record,
+      ) ?? null
+    : null;
 
   if (loading || !assessment || !detail) {
     return <div className="loading-screen"><LoaderCircle className="spin" /><span>Opening assessment workspace…</span></div>;
@@ -726,11 +930,15 @@ function Workspace({
           {filtered.map((record, index) => (
             <button
               key={record.record_id}
-              className={record.record_id === recordId ? "active" : ""}
-              onClick={() => { setReturnRecordId(""); setRecordId(record.record_id); }}
+              className={`record-row ${statusClass(record.determination?.status ?? "")} ${record.record_id === recordId ? "active" : ""}`}
+              onClick={() => { setReturnRecordId(""); setSelectedPromptId(""); setRecordId(record.record_id); }}
             >
               <span className="record-number">{String(index + 1).padStart(3, "0")}</span>
-              <span><strong>{record.title}</strong><small>{record.citation}</small></span>
+              <span>
+                <strong>{record.title}</strong>
+                <small>{record.citation}</small>
+                <StatusPill status={record.determination?.status ?? ""} />
+              </span>
               {record.designation && <em>{record.designation}</em>}
             </button>
           ))}
@@ -741,7 +949,7 @@ function Workspace({
         <div className="record-toolbar">
           <div>
             {returnRecordId ? (
-              <button className="back-link" onClick={() => { setRecordId(returnRecordId); setReturnRecordId(""); }}>
+              <button className="back-link" onClick={() => { setSelectedPromptId(""); setRecordId(returnRecordId); setReturnRecordId(""); }}>
                 <ArrowLeft size={15} /> Back to determination
               </button>
             ) : detail.position ? (
@@ -752,10 +960,10 @@ function Workspace({
           </div>
           {detail.position && (
             <div className="previous-next">
-              <button disabled={!detail.position.previous_record_id} onClick={() => detail.position?.previous_record_id && setRecordId(detail.position.previous_record_id)}>
+              <button disabled={!detail.position.previous_record_id} onClick={() => { setSelectedPromptId(""); if (detail.position?.previous_record_id) setRecordId(detail.position.previous_record_id); }}>
                 <ArrowLeft size={16} /> Previous
               </button>
-              <button disabled={!detail.position.next_record_id} onClick={() => detail.position?.next_record_id && setRecordId(detail.position.next_record_id)}>
+              <button disabled={!detail.position.next_record_id} onClick={() => { setSelectedPromptId(""); if (detail.position?.next_record_id) setRecordId(detail.position.next_record_id); }}>
                 Next <ArrowRight size={16} />
               </button>
             </div>
@@ -776,7 +984,22 @@ function Workspace({
                   <p>No standard-level guidance questions are attached to this record.</p>
                 ) : (
                   <ul className="parent-question-list">
-                    {detail.parent_prompts.map((prompt) => <li key={prompt.id}>{prompt.text}</li>)}
+                    {detail.parent_prompts.map((prompt) => (
+                      <li key={prompt.id}>
+                        {prompt.working_record ? (
+                          <button
+                            type="button"
+                            className={selectedPromptId === prompt.id ? "selected" : ""}
+                            onClick={() => setSelectedPromptId(prompt.id)}
+                          >
+                            <span>{prompt.text}</span>
+                            <StatusPill status={prompt.working_record.status} />
+                          </button>
+                        ) : (
+                          <span>{prompt.text}</span>
+                        )}
+                      </li>
+                    ))}
                   </ul>
                 )}
                 <p>Open the standard work to record answers, notes, and evidence.</p>
@@ -784,7 +1007,7 @@ function Workspace({
             </div>
             <div className="parent-actions">
               <StatusPill status={detail.parent.determination?.status ?? ""} derived />
-              <button className="text-button" onClick={() => { setReturnRecordId(recordId); setRecordId(detail.parent!.record_id); }}>
+              <button className="text-button" onClick={() => { setReturnRecordId(recordId); setSelectedPromptId("__record__"); setRecordId(detail.parent!.record_id); }}>
                 Open standard notes & evidence
               </button>
             </div>
@@ -800,6 +1023,13 @@ function Workspace({
           <p className="citation">{detail.record.citation}</p>
           <h1>{detail.record.title}</h1>
           <blockquote>{detail.record.regulation_text}</blockquote>
+          <button
+            type="button"
+            className="text-button record-notes-link"
+            onClick={() => setSelectedPromptId("__record__")}
+          >
+            Open record notes & evidence
+          </button>
         </section>
 
         {detail.context_prompts.length > 0 && (
@@ -834,7 +1064,9 @@ function Workspace({
                   key={prompt.id}
                   prompt={prompt}
                   assessment={assessment}
-                  onChanged={() => void loadDetail()}
+                  selected={selectedPromptId === prompt.id}
+                  onSelect={() => setSelectedPromptId(prompt.id)}
+                  onChanged={() => void refreshRecord()}
                   onSaveState={updateSaveState}
                 />
               ))}
@@ -844,46 +1076,84 @@ function Workspace({
       </main>
 
       <aside className={`working-record ${view === "overview" ? "workspace-hidden" : ""}`}>
-        <div className="working-header">
-          <div><p className="eyebrow">WORKING RECORD</p><h2>Assessment notes</h2></div>
-          <ShieldCheck size={20} />
-        </div>
-        <DeterminationPanel
-          assessmentId={assessment.id}
-          statuses={assessment.framework.declarations.status_set}
-          detail={detail}
-          onChanged={() => void loadDetail()}
-          onSaveState={updateSaveState}
-        />
-        <section className="working-section">
-          <div className="section-title"><div><p className="eyebrow">DISCUSSION</p><h3>Record notes</h3></div></div>
-          <textarea
-            key={`${detail.record.record_id}:${detail.note}`}
-            defaultValue={detail.note}
-            rows={5}
-            placeholder="Record implementation details, scope, and assessor observations…"
-            onBlur={async (event) => {
-              updateSaveState("saving");
-              try {
-                await request(`/api/assessments/${assessment.id}/records/${detail.record.record_id}/note`, {
-                  method: "PUT",
-                  body: JSON.stringify({ note: event.target.value }),
-                });
-                updateSaveState("saved");
-              } catch (caught) {
-                updateSaveState("error", caught instanceof Error ? caught.message : undefined);
-              }
-            }}
-          />
-        </section>
-        <EvidencePanel
-          assessment={assessment}
-          detail={detail}
-          artifacts={artifacts}
-          onChanged={() => void loadDetail()}
-          onArtifactsChanged={() => void loadArtifacts()}
-          onSaveState={updateSaveState}
-        />
+        {selectedPrompt ? (
+          <>
+            <div className="working-header">
+              <div><p className="eyebrow">WORKING RECORD</p><h2>Question record</h2></div>
+              <ShieldCheck size={20} />
+            </div>
+            {selectedPrompt.record_id === detail.record.record_id && (
+              <AddressableDecisionPanel
+                assessmentId={assessment.id}
+                detail={detail}
+                onChanged={() => void refreshRecord()}
+                onSaveState={updateSaveState}
+              />
+            )}
+            <QuestionWorkingPanel
+              assessmentId={assessment.id}
+              statuses={assessment.framework.declarations.status_set}
+              prompt={selectedPrompt}
+              onChanged={() => void refreshRecord()}
+              onSaveState={updateSaveState}
+            />
+            <EvidencePanel
+              assessment={assessment}
+              evidence={selectedPrompt.working_record!.evidence}
+              targetKind="question"
+              targetId={selectedPrompt.id}
+              artifacts={artifacts}
+              onChanged={() => void refreshRecord()}
+              onArtifactsChanged={() => void loadArtifacts()}
+              onSaveState={updateSaveState}
+            />
+          </>
+        ) : (
+          <>
+            <div className="working-header">
+              <div><p className="eyebrow">WORKING RECORD</p><h2>Record notes</h2></div>
+              <ShieldCheck size={20} />
+            </div>
+            <DeterminationPanel
+              assessmentId={assessment.id}
+              statuses={assessment.framework.declarations.status_set}
+              detail={detail}
+              onChanged={() => void refreshRecord()}
+              onSaveState={updateSaveState}
+            />
+            <section className="working-section">
+              <div className="section-title"><div><p className="eyebrow">DISCUSSION</p><h3>Record notes</h3></div></div>
+              <textarea
+                key={`${detail.record.record_id}:${detail.note}`}
+                defaultValue={detail.note}
+                rows={5}
+                placeholder="Record implementation details, scope, and assessor observations…"
+                onBlur={async (event) => {
+                  updateSaveState("saving");
+                  try {
+                    await request(`/api/assessments/${assessment.id}/records/${detail.record.record_id}/note`, {
+                      method: "PUT",
+                      body: JSON.stringify({ note: event.target.value }),
+                    });
+                    updateSaveState("saved");
+                  } catch (caught) {
+                    updateSaveState("error", caught instanceof Error ? caught.message : undefined);
+                  }
+                }}
+              />
+            </section>
+            <EvidencePanel
+              assessment={assessment}
+              evidence={detail.evidence}
+              targetKind="record"
+              targetId={detail.record.record_id}
+              artifacts={artifacts}
+              onChanged={() => void refreshRecord()}
+              onArtifactsChanged={() => void loadArtifacts()}
+              onSaveState={updateSaveState}
+            />
+          </>
+        )}
       </aside>
       {view === "overview" && (
         <main className="overview-panel">

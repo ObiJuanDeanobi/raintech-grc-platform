@@ -43,11 +43,24 @@ class NoteSave(BaseModel):
 class EvidenceMappingCreate(BaseModel):
     artifact_id: str
     record_id: str
-    rationale: str = Field(min_length=1)
+    rationale: str = ""
 
 
 class PromptAnswerSave(BaseModel):
     answer: str
+
+
+class PromptWorkingRecordSave(BaseModel):
+    status: str
+    note: str = ""
+    na_rationale: str = ""
+    interview_observation: str = ""
+
+
+class PromptEvidenceMappingCreate(BaseModel):
+    artifact_id: str
+    prompt_id: str
+    rationale: str = ""
 
 
 class PromptPlacementSave(BaseModel):
@@ -113,27 +126,10 @@ def _framework_declarations(connection: Any, assessment_id: str) -> dict[str, An
     return cast(dict[str, Any], json.loads(framework["declarations_json"]))
 
 
-def _derived_status(connection: Any, assessment_id: str, parent_id: str) -> str:
-    statuses = [
-        row["status"] or ""
-        for row in connection.execute(
-            """
-            SELECT COALESCE(determinations.status, '') AS status
-            FROM framework_records
-            JOIN assessments
-              ON assessments.framework_version_id = framework_records.framework_version_id
-            LEFT JOIN determinations
-              ON determinations.assessment_id = assessments.id
-             AND determinations.record_id = framework_records.record_id
-            WHERE assessments.id = ? AND framework_records.parent_id = ?
-            ORDER BY framework_records.sort_order
-            """,
-            (assessment_id, parent_id),
-        )
-    ]
+def _rollup_status(statuses: list[str], declarations: dict[str, Any]) -> str:
     if not statuses:
         return ""
-    rule = _framework_declarations(connection, assessment_id)["rollup_rule"]
+    rule = declarations["rollup_rule"]
     for status in rule["precedence"]:
         if status in statuses:
             return cast(str, status)
@@ -145,16 +141,76 @@ def _derived_status(connection: Any, assessment_id: str, parent_id: str) -> str:
     return blank_status
 
 
-def _determination(connection: Any, assessment_id: str, record: Any) -> dict[str, Any]:
+def _assessment_question_statuses(
+    connection: Any,
+    assessment_id: str,
+    framework_version_id: str,
+    record_id: str,
+) -> list[str]:
+    return [
+        row["status"] or ""
+        for row in connection.execute(
+            """
+            SELECT COALESCE(pa.status, '') AS status
+            FROM framework_prompts fp
+            LEFT JOIN prompt_answers pa
+              ON pa.prompt_id = fp.prompt_id AND pa.assessment_id = ?
+            LEFT JOIN prompt_placements pp
+              ON pp.prompt_id = fp.prompt_id AND pp.assessment_id = ?
+            WHERE fp.framework_version_id = ?
+              AND fp.role = 'assessment_check'
+              AND COALESCE(pp.destination_record_id, fp.original_record_id) = ?
+              AND COALESCE(pp.placement_type, 'record') != 'context'
+            ORDER BY fp.sort_order
+            """,
+            (assessment_id, assessment_id, framework_version_id, record_id),
+        )
+    ]
+
+
+def _derived_input_statuses(
+    connection: Any,
+    assessment_id: str,
+    record: Any,
+) -> list[str]:
+    statuses = _assessment_question_statuses(
+        connection,
+        assessment_id,
+        record["framework_version_id"],
+        record["record_id"],
+    )
+    children = connection.execute(
+        """
+        SELECT * FROM framework_records
+        WHERE framework_version_id = ? AND parent_id = ?
+        ORDER BY sort_order
+        """,
+        (record["framework_version_id"], record["record_id"]),
+    ).fetchall()
+    statuses.extend(_record_status(connection, assessment_id, child) for child in children)
+    return statuses
+
+
+def _record_status(connection: Any, assessment_id: str, record: Any) -> str:
+    derived_inputs = _derived_input_statuses(connection, assessment_id, record)
+    if derived_inputs:
+        return _rollup_status(
+            derived_inputs,
+            _framework_declarations(connection, assessment_id),
+        )
     if not record["carries_determination"]:
-        return {
-            "status": _derived_status(connection, assessment_id, record["record_id"]),
-            "derived": True,
-            "na_rationale": "",
-            "addressable_disposition": None,
-            "disposition_reason": "",
-            "interview_observation": "",
-        }
+        return ""
+    value = connection.execute(
+        """
+        SELECT status FROM determinations
+        WHERE assessment_id = ? AND record_id = ?
+        """,
+        (assessment_id, record["record_id"]),
+    ).fetchone()
+    return cast(str, value["status"] if value is not None else "")
+
+
+def _determination(connection: Any, assessment_id: str, record: Any) -> dict[str, Any]:
     value = connection.execute(
         """
         SELECT status, na_rationale, addressable_disposition, disposition_reason,
@@ -175,8 +231,66 @@ def _determination(connection: Any, assessment_id: str, record: Any) -> dict[str
             "updated_at": None,
         }
     )
-    result["derived"] = False
+    derived_inputs = _derived_input_statuses(connection, assessment_id, record)
+    result["derived"] = bool(derived_inputs) or not record["carries_determination"]
+    result["status"] = (
+        _rollup_status(
+            derived_inputs,
+            _framework_declarations(connection, assessment_id),
+        )
+        if derived_inputs
+        else result["status"]
+    )
     return result
+
+
+def _artifact_mapping_count(connection: Any, artifact_id: str) -> int:
+    return cast(
+        int,
+        connection.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM evidence_mappings WHERE artifact_id = ?)
+              + (SELECT COUNT(*) FROM prompt_evidence_mappings WHERE artifact_id = ?)
+                AS count
+            """,
+            (artifact_id, artifact_id),
+        ).fetchone()["count"],
+    )
+
+
+def _prompt_working_record(
+    connection: Any,
+    assessment_id: str,
+    prompt: Any,
+) -> dict[str, Any] | None:
+    if prompt["role"] != "assessment_check":
+        return None
+    evidence = [
+        {
+            **_row(mapping),
+            "shared_record_count": _artifact_mapping_count(connection, mapping["artifact_id"]),
+        }
+        for mapping in connection.execute(
+            """
+            SELECT pem.id AS mapping_id, pem.artifact_id, ea.name, ea.relative_path,
+                   pem.rationale
+            FROM prompt_evidence_mappings pem
+            JOIN evidence_artifacts ea ON ea.id = pem.artifact_id
+            WHERE pem.assessment_id = ? AND pem.prompt_id = ?
+            ORDER BY pem.created_at
+            """,
+            (assessment_id, prompt["prompt_id"]),
+        )
+    ]
+    return {
+        "status": prompt["working_status"] or "",
+        "note": prompt["answer"] or "",
+        "na_rationale": prompt["working_na_rationale"] or "",
+        "interview_observation": prompt["working_interview_observation"] or "",
+        "updated_at": prompt["working_updated_at"],
+        "evidence": evidence,
+    }
 
 
 def _record_summary(connection: Any, assessment_id: str, record: Any) -> dict[str, Any]:
@@ -189,10 +303,36 @@ def _record_summary(connection: Any, assessment_id: str, record: Any) -> dict[st
         "record_type": record["record_type"],
         "parent_id": record["parent_id"],
         "designation": record["designation"],
-        "editable_determination": bool(record["carries_determination"]),
+        "editable_determination": bool(record["carries_determination"])
+        and not _derived_input_statuses(connection, assessment_id, record),
     }
     result["determination"] = _determination(connection, assessment_id, record)
     return result
+
+
+def _prompt_or_404(connection: Any, assessment_id: str, prompt_id: str) -> Any:
+    prompt = connection.execute(
+        """
+        SELECT fp.*, pa.answer, pa.status AS working_status,
+               pa.na_rationale AS working_na_rationale,
+               pa.interview_observation AS working_interview_observation,
+               pa.updated_at AS working_updated_at,
+               pp.placement_type, pp.destination_record_id,
+               COALESCE(pp.destination_record_id, fp.original_record_id) AS current_record_id
+        FROM framework_prompts fp
+        JOIN assessments
+          ON assessments.framework_version_id = fp.framework_version_id
+        LEFT JOIN prompt_answers pa
+          ON pa.prompt_id = fp.prompt_id AND pa.assessment_id = assessments.id
+        LEFT JOIN prompt_placements pp
+          ON pp.prompt_id = fp.prompt_id AND pp.assessment_id = assessments.id
+        WHERE assessments.id = ? AND fp.prompt_id = ?
+        """,
+        (assessment_id, prompt_id),
+    ).fetchone()
+    if prompt is None:
+        raise HTTPException(status_code=404, detail="Question not found")
+    return prompt
 
 
 def _prompts_for_record(
@@ -203,9 +343,14 @@ def _prompts_for_record(
 ) -> list[dict[str, Any]]:
     prompt_rows = connection.execute(
         """
-        SELECT fp.*, pa.answer, pp.placement_type, pp.destination_record_id,
+        SELECT fp.*, pa.answer, pa.status AS working_status,
+               pa.na_rationale AS working_na_rationale,
+               pa.interview_observation AS working_interview_observation,
+               pa.updated_at AS working_updated_at,
+               pp.placement_type, pp.destination_record_id,
                pp.rule_citation, pp.reason AS placement_reason,
-               origin.citation AS origin_citation, origin.title AS origin_title
+               origin.citation AS origin_citation, origin.title AS origin_title,
+               COALESCE(pp.destination_record_id, fp.original_record_id) AS current_record_id
         FROM framework_prompts fp
         LEFT JOIN prompt_answers pa
           ON pa.prompt_id = fp.prompt_id AND pa.assessment_id = ?
@@ -246,6 +391,8 @@ def _prompts_for_record(
             "role_reason": prompt["role_reason"],
             "render_checkbox": prompt["role"] == "assessment_check",
             "answer": prompt["answer"] or "",
+            "record_id": prompt["current_record_id"],
+            "working_record": _prompt_working_record(connection, assessment_id, prompt),
             "moved_from": None,
             "placement": None,
         }
@@ -321,10 +468,7 @@ def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[
     evidence = [
         {
             **_row(mapping),
-            "shared_record_count": connection.execute(
-                "SELECT COUNT(*) AS count FROM evidence_mappings WHERE artifact_id = ?",
-                (mapping["artifact_id"],),
-            ).fetchone()["count"],
+            "shared_record_count": _artifact_mapping_count(connection, mapping["artifact_id"]),
         }
         for mapping in connection.execute(
             """
@@ -518,29 +662,27 @@ def create_app(
                 "SELECT * FROM framework_versions WHERE id = ?",
                 (assessment["framework_version_id"],),
             ).fetchone()
-            work_list = [
-                _row(row)
-                for row in connection.execute(
-                    """
-                    SELECT record_id, citation, title, work_area, record_type, parent_id,
-                           designation, sort_order
-                    FROM framework_records
-                    WHERE framework_version_id = ? AND carries_determination = 1
-                    ORDER BY sort_order
-                    """,
-                    (assessment["framework_version_id"],),
-                )
-            ]
+            work_list = []
+            for row in connection.execute(
+                """
+                SELECT * FROM framework_records
+                WHERE framework_version_id = ? AND carries_determination = 1
+                ORDER BY sort_order
+                """,
+                (assessment["framework_version_id"],),
+            ):
+                item = _record_summary(connection, assessment["id"], row)
+                item.pop("regulation_text")
+                work_list.append(item)
             record_index = [
                 {
                     **_row(row),
-                    "editable_determination": bool(row["carries_determination"]),
+                    "editable_determination": bool(row["carries_determination"])
+                    and not _derived_input_statuses(connection, assessment["id"], row),
                 }
                 for row in connection.execute(
                     """
-                    SELECT record_id, citation, title, work_area, record_type, parent_id,
-                           designation, sort_order, carries_determination
-                    FROM framework_records
+                    SELECT * FROM framework_records
                     WHERE framework_version_id = ?
                     ORDER BY sort_order
                     """,
@@ -593,6 +735,14 @@ def create_app(
                     status_code=422,
                     detail="Parent status is derived and cannot be edited",
                 )
+            derived_inputs = _derived_input_statuses(connection, assessment_id, record)
+            if derived_inputs:
+                derived_status = _rollup_status(derived_inputs, declarations)
+                if payload.status != derived_status:
+                    raise HTTPException(
+                        status_code=422,
+                        detail="Record status derives from its assessment questions",
+                    )
             if payload.status == "N/A" and not payload.na_rationale.strip():
                 raise HTTPException(status_code=422, detail="N/A requires a rationale")
             designation_rule = declarations.get("designation_rules", {}).get(
@@ -613,7 +763,11 @@ def create_app(
                         status_code=422,
                         detail="This addressable disposition requires reasoning",
                     )
-            if payload.status == "Met" and not payload.interview_observation.strip():
+            if (
+                payload.status == "Met"
+                and not derived_inputs
+                and not payload.interview_observation.strip()
+            ):
                 evidence = connection.execute(
                     """
                     SELECT id FROM evidence_mappings
@@ -747,10 +901,7 @@ def create_app(
             return [
                 {
                     **_row(row),
-                    "shared_record_count": connection.execute(
-                        "SELECT COUNT(*) AS count FROM evidence_mappings WHERE artifact_id = ?",
-                        (row["id"],),
-                    ).fetchone()["count"],
+                    "shared_record_count": _artifact_mapping_count(connection, row["id"]),
                 }
                 for row in connection.execute(
                     "SELECT * FROM evidence_artifacts WHERE project_id = ? ORDER BY created_at",
@@ -813,10 +964,7 @@ def create_app(
                     "artifact_id": payload.artifact_id,
                 },
             )
-            shared_count = connection.execute(
-                "SELECT COUNT(*) AS count FROM evidence_mappings WHERE artifact_id = ?",
-                (payload.artifact_id,),
-            ).fetchone()["count"]
+            shared_count = _artifact_mapping_count(connection, payload.artifact_id)
         return {
             "id": mapping_id,
             "artifact_id": payload.artifact_id,
@@ -877,6 +1025,243 @@ def create_app(
                 {
                     "assessment_id": assessment_id,
                     "record_id": mapping["record_id"],
+                    "artifact_id": mapping["artifact_id"],
+                },
+            )
+        return {"deleted": True}
+
+    @app.put("/api/assessments/{assessment_id}/prompts/{prompt_id}/working-record")
+    def save_prompt_working_record(
+        assessment_id: str,
+        prompt_id: str,
+        payload: PromptWorkingRecordSave,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            prompt = _prompt_or_404(connection, assessment_id, prompt_id)
+            if prompt["role"] != "assessment_check" or prompt["placement_type"] == "context":
+                raise HTTPException(
+                    status_code=422,
+                    detail="Guidance-only questions do not carry a working-record status",
+                )
+            declarations = _framework_declarations(connection, assessment_id)
+            if payload.status not in set(declarations["status_set"]):
+                raise HTTPException(status_code=422, detail="Unknown question status")
+            if payload.status == "N/A" and not payload.na_rationale.strip():
+                raise HTTPException(status_code=422, detail="N/A requires a rationale")
+            record = _record_or_404(connection, assessment_id, prompt["current_record_id"])
+            designation_rule = declarations.get("designation_rules", {}).get(
+                record["designation"]
+            )
+            if designation_rule and payload.status:
+                disposition = connection.execute(
+                    """
+                    SELECT addressable_disposition, disposition_reason
+                    FROM determinations
+                    WHERE assessment_id = ? AND record_id = ?
+                    """,
+                    (assessment_id, record["record_id"]),
+                ).fetchone()
+                if (
+                    disposition is None
+                    or disposition["addressable_disposition"]
+                    not in set(designation_rule["dispositions"])
+                ):
+                    raise HTTPException(
+                        status_code=422,
+                        detail="Addressable specifications require a disposition",
+                    )
+                if (
+                    disposition["addressable_disposition"]
+                    in set(designation_rule["reason_required_for"])
+                    and not disposition["disposition_reason"].strip()
+                ):
+                    raise HTTPException(
+                        status_code=422,
+                        detail="This addressable disposition requires reasoning",
+                    )
+            if payload.status == "Met" and not payload.interview_observation.strip():
+                evidence = connection.execute(
+                    """
+                    SELECT id FROM prompt_evidence_mappings
+                    WHERE assessment_id = ? AND prompt_id = ? LIMIT 1
+                    """,
+                    (assessment_id, prompt_id),
+                ).fetchone()
+                if evidence is None:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=(
+                            "Met requires mapped evidence or a documented interview/observation"
+                        ),
+                    )
+            saved_at = now()
+            connection.execute(
+                """
+                INSERT INTO prompt_answers(
+                    assessment_id, prompt_id, answer, status, na_rationale,
+                    interview_observation, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(assessment_id, prompt_id) DO UPDATE SET
+                    answer = excluded.answer,
+                    status = excluded.status,
+                    na_rationale = excluded.na_rationale,
+                    interview_observation = excluded.interview_observation,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    assessment_id,
+                    prompt_id,
+                    payload.note,
+                    payload.status,
+                    payload.na_rationale.strip(),
+                    payload.interview_observation.strip(),
+                    saved_at,
+                ),
+            )
+            _audit(
+                connection,
+                "prompt.working_record_saved",
+                "prompt_working_record",
+                f"{assessment_id}:{prompt_id}",
+                {
+                    "assessment_id": assessment_id,
+                    "prompt_id": prompt_id,
+                    "status": payload.status,
+                },
+            )
+            saved_prompt = _prompt_or_404(connection, assessment_id, prompt_id)
+            saved = _prompt_working_record(connection, assessment_id, saved_prompt)
+            return cast(dict[str, Any], saved)
+
+    @app.post(
+        "/api/assessments/{assessment_id}/prompt-evidence-mappings",
+        status_code=201,
+    )
+    def create_prompt_mapping(
+        assessment_id: str,
+        payload: PromptEvidenceMappingCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        mapping_id = str(uuid4())
+        with database.connect() as connection:
+            prompt = _prompt_or_404(connection, assessment_id, payload.prompt_id)
+            if prompt["role"] != "assessment_check" or prompt["placement_type"] == "context":
+                raise HTTPException(
+                    status_code=422,
+                    detail="Evidence can only map to an assessable question",
+                )
+            artifact = connection.execute(
+                """
+                SELECT ea.*
+                FROM evidence_artifacts ea
+                JOIN projects ON projects.id = ea.project_id
+                JOIN assessments ON assessments.project_id = projects.id
+                WHERE assessments.id = ? AND ea.id = ?
+                """,
+                (assessment_id, payload.artifact_id),
+            ).fetchone()
+            if artifact is None:
+                raise HTTPException(status_code=404, detail="Evidence artifact not found")
+            try:
+                connection.execute(
+                    """
+                    INSERT INTO prompt_evidence_mappings(
+                        id, artifact_id, assessment_id, prompt_id, rationale, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        mapping_id,
+                        payload.artifact_id,
+                        assessment_id,
+                        payload.prompt_id,
+                        payload.rationale.strip(),
+                        now(),
+                    ),
+                )
+            except Exception as error:
+                if "UNIQUE constraint failed" in str(error):
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Evidence is already mapped to this question",
+                    ) from error
+                raise
+            _audit(
+                connection,
+                "evidence.mapped_to_prompt",
+                "prompt_evidence_mapping",
+                mapping_id,
+                {
+                    "assessment_id": assessment_id,
+                    "prompt_id": payload.prompt_id,
+                    "artifact_id": payload.artifact_id,
+                },
+            )
+            shared_count = _artifact_mapping_count(connection, payload.artifact_id)
+        return {
+            "id": mapping_id,
+            "artifact_id": payload.artifact_id,
+            "prompt_id": payload.prompt_id,
+            "rationale": payload.rationale.strip(),
+            "shared_record_count": shared_count,
+        }
+
+    @app.delete(
+        "/api/assessments/{assessment_id}/prompt-evidence-mappings/{mapping_id}"
+    )
+    def delete_prompt_mapping(
+        assessment_id: str,
+        mapping_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, bool]:
+        with database.connect() as connection:
+            mapping = connection.execute(
+                """
+                SELECT * FROM prompt_evidence_mappings
+                WHERE assessment_id = ? AND id = ?
+                """,
+                (assessment_id, mapping_id),
+            ).fetchone()
+            if mapping is None:
+                raise HTTPException(status_code=404, detail="Evidence mapping not found")
+            working_record = connection.execute(
+                """
+                SELECT status, interview_observation FROM prompt_answers
+                WHERE assessment_id = ? AND prompt_id = ?
+                """,
+                (assessment_id, mapping["prompt_id"]),
+            ).fetchone()
+            mapping_count = connection.execute(
+                """
+                SELECT COUNT(*) AS count FROM prompt_evidence_mappings
+                WHERE assessment_id = ? AND prompt_id = ?
+                """,
+                (assessment_id, mapping["prompt_id"]),
+            ).fetchone()["count"]
+            if (
+                working_record
+                and working_record["status"] == "Met"
+                and not working_record["interview_observation"].strip()
+                and mapping_count == 1
+            ):
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "This is the last evidence supporting a Met question. "
+                        "Change the status or document an interview before unmapping it."
+                    ),
+                )
+            connection.execute(
+                "DELETE FROM prompt_evidence_mappings WHERE id = ?", (mapping_id,)
+            )
+            _audit(
+                connection,
+                "evidence.unmapped_from_prompt",
+                "prompt_evidence_mapping",
+                mapping_id,
+                {
+                    "assessment_id": assessment_id,
+                    "prompt_id": mapping["prompt_id"],
                     "artifact_id": mapping["artifact_id"],
                 },
             )

@@ -42,6 +42,7 @@ export interface RecordIndex {
   designation: string | null;
   sort_order: number;
   editable_determination?: boolean;
+  determination?: Determination;
 }
 
 export interface Assessment {
@@ -98,6 +99,8 @@ export interface Prompt {
   role_reason: string;
   render_checkbox: boolean;
   answer: string;
+  record_id: string;
+  working_record: PromptWorkingRecord | null;
   moved_from: { record_id: string; citation: string; title: string } | null;
   placement: { rule_citation: string; reason: string } | null;
 }
@@ -109,6 +112,15 @@ export interface EvidenceMapping {
   relative_path: string;
   rationale: string;
   shared_record_count: number;
+}
+
+export interface PromptWorkingRecord {
+  status: Status;
+  note: string;
+  na_rationale: string;
+  interview_observation: string;
+  updated_at: string | null;
+  evidence: EvidenceMapping[];
 }
 
 export interface Artifact {

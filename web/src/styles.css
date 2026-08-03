@@ -267,12 +267,18 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
   color: var(--ink);
   text-align: left;
 }
-.record-list > button:hover { background: #eef2f5; }
-.record-list > button.active { background: #e4f2ef; box-shadow: inset 3px 0 var(--teal); }
+.record-list > button:hover { filter: brightness(.985); }
+.record-list > button.active { outline: 2px solid #8ab8ae; outline-offset: -2px; }
+.record-list > .record-row.status-met { background: linear-gradient(90deg, #dff3ed, #f7fbfa 72%); box-shadow: inset 4px 0 #2a8b79; }
+.record-list > .record-row.status-not-met { background: linear-gradient(90deg, #fbe4e4, #fff9f9 72%); box-shadow: inset 4px 0 #c44f4f; }
+.record-list > .record-row.status-pending { background: linear-gradient(90deg, #fff0d2, #fffaf1 72%); box-shadow: inset 4px 0 #d19030; }
+.record-list > .record-row.status-na { background: linear-gradient(90deg, #e3edf9, #f8fbff 72%); box-shadow: inset 4px 0 #5f86b8; }
+.record-list > .record-row.status-blank { background: #fafbfc; box-shadow: inset 4px 0 #c5ccd4; }
 .record-number { margin-top: 2px; color: #98a2af; font: 600 9px "Segoe UI"; }
 .record-list button > span:nth-child(2) { display: grid; gap: 3px; }
 .record-list strong { overflow: hidden; font-size: 11px; font-weight: 600; line-height: 1.35; text-overflow: ellipsis; }
 .record-list small { color: #7a8594; font-size: 9px; }
+.record-list .status-pill { width: fit-content; margin-top: 4px; }
 .record-list em { position: absolute; right: 8px; bottom: 7px; color: #8a744f; font-size: 8px; font-style: normal; text-transform: uppercase; }
 
 .assessment-main {
@@ -330,7 +336,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .parent-context div > p:not(.eyebrow) { margin: 8px 0 0; color: #5d6a6a; font-size: 11px; line-height: 1.55; }
 .parent-context details { margin-top: 9px; }
 .parent-context summary { display: flex; align-items: center; gap: 4px; color: #5e706c; cursor: pointer; font-size: 10px; font-weight: 600; }
-.parent-question-list { display: grid; gap: 7px; margin: 10px 0 0; padding-left: 18px; color: #5d6a6a; font-size: 11px; line-height: 1.45; }
+.parent-question-list { display: grid; gap: 7px; margin: 10px 0 0; padding: 0; color: #5d6a6a; font-size: 11px; line-height: 1.45; list-style: none; }
+.parent-question-list button { display: flex; width: 100%; padding: 7px 8px; align-items: flex-start; justify-content: space-between; gap: 10px; border: 1px solid #dce8e5; border-radius: 6px; color: #44534f; background: white; text-align: left; }
+.parent-question-list button.selected { border-color: var(--teal); background: var(--teal-soft); }
 .parent-actions { display: grid; justify-items: end; gap: 9px; }
 .text-button { padding: 0; border: 0; color: var(--teal); background: transparent; font-size: 10px; font-weight: 700; }
 
@@ -357,6 +365,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .citation { margin: 0 0 5px; color: var(--teal); font-size: 11px; font-weight: 700; }
 .record-brief h1 { margin: 0; font: 700 clamp(26px, 2.4vw, 36px)/1.15 "Segoe UI"; letter-spacing: -.025em; }
 .record-brief blockquote { max-width: 850px; margin: 18px 0 0; padding-left: 17px; border-left: 3px solid #b9c4d0; color: #536072; font-family: Georgia, serif; font-size: 15px; line-height: 1.65; }
+.record-notes-link { margin-top: 14px; }
 .prompt-section { padding: 25px 28px 70px; }
 .content-heading, .section-title { display: flex; align-items: flex-end; justify-content: space-between; }
 .content-heading { margin-bottom: 14px; }
@@ -364,14 +373,17 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .content-heading > span { color: #798494; font-size: 10px; }
 .prompt-list { display: grid; gap: 10px; }
 .prompt-card { padding: 15px; border: 1px solid var(--line); border-radius: 9px; background: white; }
+.prompt-card.selected { border-color: #67a99a; box-shadow: 0 0 0 2px #d9eee9; }
 .prompt-card.role-context { border-left: 3px solid #9ca8b6; background: #fafbfc; }
 .prompt-card.role-applicability_note { border-left: 3px solid #d4a74e; background: #fffcf5; }
-.prompt-heading { display: grid; grid-template-columns: 18px 1fr auto; align-items: start; gap: 9px; }
+.prompt-heading { display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: 9px; }
 .prompt-heading input[type="checkbox"] { width: 15px; height: 15px; margin: 2px 0 0; accent-color: var(--teal); }
 .context-dot { width: 7px; height: 7px; margin: 6px 0 0 4px; border-radius: 50%; background: #9da8b4; }
 .prompt-heading p { margin: 0; color: #283447; font-size: 12px; font-weight: 600; line-height: 1.5; }
 .prompt-heading span { display: block; margin-top: 3px; color: #8791a0; font-size: 9px; }
 .prompt-card > textarea { min-height: 58px; margin-top: 12px; border-color: #e1e5ea; background: #fbfcfd; font-size: 11px; }
+.open-question-record { display: flex; margin: 12px 0 0 auto; padding: 6px 8px; align-items: center; gap: 5px; border: 0; border-radius: 6px; color: var(--teal); background: var(--teal-soft); font-size: 10px; font-weight: 700; }
+.guidance-label { display: inline-block; margin: 10px 0 0 25px; padding: 4px 7px; border-radius: 10px; color: #667382; background: #edf0f3; font-size: 9px; font-weight: 700; }
 .icon-button { display: grid; width: 28px; height: 28px; padding: 0; place-items: center; border: 0; border-radius: 6px; color: #7a8696; background: transparent; }
 .icon-button:hover { color: var(--teal); background: #edf5f3; }
 .moved-note { margin: 8px 0 -3px 27px; color: #6f7e91; font-size: 9px; }
@@ -392,6 +404,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .working-header { display: flex; height: 68px; padding: 0 18px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .working-header h2 { margin: 0; font: 700 17px "Segoe UI"; }
 .working-header > svg { color: var(--teal); }
+.question-context { background: #f6faf9; }
+.working-question-text { margin: 7px 0 5px; color: #253438; font-size: 13px; font-weight: 700; line-height: 1.5; }
+.question-context > span { color: #74817d; font-size: 9px; }
 .working-section { padding: 18px; border-bottom: 1px solid var(--line); }
 .working-section h3 { margin: 0; font: 700 14px "Segoe UI"; }
 .section-title { margin-bottom: 13px; align-items: center; }
@@ -404,8 +419,14 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .status-grid { display: grid; margin-bottom: 13px; grid-template-columns: repeat(4, 1fr); gap: 5px; }
 .status-grid button { height: 32px; padding: 0 5px; border: 1px solid #dce1e7; border-radius: 6px; color: #647083; background: white; font-size: 9px; font-weight: 700; }
 .status-grid button.selected { border-color: var(--teal); color: var(--teal); background: var(--teal-soft); box-shadow: inset 0 0 0 1px var(--teal); }
+.status-grid button.status-met { color: #126b5f; background: var(--teal-soft); }
+.status-grid button.status-not-met { color: #9b3030; background: var(--red-soft); }
+.status-grid button.status-pending { color: #8d5818; background: var(--amber-soft); }
+.status-grid button.status-na { color: #325d95; background: var(--blue-soft); }
+.status-grid button.selected { border-color: currentColor; box-shadow: inset 0 0 0 1px currentColor; }
 .working-section > label, .addressable-box label { margin-top: 11px; }
 .required { color: var(--red); font-size: 9px; font-weight: 600; }
+.optional { color: #7a8594; font-size: 9px; font-weight: 600; }
 .addressable-box { margin: 13px 0; padding: 12px; border: 1px solid #edd9ad; border-radius: 8px; background: #fffbf2; }
 .addressable-box .eyebrow { color: #9b6d20; }
 .interview-box { margin-top: 13px; border-top: 1px solid #eceff2; padding-top: 11px; }
