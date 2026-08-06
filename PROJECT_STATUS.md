@@ -228,6 +228,14 @@ on a clickable walkthrough, and merged.
   records. Assessable questions own status, notes, evidence, and optional support
   rationale; CFR records and standards roll up those results. Johnathan's test
   feedback determines whether ADR 0012 and the specification should change.
+  The independent AGENTS.md/tech-debt-gates and Issue #49 fidelity review that
+  the prior handoff left incomplete (reviewer agent disconnected) is now done:
+  `pytest`, `ruff`, `mypy`, `vitest`, `tsc`, `eslint`, and `vite build` all pass
+  on the branch. One material finding was corrected — the PromptCard refactor
+  had silently dropped free-text note capture for guidance-only
+  (`context`/`applicability_note`) prompts, a pre-existing capability outside
+  Issue #49's scope to remove. It is restored, with a regression test added.
+  No other material findings.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
   needs Johnathan's machine, and now owns the launcher and packaging work that
   was explicitly excluded from the merged Issue #44 scope.
