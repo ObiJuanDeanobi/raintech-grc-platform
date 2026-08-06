@@ -252,7 +252,7 @@ test("opens assessable questions as working records while guidance stays non-det
   });
   await user.type(guidanceAnswer, "Discussed with the practice manager.");
   await user.tab();
-  expect(global.fetch).toHaveBeenCalledWith(
+  expect(globalThis.fetch).toHaveBeenCalledWith(
     expect.stringContaining("/prompts/prompt-context/answer"),
     expect.objectContaining({ method: "PUT" }),
   );
