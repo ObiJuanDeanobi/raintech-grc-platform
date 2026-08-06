@@ -220,6 +220,12 @@ beforeEach(() => {
       if (url === "/api/projects/project-1/evidence") {
         return Response.json([]);
       }
+      if (url.includes("/prompts/prompt-context/answer") && init?.method === "PUT") {
+        return Response.json({
+          ...detail.prompts[1],
+          answer: String(JSON.parse(String(init.body)).answer),
+        });
+      }
       return Response.json({ detail: "not found" }, { status: 404 });
     }),
   );
@@ -241,6 +247,15 @@ test("opens assessable questions as working records while guidance stays non-det
     }),
   ).toBeVisible();
   expect(screen.getByText("Guidance only")).toBeVisible();
+  const guidanceAnswer = screen.getByRole("textbox", {
+    name: "Answer: Consider the broader operating context.",
+  });
+  await user.type(guidanceAnswer, "Discussed with the practice manager.");
+  await user.tab();
+  expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining("/prompts/prompt-context/answer"),
+    expect.objectContaining({ method: "PUT" }),
+  );
   await user.click(screen.getByText("Standard-level questions"));
   expect(screen.getByText("How is the security management process governed?")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Overview" }));

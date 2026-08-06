@@ -214,6 +214,23 @@ function PromptCard({
   const [destination, setDestination] = useState("");
   const [rule, setRule] = useState("");
   const [reason, setReason] = useState("");
+  const [answer, setAnswer] = useState(prompt.answer);
+
+  useEffect(() => setAnswer(prompt.answer), [prompt.answer]);
+
+  async function saveAnswer() {
+    if (answer === prompt.answer) return;
+    onSaveState("saving");
+    try {
+      await request(`/api/assessments/${assessment.id}/prompts/${prompt.id}/answer`, {
+        method: "PUT",
+        body: JSON.stringify({ answer }),
+      });
+      onSaveState("saved");
+    } catch (caught) {
+      onSaveState("error", caught instanceof Error ? caught.message : undefined);
+    }
+  }
 
   async function movePrompt(event: FormEvent) {
     event.preventDefault();
@@ -275,7 +292,17 @@ function PromptCard({
           <ArrowRight size={14} />
         </button>
       ) : (
-        <span className="guidance-label">Guidance only</span>
+        <>
+          <span className="guidance-label">Guidance only</span>
+          <textarea
+            aria-label={`Answer: ${prompt.text}`}
+            value={answer}
+            onChange={(event) => setAnswer(event.target.value)}
+            onBlur={saveAnswer}
+            placeholder="Record the answer to this question…"
+            rows={2}
+          />
+        </>
       )}
       {moving && (
         <form className="move-form" onSubmit={movePrompt}>
