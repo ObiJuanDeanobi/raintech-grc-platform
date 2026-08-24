@@ -372,6 +372,10 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .prompt-heading p { margin: 0; color: #283447; font-size: 12px; font-weight: 600; line-height: 1.5; }
 .prompt-heading span { display: block; margin-top: 3px; color: #8791a0; font-size: 9px; }
 .prompt-card > textarea { min-height: 58px; margin-top: 12px; border-color: #e1e5ea; background: #fbfcfd; font-size: 11px; }
+.routine-save-state { display: flex; align-items: center; gap: 8px; margin: 7px 0 0; font-size: 11px; }
+.routine-save-state.saving { color: #526579; }
+.routine-save-state.failed { color: #a23b3b; }
+.routine-save-state .text-button { padding: 0; color: inherit; font-size: inherit; text-decoration: underline; }
 .icon-button { display: grid; width: 28px; height: 28px; padding: 0; place-items: center; border: 0; border-radius: 6px; color: #7a8696; background: transparent; }
 .icon-button:hover { color: var(--teal); background: #edf5f3; }
 .moved-note { margin: 8px 0 -3px 27px; color: #6f7e91; font-size: 9px; }

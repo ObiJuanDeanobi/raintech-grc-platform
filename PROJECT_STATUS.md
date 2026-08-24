@@ -2,22 +2,24 @@
 
 ## Current phase
 
-`PLANNING-READY`. The requirements and implementation plan were approved by
-Johnathan on August 24, 2026. Milestone 0 governance reconciliation is complete
-through PR #51 and GitHub issue #50. Slice 4a remains complete and Slice 1a
-remains merged to `main` in PR #46.
+`IMPLEMENTATION-READY-FOR-MERGE`. The requirements and implementation plan were
+approved by Johnathan on August 24, 2026. GitHub issue #54 is implemented and
+verified on its feature branch, both required review axes pass, and PR #55's
+required repository CI passes. It is not merged or closed.
+Milestone 0 governance reconciliation is complete through PR #51 and GitHub
+issue #50. Slice 4a remains complete and Slice 1a remains merged to `main` in
+PR #46.
 
 ## Current mode
 
-PLAN. Milestone 0 did not authorize application code, migrations, feature
-tickets, or BUILD work. A separately approved tracer-bullet ticket plan is the
-next frontier.
+BUILD. Issue #54 was separately approved for BUILD. Its implementation keeps
+the existing API and audit paths, and its local verification, independent
+standards and specification reviews, and PR #55 CI pass. Merge approval remains.
 
 ## Current objective
 
-Plan the next approved frontier as tracer-bullet feature tickets against the
-reconciled governance baseline. Preserve stable slice numbers and the approved
-build order `1, 2, 4, 3, 5, 6, 7`.
+Obtain merge approval for PR #55, then merge and close Issue #54. Preserve
+stable slice numbers and the approved build order `1, 2, 4, 3, 5, 6, 7`.
 
 ## Approved specification
 
@@ -28,8 +30,14 @@ CI passed.
 
 ## Active ticket
 
-No production ticket is active. GitHub issue #50 is complete and closed through
-PR #51; it was documentation-only and did not authorize BUILD.
+**GitHub issue #54 — implemented / verified / ready for merge approval.** It adds
+serialized, recoverable autosave for determination, note, and prompt-answer
+edits only. Local automated checks, browser verification, ARM64/x64 source
+compatibility review, both independent review axes, and PR #55's required CI
+pass. Merge remains separately gated.
+
+GitHub issue #50 is complete and closed through PR #51; it was
+documentation-only and did not authorize BUILD.
 
 GitHub issue #49 remains an isolated practitioner test. Its result must not
 change ADR 0012 or the approved baseline unless Johnathan separately accepts the
@@ -231,11 +239,18 @@ on a clickable walkthrough, and merged.
   and browser-verified. The live browser pass found no console errors.
 - Issue #44's 22-criterion Slice 1a implementation merged to `main` in PR #46
   as squash commit `1961cdb` after all GitHub CI jobs passed.
+- Issue #54's recoverable autosave implementation passed its full local command
+  set, browser verification with synthetic data, ARM64/x64 source compatibility
+  review, and independent Standards and Specification reviews on August 24,
+  2026. The feature branch remains unmerged pending repository review.
 
 ## In progress
 
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
+- **GitHub issue #54**: implemented / verified / ready for merge approval in
+  PR #55 from `feature/54-recoverable-autosave`. Required repository CI passes;
+  the issue remains open and the branch remains unmerged.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
   labeled `ready-for-human`, needs Johnathan's machine, and now owns the launcher
   and packaging work that was explicitly excluded from the merged Issue #44
@@ -247,7 +262,7 @@ on a clickable walkthrough, and merged.
   judgement about whether these are the right assessable units rather than
   whether they reproduce the regulation.
 
-No second production slice and no BUILD ticket is in flight.
+No other production slice is in flight.
 
 ## Ownership
 
@@ -345,10 +360,9 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Plan the next approved frontier as tracer-bullet feature tickets using the
-reconciled specification, roadmap, and ADRs. Run the ticket approval quiz and
-obtain Johnathan's explicit approval before publishing tickets or entering
-BUILD.
+Approve and merge PR #55, then confirm Issue #54 closes through its `Closes
+#54` relationship. Do not begin another production ticket without its own
+approved scope and BUILD authorization.
 
 Independently and at any time, Johnathan can make a pass over the Security
 routing in the walkthrough using the `move…` control and send the exported JSON;
