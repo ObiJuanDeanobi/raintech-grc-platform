@@ -6,9 +6,9 @@ Approved. Originally approved July 23, 2026; the post-prototype revision, the
 catalog count correction and the bare-standard correction approved July 27, 2026;
 the Breach paragraph correction approved July 28, 2026.
 
-No unapproved changes are outstanding. Production BUILD is unblocked. Each slice
-still requires an approved ticket and applicable verification, and changing this
-document again requires Johnathan's approval.
+The requirements-reconciliation amendment under GitHub issue #50 was approved
+by Johnathan on August 24, 2026. Production BUILD remains separately gated: each
+slice requires an approved ticket and applicable verification.
 
 ## Problem
 
@@ -58,6 +58,12 @@ context, risks, and outputs.
 7. Reassess by copying the prior assessment into a new draft, revalidating every
    carried-forward item, and preserving the prior issued assessment unchanged.
 
+Discovery, quote, onboarding, assessment, remediation, reassessment, and close
+operate over one progressive Project Profile. `Intake complete` means every
+required field has a known value or explicit `Unknown / To Determine`; assessment
+may start in that state. `Profile complete` means no unknown remains. Gap analysis
+and scope-dependent final artifacts cannot complete until the Profile is complete.
+
 ## V1 Scope
 
 ### Project and Profile
@@ -72,6 +78,15 @@ context, risks, and outputs.
 - Update the project profile throughout gap analysis and evidence capture.
 - Snapshot the project profile when an assessment or report is issued.
 - Preserve profile history and identify who changed what and when.
+- Keep gap-analysis-deferred fields visible during intake and label them as
+  pending rather than hiding them.
+- Provide shared Stack/Tools fields for RMM, MFA provider, backup solution,
+  EDR/AV, SIEM, firewall/UTM, email security, and patch management.
+- Do not require a generic contract-reference field on every service-provider
+  record. HIPAA BAA tracking, if added, remains framework-specific.
+- Pair each externally created uploaded CUI/ePHI flow diagram with structured
+  flow rows recording name/description, source, destination, data types,
+  classification, transmission method, storage location, and encryption status.
 
 ### Frameworks and Assessments
 
@@ -240,7 +255,9 @@ context, risks, and outputs.
   records surfaced through one unified action queue.
 - Use work statuses: Draft, Open, In Progress, Waiting, Ready for Validation,
   Closed, and exceptional Withdrawn.
-- CMMC Not Met and Pending results can create linked POA&M work.
+- CMMC Not Met results can create linked findings and POA&M work. Pending means
+  evidence, interview, observation, or clarification is outstanding; it creates
+  follow-up/evidence-request work, not a finding or POA&M item, and blocks close.
 - Pending work remains visible until its action is validated.
 - A finding reaching Ready for Validation does not close automatically.
 - POA&M records belong to the project and continue across assessments.
@@ -267,6 +284,17 @@ Work-item state transitions:
 - A finding is closed only by revalidation of the underlying requirement or
   standard in a later assessment. Completing or closing its linked POA&M item or
   corrective action never closes the finding.
+
+For HIPAA, saving Not Met prompts a prefilled finding/corrective-action draft
+with create/edit, link-existing, or `Not needed` with rationale choices. Repeated
+saves do not create duplicates, and a later determination change does not erase
+history. Pending does not prompt in V1. Remediation validation presents the
+original determination, finding, claimed remediation, prior and current
+evidence, and history; its only outcomes are Validated or Validation failed.
+
+For CMMC, a derived Not Met requirement has one requirement-level finding that
+lists every failed objective with its evidence and notes. Newly failed objectives
+join that finding; a broader root-cause finding may link across requirements.
 
 ### Risk Management
 
@@ -299,6 +327,19 @@ Work-item state transitions:
 - Archive, compress, and deduplicate superseded evidence where practical.
 - Mark stale or overdue evidence without automatically changing Met to Not Met.
 - Export evidence with a manifest.
+- Create an immutable version and SHA-256 hash for every uploaded or replaced
+  evidence file. Verify the stored file against its hash during issuance and
+  selected-evidence export, and include the evidence version, hash, and
+  verification result in evidence indexes and manifests.
+- Block CMMC close when a required evidence version has no hash or fails
+  verification.
+
+Actual CUI, PHI, and ePHI content, samples, screenshots, and exports do not enter
+the application. Safe scope metadata may be stored. Evidence remains a direct
+local upload; V1 does not add a content scanner, attestation checkbox, or
+reference-only storage model. RainTech's upstream engagement practice excludes
+regulated content from accepted evidence, which is an explicit residual risk
+rather than a technical control.
 
 ### Policies and Documents
 
@@ -322,6 +363,19 @@ Work-item state transitions:
 - Diagram generation is deferred to V2, but V1 captures structured flow data
   needed for it.
 
+The minimum authoritative final-SSP capability needed for CMMC close is part of
+Slice 3. It generates near close from the complete Profile and final validated
+implementation data; supports in-platform editing, versioning, review, and
+approval; and freezes the approved SSP and source snapshot. Exports are delivery
+copies. Slice 6 retains the broader document library.
+
+Template authoring is external to the application. AI may assist RainTech in
+templatizing an ephemeral client source, but only sanitized, human-approved
+templates may be persisted, committed, or installed. Original client artifacts
+and intermediate derivatives never enter Git, even when gitignored. Installing
+a replacement creates a new immutable version; existing drafts and issued
+artifacts remain pinned, and draft regeneration is explicit and previewed.
+
 ### Recurring Reviews and Notifications
 
 - Apply recurring review rules to evidence, policies, risks, and other eligible
@@ -339,12 +393,42 @@ Work-item state transitions:
   Security Risk Analysis, risk/heatmap, remediation, evidence
   capture/coverage, evidence manifest, policy/review register, and quote reports.
 - Support applicable PDF, XLSX, DOCX, and ZIP exports.
-- Report lifecycle: Draft, Issued, and Superseded.
-- Issued reports capture profile, assessment, framework, and source-data
-  versions so they can be reproduced.
-- V1 approval records the selected account, date, and optional note.
+- Report lifecycle: Draft, In Review, Reviewed, Issued, and Superseded. Issuance
+  requires a named human reviewer and cannot bypass Reviewed.
+- Every generated artifact records its engagement, framework version, Profile
+  snapshot, applicable template version, relevant source-record versions,
+  generation timestamp, and named reviewer or approver so it can be reproduced.
+- V1 approval records the selected account, date, artifact/package version, and
+  optional note.
 - Record audit events for profiles, assessments, evidence mappings, policies,
   risks, POA&M items, approvals, and generated outputs.
+
+The first HIPAA cycle produces two end-of-assessment companion outputs: one
+combined report with executive highlights followed by the detailed report, and
+one separate POA&M export. Point-in-time HIPAA snapshot export is deferred.
+
+HIPAA issuance requires a complete Profile; no blank or Pending determinations;
+required N/A rationale; reconciled Not Met findings/actions; complete SRA scope
+and risk records; complete report and POA&M generation; explicit sign-off; a
+successful pre-issuance full backup; and an immutable issued snapshot. Documented
+Not Met items may remain and open corrective work may continue after delivery.
+
+RainTech internal CMMC readiness close requires all 110 requirements Met, no
+open POA&M, a complete approved final SSP, verified evidence hashes, a complete
+standard package, a successful pre-issuance full backup, and one consolidated
+sign-off by Johnathan. The standard package contains the final assessment
+report, approved SSP, final POA&M history, evidence index, and issuance manifest.
+Its source snapshot remains internal; raw evidence is excluded and selected
+evidence export is a separate action. This is not an accredited certification
+act.
+
+Generation is atomic from the reviewer's perspective. Failed or incomplete
+output remains staged or discarded, cannot enter review or issuance, and cannot
+change the last issued version. A presentation-only correction creates a new
+package version with unchanged-source confirmation. A substantive Profile,
+evidence, determination, score, remediation, or SSP change reopens affected
+work, regenerates dependencies, reruns every close check, and requires new
+sign-off.
 
 ### Local Operation and Recovery
 
@@ -352,12 +436,31 @@ Work-item state transitions:
 - Use SQLite for structured data and separate managed folders for evidence,
   documents, reports, and backups.
 - Provide a double-click launcher and a local browser UI.
-- Support a configurable backup destination, including the RainTech OneDrive
-  folder for V1.
+- Store backups in an application-managed local location. Do not support
+  OneDrive, synchronized folders, network shares, cloud storage, or
+  provider-specific backup destinations in the current roadmap.
 - Retain 14 daily database/configuration backups and 2 weekly full backups.
-- Provide Back Up Now, verified restore, and workspace export/import.
+- Provide Back Up Now and a full backup containing SQLite data, evidence and
+  hashes, approved templates, generated/issued artifacts, and a
+  version/integrity manifest. Secrets are excluded.
+- Create at most one automatic daily database/configuration backup after the
+  first persisted change since the prior successful daily backup, and one weekly
+  full backup when authoritative data changed since the prior successful full
+  backup.
+- Require a successful backup before a stored-data upgrade or migration and a
+  successful full backup immediately before HIPAA or CMMC issuance.
+- A daily failure produces a persistent warning. A pre-upgrade or pre-issuance
+  failure blocks the operation.
+- Validate the local destination for availability, writability, and capacity.
+  Restore validates before changing the active workspace and applies the full
+  recovery set or none of it.
 - V1 is designed for sanitized assessment material and does not store actual
   CUI, PHI, or ePHI.
+
+Routine autosave serializes writes per record, visibly reports `Saving`, `Saved`,
+or `Save failed`, retains failed edits for retry, and warns before leaving with
+unsaved changes. Multi-user merge and automatic conflict copies are out of
+scope.
 
 ## Navigation
 
@@ -440,6 +543,14 @@ home, which weakens project orientation for deep assessment work.
 - Diagram generation.
 - LLM-generated compliance conclusions or freeform policy generation.
 - HIPAA certification claims or automated HIPAA pricing.
+- Upload content scanning, regulated-data attestation checkboxes, or
+  reference-only evidence storage.
+- In-app AI templatization or persistence of unsanitized client source.
+- HIPAA point-in-time snapshot exports in V1.
+- Signed evidence manifests, hash chains, trusted timestamps, integrity
+  dashboards, or generalized evidence-forensics tooling.
+- Universal report designers, template merge engines, or multi-user conflict
+  resolution.
 
 ## Important Edge Cases
 
@@ -570,8 +681,9 @@ production shell is established.
   Security Risk Analysis work areas.
 - AC-004: Met cannot be finalized without evidence or an interview/observation
   record.
-- AC-005: Not Met and Pending work can produce traceable findings and continuous
-  project-level remediation.
+- AC-005: Not Met work can produce traceable findings and continuous
+  project-level remediation. Pending produces follow-up or evidence-request work
+  and cannot create a finding or POA&M item.
 - AC-006: A reassessment copies prior state as Needs Revalidation without
   modifying the issued source assessment or duplicating evidence files.
 - AC-007: One evidence artifact can support multiple requirements while each
@@ -590,6 +702,23 @@ production shell is established.
 - AC-014: Core workflows run offline on supported Windows ARM64 and x64 systems.
 - AC-015: The approved UI prototype decisions are documented before production
   UI implementation begins.
+- AC-016: Intake-complete permits assessment with explicit unknowns, while
+  profile-complete, gap-analysis completion, and scope-dependent issuance
+  require no unresolved unknown.
+- AC-017: HIPAA issuance enforces the complete framework-specific gate and
+  produces the combined report plus separate POA&M from one immutable source
+  state.
+- AC-018: CMMC readiness close enforces all 110 Met, no open POA&M, approved
+  final SSP, verified evidence hashes, complete standard package, successful
+  pre-issuance backup, and consolidated sign-off.
+- AC-019: A failed generation cannot enter review or alter the last issued
+  version; substantive correction reopens affected work and reruns all gates.
+- AC-020: A full local backup restores the complete recovery set all-or-nothing,
+  and corrupt or incomplete input leaves the active workspace unchanged.
+- AC-021: The initial restore is verified on the target Windows installation
+  and restore testing is repeated monthly.
+- AC-022: Two rapid edits to one record persist in order; failed edits remain
+  visible and retryable, and navigation warns while changes are unsaved.
 
 ## Success Criteria
 
@@ -627,7 +756,9 @@ requires an approved ticket and applicable verification.
 The Accepted Interaction Model, both rollup rules, the work-item state transitions,
 the HIPAA rule-structure correction, and the ADR 0011 reference were added after
 the July 23 approval. **Approved as a whole by Johnathan on July 27, 2026.**
-Production BUILD is unblocked; GitHub issue #21 is the first ticket.
+That approval historically unblocked only the separately approved production
+work that followed. It does not authorize a new BUILD session; each new
+production ticket still requires separate approval.
 
 ### Bare-standard correction — approved July 27, 2026
 

@@ -33,7 +33,8 @@ issued deliverables.
 
 - Local launcher, React/TypeScript UI, FastAPI, SQLite, and managed file storage.
 - Johnathan account context and audit attribution.
-- Clients, projects, project selection, Overview, autosave, and audit events.
+- Clients, projects, project selection, Overview, serialized/recoverable
+  autosave, and audit events.
 - Framework-version registry and migration-safe stable identifiers.
 
 ### Slice 2 - Progressive Profile and CMMC Estimate
@@ -41,6 +42,12 @@ issued deliverables.
 - Project-specific onboarding and progressive environment profile.
 - Current state, target state, implementation deltas, systems, tools, owners,
   service providers, users, endpoints, and structured information flows.
+- Separate intake-complete from profile-complete. Assessment may start with
+  explicit unknowns; gap analysis and scope-dependent artifacts require no
+  unresolved unknown.
+- Keep gap-analysis-deferred fields visible during intake, provide the fixed
+  shared Stack/Tools categories, and pair uploaded flow diagrams with the
+  approved manually entered structured flow fields.
 - CMMC preliminary estimate using editable, versioned pricing rules.
 - Internal estimate and customer-facing PDF.
 - HIPAA estimate remains manual.
@@ -65,6 +72,12 @@ and starts first, because it needs practitioner review time rather than build ti
 - 5x5 inherent/residual risk analysis with complete ePHI scope checks.
 - HIPAA gap, corrective-action, executive, and SRA reports.
 - Reassessment by copy and revalidation.
+- Not Met reconciliation through a prefilled create/link/not-needed draft;
+  binary Validated/Failed remediation validation.
+- End-of-assessment combined report plus separate POA&M export and the complete
+  HIPAA close/sign-off/immutable-snapshot gate.
+- Pull forward only the atomic-generation and local pre-issuance full-backup
+  foundation required to issue safely.
 
 ### Slice 3 - CMMC Level 2 Delivery
 
@@ -73,7 +86,14 @@ Built after Slice 4. See the ordering note above.
 - Versioned CMMC Level 2 catalog.
 - Requirement-centered gap analysis with all assessment objectives.
 - Official CMMC scoring only.
-- Findings, Pending/Not Met handling, validation, continuous POA&M, and reports.
+- One requirement-level finding containing failed objectives; Pending creates
+  follow-up/evidence-request work, not a finding or POA&M.
+- All-110-Met/no-open-POA&M close gate.
+- Minimum authoritative final SSP generation, in-platform editing/versioning,
+  and close-package inclusion.
+- SHA-256 per immutable evidence version with issuance/export verification.
+- Standard close package, selected-evidence export, consolidated sign-off,
+  atomic generation, correction/reopening, and local pre-issuance full backup.
 - Reassessment by copy and revalidation.
 
 ### Slice 5 - Evidence and Recurring Reviews
@@ -84,6 +104,8 @@ Built after Slice 4. See the ordering note above.
 - Evidence requests with assignee, due date, notes, next action, and future
   client-collaboration metadata.
 - Configurable recurring review schedules and in-app reminders.
+- Slice 3 pulls forward only immutable evidence versions and minimum SHA-256
+  behavior needed for CMMC close; this slice retains the broader lifecycle.
 
 ### Slice 6 - Policies, Documents, and Reports
 
@@ -92,12 +114,22 @@ Built after Slice 4. See the ordering note above.
 - Editable drafts, approval, no-change review events, and supersession.
 - Browser report preview and applicable PDF, XLSX, DOCX, and ZIP exports.
 - Source snapshots and reproducible issued deliverables.
+- Broader implementation-statement, policy, procedure, inventory,
+  responsibility-matrix, and template-driven document library. The minimum
+  final SSP required for CMMC close is already delivered in Slice 3.
+- Immutable template replacement, draft/version pinning, and explicit previewed
+  regeneration. Template templatization remains outside the application.
 
 ### Slice 7 - Recovery and V1 Hardening
 
-- Configurable backup destination, including RainTech OneDrive.
+- Application-managed local backup only; no network share, synchronized folder,
+  cloud storage, or provider-specific destination.
 - Fourteen daily database/configuration backups and two weekly full backups.
-- Manual backup, verified restore, and workspace export/import.
+- Manual, daily-after-change, weekly-full, pre-upgrade, and pre-issuance backup
+  triggers with risk-based warning/blocking behavior.
+- Complete recovery-set manifest and all-or-nothing verified restore.
+- Initial restore acceptance followed by monthly restore testing.
+- Workspace export/import remains separate from authoritative backup/restore.
 - Windows ARM64 and x64 packaging and offline verification.
 - End-to-end review against the approved specification.
 
@@ -135,4 +167,11 @@ Built after Slice 4. See the ordering note above.
 - No generic readiness score.
 - No actual CUI, PHI, or ePHI is stored in V1.
 - Core workflows must operate offline.
+- Only sanitized, human-approved templates may enter the platform or Git;
+  original client sources and intermediate derivatives never enter the
+  worktree.
+- Actual CUI, PHI, and ePHI are excluded through RainTech's upstream engagement
+  practice; V1 does not add upload scanning or attestation.
+- Issue #49 remains an isolated practitioner test until its assessment-unit
+  model is separately accepted and recorded.
 - Production code begins only after specification and prototype approval.
