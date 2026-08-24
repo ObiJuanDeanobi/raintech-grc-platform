@@ -90,5 +90,5 @@ lockfile nor runtime dependencies.
 Independent Standards and Specification reviewers both returned `PASS` on the
 final diff after the same-record detail-refresh sequence guard and its
 controlled reverse-order regression test were added. All required GitHub
-Actions jobs passed on PR #55. Issue #54 is ready for merge approval; it is not
-merged or closed.
+Actions jobs passed on PR #55. PR #55 merged to `main` as `aeb981d`, and its
+`Closes #54` relationship closed Issue #54.

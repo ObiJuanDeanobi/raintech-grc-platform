@@ -2,24 +2,23 @@
 
 ## Current phase
 
-`IMPLEMENTATION-READY-FOR-MERGE`. The requirements and implementation plan were
-approved by Johnathan on August 24, 2026. GitHub issue #54 is implemented and
-verified on its feature branch, both required review axes pass, and PR #55's
-required repository CI passes. It is not merged or closed.
+`IMPLEMENTATION-READY`. The requirements and implementation plan were approved
+by Johnathan on August 24, 2026. GitHub issue #54 is complete and merged to
+`main` through PR #55 after both required review axes and repository CI passed.
 Milestone 0 governance reconciliation is complete through PR #51 and GitHub
 issue #50. Slice 4a remains complete and Slice 1a remains merged to `main` in
 PR #46.
 
 ## Current mode
 
-BUILD. Issue #54 was separately approved for BUILD. Its implementation keeps
-the existing API and audit paths, and its local verification, independent
-standards and specification reviews, and PR #55 CI pass. Merge approval remains.
+PLAN. Issue #54's separately approved BUILD is complete. No additional
+production ticket is authorized.
 
 ## Current objective
 
-Obtain merge approval for PR #55, then merge and close Issue #54. Preserve
-stable slice numbers and the approved build order `1, 2, 4, 3, 5, 6, 7`.
+Select and approve the next tracer-bullet ticket from the reconciled Milestone 1
+plan. Preserve stable slice numbers and the approved build order
+`1, 2, 4, 3, 5, 6, 7`.
 
 ## Approved specification
 
@@ -30,11 +29,9 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #54 — implemented / verified / ready for merge approval.** It adds
-serialized, recoverable autosave for determination, note, and prompt-answer
-edits only. Local automated checks, browser verification, ARM64/x64 source
-compatibility review, both independent review axes, and PR #55's required CI
-pass. Merge remains separately gated.
+No production ticket is active. GitHub issue #54 is complete and closed through
+PR #55 after local automated checks, browser verification, ARM64/x64 source
+compatibility review, both independent review axes, and required CI passed.
 
 GitHub issue #50 is complete and closed through PR #51; it was
 documentation-only and did not authorize BUILD.
@@ -242,15 +239,13 @@ on a clickable walkthrough, and merged.
 - Issue #54's recoverable autosave implementation passed its full local command
   set, browser verification with synthetic data, ARM64/x64 source compatibility
   review, and independent Standards and Specification reviews on August 24,
-  2026. The feature branch remains unmerged pending repository review.
+  2026. It merged to `main` through PR #55 after required CI passed, and the
+  issue closed automatically.
 
 ## In progress
 
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
-- **GitHub issue #54**: implemented / verified / ready for merge approval in
-  PR #55 from `feature/54-recoverable-autosave`. Required repository CI passes;
-  the issue remains open and the branch remains unmerged.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
   labeled `ready-for-human`, needs Johnathan's machine, and now owns the launcher
   and packaging work that was explicitly excluded from the merged Issue #44
@@ -360,9 +355,8 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Approve and merge PR #55, then confirm Issue #54 closes through its `Closes
-#54` relationship. Do not begin another production ticket without its own
-approved scope and BUILD authorization.
+Select the next Milestone 1 tracer-bullet ticket and obtain its explicit BUILD
+authorization. Do not begin another production ticket without that approval.
 
 Independently and at any time, Johnathan can make a pass over the Security
 routing in the walkthrough using the `move…` control and send the exported JSON;
