@@ -265,3 +265,39 @@ def test_prompt_answers_and_cross_record_placements_survive_framework_reseed(
         assert any(
             item["id"] == context_prompt["id"] for item in destination["context_prompts"]
         )
+
+
+def test_final_routine_retry_save_persists_and_audits_prompt_answer(tmp_path: Path) -> None:
+    database_path = tmp_path / "workspace.db"
+    storage_path = tmp_path / "files"
+    app = create_app(database_path=database_path, storage_path=storage_path)
+    with TestClient(app) as client:
+        _, assessment_id = create_workspace(client)
+        record_id = "164.308(a)(1)(i)"
+        record = client.get(f"/api/assessments/{assessment_id}/records/{record_id}").json()
+        prompt = record["prompts"][0]
+
+        first = client.put(
+            f"/api/assessments/{assessment_id}/prompts/{prompt['id']}/answer",
+            json={"answer": "Earlier draft that did not become the final retry."},
+        )
+        assert first.status_code == 200
+        retry = client.put(
+            f"/api/assessments/{assessment_id}/prompts/{prompt['id']}/answer",
+            json={"answer": "Final retained draft after retry."},
+        )
+        assert retry.status_code == 200
+
+    restarted = create_app(database_path=database_path, storage_path=storage_path)
+    with TestClient(restarted) as client:
+        record = client.get(f"/api/assessments/{assessment_id}/records/{record_id}").json()
+        saved_prompt = next(item for item in record["prompts"] if item["id"] == prompt["id"])
+        assert saved_prompt["answer"] == "Final retained draft after retry."
+
+        prompt_audits = [
+            event
+            for event in client.get(f"/api/assessments/{assessment_id}/audit").json()
+            if event["action"] == "prompt.answer_saved"
+        ]
+        assert len(prompt_audits) == 2
+        assert all(event["actor"]["id"] == "johnathan" for event in prompt_audits)

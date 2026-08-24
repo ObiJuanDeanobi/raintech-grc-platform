@@ -17,14 +17,13 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ApiError, request } from "./api";
+import { request } from "./api";
 import type {
   Artifact,
   Assessment,
   Client,
-  Determination,
   EvidenceMapping,
   Prompt,
   RecordDetail,
@@ -40,6 +39,200 @@ function StatusPill({ status, derived = false }: { status: Status; derived?: boo
     <span className={`status-pill ${statusClass(status)}`}>
       {derived ? `Derived · ${status || "Blank"}` : status || "Blank"}
     </span>
+  );
+}
+
+type RoutineSaveState = "saving" | "saved" | "failed";
+type RoutineSaveReporter = (
+  key: string,
+  state: RoutineSaveState | null,
+) => void;
+type RoutineRecordSaveCoordinator = <T>(
+  recordKey: string,
+  write: () => Promise<T>,
+) => Promise<T>;
+
+function sameDraft<T>(left: T, right: T): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+/**
+ * Routine edits on one assessment record share a single write chain. The map
+ * intentionally holds a separate chain for each record, not a global queue.
+ */
+function useRoutineRecordSaveCoordinator(): RoutineRecordSaveCoordinator {
+  const chainsRef = useRef(new Map<string, Promise<void>>());
+  return useCallback<RoutineRecordSaveCoordinator>(async (recordKey, write) => {
+    const prior = chainsRef.current.get(recordKey) ?? Promise.resolve();
+    const result = prior.then(write, write);
+    const chain = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    chainsRef.current.set(recordKey, chain);
+    try {
+      return await result;
+    } finally {
+      if (chainsRef.current.get(recordKey) === chain) chainsRef.current.delete(recordKey);
+    }
+  }, []);
+}
+
+/**
+ * This deliberately covers only the three routine assessment edits in this
+ * workspace. Each record shares one write chain, while separate records
+ * remain independently saveable.
+ */
+function useRoutineAutosave<T>(
+  key: string,
+  recordKey: string,
+  initialDraft: T,
+  persist: (draft: T) => Promise<unknown>,
+  report: RoutineSaveReporter,
+  coordinateSave: RoutineRecordSaveCoordinator,
+  onFinalSuccess?: () => void,
+) {
+  const [draft, setDraft] = useState(initialDraft);
+  const [state, setState] = useState<RoutineSaveState>("saved");
+  const draftRef = useRef(initialDraft);
+  const persistedRef = useRef(initialDraft);
+  const initialDraftRef = useRef(initialDraft);
+  const draftVersionRef = useRef(0);
+  const queuedVersionRef = useRef<number | null>(null);
+  const runningRef = useRef(false);
+  const keyGenerationRef = useRef(0);
+  const activeKeyRef = useRef(key);
+  const persistRef = useRef(persist);
+  const recordKeyRef = useRef(recordKey);
+  const coordinateSaveRef = useRef(coordinateSave);
+  const onFinalSuccessRef = useRef(onFinalSuccess);
+  persistRef.current = persist;
+  recordKeyRef.current = recordKey;
+  coordinateSaveRef.current = coordinateSave;
+  onFinalSuccessRef.current = onFinalSuccess;
+  initialDraftRef.current = initialDraft;
+  if (activeKeyRef.current !== key) {
+    activeKeyRef.current = key;
+    keyGenerationRef.current += 1;
+  }
+
+  const processQueue = useCallback(async () => {
+    if (runningRef.current || queuedVersionRef.current === null) return;
+    runningRef.current = true;
+    const savingGeneration = keyGenerationRef.current;
+    const savingVersion = queuedVersionRef.current;
+    const savingDraft = draftRef.current;
+    const savingRecordKey = recordKeyRef.current;
+    const save = persistRef.current;
+    setState("saving");
+    try {
+      await coordinateSaveRef.current(savingRecordKey, () => save(savingDraft));
+      if (keyGenerationRef.current !== savingGeneration) return;
+      persistedRef.current = savingDraft;
+      if (queuedVersionRef.current !== null && queuedVersionRef.current > savingVersion) {
+        runningRef.current = false;
+        void processQueue();
+        return;
+      }
+      queuedVersionRef.current = null;
+      runningRef.current = false;
+      if (draftVersionRef.current === savingVersion) {
+        setState("saved");
+        onFinalSuccessRef.current?.();
+      } else {
+        setState("saving");
+      }
+    } catch {
+      if (keyGenerationRef.current !== savingGeneration) return;
+      if (queuedVersionRef.current !== null && queuedVersionRef.current > savingVersion) {
+        runningRef.current = false;
+        void processQueue();
+        return;
+      }
+      runningRef.current = false;
+      setState("failed");
+    }
+  }, []);
+
+  const stage = useCallback((next: T) => {
+    draftRef.current = next;
+    draftVersionRef.current += 1;
+    setDraft(next);
+    if (!sameDraft(next, persistedRef.current)) setState("saving");
+  }, []);
+
+  const save = useCallback((next: T) => {
+    if (
+      sameDraft(next, draftRef.current)
+      && queuedVersionRef.current === draftVersionRef.current
+    ) {
+      return;
+    }
+    stage(next);
+    const version = draftVersionRef.current;
+    if (
+      !runningRef.current
+      && queuedVersionRef.current === null
+      && sameDraft(next, persistedRef.current)
+    ) {
+      setState("saved");
+      return;
+    }
+    queuedVersionRef.current = version;
+    setState("saving");
+    void processQueue();
+  }, [processQueue, stage]);
+
+  const retry = useCallback(() => {
+    queuedVersionRef.current = draftVersionRef.current;
+    setState("saving");
+    void processQueue();
+  }, [processQueue]);
+
+  useEffect(() => {
+    keyGenerationRef.current += 1;
+    const resetDraft = initialDraftRef.current;
+    draftRef.current = resetDraft;
+    persistedRef.current = resetDraft;
+    draftVersionRef.current = 0;
+    queuedVersionRef.current = null;
+    runningRef.current = false;
+    setDraft(resetDraft);
+    setState("saved");
+  }, [key]);
+
+  useEffect(() => () => {
+    keyGenerationRef.current += 1;
+  }, []);
+
+  useEffect(() => {
+    report(key, state);
+  }, [key, report, state]);
+
+  useEffect(() => () => report(key, null), [key, report]);
+
+  return { draft, state, stage, save, retry };
+}
+
+function RoutineSaveStatus({
+  state,
+  retry,
+  label,
+}: {
+  state: RoutineSaveState;
+  retry: () => void;
+  label: string;
+}) {
+  if (state === "saved") return null;
+  return (
+    <p className={`routine-save-state ${state}`} aria-live="polite">
+      {state === "saving" ? "Saving" : "Save failed"}
+      {state === "failed" && (
+        <button className="text-button" type="button" onClick={retry} aria-label={`Retry ${label}`}>
+          Retry
+        </button>
+      )}
+    </p>
   );
 }
 
@@ -197,35 +390,44 @@ function WorkspaceCreator({
 function PromptCard({
   prompt,
   assessment,
+  recordId,
   onChanged,
   onSaveState,
+  onRoutineSaveState,
+  coordinateSave,
 }: {
   prompt: Prompt;
   assessment: Assessment;
+  recordId: string;
   onChanged: () => void;
   onSaveState: (state: "saving" | "saved" | "error", message?: string) => void;
+  onRoutineSaveState: RoutineSaveReporter;
+  coordinateSave: RoutineRecordSaveCoordinator;
 }) {
-  const [answer, setAnswer] = useState(prompt.answer);
   const [moving, setMoving] = useState(false);
   const [destination, setDestination] = useState("");
   const [rule, setRule] = useState("");
   const [reason, setReason] = useState("");
 
-  useEffect(() => setAnswer(prompt.answer), [prompt.answer]);
-
-  async function saveAnswer() {
-    if (answer === prompt.answer) return;
-    onSaveState("saving");
-    try {
+  const {
+    draft: answer,
+    state: answerSaveState,
+    stage: stageAnswer,
+    save: saveAnswer,
+    retry: retryAnswer,
+  } = useRoutineAutosave(
+    `prompt:${assessment.id}:${prompt.id}`,
+    `record:${assessment.id}:${recordId}`,
+    prompt.answer,
+    async (nextAnswer) => {
       await request(`/api/assessments/${assessment.id}/prompts/${prompt.id}/answer`, {
         method: "PUT",
-        body: JSON.stringify({ answer }),
+        body: JSON.stringify({ answer: nextAnswer }),
       });
-      onSaveState("saved");
-    } catch (caught) {
-      onSaveState("error", caught instanceof Error ? caught.message : undefined);
-    }
-  }
+    },
+    onRoutineSaveState,
+    coordinateSave,
+  );
 
   async function movePrompt(event: FormEvent) {
     event.preventDefault();
@@ -279,11 +481,12 @@ function PromptCard({
       <textarea
         aria-label={`Answer: ${prompt.text}`}
         value={answer}
-        onChange={(event) => setAnswer(event.target.value)}
-        onBlur={saveAnswer}
+        onChange={(event) => stageAnswer(event.target.value)}
+        onBlur={() => saveAnswer(answer)}
         placeholder="Record the answer to this question…"
         rows={2}
       />
+      <RoutineSaveStatus state={answerSaveState} retry={retryAnswer} label="answer" />
       {moving && (
         <form className="move-form" onSubmit={movePrompt}>
           <label>
@@ -322,23 +525,28 @@ function DeterminationPanel({
   assessmentId,
   statuses,
   detail,
-  onChanged,
-  onSaveState,
+  onRoutineSaveState,
+  coordinateSave,
+  onFinalSuccess,
 }: {
   assessmentId: string;
   statuses: Status[];
   detail: RecordDetail;
-  onChanged: () => void;
-  onSaveState: (state: "saving" | "saved" | "error", message?: string) => void;
+  onRoutineSaveState: RoutineSaveReporter;
+  coordinateSave: RoutineRecordSaveCoordinator;
+  onFinalSuccess: () => void;
 }) {
-  const [form, setForm] = useState<Determination>(detail.determination);
-
-  useEffect(() => setForm(detail.determination), [detail.determination]);
-
-  async function save(next: Determination) {
-    setForm(next);
-    onSaveState("saving");
-    try {
+  const {
+    draft: form,
+    state: determinationSaveState,
+    stage: stageDetermination,
+    save,
+    retry: retryDetermination,
+  } = useRoutineAutosave(
+    `determination:${assessmentId}:${detail.record.record_id}`,
+    `record:${assessmentId}:${detail.record.record_id}`,
+    detail.determination,
+    async (next) => {
       await request(
         `/api/assessments/${assessmentId}/determinations/${detail.record.record_id}`,
         {
@@ -346,12 +554,11 @@ function DeterminationPanel({
           body: JSON.stringify(next),
         },
       );
-      onSaveState("saved");
-      onChanged();
-    } catch (caught) {
-      onSaveState("error", caught instanceof ApiError ? caught.message : undefined);
-    }
-  }
+    },
+    onRoutineSaveState,
+    coordinateSave,
+    onFinalSuccess,
+  );
 
   if (!detail.record.editable_determination) {
     return (
@@ -382,8 +589,8 @@ function DeterminationPanel({
             className={form.status === status ? "selected" : ""}
             onClick={() => {
               const next = { ...form, status };
-              setForm(next);
-              if (status !== "N/A" && detail.record.designation !== "addressable") void save(next);
+              if (status !== "N/A" && detail.record.designation !== "addressable") save(next);
+              else stageDetermination(next);
             }}
           >
             {status}
@@ -396,8 +603,8 @@ function DeterminationPanel({
           <textarea
             rows={3}
             value={form.na_rationale}
-            onChange={(event) => setForm({ ...form, na_rationale: event.target.value })}
-            onBlur={() => void save(form)}
+            onChange={(event) => stageDetermination({ ...form, na_rationale: event.target.value })}
+            onBlur={() => save(form)}
             placeholder="Explain why this requirement does not apply…"
           />
         </label>
@@ -411,8 +618,8 @@ function DeterminationPanel({
               value={form.addressable_disposition ?? ""}
               onChange={(event) => {
                 const next = { ...form, addressable_disposition: event.target.value };
-                setForm(next);
-                if (event.target.value === "standard_measure") void save(next);
+                if (event.target.value === "standard_measure") save(next);
+                else stageDetermination(next);
               }}
             >
               <option value="">Select a disposition…</option>
@@ -427,8 +634,8 @@ function DeterminationPanel({
               <textarea
                 rows={3}
                 value={form.disposition_reason}
-                onChange={(event) => setForm({ ...form, disposition_reason: event.target.value })}
-                onBlur={() => void save(form)}
+                onChange={(event) => stageDetermination({ ...form, disposition_reason: event.target.value })}
+                onBlur={() => save(form)}
               />
             </label>
           )}
@@ -440,11 +647,61 @@ function DeterminationPanel({
         <textarea
           rows={3}
           value={form.interview_observation}
-          onChange={(event) => setForm({ ...form, interview_observation: event.target.value })}
-          onBlur={() => form.status && void save(form)}
+          onChange={(event) => stageDetermination({ ...form, interview_observation: event.target.value })}
+          onBlur={() => form.status && save(form)}
           placeholder="Who was interviewed or what was observed?"
         />
       </details>
+      <RoutineSaveStatus state={determinationSaveState} retry={retryDetermination} label="determination" />
+    </section>
+  );
+}
+
+function RecordNotes({
+  assessmentId,
+  recordId,
+  initialNote,
+  onRoutineSaveState,
+  coordinateSave,
+}: {
+  assessmentId: string;
+  recordId: string;
+  initialNote: string;
+  onRoutineSaveState: RoutineSaveReporter;
+  coordinateSave: RoutineRecordSaveCoordinator;
+}) {
+  const {
+    draft: note,
+    state: noteSaveState,
+    stage: stageNote,
+    save: saveNote,
+    retry: retryNote,
+  } = useRoutineAutosave(
+    `note:${assessmentId}:${recordId}`,
+    `record:${assessmentId}:${recordId}`,
+    initialNote,
+    async (nextNote) => {
+      await request(`/api/assessments/${assessmentId}/records/${recordId}/note`, {
+        method: "PUT",
+        body: JSON.stringify({ note: nextNote }),
+      });
+    },
+    onRoutineSaveState,
+    coordinateSave,
+  );
+
+  return (
+    <section className="working-section">
+      <div className="section-title"><div><p className="eyebrow">DISCUSSION</p><h3>Record notes</h3></div></div>
+      <textarea
+        aria-label="Record notes"
+        value={note}
+        rows={5}
+        placeholder="Record implementation details, scope, and assessor observations…"
+        onChange={(event) => stageNote(event.target.value)}
+        onBlur={() => saveNote(note)}
+      />
+      <RoutineSaveStatus state={noteSaveState} retry={retryNote} label="note" />
     </section>
   );
 }
@@ -605,9 +862,14 @@ function Workspace({
   const [area, setArea] = useState("all");
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
   const [saveMessage, setSaveMessage] = useState("");
+  const [routineSaves, setRoutineSaves] = useState<Map<string, RoutineSaveState>>(new Map());
   const [loading, setLoading] = useState(true);
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const [view, setView] = useState<"assessment" | "overview">("assessment");
+  const detailTargetRef = useRef({ assessmentId: "", recordId: "" });
+  const detailRequestSequenceRef = useRef(0);
+  const coordinateRoutineSave = useRoutineRecordSaveCoordinator();
+  detailTargetRef.current = { assessmentId: assessment?.id ?? "", recordId };
 
   const loadAssessment = useCallback(async () => {
     setLoading(true);
@@ -619,10 +881,18 @@ function Workspace({
 
   const loadDetail = useCallback(async () => {
     if (!assessment || !recordId) return;
+    const target = { assessmentId: assessment.id, recordId };
+    const requestSequence = ++detailRequestSequenceRef.current;
     const next = await request<RecordDetail>(
-      `/api/assessments/${assessment.id}/records/${encodeURIComponent(recordId)}`,
+      `/api/assessments/${target.assessmentId}/records/${encodeURIComponent(target.recordId)}`,
     );
-    setDetail(next);
+    if (
+      detailRequestSequenceRef.current === requestSequence &&
+      detailTargetRef.current.assessmentId === target.assessmentId
+      && detailTargetRef.current.recordId === target.recordId
+    ) {
+      setDetail(next);
+    }
   }, [assessment, recordId]);
 
   const loadArtifacts = useCallback(async () => {
@@ -648,6 +918,64 @@ function Workspace({
     setSaveState(state);
     setSaveMessage(message);
   }
+
+  const reportRoutineSave = useCallback<RoutineSaveReporter>((key, state) => {
+    setRoutineSaves((current) => {
+      const next = new Map(current);
+      if (state === null) next.delete(key);
+      else next.set(key, state);
+      return next;
+    });
+  }, []);
+
+  const routineSaveState = useMemo<RoutineSaveState>(() => {
+    const states = [...routineSaves.values()];
+    if (states.includes("failed")) return "failed";
+    if (states.includes("saving")) return "saving";
+    return "saved";
+  }, [routineSaves]);
+
+  const hasUnsavedRoutineEdit = routineSaveState !== "saved";
+  const visibleSaveState: RoutineSaveState | "error" =
+    routineSaveState !== "saved" ? routineSaveState : saveState;
+  const visibleSaveMessage =
+    visibleSaveState === "failed"
+      ? "Save failed"
+      : visibleSaveState === "error"
+        ? saveMessage || "Save failed"
+        : "";
+
+  const confirmRoutineNavigation = useCallback(() => {
+    if (!hasUnsavedRoutineEdit) return true;
+    return window.confirm("Changes are still saving or failed to save. Leave this record?");
+  }, [hasUnsavedRoutineEdit]);
+
+  const changeRecord = useCallback((nextRecordId: string, nextReturnRecordId = "") => {
+    if (nextRecordId === recordId || !confirmRoutineNavigation()) return;
+    setReturnRecordId(nextReturnRecordId);
+    setRecordId(nextRecordId);
+  }, [confirmRoutineNavigation, recordId]);
+
+  const changeProject = useCallback((nextProjectId: string) => {
+    if (nextProjectId === projectId || !confirmRoutineNavigation()) return false;
+    onProjectChange(nextProjectId);
+    return true;
+  }, [confirmRoutineNavigation, onProjectChange, projectId]);
+
+  const changeView = useCallback((nextView: "assessment" | "overview") => {
+    if (nextView === view || !confirmRoutineNavigation()) return;
+    setView(nextView);
+  }, [confirmRoutineNavigation, view]);
+
+  useEffect(() => {
+    if (!hasUnsavedRoutineEdit) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [hasUnsavedRoutineEdit]);
 
   const filtered = useMemo(() => {
     if (!assessment) return [];
@@ -677,17 +1005,17 @@ function Workspace({
           <span>RainTech GRC</span>
         </div>
         <nav>
-          <button className={view === "assessment" ? "active" : ""} onClick={() => setView("assessment")}>Assessments</button>
-          <button className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}>Overview</button>
+          <button className={view === "assessment" ? "active" : ""} onClick={() => changeView("assessment")}>Assessments</button>
+          <button className={view === "overview" ? "active" : ""} onClick={() => changeView("overview")}>Overview</button>
           <button disabled>Profile</button>
           <button disabled>Actions</button>
         </nav>
         <div className="topbar-utility">
-          <span className={`save-state ${saveState}`} title={saveMessage}>
-            {saveState === "saving" && <LoaderCircle className="spin" size={14} />}
-            {saveState === "saved" && <Cloud size={14} />}
-            {saveState === "error" && <CircleAlert size={14} />}
-            {saveState === "saving" ? "Saving…" : saveState === "error" ? saveMessage || "Not saved" : "Saved"}
+          <span className={`save-state ${visibleSaveState}`} title={visibleSaveMessage} aria-live="polite">
+            {visibleSaveState === "saving" && <LoaderCircle className="spin" size={14} />}
+            {visibleSaveState === "saved" && <Cloud size={14} />}
+            {(visibleSaveState === "error" || visibleSaveState === "failed") && <CircleAlert size={14} />}
+            {visibleSaveState === "saving" ? "Saving" : visibleSaveState === "saved" ? "Saved" : "Save failed"}
           </span>
           <span className="account"><UserRound size={16} /> Johnathan</span>
         </div>
@@ -696,13 +1024,18 @@ function Workspace({
       <aside className="rail">
         <div className="project-switcher">
           <p className="eyebrow">CLIENT PROJECT</p>
-          <select value={projectId} onChange={(event) => onProjectChange(event.target.value)}>
+          <select value={projectId} onChange={(event) => changeProject(event.target.value)}>
             {projects.map((project) => (
               <option key={project.id} value={project.id}>{project.clientName} · {project.name}</option>
             ))}
           </select>
           <span>{assessment.framework.name}</span>
-          <button className="add-workspace" onClick={() => setCreatingWorkspace(true)}>
+          <button
+            className="add-workspace"
+            onClick={() => {
+              if (confirmRoutineNavigation()) setCreatingWorkspace(true);
+            }}
+          >
             + Client / project
           </button>
         </div>
@@ -727,7 +1060,7 @@ function Workspace({
             <button
               key={record.record_id}
               className={record.record_id === recordId ? "active" : ""}
-              onClick={() => { setReturnRecordId(""); setRecordId(record.record_id); }}
+              onClick={() => changeRecord(record.record_id)}
             >
               <span className="record-number">{String(index + 1).padStart(3, "0")}</span>
               <span><strong>{record.title}</strong><small>{record.citation}</small></span>
@@ -741,7 +1074,7 @@ function Workspace({
         <div className="record-toolbar">
           <div>
             {returnRecordId ? (
-              <button className="back-link" onClick={() => { setRecordId(returnRecordId); setReturnRecordId(""); }}>
+              <button className="back-link" onClick={() => changeRecord(returnRecordId)}>
                 <ArrowLeft size={15} /> Back to determination
               </button>
             ) : detail.position ? (
@@ -752,10 +1085,10 @@ function Workspace({
           </div>
           {detail.position && (
             <div className="previous-next">
-              <button disabled={!detail.position.previous_record_id} onClick={() => detail.position?.previous_record_id && setRecordId(detail.position.previous_record_id)}>
+              <button disabled={!detail.position.previous_record_id} onClick={() => detail.position?.previous_record_id && changeRecord(detail.position.previous_record_id)}>
                 <ArrowLeft size={16} /> Previous
               </button>
-              <button disabled={!detail.position.next_record_id} onClick={() => detail.position?.next_record_id && setRecordId(detail.position.next_record_id)}>
+              <button disabled={!detail.position.next_record_id} onClick={() => detail.position?.next_record_id && changeRecord(detail.position.next_record_id)}>
                 Next <ArrowRight size={16} />
               </button>
             </div>
@@ -784,7 +1117,7 @@ function Workspace({
             </div>
             <div className="parent-actions">
               <StatusPill status={detail.parent.determination?.status ?? ""} derived />
-              <button className="text-button" onClick={() => { setReturnRecordId(recordId); setRecordId(detail.parent!.record_id); }}>
+              <button className="text-button" onClick={() => changeRecord(detail.parent!.record_id, recordId)}>
                 Open standard notes & evidence
               </button>
             </div>
@@ -834,8 +1167,11 @@ function Workspace({
                   key={prompt.id}
                   prompt={prompt}
                   assessment={assessment}
+                  recordId={detail.record.record_id}
                   onChanged={() => void loadDetail()}
                   onSaveState={updateSaveState}
+                  onRoutineSaveState={reportRoutineSave}
+                  coordinateSave={coordinateRoutineSave}
                 />
               ))}
             </div>
@@ -852,30 +1188,17 @@ function Workspace({
           assessmentId={assessment.id}
           statuses={assessment.framework.declarations.status_set}
           detail={detail}
-          onChanged={() => void loadDetail()}
-          onSaveState={updateSaveState}
+          onRoutineSaveState={reportRoutineSave}
+          coordinateSave={coordinateRoutineSave}
+          onFinalSuccess={() => void loadDetail()}
         />
-        <section className="working-section">
-          <div className="section-title"><div><p className="eyebrow">DISCUSSION</p><h3>Record notes</h3></div></div>
-          <textarea
-            key={`${detail.record.record_id}:${detail.note}`}
-            defaultValue={detail.note}
-            rows={5}
-            placeholder="Record implementation details, scope, and assessor observations…"
-            onBlur={async (event) => {
-              updateSaveState("saving");
-              try {
-                await request(`/api/assessments/${assessment.id}/records/${detail.record.record_id}/note`, {
-                  method: "PUT",
-                  body: JSON.stringify({ note: event.target.value }),
-                });
-                updateSaveState("saved");
-              } catch (caught) {
-                updateSaveState("error", caught instanceof Error ? caught.message : undefined);
-              }
-            }}
-          />
-        </section>
+        <RecordNotes
+          assessmentId={assessment.id}
+          recordId={detail.record.record_id}
+          initialNote={detail.note}
+          onRoutineSaveState={reportRoutineSave}
+          coordinateSave={coordinateRoutineSave}
+        />
         <EvidencePanel
           assessment={assessment}
           detail={detail}
@@ -893,7 +1216,7 @@ function Workspace({
               <h1>{assessment.project.client_name} · {assessment.project.name}</h1>
               <p>{assessment.framework.name} is pinned to {assessment.framework.id}.</p>
             </div>
-            <button className="small-button" onClick={() => setView("assessment")}>
+            <button className="small-button" onClick={() => changeView("assessment")}>
               Continue assessment <ArrowRight size={15} />
             </button>
           </div>
@@ -905,7 +1228,9 @@ function Workspace({
           <div className="overview-projects">
             <div className="section-title"><h2>Client projects</h2><span>{projects.length}</span></div>
             {projects.map((project) => (
-              <button key={project.id} onClick={() => { onProjectChange(project.id); setView("assessment"); }}>
+              <button key={project.id} onClick={() => {
+                if (changeProject(project.id)) setView("assessment");
+              }}>
                 <FolderKanban size={18} />
                 <span><strong>{project.clientName}</strong><small>{project.name}</small></span>
                 <ArrowRight size={16} />
