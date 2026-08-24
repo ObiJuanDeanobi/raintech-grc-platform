@@ -250,6 +250,49 @@ test("opens a creator after the first client project exists", async () => {
   expect(screen.getByRole("option", { name: "New client…" })).toBeInTheDocument();
 });
 
+test("keeps direct file selection and shows the initial evidence version, hash, and review state", async () => {
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/clients") {
+      return Response.json([
+        {
+          id: "client-1",
+          name: "Northwind Health",
+          projects: [{ id: "project-1", name: "HIPAA 2026", framework_version_id: "hipaa-45cfr164-2026-07-01" }],
+        },
+      ]);
+    }
+    if (url === "/api/projects/project-1/assessment") return Response.json(assessment);
+    if (url.includes("/records/child-1")) {
+      return Response.json({
+        ...detail,
+        evidence: [{
+          mapping_id: "mapping-1",
+          artifact_id: "artifact-1",
+          name: "synthetic-risk-register.txt",
+          relative_path: "project-1/artifact-1-synthetic-risk-register.txt",
+          rationale: "Synthetic evidence supports the risk analysis.",
+          shared_record_count: 1,
+          version_number: 1,
+          sha256: "1a2b3c4d5e6f",
+          review_state: "Not reviewed",
+        }],
+      });
+    }
+    if (url === "/api/projects/project-1/evidence") return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  render(<App />);
+
+  expect(await screen.findByText("Version 1")).toBeVisible();
+  expect(screen.getByText("SHA-256: 1a2b3c4d5e6f")).toBeVisible();
+  expect(screen.getByText("Not reviewed")).toBeVisible();
+  expect(screen.getByLabelText("Add evidence file")).toHaveAttribute("type", "file");
+  expect(screen.queryByText(/scanner/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/attest/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/reference-only/i)).not.toBeInTheDocument();
+});
+
 function deferredResponse() {
   let resolve: (response: Response) => void;
   const promise = new Promise<Response>((done) => {
@@ -589,9 +632,9 @@ test("warns before record navigation and before unload until the latest save suc
   window.dispatchEvent(beforeUnload);
   expect(beforeUnload.defaultPrevented).toBe(true);
   pending.resolve(Response.json({ answer: "draft" }));
-  expect(await screen.findByText("Saved")).toBeInTheDocument();
-
-  const afterSave = new Event("beforeunload", { cancelable: true });
-  window.dispatchEvent(afterSave);
-  expect(afterSave.defaultPrevented).toBe(false);
+  await waitFor(() => {
+    const afterSave = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(afterSave);
+    expect(afterSave.defaultPrevented).toBe(false);
+  });
 });

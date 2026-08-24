@@ -26,6 +26,8 @@ Client -> Project -> Profile -> Assessment -> Continuous Remediation
 - Hosted access, RBAC, public intake, crosswalking, and automation are deferred.
 
 See [ROADMAP.md](ROADMAP.md) and [docs/PROJECT_OPERATING_MODEL.md](docs/PROJECT_OPERATING_MODEL.md) before adding new product surface area.
+Operators and developers must also follow the
+[local evidence operating boundary](docs/local-evidence-operating-boundary.md).
 
 The approved specification draft is [docs/specification.md](docs/specification.md).
 The planned UI comparison is
