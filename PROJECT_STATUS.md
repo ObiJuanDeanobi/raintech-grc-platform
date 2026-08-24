@@ -3,32 +3,33 @@
 ## Current phase
 
 `PLANNING-READY`. The requirements and implementation plan were approved by
-Johnathan on August 24, 2026. Milestone 0 is the active documentation-only
-governance reconciliation under GitHub issue #50. Slice 4a remains complete and
-Slice 1a remains merged to `main` in PR #46.
+Johnathan on August 24, 2026. Milestone 0 governance reconciliation is complete
+through PR #51 and GitHub issue #50. Slice 4a remains complete and Slice 1a
+remains merged to `main` in PR #46.
 
 ## Current mode
 
-PLAN. GitHub issue #50 may change only `docs/specification.md`, `ROADMAP.md`,
-focused files under `docs/decisions/`, and this status file. Application code,
-migrations, feature tickets, and BUILD work remain out of scope.
+PLAN. Milestone 0 did not authorize application code, migrations, feature
+tickets, or BUILD work. A separately approved tracer-bullet ticket plan is the
+next frontier.
 
 ## Current objective
 
-Reconcile repository governance with the approved discovery packet before any
-new production ticket is planned. Preserve stable slice numbers and the approved
+Plan the next approved frontier as tracer-bullet feature tickets against the
+reconciled governance baseline. Preserve stable slice numbers and the approved
 build order `1, 2, 4, 3, 5, 6, 7`.
 
 ## Approved specification
 
 `docs/specification.md`. The Milestone 0 amendment aligning it with the
 requirements and implementation plan was approved by Johnathan on August 24,
-2026. Merge and CI verification remain outstanding.
+2026 and merged through PR #51 after both independent review axes and repository
+CI passed.
 
 ## Active ticket
 
-GitHub issue #50 is active in PLAN mode. It is documentation-only and does not
-authorize BUILD.
+No production ticket is active. GitHub issue #50 is complete and closed through
+PR #51; it was documentation-only and did not authorize BUILD.
 
 GitHub issue #49 remains an isolated practitioner test. Its result must not
 change ADR 0012 or the approved baseline unless Johnathan separately accepts the
@@ -233,9 +234,6 @@ on a clickable walkthrough, and merged.
 
 ## In progress
 
-- **GitHub issue #50**: Milestone 0 governance reconciliation. Documentation
-  only; Johnathan approved the resulting diff on August 24, 2026. Merge and CI
-  verification remain outstanding.
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
@@ -347,10 +345,10 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Complete GitHub issue #50, run independent Standards and Spec reviews, and
-present the resulting documentation diff to Johnathan. After he approves and the
-reconciliation merges, plan the next approved frontier as tracer-bullet feature
-tickets. Do not enter BUILD before those tickets are approved.
+Plan the next approved frontier as tracer-bullet feature tickets using the
+reconciled specification, roadmap, and ADRs. Run the ticket approval quiz and
+obtain Johnathan's explicit approval before publishing tickets or entering
+BUILD.
 
 Independently and at any time, Johnathan can make a pass over the Security
 routing in the walkthrough using the `move…` control and send the exported JSON;
