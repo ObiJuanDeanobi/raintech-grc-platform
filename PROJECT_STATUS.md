@@ -2,28 +2,41 @@
 
 ## Current phase
 
-Slice 4a complete. Slice 1a is merged to `main` in PR #46 after independent
-review and green GitHub CI. No production slice is currently in flight.
+`PLANNING-READY`. The requirements and implementation plan were approved by
+Johnathan on August 24, 2026. Milestone 0 is the active documentation-only
+governance reconciliation under GitHub issue #50. Slice 4a remains complete and
+Slice 1a remains merged to `main` in PR #46.
 
 ## Current mode
 
-Chat. Issue #44's 22-criterion BUILD is complete, CI-verified, and merged.
+PLAN. GitHub issue #50 may change only `docs/specification.md`, `ROADMAP.md`,
+focused files under `docs/decisions/`, and this status file. Application code,
+migrations, feature tickets, and BUILD work remain out of scope.
 
 ## Current objective
 
-Choose and approve the next production ticket without expanding Issue #44's
-completed scope. Launcher and packaging remain separately tracked in Issue #32.
+Reconcile repository governance with the approved discovery packet before any
+new production ticket is planned. Preserve stable slice numbers and the approved
+build order `1, 2, 4, 3, 5, 6, 7`.
 
 ## Approved specification
 
-`docs/specification.md`. Approved July 23, 2026; post-prototype revision, catalog
-count correction and bare-standard correction approved July 27, 2026; Breach
-paragraph correction approved July 28, 2026. No unapproved changes outstanding.
+`docs/specification.md`. The Milestone 0 amendment aligning it with the
+requirements and implementation plan was approved by Johnathan on August 24,
+2026. Merge and CI verification remain outstanding.
 
 ## Active ticket
 
-No production ticket is active. GitHub issue #44 is complete and merged in PR
-#46. Launcher, offline packaging, and backup/restore remain Issue #32.
+GitHub issue #50 is active in PLAN mode. It is documentation-only and does not
+authorize BUILD.
+
+GitHub issue #49 remains an isolated practitioner test. Its result must not
+change ADR 0012 or the approved baseline unless Johnathan separately accepts the
+test and approves the resulting decision and specification revision.
+
+GitHub issue #44 is complete and merged in PR #46. GitHub issue #32 remains the
+Windows launcher and offline-package spike; backup and restore implementation
+will be scoped in a separate future ticket after this reconciliation.
 
 GitHub issue #29 is closed. The prompt layer is ingested, practitioner-reviewed
 on a clickable walkthrough, and merged.
@@ -84,7 +97,8 @@ on a clickable walkthrough, and merged.
   workflow area, not a fourth catalog area.
 - Roadmap records the build order 1, 2, 4, 3, 5, 6, 7 without renumbering slices.
 - Post-prototype specification revision approved by Johnathan, July 27, 2026.
-  Production BUILD is unblocked.
+  That approval unblocked the separately approved Slice 1a work that followed;
+  it does not authorize a new BUILD session.
 - Stale open question on production styling closed; it was resolved by the
   prototype.
 - `chore/agent-workflow-hardening` deleted after confirming it was fully merged
@@ -219,29 +233,50 @@ on a clickable walkthrough, and merged.
 
 ## In progress
 
+- **GitHub issue #50**: Milestone 0 governance reconciliation. Documentation
+  only; Johnathan approved the resulting diff on August 24, 2026. Merge and CI
+  verification remain outstanding.
+- **GitHub issue #49**: isolated practitioner test of the question-level working
+  record. It does not alter ADR 0012 or authorize production changes.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
-  needs Johnathan's machine, and now owns the launcher and packaging work that
-  was explicitly excluded from the merged Issue #44 scope.
+  labeled `ready-for-human`, needs Johnathan's machine, and now owns the launcher
+  and packaging work that was explicitly excluded from the merged Issue #44
+  scope.
 - **GitHub issue #21**: practitioner review of the exported 194-record catalog.
-  Record boundaries are settled and citation-stable, and the catalog was read in
-  its working shape through the walkthrough. Stays open for the remaining
-  soundness read, which is a judgement about whether these are the right
-  assessable units rather than whether they reproduce the regulation.
+  It stays open and `ready-for-human`. Record boundaries are settled and
+  citation-stable, and the catalog was read in its working shape through the
+  walkthrough. The remaining soundness read is Johnathan's practitioner
+  judgement about whether these are the right assessable units rather than
+  whether they reproduce the regulation.
 
-No second production slice is in flight.
+No second production slice and no BUILD ticket is in flight.
+
+## Ownership
+
+Johnathan remains accountable for product and scope decisions, approvals,
+implementation delivery, engineering verification, practitioner acceptance,
+framework sign-off, operations, backup/restore acceptance, and benefits
+measurement. AI agents provide analysis, drafting, implementation, test
+execution, and operational support; repository CI remains the engineering
+verification of record. This is the approved joint Johnathan-plus-AI delivery
+and operations model, not a claimed segregation of duties.
 
 ## Blocked
 
-- GitHub issue #32, and every claim about offline operation, packaging,
-  launcher, and backup/restore, is blocked on the Windows machine. A cloud
-  session cannot verify any of it. #32 blocks only the launcher and packaging
-  part of the foundation, not #44's workspace.
+- GitHub issue #32 and every claim about the launcher and offline package are
+  blocked on Johnathan's Windows machine. A cloud session cannot verify them.
+  Backup and restore are approved requirements but are not part of #32; their
+  future implementation and ARM64/x64 recovery verification require a separate
+  ticket and representative Windows hardware.
 
 ## Open questions
 
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
+- **Question-level working record test in Issue #49 — Johnathan.** The test is
+  isolated from the approved baseline. If accepted, it requires an explicit
+  ADR 0012 disposition and a specification revision before any production work.
 - **Security prompt routing sweep — Johnathan.** 143 questions sit on parent
   standards across 11 standards with five or more each. 800-66r2 tags a key
   activity with its implementation specification inconsistently, so an untagged
@@ -296,11 +331,14 @@ for an issue. Each names who has to answer it.
   assumed current.
 - HHS SRA Tool terms are unassessed. No content from it may be reused until they
   are checked.
-- Document templates remain an open input.
+- Sanitized document templates remain an input. Until automated enforcement is
+  separately approved and built, every template ticket requires a recorded
+  manual sanitization gate, verification step, and Johnathan approval.
 - The local `data/` folder contains legacy evidence and exports that must be
   preserved until a separate backup/retention decision is made.
-- Launcher, offline operation, packaging, and backup/restore cannot be verified
-  from a cloud session. Those belong to Slices 1 and 7 on the Windows machine.
+- Launcher, offline packaging, and the future fully local backup/restore
+  workflow cannot be verified from a cloud session. Those require representative
+  ARM64 and x64 Windows machines.
 - No additional frameworks in V1. SOC 2 and possibly PCI DSS are considered for
   later with no commitment. Both strain the ADR 0012 model in the same place:
   each wants a client-defined control sitting between the published requirement
@@ -309,8 +347,10 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Choose the next production ticket and obtain explicit approval before BUILD.
-Issue #32 remains the separate Windows launcher and packaging track.
+Complete GitHub issue #50, run independent Standards and Spec reviews, and
+present the resulting documentation diff to Johnathan. After he approves and the
+reconciliation merges, plan the next approved frontier as tracer-bullet feature
+tickets. Do not enter BUILD before those tickets are approved.
 
 Independently and at any time, Johnathan can make a pass over the Security
 routing in the walkthrough using the `move…` control and send the exported JSON;
