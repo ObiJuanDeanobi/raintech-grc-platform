@@ -749,14 +749,17 @@ function EvidencePanel({
     event.preventDefault();
     onSaveState("saving");
     try {
-      await request(`/api/assessments/${assessment.id}/evidence-mappings`, {
+      await request(
+        `/api/projects/${assessment.project.id}/assessments/${assessment.id}/evidence-mappings`,
+        {
         method: "POST",
         body: JSON.stringify({
           artifact_id: artifactId,
           record_id: detail.record.record_id,
           rationale,
         }),
-      });
+        },
+      );
       setRationale("");
       onSaveState("saved");
       onChanged();
@@ -771,7 +774,7 @@ function EvidencePanel({
     onSaveState("saving");
     try {
       await request(
-        `/api/assessments/${assessment.id}/evidence-mappings/${mapping.mapping_id}`,
+        `/api/projects/${assessment.project.id}/assessments/${assessment.id}/evidence-mappings/${mapping.mapping_id}`,
         { method: "DELETE" },
       );
       onSaveState("saved");
@@ -798,6 +801,9 @@ function EvidencePanel({
             <div>
               <strong>{mapping.name}</strong>
               <p>{mapping.rationale}</p>
+              <span>Version {mapping.version_number}</span>
+              <span>SHA-256: {mapping.sha256}</span>
+              <span>{mapping.review_state}</span>
               <span>Shared across {mapping.shared_record_count} record{mapping.shared_record_count === 1 ? "" : "s"}</span>
             </div>
             <button className="icon-button" aria-label={`Unmap ${mapping.name}`} onClick={() => void unmap(mapping)}>
@@ -821,7 +827,8 @@ function EvidencePanel({
             <option value="">Choose evidence…</option>
             {artifacts.map((artifact) => (
               <option key={artifact.id} value={artifact.id}>
-                {artifact.name} ({artifact.shared_record_count} mappings)
+                {artifact.name} · Version {artifact.version_number} · SHA-256: {artifact.sha256}
+                {" "}({artifact.shared_record_count} mappings)
               </option>
             ))}
           </select>
@@ -884,7 +891,7 @@ function Workspace({
     const target = { assessmentId: assessment.id, recordId };
     const requestSequence = ++detailRequestSequenceRef.current;
     const next = await request<RecordDetail>(
-      `/api/assessments/${target.assessmentId}/records/${encodeURIComponent(target.recordId)}`,
+      `/api/projects/${assessment.project.id}/assessments/${target.assessmentId}/records/${encodeURIComponent(target.recordId)}`,
     );
     if (
       detailRequestSequenceRef.current === requestSequence &&

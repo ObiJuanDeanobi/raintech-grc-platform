@@ -108,7 +108,12 @@ export interface EvidenceMapping {
   name: string;
   relative_path: string;
   rationale: string;
+  review_state: string;
   shared_record_count: number;
+  version_id: string;
+  version_project_id: string;
+  version_number: number;
+  sha256: string;
 }
 
 export interface Artifact {
@@ -116,6 +121,11 @@ export interface Artifact {
   name: string;
   relative_path: string;
   shared_record_count: number;
+  version_id: string;
+  version_number: number;
+  sha256: string;
+  version_relative_path: string;
+  version_created_at: string;
 }
 
 export interface RecordDetail {

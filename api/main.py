@@ -2,6 +2,7 @@ import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from hashlib import sha256
 from pathlib import Path
 from typing import Annotated, Any, cast
 from uuid import uuid4
@@ -80,6 +81,23 @@ def _audit(
         """,
         (str(uuid4()), action, entity_type, entity_id, json.dumps(details), now()),
     )
+
+
+def _project_or_404(connection: Any, project_id: str) -> Any:
+    project = connection.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+def _assessment_for_project_or_404(connection: Any, project_id: str, assessment_id: str) -> Any:
+    assessment = connection.execute(
+        "SELECT * FROM assessments WHERE id = ? AND project_id = ?",
+        (assessment_id, project_id),
+    ).fetchone()
+    if assessment is None:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    return assessment
 
 
 def _record_or_404(connection: Any, assessment_id: str, record_id: str) -> Any:
@@ -329,9 +347,12 @@ def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[
         for mapping in connection.execute(
             """
             SELECT em.id AS mapping_id, em.artifact_id, ea.name, ea.relative_path,
-                   em.rationale
+                   em.rationale, em.review_state, ev.id AS version_id,
+                   ev.version_number, ev.sha256
             FROM evidence_mappings em
             JOIN evidence_artifacts ea ON ea.id = em.artifact_id
+            JOIN evidence_versions ev
+              ON ev.artifact_id = ea.id AND ev.version_number = 1
             WHERE em.assessment_id = ? AND em.record_id = ?
             ORDER BY em.created_at
             """,
@@ -380,8 +401,8 @@ def create_app(
     repository_root: Path | None = None,
 ) -> FastAPI:
     root = repository_root or Path(__file__).resolve().parents[1]
-    database = Database(database_path or root / "data" / "workspace.db")
     managed_storage = storage_path or root / "data" / "files"
+    database = Database(database_path or root / "data" / "workspace.db", managed_storage)
     storage: FileStorage = LocalFileStorage(managed_storage)
 
     @asynccontextmanager
@@ -567,13 +588,15 @@ def create_app(
                 "record_index": record_index,
             }
 
-    @app.get("/api/assessments/{assessment_id}/records/{record_id}")
+    @app.get("/api/projects/{project_id}/assessments/{assessment_id}/records/{record_id}")
     def get_record(
+        project_id: str,
         assessment_id: str,
         record_id: str,
         database: Annotated[Database, Depends(db)],
     ) -> dict[str, Any]:
         with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
             return _record_detail(connection, assessment_id, record_id)
 
     @app.put("/api/assessments/{assessment_id}/determinations/{record_id}")
@@ -709,19 +732,39 @@ def create_app(
         if not file.filename:
             raise HTTPException(status_code=422, detail="Evidence filename is required")
         with database.connect() as connection:
-            if (
-                connection.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
-                is None
-            ):
-                raise HTTPException(status_code=404, detail="Project not found")
+            _project_or_404(connection, project_id)
             relative_path = file_storage.save(project_id, artifact_id, file.filename, content)
             created_at = now()
+            version = {
+                "id": str(uuid4()),
+                "project_id": project_id,
+                "version_number": 1,
+                "sha256": sha256(file_storage.read(relative_path)).hexdigest(),
+                "relative_path": relative_path,
+                "created_at": created_at,
+            }
             connection.execute(
                 """
                 INSERT INTO evidence_artifacts(id, project_id, name, relative_path, created_at)
                 VALUES (?, ?, ?, ?, ?)
                 """,
                 (artifact_id, project_id, file.filename, relative_path, created_at),
+            )
+            connection.execute(
+                """
+                INSERT INTO evidence_versions(
+                    id, artifact_id, project_id, version_number, relative_path, sha256, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    version["id"],
+                    artifact_id,
+                    version["project_id"],
+                    version["version_number"],
+                    version["relative_path"],
+                    version["sha256"],
+                    version["created_at"],
+                ),
             )
             _audit(
                 connection,
@@ -736,6 +779,7 @@ def create_app(
             "name": file.filename,
             "relative_path": relative_path,
             "created_at": created_at,
+            "version": version,
         }
 
     @app.get("/api/projects/{project_id}/evidence")
@@ -744,6 +788,7 @@ def create_app(
         database: Annotated[Database, Depends(db)],
     ) -> list[dict[str, Any]]:
         with database.connect() as connection:
+            _project_or_404(connection, project_id)
             return [
                 {
                     **_row(row),
@@ -753,29 +798,42 @@ def create_app(
                     ).fetchone()["count"],
                 }
                 for row in connection.execute(
-                    "SELECT * FROM evidence_artifacts WHERE project_id = ? ORDER BY created_at",
+                    """
+                    SELECT ea.*, ev.id AS version_id, ev.project_id AS version_project_id,
+                           ev.version_number, ev.sha256,
+                           ev.relative_path AS version_relative_path,
+                           ev.created_at AS version_created_at
+                    FROM evidence_artifacts ea
+                    JOIN evidence_versions ev
+                      ON ev.artifact_id = ea.id AND ev.version_number = 1
+                    WHERE ea.project_id = ?
+                    ORDER BY ea.created_at
+                    """,
                     (project_id,),
                 )
             ]
 
-    @app.post("/api/assessments/{assessment_id}/evidence-mappings", status_code=201)
+    @app.post(
+        "/api/projects/{project_id}/assessments/{assessment_id}/evidence-mappings",
+        status_code=201,
+    )
     def create_mapping(
+        project_id: str,
         assessment_id: str,
         payload: EvidenceMappingCreate,
         database: Annotated[Database, Depends(db)],
     ) -> dict[str, Any]:
         mapping_id = str(uuid4())
         with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
             _record_or_404(connection, assessment_id, payload.record_id)
             artifact = connection.execute(
                 """
-                SELECT ea.*
+                SELECT ea.id
                 FROM evidence_artifacts ea
-                JOIN projects ON projects.id = ea.project_id
-                JOIN assessments ON assessments.project_id = projects.id
-                WHERE assessments.id = ? AND ea.id = ?
+                WHERE ea.project_id = ? AND ea.id = ?
                 """,
-                (assessment_id, payload.artifact_id),
+                (project_id, payload.artifact_id),
             ).fetchone()
             if artifact is None:
                 raise HTTPException(status_code=404, detail="Evidence artifact not found")
@@ -783,8 +841,9 @@ def create_app(
                 connection.execute(
                     """
                     INSERT INTO evidence_mappings(
-                        id, artifact_id, assessment_id, record_id, rationale, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?)
+                        id, artifact_id, assessment_id, record_id, rationale, review_state,
+                        created_at
+                    ) VALUES (?, ?, ?, ?, ?, 'Not reviewed', ?)
                     """,
                     (
                         mapping_id,
@@ -822,21 +881,29 @@ def create_app(
             "artifact_id": payload.artifact_id,
             "record_id": payload.record_id,
             "rationale": payload.rationale.strip(),
+            "review_state": "Not reviewed",
             "shared_record_count": shared_count,
         }
 
-    @app.delete("/api/assessments/{assessment_id}/evidence-mappings/{mapping_id}")
+    @app.delete(
+        "/api/projects/{project_id}/assessments/{assessment_id}/evidence-mappings/{mapping_id}"
+    )
     def delete_mapping(
+        project_id: str,
         assessment_id: str,
         mapping_id: str,
         database: Annotated[Database, Depends(db)],
     ) -> dict[str, bool]:
         with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
             mapping = connection.execute(
                 """
-                SELECT * FROM evidence_mappings WHERE assessment_id = ? AND id = ?
+                SELECT em.*
+                FROM evidence_mappings em
+                JOIN evidence_artifacts ea ON ea.id = em.artifact_id
+                WHERE em.assessment_id = ? AND em.id = ? AND ea.project_id = ?
                 """,
-                (assessment_id, mapping_id),
+                (assessment_id, mapping_id, project_id),
             ).fetchone()
             if mapping is None:
                 raise HTTPException(status_code=404, detail="Evidence mapping not found")
@@ -1079,19 +1146,14 @@ def create_app(
             "created_at": created_at,
         }
 
-    @app.get("/api/assessments/{assessment_id}/audit")
+    @app.get("/api/projects/{project_id}/assessments/{assessment_id}/audit")
     def list_audit(
+        project_id: str,
         assessment_id: str,
         database: Annotated[Database, Depends(db)],
     ) -> list[dict[str, Any]]:
         with database.connect() as connection:
-            if (
-                connection.execute(
-                    "SELECT id FROM assessments WHERE id = ?", (assessment_id,)
-                ).fetchone()
-                is None
-            ):
-                raise HTTPException(status_code=404, detail="Assessment not found")
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
             rows = connection.execute(
                 """
                 SELECT ae.*, ua.display_name

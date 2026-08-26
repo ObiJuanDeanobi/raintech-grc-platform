@@ -6,6 +6,9 @@ class FileStorage(Protocol):
     def save(self, project_id: str, artifact_id: str, filename: str, content: bytes) -> str:
         """Store a file and return its stable relative path."""
 
+    def read(self, relative_path: str) -> bytes:
+        """Read bytes previously stored at a stable relative path."""
+
 
 class LocalFileStorage:
     def __init__(self, root: Path) -> None:
@@ -18,3 +21,6 @@ class LocalFileStorage:
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes(content)
         return relative.as_posix()
+
+    def read(self, relative_path: str) -> bytes:
+        return (self.root / relative_path).read_bytes()

@@ -2,23 +2,26 @@
 
 ## Current phase
 
-`IMPLEMENTATION-READY`. The requirements and implementation plan were approved
-by Johnathan on August 24, 2026. GitHub issue #54 is complete and merged to
-`main` through PR #55 after both required review axes and repository CI passed.
-Milestone 0 governance reconciliation is complete through PR #51 and GitHub
-issue #50. Slice 4a remains complete and Slice 1a remains merged to `main` in
-PR #46.
+`IMPLEMENTATION-REVIEWED`. The requirements and implementation plan were
+approved by Johnathan on August 24, 2026. GitHub issue #53 was separately
+approved for BUILD on August 24, 2026 and is ready for a pull request after
+passing its local verification and both independent review axes.
+GitHub issue #54 is complete and merged to `main` through PR #55 after both
+required review axes and repository CI passed. Milestone 0 governance
+reconciliation is complete through PR #51 and GitHub issue #50.
 
 ## Current mode
 
-PLAN. Issue #54's separately approved BUILD is complete. No additional
-production ticket is authorized.
+BUILD review complete. Issue #53's approved minimum project-scoped immutable
+local-evidence slice is implemented and locally verified. Its broader evidence
+lifecycle, backup/recovery, authentication/RBAC, hosted storage, and Issue #49
+behavior remain excluded.
 
 ## Current objective
 
-Select and approve the next tracer-bullet ticket from the reconciled Milestone 1
-plan. Preserve stable slice numbers and the approved build order
-`1, 2, 4, 3, 5, 6, 7`.
+Commit the reviewed GitHub issue #53 implementation, open its pull request, and
+require repository CI before requesting merge approval. Preserve stable slice
+numbers and the approved build order `1, 2, 4, 3, 5, 6, 7`.
 
 ## Approved specification
 
@@ -29,9 +32,17 @@ CI passed.
 
 ## Active ticket
 
-No production ticket is active. GitHub issue #54 is complete and closed through
-PR #55 after local automated checks, browser verification, ARM64/x64 source
-compatibility review, both independent review axes, and required CI passed.
+**GitHub issue #53 — implemented / reviewed / ready for PR.** It adds the minimum immutable
+initial EvidenceVersion and upload-time SHA-256, an initial mapping review state,
+project-boundary enforcement, existing-surface observability, synthetic browser
+evidence, and the required operator/developer boundary documentation. Local
+automated, migration, browser, compatibility, Standards, and Specification
+verification passed. No broader evidence-management surface or lifecycle is
+authorized.
+
+GitHub issue #54 is complete and closed through PR #55 after local automated
+checks, browser verification, ARM64/x64 source compatibility review, both
+independent review axes, and required CI passed.
 
 GitHub issue #50 is complete and closed through PR #51; it was
 documentation-only and did not authorize BUILD.
@@ -241,9 +252,18 @@ on a clickable walkthrough, and merged.
   review, and independent Standards and Specification reviews on August 24,
   2026. It merged to `main` through PR #55 after required CI passed, and the
   issue closed automatically.
+- Issue #53's project-scoped immutable local-evidence implementation passed 9
+  API tests, 12 React tests, 73 catalog tests with 15 skipped, migration
+  upgrade/downgrade and populated-workspace backfill checks, browser isolation
+  with synthetic data, ARM64/x64 source compatibility review, and independent
+  Standards and Specification reviews on August 24, 2026. It is ready for a
+  pull request and repository CI; merge remains separately unauthorized.
 
 ## In progress
 
+- **GitHub issue #53**: implemented and reviewed on
+  `feature/53-project-scoped-immutable-local-evidence`. The next gate is pull
+  request CI followed by Johnathan's separate merge approval.
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
@@ -355,8 +375,9 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Select the next Milestone 1 tracer-bullet ticket and obtain its explicit BUILD
-authorization. Do not begin another production ticket without that approval.
+Complete Issue #53 through implementation, migration verification, automated
+and browser acceptance, two-axis review, and a green pull request. Do not merge
+the resulting pull request without Johnathan's approval.
 
 Independently and at any time, Johnathan can make a pass over the Security
 routing in the walkthrough using the `move…` control and send the exported JSON;
