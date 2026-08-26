@@ -51,17 +51,6 @@ class PromptAnswerSave(BaseModel):
     answer: str
 
 
-class PromptPlacementSave(BaseModel):
-    destination_record_id: str | None = None
-    rule_citation: str = ""
-    reason: str = Field(min_length=1)
-
-
-class PromptMoveRejectionSave(BaseModel):
-    proposed_record_id: str
-    reason: str = Field(min_length=1)
-
-
 def _row(row: Any) -> dict[str, Any]:
     return dict(row)
 
@@ -221,33 +210,17 @@ def _prompts_for_record(
 ) -> list[dict[str, Any]]:
     prompt_rows = connection.execute(
         """
-        SELECT fp.*, pa.answer, pp.placement_type, pp.destination_record_id,
-               pp.rule_citation, pp.reason AS placement_reason,
-               origin.citation AS origin_citation, origin.title AS origin_title
+        SELECT fp.*, pa.answer
         FROM framework_prompts fp
         LEFT JOIN prompt_answers pa
           ON pa.prompt_id = fp.prompt_id AND pa.assessment_id = ?
-        LEFT JOIN prompt_placements pp
-          ON pp.prompt_id = fp.prompt_id AND pp.assessment_id = ?
-        LEFT JOIN framework_records origin
-          ON origin.framework_version_id = fp.framework_version_id
-         AND origin.record_id = fp.original_record_id
         WHERE fp.framework_version_id = ?
-          AND (
-            (? IS NULL AND pp.placement_type = 'context')
-            OR
-            (? IS NOT NULL
-             AND COALESCE(pp.destination_record_id, fp.original_record_id) = ?
-             AND COALESCE(pp.placement_type, 'record') != 'context')
-          )
+          AND fp.original_record_id = ?
         ORDER BY fp.sort_order
         """,
         (
             assessment_id,
-            assessment_id,
             framework_version_id,
-            record_id,
-            record_id,
             record_id,
         ),
     ).fetchall()
@@ -264,21 +237,28 @@ def _prompts_for_record(
             "role_reason": prompt["role_reason"],
             "render_checkbox": prompt["role"] == "assessment_check",
             "answer": prompt["answer"] or "",
-            "moved_from": None,
-            "placement": None,
         }
-        if prompt["placement_type"] in {"record", "context"}:
-            item["moved_from"] = {
-                "record_id": prompt["original_record_id"],
-                "citation": prompt["origin_citation"],
-                "title": prompt["origin_title"],
-            }
-            item["placement"] = {
-                "rule_citation": prompt["rule_citation"],
-                "reason": prompt["placement_reason"],
-            }
         prompts.append(item)
     return prompts
+
+
+def _walkthrough_records(connection: Any, framework_version_id: str) -> list[Any]:
+    framework = connection.execute(
+        "SELECT declarations_json FROM framework_versions WHERE id = ?",
+        (framework_version_id,),
+    ).fetchone()
+    membership = json.loads(framework["declarations_json"])["walkthrough_membership"]
+    if membership != "all_records":
+        raise ValueError(f"Unsupported walkthrough membership rule: {membership}")
+    records: list[Any] = connection.execute(
+        """
+        SELECT * FROM framework_records
+        WHERE framework_version_id = ?
+        ORDER BY sort_order
+        """,
+        (framework_version_id,),
+    ).fetchall()
+    return records
 
 
 def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[str, Any]:
@@ -359,26 +339,17 @@ def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[
             (assessment_id, record_id),
         )
     ]
-    position = None
-    if record["carries_determination"]:
-        work_ids = [
-            row["record_id"]
-            for row in connection.execute(
-                """
-                SELECT record_id FROM framework_records
-                WHERE framework_version_id = ? AND carries_determination = 1
-                ORDER BY sort_order
-                """,
-                (assessment["framework_version_id"],),
-            )
-        ]
-        current = work_ids.index(record_id)
-        position = {
-            "current": current + 1,
-            "total": len(work_ids),
-            "previous_record_id": work_ids[current - 1] if current > 0 else None,
-            "next_record_id": work_ids[current + 1] if current + 1 < len(work_ids) else None,
-        }
+    work_ids = [
+        row["record_id"]
+        for row in _walkthrough_records(connection, assessment["framework_version_id"])
+    ]
+    current = work_ids.index(record_id)
+    position = {
+        "current": current + 1,
+        "total": len(work_ids),
+        "previous_record_id": work_ids[current - 1] if current > 0 else None,
+        "next_record_id": work_ids[current + 1] if current + 1 < len(work_ids) else None,
+    }
     summary = _record_summary(connection, assessment_id, record)
     determination = summary.pop("determination")
     return {
@@ -389,6 +360,7 @@ def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[
         "context_prompts": context_prompts,
         "children": children,
         "prompts": prompts,
+        "no_prompt_explanation": record["no_prompt_explanation"],
         "note": note["note"] if note else "",
         "evidence": evidence,
         "position": position,
@@ -539,19 +511,36 @@ def create_app(
                 "SELECT * FROM framework_versions WHERE id = ?",
                 (assessment["framework_version_id"],),
             ).fetchone()
+            walkthrough_rows = _walkthrough_records(
+                connection, assessment["framework_version_id"]
+            )
             work_list = [
-                _row(row)
-                for row in connection.execute(
-                    """
-                    SELECT record_id, citation, title, work_area, record_type, parent_id,
-                           designation, sort_order
-                    FROM framework_records
-                    WHERE framework_version_id = ? AND carries_determination = 1
-                    ORDER BY sort_order
-                    """,
-                    (assessment["framework_version_id"],),
-                )
+                {
+                    **_row(row),
+                    "editable_determination": bool(row["carries_determination"]),
+                }
+                for row in walkthrough_rows
             ]
+            determination_record_count = connection.execute(
+                """
+                SELECT COUNT(*) AS count FROM framework_records
+                WHERE framework_version_id = ? AND carries_determination = 1
+                """,
+                (assessment["framework_version_id"],),
+            ).fetchone()["count"]
+            resolved_determination_count = connection.execute(
+                """
+                SELECT COUNT(*) AS count
+                FROM determinations
+                JOIN framework_records
+                  ON framework_records.framework_version_id = ?
+                 AND framework_records.record_id = determinations.record_id
+                WHERE determinations.assessment_id = ?
+                  AND framework_records.carries_determination = 1
+                  AND determinations.status IN ('Met', 'Not Met', 'N/A')
+                """,
+                (assessment["framework_version_id"], assessment["id"]),
+            ).fetchone()["count"]
             record_index = [
                 {
                     **_row(row),
@@ -580,9 +569,14 @@ def create_app(
                     "id": framework["id"],
                     "name": framework["name"],
                     "record_count": framework["record_count"],
+                    "walkthrough_record_count": len(work_list),
                     "prompt_count": framework["prompt_count"],
-                    "determination_record_count": len(work_list),
+                    "determination_record_count": determination_record_count,
                     "declarations": json.loads(framework["declarations_json"]),
+                },
+                "progress": {
+                    "resolved_determination_count": resolved_determination_count,
+                    "determination_record_count": determination_record_count,
                 },
                 "work_list": work_list,
                 "record_index": record_index,
@@ -988,82 +982,6 @@ def create_app(
             )
         return {"answer": payload.answer, "updated_at": saved_at}
 
-    @app.put("/api/assessments/{assessment_id}/prompts/{prompt_id}/placement")
-    def save_prompt_placement(
-        assessment_id: str,
-        prompt_id: str,
-        payload: PromptPlacementSave,
-        database: Annotated[Database, Depends(db)],
-    ) -> dict[str, Any]:
-        placement_type = "record" if payload.destination_record_id else "context"
-        if placement_type == "record" and not payload.rule_citation.strip():
-            raise HTTPException(
-                status_code=422,
-                detail="Moving a question to a record requires the rule it tests",
-            )
-        with database.connect() as connection:
-            prompt = connection.execute(
-                """
-                SELECT fp.*
-                FROM framework_prompts fp
-                JOIN assessments
-                  ON assessments.framework_version_id = fp.framework_version_id
-                WHERE assessments.id = ? AND fp.prompt_id = ?
-                """,
-                (assessment_id, prompt_id),
-            ).fetchone()
-            if prompt is None:
-                raise HTTPException(status_code=404, detail="Prompt not found")
-            if payload.destination_record_id:
-                _record_or_404(connection, assessment_id, payload.destination_record_id)
-            created_at = now()
-            connection.execute(
-                """
-                INSERT INTO prompt_placements(
-                    assessment_id, prompt_id, placement_type, destination_record_id,
-                    rule_citation, reason, actor_id, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 'johnathan', ?)
-                ON CONFLICT(assessment_id, prompt_id) DO UPDATE SET
-                    placement_type = excluded.placement_type,
-                    destination_record_id = excluded.destination_record_id,
-                    rule_citation = excluded.rule_citation,
-                    reason = excluded.reason,
-                    actor_id = excluded.actor_id,
-                    created_at = excluded.created_at
-                """,
-                (
-                    assessment_id,
-                    prompt_id,
-                    placement_type,
-                    payload.destination_record_id,
-                    payload.rule_citation.strip(),
-                    payload.reason.strip(),
-                    created_at,
-                ),
-            )
-            _audit(
-                connection,
-                "prompt.placement_saved",
-                "prompt_placement",
-                f"{assessment_id}:{prompt_id}",
-                {
-                    "assessment_id": assessment_id,
-                    "prompt_id": prompt_id,
-                    "original_record_id": prompt["original_record_id"],
-                    "destination_record_id": payload.destination_record_id,
-                    "placement_type": placement_type,
-                },
-            )
-        return {
-            "prompt_id": prompt_id,
-            "placement_type": placement_type,
-            "destination_record_id": payload.destination_record_id,
-            "rule_citation": payload.rule_citation.strip(),
-            "reason": payload.reason.strip(),
-            "actor": {"id": "johnathan", "display_name": "Johnathan"},
-            "created_at": created_at,
-        }
-
     @app.get("/api/assessments/{assessment_id}/prompts/{prompt_id}/rejections")
     def list_prompt_move_rejections(
         assessment_id: str,
@@ -1083,68 +1001,6 @@ def create_app(
                     (assessment_id, prompt_id),
                 )
             ]
-
-    @app.post(
-        "/api/assessments/{assessment_id}/prompts/{prompt_id}/rejections",
-        status_code=201,
-    )
-    def reject_prompt_move(
-        assessment_id: str,
-        prompt_id: str,
-        payload: PromptMoveRejectionSave,
-        database: Annotated[Database, Depends(db)],
-    ) -> dict[str, Any]:
-        with database.connect() as connection:
-            prompt = connection.execute(
-                """
-                SELECT fp.prompt_id
-                FROM framework_prompts fp
-                JOIN assessments
-                  ON assessments.framework_version_id = fp.framework_version_id
-                WHERE assessments.id = ? AND fp.prompt_id = ?
-                """,
-                (assessment_id, prompt_id),
-            ).fetchone()
-            if prompt is None:
-                raise HTTPException(status_code=404, detail="Prompt not found")
-            _record_or_404(connection, assessment_id, payload.proposed_record_id)
-            created_at = now()
-            connection.execute(
-                """
-                INSERT INTO prompt_move_rejections(
-                    assessment_id, prompt_id, proposed_record_id, reason, actor_id, created_at
-                ) VALUES (?, ?, ?, ?, 'johnathan', ?)
-                ON CONFLICT(assessment_id, prompt_id, proposed_record_id) DO UPDATE SET
-                    reason = excluded.reason,
-                    actor_id = excluded.actor_id,
-                    created_at = excluded.created_at
-                """,
-                (
-                    assessment_id,
-                    prompt_id,
-                    payload.proposed_record_id,
-                    payload.reason.strip(),
-                    created_at,
-                ),
-            )
-            _audit(
-                connection,
-                "prompt.move_rejected",
-                "prompt_move_rejection",
-                f"{assessment_id}:{prompt_id}:{payload.proposed_record_id}",
-                {
-                    "assessment_id": assessment_id,
-                    "prompt_id": prompt_id,
-                    "proposed_record_id": payload.proposed_record_id,
-                },
-            )
-        return {
-            "prompt_id": prompt_id,
-            "proposed_record_id": payload.proposed_record_id,
-            "reason": payload.reason.strip(),
-            "actor_id": "johnathan",
-            "created_at": created_at,
-        }
 
     @app.get("/api/projects/{project_id}/assessments/{assessment_id}/audit")
     def list_audit(

@@ -11,7 +11,6 @@ import {
   FolderKanban,
   ListFilter,
   LoaderCircle,
-  MoveRight,
   Search,
   ShieldCheck,
   UserRound,
@@ -270,12 +269,12 @@ function Setup({ onCreated }: { onCreated: (projectId: string) => void }) {
         <p className="eyebrow">RAINTECH GRC</p>
         <h1>Begin with the work,<br />not the setup.</h1>
         <p>
-          Create the first client project. The assessment is pinned to the July 2026
-          HIPAA catalog and saved locally as you work.
+          Create the first client project. The assessment is pinned to a versioned
+          framework catalog and saved locally as you work.
         </p>
         <div className="setup-facts">
-          <span><Check size={16} /> 194 cited records</span>
-          <span><Check size={16} /> 1,163 assessor prompts</span>
+          <span><Check size={16} /> Complete cited walkthrough</span>
+          <span><Check size={16} /> Source-attributed guidance</span>
           <span><Check size={16} /> Local SQLite workspace</span>
         </div>
       </section>
@@ -391,24 +390,15 @@ function PromptCard({
   prompt,
   assessment,
   recordId,
-  onChanged,
-  onSaveState,
   onRoutineSaveState,
   coordinateSave,
 }: {
   prompt: Prompt;
   assessment: Assessment;
   recordId: string;
-  onChanged: () => void;
-  onSaveState: (state: "saving" | "saved" | "error", message?: string) => void;
   onRoutineSaveState: RoutineSaveReporter;
   coordinateSave: RoutineRecordSaveCoordinator;
 }) {
-  const [moving, setMoving] = useState(false);
-  const [destination, setDestination] = useState("");
-  const [rule, setRule] = useState("");
-  const [reason, setReason] = useState("");
-
   const {
     draft: answer,
     state: answerSaveState,
@@ -429,26 +419,6 @@ function PromptCard({
     coordinateSave,
   );
 
-  async function movePrompt(event: FormEvent) {
-    event.preventDefault();
-    onSaveState("saving");
-    try {
-      await request(`/api/assessments/${assessment.id}/prompts/${prompt.id}/placement`, {
-        method: "PUT",
-        body: JSON.stringify({
-          destination_record_id: destination === "__context__" ? null : destination,
-          rule_citation: rule,
-          reason,
-        }),
-      });
-      setMoving(false);
-      onSaveState("saved");
-      onChanged();
-    } catch (caught) {
-      onSaveState("error", caught instanceof Error ? caught.message : undefined);
-    }
-  }
-
   return (
     <article className={`prompt-card role-${prompt.role}`}>
       <div className="prompt-heading">
@@ -464,20 +434,7 @@ function PromptCard({
             {prompt.cfr_paragraph && ` · ${prompt.cfr_paragraph}`}
           </span>
         </div>
-        <button
-          className="icon-button"
-          aria-label={`Move question: ${prompt.text}`}
-          title="Move this question"
-          onClick={() => setMoving((value) => !value)}
-        >
-          <MoveRight size={16} />
-        </button>
       </div>
-      {prompt.moved_from && (
-        <p className="moved-note">
-          Moved from {prompt.moved_from.citation} · {prompt.placement?.rule_citation}
-        </p>
-      )}
       <textarea
         aria-label={`Answer: ${prompt.text}`}
         value={answer}
@@ -487,36 +444,6 @@ function PromptCard({
         rows={2}
       />
       <RoutineSaveStatus state={answerSaveState} retry={retryAnswer} label="answer" />
-      {moving && (
-        <form className="move-form" onSubmit={movePrompt}>
-          <label>
-            Move to
-            <select required value={destination} onChange={(event) => setDestination(event.target.value)}>
-              <option value="">Choose a record…</option>
-              <option value="__context__">Context only (no rule)</option>
-              {assessment.record_index.map((record) => (
-                <option key={record.record_id} value={record.record_id}>
-                  {record.citation} — {record.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          {destination && destination !== "__context__" && (
-            <label>
-              Rule this question tests
-              <input required value={rule} onChange={(event) => setRule(event.target.value)} placeholder="45 CFR …" />
-            </label>
-          )}
-          <label>
-            Reason
-            <input required value={reason} onChange={(event) => setReason(event.target.value)} />
-          </label>
-          <div className="inline-actions">
-            <button className="small-button" type="submit">Save move</button>
-            <button className="text-button" type="button" onClick={() => setMoving(false)}>Cancel</button>
-          </div>
-        </form>
-      )}
     </article>
   );
 }
@@ -849,7 +776,7 @@ function EvidencePanel({
   );
 }
 
-function Workspace({
+export function Workspace({
   clients,
   projectId,
   onProjectChange,
@@ -861,6 +788,7 @@ function Workspace({
   onWorkspaceCreated: (id: string) => void;
 }) {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [progress, setProgress] = useState<Assessment["progress"] | null>(null);
   const [recordId, setRecordId] = useState("");
   const [returnRecordId, setReturnRecordId] = useState("");
   const [detail, setDetail] = useState<RecordDetail | null>(null);
@@ -875,16 +803,51 @@ function Workspace({
   const [view, setView] = useState<"assessment" | "overview">("assessment");
   const detailTargetRef = useRef({ assessmentId: "", recordId: "" });
   const detailRequestSequenceRef = useRef(0);
+  const assessmentRequestSequenceRef = useRef(0);
+  const artifactRequestSequenceRef = useRef(0);
+  const projectTargetRef = useRef(projectId);
   const coordinateRoutineSave = useRoutineRecordSaveCoordinator();
+  projectTargetRef.current = projectId;
   detailTargetRef.current = { assessmentId: assessment?.id ?? "", recordId };
 
-  const loadAssessment = useCallback(async () => {
-    setLoading(true);
-    const next = await request<Assessment>(`/api/projects/${projectId}/assessment`);
+  const loadAssessment = useCallback(async (signal?: AbortSignal) => {
+    const targetProjectId = projectId;
+    const requestSequence = ++assessmentRequestSequenceRef.current;
+    let next: Assessment;
+    try {
+      next = await request<Assessment>(
+        `/api/projects/${targetProjectId}/assessment`,
+        { signal },
+      );
+    } catch (error) {
+      if (signal?.aborted) return;
+      throw error;
+    }
+    if (
+      signal?.aborted
+      || assessmentRequestSequenceRef.current !== requestSequence
+      || projectTargetRef.current !== targetProjectId
+    ) return;
     setAssessment(next);
-    setRecordId((current) => current || next.work_list[0]?.record_id || "");
+    setProgress(next.progress);
+    setRecordId(next.work_list[0]?.record_id || "");
     setLoading(false);
   }, [projectId]);
+
+  const refreshAssessmentProgress = useCallback(async () => {
+    if (!assessment) return;
+    const targetProjectId = assessment.project.id;
+    const targetAssessmentId = assessment.id;
+    const requestSequence = ++assessmentRequestSequenceRef.current;
+    const next = await request<Assessment>(`/api/projects/${targetProjectId}/assessment`);
+    if (
+      assessmentRequestSequenceRef.current !== requestSequence
+      || projectTargetRef.current !== targetProjectId
+    ) return;
+    if (detailTargetRef.current.assessmentId === targetAssessmentId) {
+      setProgress(next.progress);
+    }
+  }, [assessment]);
 
   const loadDetail = useCallback(async () => {
     if (!assessment || !recordId) return;
@@ -902,15 +865,38 @@ function Workspace({
     }
   }, [assessment, recordId]);
 
-  const loadArtifacts = useCallback(async () => {
+  const loadArtifacts = useCallback(async (signal?: AbortSignal) => {
     if (!assessment) return;
-    setArtifacts(await request<Artifact[]>(`/api/projects/${assessment.project.id}/evidence`));
+    const targetProjectId = assessment.project.id;
+    const requestSequence = ++artifactRequestSequenceRef.current;
+    let next: Artifact[];
+    try {
+      next = await request<Artifact[]>(
+        `/api/projects/${targetProjectId}/evidence`,
+        { signal },
+      );
+    } catch (error) {
+      if (signal?.aborted) return;
+      throw error;
+    }
+    if (
+      signal?.aborted
+      || artifactRequestSequenceRef.current !== requestSequence
+      || projectTargetRef.current !== targetProjectId
+    ) return;
+    setArtifacts(next);
   }, [assessment]);
 
   useEffect(() => {
+    const controller = new AbortController();
     setAssessment(null);
+    setProgress(null);
     setRecordId("");
-    void loadAssessment();
+    setLoading(true);
+    setDetail(null);
+    setArtifacts([]);
+    void loadAssessment(controller.signal);
+    return () => controller.abort();
   }, [loadAssessment]);
 
   useEffect(() => {
@@ -918,7 +904,9 @@ function Workspace({
   }, [loadDetail]);
 
   useEffect(() => {
-    void loadArtifacts();
+    const controller = new AbortController();
+    void loadArtifacts(controller.signal);
+    return () => controller.abort();
   }, [loadArtifacts]);
 
   function updateSaveState(state: "saving" | "saved" | "error", message = "") {
@@ -1000,7 +988,7 @@ function Workspace({
     client.projects.map((project) => ({ ...project, clientName: client.name })),
   );
 
-  if (loading || !assessment || !detail) {
+  if (loading || !assessment || !progress || !detail) {
     return <div className="loading-screen"><LoaderCircle className="spin" /><span>Opening assessment workspace…</span></div>;
   }
 
@@ -1084,22 +1072,22 @@ function Workspace({
               <button className="back-link" onClick={() => changeRecord(returnRecordId)}>
                 <ArrowLeft size={15} /> Back to determination
               </button>
-            ) : detail.position ? (
-              <span className="position">{detail.position.current} of {detail.position.total}</span>
             ) : (
-              <span className="position rollup-label">Rollup header · no editable status</span>
+              <span className="position">{detail.position.current} of {detail.position.total}</span>
             )}
+            <span className="position">
+              {progress.resolved_determination_count} of{" "}
+              {progress.determination_record_count} resolved
+            </span>
           </div>
-          {detail.position && (
-            <div className="previous-next">
-              <button disabled={!detail.position.previous_record_id} onClick={() => detail.position?.previous_record_id && changeRecord(detail.position.previous_record_id)}>
-                <ArrowLeft size={16} /> Previous
-              </button>
-              <button disabled={!detail.position.next_record_id} onClick={() => detail.position?.next_record_id && changeRecord(detail.position.next_record_id)}>
-                Next <ArrowRight size={16} />
-              </button>
-            </div>
-          )}
+          <div className="previous-next">
+            <button disabled={!detail.position.previous_record_id} onClick={() => detail.position.previous_record_id && changeRecord(detail.position.previous_record_id)}>
+              <ArrowLeft size={16} /> Previous
+            </button>
+            <button disabled={!detail.position.next_record_id} onClick={() => detail.position.next_record_id && changeRecord(detail.position.next_record_id)}>
+              Next <ArrowRight size={16} />
+            </button>
+          </div>
         </div>
 
         {detail.parent && (
@@ -1142,41 +1130,24 @@ function Workspace({
           <blockquote>{detail.record.regulation_text}</blockquote>
         </section>
 
-        {detail.context_prompts.length > 0 && (
-          <details className="context-guidance">
-            <summary>
-              <BookOpen size={15} />
-              Assessment context ({detail.context_prompts.length})
-            </summary>
-            <p>These questions were deliberately separated from a determination because no rule was identified for them.</p>
-            <ul>
-              {detail.context_prompts.map((prompt) => (
-                <li key={prompt.id}>
-                  <strong>{prompt.text}</strong>
-                  {prompt.moved_from && <span>From {prompt.moved_from.citation}</span>}
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
-
         <section className="prompt-section">
           <div className="content-heading">
             <div><p className="eyebrow">ASSESSOR GUIDANCE</p><h2>Questions to work through</h2></div>
             <span>{detail.prompts.length} question{detail.prompts.length === 1 ? "" : "s"}</span>
           </div>
           {detail.prompts.length === 0 ? (
-            <div className="empty-panel"><BookOpen size={22} /><p>No guidance prompts are attached to this record. Assess the cited requirement directly.</p></div>
+            <div className="empty-panel">
+              <BookOpen size={22} />
+              <p>{detail.no_prompt_explanation}</p>
+            </div>
           ) : (
             <div className="prompt-list">
               {detail.prompts.map((prompt) => (
                 <PromptCard
-                  key={prompt.id}
+                  key={`${assessment.id}:${prompt.id}`}
                   prompt={prompt}
                   assessment={assessment}
                   recordId={detail.record.record_id}
-                  onChanged={() => void loadDetail()}
-                  onSaveState={updateSaveState}
                   onRoutineSaveState={reportRoutineSave}
                   coordinateSave={coordinateRoutineSave}
                 />
@@ -1192,14 +1163,19 @@ function Workspace({
           <ShieldCheck size={20} />
         </div>
         <DeterminationPanel
+          key={`${assessment.id}:${detail.record.record_id}:determination`}
           assessmentId={assessment.id}
           statuses={assessment.framework.declarations.status_set}
           detail={detail}
           onRoutineSaveState={reportRoutineSave}
           coordinateSave={coordinateRoutineSave}
-          onFinalSuccess={() => void loadDetail()}
+          onFinalSuccess={() => {
+            void loadDetail();
+            void refreshAssessmentProgress();
+          }}
         />
         <RecordNotes
+          key={`${assessment.id}:${detail.record.record_id}:notes`}
           assessmentId={assessment.id}
           recordId={detail.record.record_id}
           initialNote={detail.note}
@@ -1207,6 +1183,7 @@ function Workspace({
           coordinateSave={coordinateRoutineSave}
         />
         <EvidencePanel
+          key={`${assessment.id}:${detail.record.record_id}:evidence`}
           assessment={assessment}
           detail={detail}
           artifacts={artifacts}

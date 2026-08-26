@@ -56,9 +56,14 @@ export interface Assessment {
     id: string;
     name: string;
     record_count: number;
+    walkthrough_record_count: number;
     prompt_count: number;
     determination_record_count: number;
     declarations: FrameworkDeclarations;
+  };
+  progress: {
+    resolved_determination_count: number;
+    determination_record_count: number;
   };
   work_list: RecordIndex[];
   record_index: RecordIndex[];
@@ -98,8 +103,6 @@ export interface Prompt {
   role_reason: string;
   render_checkbox: boolean;
   answer: string;
-  moved_from: { record_id: string; citation: string; title: string } | null;
-  placement: { rule_citation: string; reason: string } | null;
 }
 
 export interface EvidenceMapping {
@@ -136,6 +139,7 @@ export interface RecordDetail {
   context_prompts: Prompt[];
   children: RecordSummary[];
   prompts: Prompt[];
+  no_prompt_explanation: string | null;
   note: string;
   evidence: EvidenceMapping[];
   position: {
@@ -143,5 +147,5 @@ export interface RecordDetail {
     total: number;
     previous_record_id: string | null;
     next_record_id: string | null;
-  } | null;
+  };
 }

@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
-import App from "./App";
+import App, { Workspace } from "./App";
 
 const assessment = {
   id: "assessment-1",
@@ -16,6 +16,7 @@ const assessment = {
     id: "hipaa-45cfr164-2026-07-01",
     name: "HIPAA 45 CFR Part 164",
     record_count: 194,
+    walkthrough_record_count: 194,
     prompt_count: 1163,
     determination_record_count: 149,
     declarations: {
@@ -33,6 +34,10 @@ const assessment = {
       status_set: ["", "Met", "Not Met", "Pending", "N/A"],
       presentation_mode: "one_record_with_parent_context",
     },
+  },
+  progress: {
+    resolved_determination_count: 37,
+    determination_record_count: 149,
   },
   work_list: [
     {
@@ -54,6 +59,17 @@ const assessment = {
       parent_id: "parent-1",
       designation: "required",
       sort_order: 2,
+    },
+    {
+      record_id: "parent-1",
+      citation: "45 CFR 164.308(a)(1)(i)",
+      title: "Security management process",
+      work_area: "security",
+      record_type: "standard",
+      parent_id: null,
+      designation: null,
+      sort_order: 3,
+      editable_determination: false,
     },
   ],
   record_index: [],
@@ -136,12 +152,13 @@ const detail = {
       placement: null,
     },
   ],
+  no_prompt_explanation: null,
   note: "",
   evidence: [],
   position: {
-    current: 1,
-    total: 149,
-    previous_record_id: null,
+    current: 2,
+    total: 194,
+    previous_record_id: "parent-1",
     next_record_id: null,
   },
 };
@@ -165,6 +182,25 @@ const secondRecordDetail = {
   },
   prompts: detail.prompts.map((prompt) => ({ ...prompt, id: `${prompt.id}-child-2` })),
 };
+
+const clients = [
+  {
+    id: "client-1",
+    name: "Northwind Health",
+    projects: [
+      {
+        id: "project-1",
+        name: "HIPAA A",
+        framework_version_id: "framework-version",
+      },
+      {
+        id: "project-2",
+        name: "HIPAA B",
+        framework_version_id: "framework-version",
+      },
+    ],
+  },
+];
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -203,13 +239,14 @@ beforeEach(() => {
   );
 });
 
-test("renders a determination-only work list with parent context", async () => {
+test("renders a complete walkthrough with separate data-driven progress", async () => {
   const user = userEvent.setup();
   render(<App />);
 
   expect(await screen.findByRole("heading", { level: 1, name: "Risk analysis" })).toBeInTheDocument();
-  expect(screen.getByText("1 of 149")).toBeInTheDocument();
-  expect(screen.getByText("Security management process")).toBeInTheDocument();
+  expect(screen.getByText("2 of 194")).toBeInTheDocument();
+  expect(screen.getByText("37 of 149 resolved")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Security management process/ })).toBeVisible();
   expect(screen.getByText("Derived · Pending")).toBeInTheDocument();
   expect(screen.getByRole("checkbox", { name: "Has all ePHI been identified?" })).toBeVisible();
   expect(
@@ -219,6 +256,273 @@ test("renders a determination-only work list with parent context", async () => {
   expect(screen.getByText("How is the security management process governed?")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Overview" }));
   expect(screen.getByRole("heading", { name: "Northwind Health · HIPAA 2026" })).toBeVisible();
+});
+
+test("contains no prompt placement controls or placement mutation requests", async () => {
+  render(<App />);
+  expect(await screen.findByRole("heading", { level: 1, name: "Risk analysis" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: /Move question/ })).not.toBeInTheDocument();
+  expect(screen.queryByText("Move to")).not.toBeInTheDocument();
+  expect(screen.queryByText("Save move")).not.toBeInTheDocument();
+  expect(
+    vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes("/placement")),
+  ).toBe(false);
+});
+
+test("renders the exact API-provided no-prompt explanation", async () => {
+  const explanation =
+    "versioned framework explanation supplied by the pinned prompt layer";
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/clients") {
+      return Response.json([
+        {
+          id: "client-1",
+          name: "Northwind Health",
+          projects: [
+            {
+              id: "project-1",
+              name: "HIPAA 2026",
+              framework_version_id: "framework-version",
+            },
+          ],
+        },
+      ]);
+    }
+    if (url === "/api/projects/project-1/assessment") {
+      return Response.json({ ...assessment, work_list: [assessment.work_list[2]] });
+    }
+    if (url.includes("/records/parent-1")) {
+      return Response.json({
+        ...detail,
+        record: { ...detail.parent, work_area: "security", record_type: "standard" },
+        determination: detail.parent.determination,
+        parent: null,
+        parent_prompts: [],
+        prompts: [],
+        no_prompt_explanation: explanation,
+        position: {
+          current: 1,
+          total: 194,
+          previous_record_id: null,
+          next_record_id: "child-1",
+        },
+      });
+    }
+    if (url === "/api/projects/project-1/evidence") return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+
+  render(<App />);
+  expect(await screen.findByText(explanation)).toBeVisible();
+  expect(screen.queryByText("Assess the cited requirement directly.")).not.toBeInTheDocument();
+});
+
+test("switching projects never displays another project's prompt answer", async () => {
+  const projectBDetail = {
+    ...detail,
+    prompts: detail.prompts.map((prompt) => ({
+      ...prompt,
+      answer: prompt.id === "prompt-check" ? "Project B answer" : "",
+    })),
+  };
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/clients") {
+      return Response.json([
+        {
+          id: "client-1",
+          name: "Northwind Health",
+          projects: [
+            {
+              id: "project-1",
+              name: "HIPAA A",
+              framework_version_id: "framework-version",
+            },
+            {
+              id: "project-2",
+              name: "HIPAA B",
+              framework_version_id: "framework-version",
+            },
+          ],
+        },
+      ]);
+    }
+    if (url === "/api/projects/project-1/assessment") {
+      return Response.json({
+        ...assessment,
+        id: "assessment-1",
+        project: { ...assessment.project, id: "project-1", name: "HIPAA A" },
+      });
+    }
+    if (url === "/api/projects/project-2/assessment") {
+      return Response.json({
+        ...assessment,
+        id: "assessment-2",
+        project: { ...assessment.project, id: "project-2", name: "HIPAA B" },
+      });
+    }
+    if (url.includes("/projects/project-1/") && url.includes("/records/child-1")) {
+      return Response.json({
+        ...detail,
+        prompts: detail.prompts.map((prompt) => ({
+          ...prompt,
+          answer: prompt.id === "prompt-check" ? "Project A answer" : "",
+        })),
+      });
+    }
+    if (url.includes("/projects/project-2/") && url.includes("/records/child-1")) {
+      return Response.json(projectBDetail);
+    }
+    if (url.endsWith("/evidence")) return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  const user = userEvent.setup();
+  render(<App />);
+
+  expect(
+    await screen.findByRole("textbox", { name: "Answer: Has all ePHI been identified?" }),
+  ).toHaveValue("Project A answer");
+  await user.selectOptions(screen.getAllByRole("combobox")[0], "project-2");
+  await waitFor(() =>
+    expect(
+      screen.getByRole("textbox", { name: "Answer: Has all ePHI been identified?" }),
+    ).toHaveValue("Project B answer"),
+  );
+  expect(screen.queryByDisplayValue("Project A answer")).not.toBeInTheDocument();
+});
+
+test("a late assessment response cannot overwrite the selected project", async () => {
+  const projectA = deferredResponse();
+  const projectBAssessment = {
+    ...assessment,
+    id: "assessment-2",
+    project: { ...assessment.project, id: "project-2", name: "HIPAA B" },
+  };
+  const projectBDetail = {
+    ...detail,
+    prompts: detail.prompts.map((prompt) => ({
+      ...prompt,
+      answer: prompt.id === "prompt-check" ? "Project B answer" : "",
+    })),
+  };
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/projects/project-1/assessment") return projectA.promise;
+    if (url === "/api/projects/project-2/assessment") {
+      return Response.json(projectBAssessment);
+    }
+    if (url.includes("/projects/project-2/") && url.includes("/records/child-1")) {
+      return Response.json(projectBDetail);
+    }
+    if (url === "/api/projects/project-2/evidence") return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  const { rerender } = render(
+    <Workspace
+      clients={clients}
+      projectId="project-1"
+      onProjectChange={vi.fn()}
+      onWorkspaceCreated={vi.fn()}
+    />,
+  );
+
+  rerender(
+    <Workspace
+      clients={clients}
+      projectId="project-2"
+      onProjectChange={vi.fn()}
+      onWorkspaceCreated={vi.fn()}
+    />,
+  );
+  expect(await screen.findByRole("heading", { level: 1, name: "Risk analysis" })).toBeVisible();
+  expect(
+    screen.getByRole("textbox", { name: "Answer: Has all ePHI been identified?" }),
+  ).toHaveValue("Project B answer");
+
+  projectA.resolve(Response.json({
+    ...assessment,
+    id: "assessment-1",
+    project: { ...assessment.project, id: "project-1", name: "HIPAA A" },
+  }));
+  await act(async () => {
+    await projectA.promise;
+  });
+
+  expect(screen.getByText("Northwind Health · HIPAA B")).toBeVisible();
+  expect(
+    screen.getByRole("textbox", { name: "Answer: Has all ePHI been identified?" }),
+  ).toHaveValue("Project B answer");
+  expect(screen.queryByDisplayValue("Project A answer")).not.toBeInTheDocument();
+  expect(
+    vi.mocked(fetch).mock.calls.some(([input]) =>
+      String(input).includes("/projects/project-1/assessments/assessment-1/records/"),
+    ),
+  ).toBe(false);
+});
+
+test("a late evidence response cannot replace the selected project's artifacts", async () => {
+  const projectAEvidence = deferredResponse();
+  const artifact = (id: string, name: string) => ({
+    id,
+    name,
+    relative_path: `${id}/${name}`,
+    shared_record_count: 0,
+    version_id: `${id}-v1`,
+    version_number: 1,
+    sha256: id.repeat(8),
+    version_relative_path: `${id}/v1/${name}`,
+    version_created_at: "2026-08-26T00:00:00+00:00",
+  });
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/projects/project-1/assessment") return Response.json(assessment);
+    if (url === "/api/projects/project-2/assessment") {
+      return Response.json({
+        ...assessment,
+        id: "assessment-2",
+        project: { ...assessment.project, id: "project-2", name: "HIPAA B" },
+      });
+    }
+    if (url.includes("/projects/project-1/") && url.includes("/records/child-1")) {
+      return Response.json(detail);
+    }
+    if (url.includes("/projects/project-2/") && url.includes("/records/child-1")) {
+      return Response.json(detail);
+    }
+    if (url === "/api/projects/project-1/evidence") return projectAEvidence.promise;
+    if (url === "/api/projects/project-2/evidence") {
+      return Response.json([artifact("b", "Project B evidence")]);
+    }
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  const { rerender } = render(
+    <Workspace
+      clients={clients}
+      projectId="project-1"
+      onProjectChange={vi.fn()}
+      onWorkspaceCreated={vi.fn()}
+    />,
+  );
+  await screen.findByRole("heading", { level: 1, name: "Risk analysis" });
+
+  rerender(
+    <Workspace
+      clients={clients}
+      projectId="project-2"
+      onProjectChange={vi.fn()}
+      onWorkspaceCreated={vi.fn()}
+    />,
+  );
+  expect(await screen.findByRole("option", { name: /Project B evidence/ })).toBeVisible();
+
+  projectAEvidence.resolve(Response.json([artifact("a", "Project A evidence")]));
+  await act(async () => {
+    await projectAEvidence.promise;
+  });
+
+  expect(screen.queryByRole("option", { name: /Project A evidence/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("option", { name: /Project B evidence/ })).toBeVisible();
 });
 
 test("autosaves a determination through the API", async () => {
@@ -236,6 +540,44 @@ test("autosaves a determination through the API", async () => {
     }),
   );
   expect(await screen.findByText("Saved")).toBeInTheDocument();
+});
+
+test("refreshes assessment progress after the final determination save succeeds", async () => {
+  let assessmentReads = 0;
+  let detailReads = 0;
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url === "/api/clients") {
+      return Response.json([{ ...clients[0], projects: [clients[0].projects[0]] }]);
+    }
+    if (url === "/api/projects/project-1/assessment") {
+      assessmentReads += 1;
+      return Response.json({
+        ...assessment,
+        progress: {
+          ...assessment.progress,
+          resolved_determination_count: assessmentReads === 1 ? 37 : 38,
+        },
+      });
+    }
+    if (url.includes("/records/child-1")) {
+      detailReads += 1;
+      return Response.json(detailReads === 1 ? detail : refreshedDeterminationDetail);
+    }
+    if (url.includes("/determinations/child-1") && init?.method === "PUT") {
+      return Response.json(refreshedDeterminationDetail.determination);
+    }
+    if (url === "/api/projects/project-1/evidence") return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  const user = userEvent.setup();
+  render(<App />);
+  expect(await screen.findByText("37 of 149 resolved")).toBeVisible();
+
+  await user.click(screen.getByRole("button", { name: "Not Met" }));
+
+  expect(await screen.findByText("38 of 149 resolved")).toBeVisible();
+  expect(assessmentReads).toBe(2);
 });
 
 test("opens a creator after the first client project exists", async () => {
