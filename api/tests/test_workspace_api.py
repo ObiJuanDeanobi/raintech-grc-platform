@@ -16,7 +16,15 @@ def create_workspace(client: TestClient) -> tuple[str, str]:
         f"/api/clients/{client_id}/projects",
         json={"name": "HIPAA 2026"},
     ).json()
-    assessment_id = client.get(f"/api/projects/{project['id']}/assessment").json()["id"]
+    client.post(f"/api/projects/{project['id']}/profile-readiness/acknowledgement")
+    client.post(
+        f"/api/projects/{project['id']}/profile-readiness/transitions",
+        json={
+            "next_state": "Intake complete",
+            "decision_note": "Synthetic test intake completed.",
+        },
+    )
+    assessment_id = client.post(f"/api/projects/{project['id']}/assessments").json()["id"]
     return project["id"], assessment_id
 
 
@@ -63,6 +71,23 @@ def test_client_project_and_hipaa_assessment_are_created_and_retrievable(
         project = created_project.json()
         assert project["framework_version_id"] == "hipaa-45cfr164-2026-07-01"
 
+        assert client.get(f"/api/projects/{project['id']}/assessment").status_code == 404
+        assert (
+            client.post(f"/api/projects/{project['id']}/profile-readiness/acknowledgement")
+            .status_code
+            == 201
+        )
+        assert (
+            client.post(
+                f"/api/projects/{project['id']}/profile-readiness/transitions",
+                json={
+                    "next_state": "Intake complete",
+                    "decision_note": "Synthetic test intake completed.",
+                },
+            ).status_code
+            == 201
+        )
+        assert client.post(f"/api/projects/{project['id']}/assessments").status_code == 201
         assessment = client.get(f"/api/projects/{project['id']}/assessment")
         assert assessment.status_code == 200
         payload = assessment.json()

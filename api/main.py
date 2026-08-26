@@ -29,6 +29,15 @@ class ProjectCreate(BaseModel):
     framework_version_id: str = FRAMEWORK_ID
 
 
+class ProfileReadinessTransitionCreate(BaseModel):
+    next_state: str
+    decision_note: str = Field(min_length=1, max_length=1000)
+    unresolved_required_fields: list[str] = Field(default_factory=list)
+    follow_up_work: str = Field(default="", max_length=2000)
+    reviewed_by: str = Field(default="", max_length=200)
+    approval_evidence: str = Field(default="", max_length=2000)
+
+
 class DeterminationSave(BaseModel):
     status: str
     na_rationale: str = ""
@@ -77,6 +86,120 @@ def _project_or_404(connection: Any, project_id: str) -> Any:
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
+
+
+def _project_readiness_declaration(connection: Any, project_id: str) -> dict[str, Any]:
+    row = connection.execute(
+        """
+        SELECT framework_versions.declarations_json
+        FROM projects
+        JOIN framework_versions ON framework_versions.id = projects.framework_version_id
+        WHERE projects.id = ?
+        """,
+        (project_id,),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    declarations = cast(dict[str, Any], json.loads(row["declarations_json"]))
+    return cast(dict[str, Any], declarations["profile_readiness"])
+
+
+def _latest_profile_readiness_transition(connection: Any, project_id: str) -> Any:
+    latest = connection.execute(
+        """
+        SELECT * FROM profile_readiness_transitions
+        WHERE project_id = ?
+        ORDER BY rowid DESC
+        LIMIT 1
+        """,
+        (project_id,),
+    ).fetchone()
+    if latest is None:
+        raise RuntimeError(f"Project {project_id} has no profile readiness transition")
+    return latest
+
+
+def _profile_readiness(connection: Any, project_id: str) -> dict[str, Any]:
+    _project_or_404(connection, project_id)
+    declaration = _project_readiness_declaration(connection, project_id)
+    acknowledgement = connection.execute(
+        """
+        SELECT profile_boundary_acknowledgements.*, user_accounts.display_name
+        FROM profile_boundary_acknowledgements
+        JOIN user_accounts ON user_accounts.id = profile_boundary_acknowledgements.actor_id
+        WHERE project_id = ?
+        """,
+        (project_id,),
+    ).fetchone()
+    latest = _latest_profile_readiness_transition(connection, project_id)
+    unresolved = json.loads(latest["unresolved_required_fields_json"])
+    completion = cast(dict[str, Any], declaration["profile_completion"])
+    profile_blockers: list[str] = []
+    if completion.get("requires_boundary_acknowledgement") and acknowledgement is None:
+        profile_blockers.append(completion["boundary_acknowledgement_blocking_reason"])
+    if completion.get("requires_no_unresolved_required_fields"):
+        profile_blockers.extend(
+            completion["unresolved_required_field_blocking_reason"].format(field=field)
+            for field in unresolved
+        )
+    required_fields = cast(dict[str, dict[str, str]], completion["required_fields"])
+    for field, requirement in required_fields.items():
+        if not cast(str, latest[field]).strip():
+            profile_blockers.append(requirement["blocking_reason"])
+    state = cast(str, latest["next_state"])
+    assessment_entry = cast(dict[str, Any], declaration["assessment_entry"])
+    follow_up_rule = cast(dict[str, Any], declaration["follow_up_work"])
+    assessment_exists = (
+        connection.execute(
+            "SELECT 1 FROM assessments WHERE project_id = ? LIMIT 1",
+            (project_id,),
+        ).fetchone()
+        is not None
+    )
+    acknowledgement_result = None
+    if acknowledgement is not None:
+        acknowledgement_result = {
+            "document_path": acknowledgement["document_path"],
+            "statement": (
+                "Acknowledges review of the local evidence operating boundary; "
+                "this is not an attestation that content is free of CUI, PHI, or ePHI."
+            ),
+            "actor": {
+                "id": acknowledgement["actor_id"],
+                "display_name": acknowledgement["display_name"],
+            },
+            "timestamp": acknowledgement["created_at"],
+        }
+    return {
+        "project_id": project_id,
+        "state": state,
+        "assessment_exists": assessment_exists,
+        "supported_states": declaration["states"],
+        "allowed_next_states": [
+            candidate
+            for candidate in declaration["states"]
+            if candidate in declaration["transitions"][state]
+        ],
+        "assessment_entry_allowed": state in set(assessment_entry["allowed_states"]),
+        "assessment_entry_blocking_reasons": (
+            []
+            if state in set(assessment_entry["allowed_states"])
+            else [assessment_entry["blocking_reasons"][state]]
+        ),
+        "profile_completion_blocking_reasons": profile_blockers,
+        "follow_up_work_required_states": follow_up_rule["required_states"],
+        "follow_up_work_required_when_unresolved_required_fields": follow_up_rule[
+            "required_when_unresolved_required_fields"
+        ],
+        "boundary_document": declaration["boundary_document"],
+        "acknowledgement": acknowledgement_result,
+        "current_details": {
+            "unresolved_required_fields": unresolved,
+            "follow_up_work": latest["follow_up_work"],
+            "reviewed_by": latest["reviewed_by"],
+            "approval_evidence": latest["approval_evidence"],
+        },
+    }
 
 
 def _assessment_for_project_or_404(connection: Any, project_id: str, assessment_id: str) -> Any:
@@ -448,7 +571,6 @@ def create_app(
             "framework_version_id": payload.framework_version_id,
             "created_at": now(),
         }
-        assessment_id = str(uuid4())
         with database.connect() as connection:
             if (
                 connection.execute(
@@ -471,22 +593,257 @@ def create_app(
                 """,
                 tuple(item.values()),
             )
+            declaration = _project_readiness_declaration(connection, item["id"])
+            initial_state = cast(str, declaration["initial_state"])
+            connection.execute(
+                """
+                INSERT INTO profile_readiness_transitions(
+                    id, project_id, prior_state, next_state, actor_id, decision_note,
+                    unresolved_required_fields_json, follow_up_work, reviewed_by,
+                    approval_evidence, created_at
+                ) VALUES (?, ?, ?, ?, 'johnathan',
+                          'Profile readiness initialized.', '[]', '', '', '', ?)
+                """,
+                (str(uuid4()), item["id"], initial_state, initial_state, item["created_at"]),
+            )
+            _audit(connection, "project.created", "project", item["id"], {"name": item["name"]})
+        return item
+
+    @app.get("/api/projects/{project_id}/profile-readiness")
+    def get_profile_readiness(
+        project_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            return _profile_readiness(connection, project_id)
+
+    @app.post("/api/projects/{project_id}/profile-readiness/acknowledgement", status_code=201)
+    def acknowledge_profile_boundary(
+        project_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            declaration = _project_readiness_declaration(connection, project_id)
+            acknowledgement_id = str(uuid4())
+            created_at = now()
+            result = connection.execute(
+                """
+                INSERT OR IGNORE INTO profile_boundary_acknowledgements(
+                    id, project_id, document_path, actor_id, created_at
+                ) VALUES (?, ?, ?, 'johnathan', ?)
+                """,
+                (acknowledgement_id, project_id, declaration["boundary_document"], created_at),
+            )
+            if result.rowcount:
+                _audit(
+                    connection,
+                    "profile.boundary_acknowledged",
+                    "project",
+                    project_id,
+                    {"document_path": declaration["boundary_document"]},
+                )
+            acknowledgement = _profile_readiness(connection, project_id)["acknowledgement"]
+            return cast(dict[str, Any], acknowledgement)
+
+    @app.get("/api/projects/{project_id}/profile-readiness/transitions")
+    def list_profile_readiness_transitions(
+        project_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> list[dict[str, Any]]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            return [
+                {
+                    "id": row["id"],
+                    "prior_state": row["prior_state"],
+                    "next_state": row["next_state"],
+                    "actor": {
+                        "id": row["actor_id"],
+                        "display_name": row["display_name"],
+                    },
+                    "timestamp": row["created_at"],
+                    "decision_note": row["decision_note"],
+                    "unresolved_required_fields": json.loads(
+                        row["unresolved_required_fields_json"]
+                    ),
+                    "follow_up_work": row["follow_up_work"],
+                    "reviewed_by": row["reviewed_by"],
+                    "approval_evidence": row["approval_evidence"],
+                }
+                for row in connection.execute(
+                    """
+                    SELECT profile_readiness_transitions.*, user_accounts.display_name
+                    FROM profile_readiness_transitions
+                    JOIN user_accounts
+                      ON user_accounts.id = profile_readiness_transitions.actor_id
+                    WHERE project_id = ?
+                    ORDER BY profile_readiness_transitions.rowid
+                    """,
+                    (project_id,),
+                )
+            ]
+
+    @app.post(
+        "/api/projects/{project_id}/profile-readiness/transitions",
+        status_code=201,
+    )
+    def create_profile_readiness_transition(
+        project_id: str,
+        payload: ProfileReadinessTransitionCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            declaration = _project_readiness_declaration(connection, project_id)
+            prior_state = cast(
+                str,
+                _latest_profile_readiness_transition(connection, project_id)["next_state"],
+            )
+            next_state = payload.next_state
+            if next_state not in set(declaration["states"]):
+                raise HTTPException(status_code=422, detail="Unknown profile readiness state")
+            transitions = cast(dict[str, list[str]], declaration["transitions"])
+            if next_state not in transitions[prior_state]:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Cannot transition from {prior_state} to {next_state}",
+                )
+            if (
+                declaration.get("requires_boundary_acknowledgement_before_transition")
+                and
+                connection.execute(
+                    "SELECT id FROM profile_boundary_acknowledgements WHERE project_id = ?",
+                    (project_id,),
+                ).fetchone()
+                is None
+            ):
+                raise HTTPException(
+                    status_code=422,
+                    detail=declaration["boundary_acknowledgement_validation_message"],
+                )
+            unresolved = [
+                value.strip()
+                for value in payload.unresolved_required_fields
+                if value.strip()
+            ]
+            if not payload.decision_note.strip():
+                raise HTTPException(status_code=422, detail="Decision note is required")
+            completion = cast(dict[str, Any], declaration["profile_completion"])
+            follow_up_rule = cast(dict[str, Any], declaration["follow_up_work"])
+            follow_up_work = payload.follow_up_work.strip()
+            if next_state == completion["state"]:
+                if completion.get("requires_no_unresolved_required_fields") and unresolved:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=completion["unresolved_required_fields_validation_message"],
+                    )
+                required_fields = cast(
+                    dict[str, dict[str, str]],
+                    completion["required_fields"],
+                )
+                for field, requirement in required_fields.items():
+                    if not cast(str, getattr(payload, field)).strip():
+                        raise HTTPException(
+                            status_code=422,
+                            detail=requirement["validation_message"],
+                        )
+            if next_state in set(follow_up_rule["required_states"]) and not follow_up_work:
+                raise HTTPException(
+                    status_code=422,
+                    detail=follow_up_rule["required_state_validation_messages"][next_state],
+                )
+            if (
+                unresolved
+                and follow_up_rule["required_when_unresolved_required_fields"]
+                and not follow_up_work
+            ):
+                raise HTTPException(
+                    status_code=422,
+                    detail=follow_up_rule[
+                        "unresolved_required_fields_validation_message"
+                    ],
+                )
+            transition_id = str(uuid4())
+            created_at = now()
+            connection.execute(
+                """
+                INSERT INTO profile_readiness_transitions(
+                    id, project_id, prior_state, next_state, actor_id, decision_note,
+                    unresolved_required_fields_json, follow_up_work, reviewed_by,
+                    approval_evidence, created_at
+                ) VALUES (?, ?, ?, ?, 'johnathan', ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    transition_id,
+                    project_id,
+                    prior_state,
+                    next_state,
+                    payload.decision_note.strip(),
+                    json.dumps(unresolved),
+                    follow_up_work,
+                    payload.reviewed_by.strip(),
+                    payload.approval_evidence.strip(),
+                    created_at,
+                ),
+            )
+            _audit(
+                connection,
+                "profile.readiness_transitioned",
+                "project",
+                project_id,
+                {
+                    "transition_id": transition_id,
+                    "prior_state": prior_state,
+                    "next_state": next_state,
+                    "decision_note": payload.decision_note.strip(),
+                },
+            )
+            return _profile_readiness(connection, project_id)
+
+    @app.post("/api/projects/{project_id}/assessments", status_code=201)
+    def create_assessment(
+        project_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            project = _project_or_404(connection, project_id)
+            readiness = _profile_readiness(connection, project_id)
+            if not readiness["assessment_entry_allowed"]:
+                raise HTTPException(
+                    status_code=409,
+                    detail=readiness["assessment_entry_blocking_reasons"],
+                )
+            existing = connection.execute(
+                "SELECT id FROM assessments WHERE project_id = ?",
+                (project_id,),
+            ).fetchone()
+            if existing is not None:
+                raise HTTPException(status_code=409, detail="Project already has an assessment")
+            assessment = {
+                "id": str(uuid4()),
+                "project_id": project_id,
+                "framework_version_id": project["framework_version_id"],
+                "created_at": now(),
+            }
             connection.execute(
                 """
                 INSERT INTO assessments(id, project_id, framework_version_id, created_at)
-                VALUES (?, ?, ?, ?)
+                VALUES (:id, :project_id, :framework_version_id, :created_at)
                 """,
-                (assessment_id, item["id"], payload.framework_version_id, now()),
+                assessment,
             )
-            _audit(connection, "project.created", "project", item["id"], {"name": item["name"]})
             _audit(
                 connection,
                 "assessment.created",
                 "assessment",
-                assessment_id,
-                {"framework_version_id": payload.framework_version_id},
+                assessment["id"],
+                {
+                    "project_id": project_id,
+                    "framework_version_id": assessment["framework_version_id"],
+                },
             )
-        return item
+            return assessment
 
     @app.get("/api/projects/{project_id}/assessment")
     def get_assessment(

@@ -69,6 +69,32 @@ export interface Assessment {
   record_index: RecordIndex[];
 }
 
+export interface ProfileReadiness {
+  project_id: string;
+  state: string;
+  assessment_exists: boolean;
+  supported_states: string[];
+  allowed_next_states: string[];
+  assessment_entry_allowed: boolean;
+  assessment_entry_blocking_reasons: string[];
+  profile_completion_blocking_reasons: string[];
+  follow_up_work_required_states: string[];
+  follow_up_work_required_when_unresolved_required_fields: boolean;
+  boundary_document: string;
+  acknowledgement: {
+    document_path: string;
+    statement: string;
+    actor: { id: string; display_name: string };
+    timestamp: string;
+  } | null;
+  current_details: {
+    unresolved_required_fields: string[];
+    follow_up_work: string;
+    reviewed_by: string;
+    approval_evidence: string;
+  };
+}
+
 export interface Determination {
   status: Status;
   derived: boolean;

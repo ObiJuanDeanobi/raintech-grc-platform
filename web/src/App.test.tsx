@@ -202,6 +202,51 @@ const clients = [
   },
 ];
 
+const readiness = {
+  project_id: "project-1",
+  state: "Intake complete",
+  assessment_exists: true,
+  supported_states: [
+    "Intake started",
+    "Intake complete",
+    "Needs follow-up",
+    "Profile complete",
+  ],
+  allowed_next_states: ["Needs follow-up", "Profile complete"],
+  follow_up_work_required_states: ["Needs follow-up"],
+  follow_up_work_required_when_unresolved_required_fields: true,
+  assessment_entry_allowed: true,
+  assessment_entry_blocking_reasons: [],
+  profile_completion_blocking_reasons: ["Record a named reviewer."],
+  boundary_document: "docs/local-evidence-operating-boundary.md",
+  acknowledgement: {
+    document_path: "docs/local-evidence-operating-boundary.md",
+    statement:
+      "Acknowledges review of the local evidence operating boundary; this is not an attestation that content is free of CUI, PHI, or ePHI.",
+    actor: { id: "johnathan", display_name: "Johnathan" },
+    timestamp: "2026-08-26T00:00:00+00:00",
+  },
+  current_details: {
+    unresolved_required_fields: [],
+    follow_up_work: "",
+    reviewed_by: "",
+    approval_evidence: "",
+  },
+};
+
+function mockApi(
+  implementation: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+) {
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    const url = String(input);
+    const match = url.match(/^\/api\/projects\/([^/]+)\/profile-readiness$/);
+    if (match) {
+      return Response.json({ ...readiness, project_id: match[1] });
+    }
+    return implementation(input, init);
+  });
+}
+
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
@@ -225,6 +270,9 @@ beforeEach(() => {
       if (url === "/api/projects/project-1/assessment") {
         return Response.json(assessment);
       }
+      if (url === "/api/projects/project-1/profile-readiness") {
+        return Response.json(readiness);
+      }
       if (url.includes("/records/child-1")) {
         return Response.json(detail);
       }
@@ -237,6 +285,179 @@ beforeEach(() => {
       return Response.json({ detail: "not found" }, { status: 404 });
     }),
   );
+});
+
+test("shows readiness state and concrete assessment blocking before an assessment exists", async () => {
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/projects/project-1/profile-readiness") {
+      return Response.json({
+        ...readiness,
+        state: "Intake started",
+        assessment_exists: false,
+        assessment_entry_allowed: false,
+        assessment_entry_blocking_reasons: [
+          "Complete the initial intake before starting a new assessment.",
+        ],
+        acknowledgement: null,
+      });
+    }
+    if (url === "/api/projects/project-1/assessment") {
+      return Response.json({ detail: "Assessment not found" }, { status: 404 });
+    }
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  render(
+    <Workspace
+      clients={clients}
+      projectId="project-1"
+      onProjectChange={vi.fn()}
+      onWorkspaceCreated={vi.fn()}
+    />,
+  );
+
+  expect(await screen.findByText("Intake started")).toBeVisible();
+  expect(
+    screen.getByText("Complete the initial intake before starting a new assessment."),
+  ).toBeVisible();
+  expect(screen.getByRole("button", { name: "Start assessment" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Profile" })).toBeEnabled();
+  expect(screen.getByText(/not an attestation that content is free of CUI, PHI, or ePHI/i))
+    .toBeVisible();
+  expect(fetch).not.toHaveBeenCalledWith(
+    "/api/projects/project-1/assessment",
+    expect.anything(),
+  );
+});
+
+test("keeps an existing assessment readable while a readiness regression blocks new entry", async () => {
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/clients") {
+      return Response.json([{ ...clients[0], projects: [clients[0].projects[0]] }]);
+    }
+    if (url === "/api/projects/project-1/profile-readiness") {
+      return Response.json({
+        ...readiness,
+        state: "Needs follow-up",
+        assessment_entry_allowed: false,
+        assessment_entry_blocking_reasons: [
+          "Resolve the recorded follow-up before starting a new assessment.",
+        ],
+      });
+    }
+    if (url === "/api/projects/project-1/assessment") return Response.json(assessment);
+    if (url.includes("/records/child-1")) return Response.json(detail);
+    if (url === "/api/projects/project-1/evidence") return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+
+  render(<App />);
+  expect(await screen.findByRole("heading", { level: 1, name: "Risk analysis" })).toBeVisible();
+  expect(screen.getByText("Needs follow-up")).toBeVisible();
+  expect(
+    screen.getByText("Resolve the recorded follow-up before starting a new assessment."),
+  ).toBeVisible();
+});
+
+test("requires explicit work before submitting Needs follow-up", async () => {
+  const user = userEvent.setup();
+  render(<App />);
+  await screen.findByRole("heading", { level: 1, name: "Risk analysis" });
+  await user.click(screen.getByRole("button", { name: "Profile" }));
+  await user.selectOptions(screen.getByLabelText("Next state"), "Needs follow-up");
+  await user.type(screen.getByLabelText("Decision note"), "Follow-up is required.");
+
+  expect(screen.getByLabelText("Explicit follow-up work")).toBeRequired();
+  await user.click(screen.getByRole("button", { name: "Record transition" }));
+  expect(
+    vi.mocked(fetch).mock.calls.some(
+      ([input, init]) =>
+        String(input).endsWith("/profile-readiness/transitions") && init?.method === "POST",
+    ),
+  ).toBe(false);
+});
+
+test("a late Project A action reload cannot clear the loaded Project B assessment", async () => {
+  const projectAReload = deferredResponse();
+  const projectBAssessment = {
+    ...assessment,
+    id: "assessment-2",
+    project: { ...assessment.project, id: "project-2", name: "HIPAA B" },
+  };
+  const projectBReadiness = {
+    ...readiness,
+    project_id: "project-2",
+    state: "Profile complete",
+    allowed_next_states: ["Needs follow-up"],
+  };
+  let projectAReadinessReads = 0;
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url === "/api/projects/project-1/profile-readiness") {
+      projectAReadinessReads += 1;
+      if (projectAReadinessReads === 2) return projectAReload.promise;
+      return Response.json(readiness);
+    }
+    if (
+      url === "/api/projects/project-1/profile-readiness/transitions"
+      && init?.method === "POST"
+    ) {
+      return Response.json(readiness, { status: 201 });
+    }
+    if (url === "/api/projects/project-2/profile-readiness") {
+      return Response.json(projectBReadiness);
+    }
+    if (url === "/api/projects/project-1/assessment") return Response.json(assessment);
+    if (url === "/api/projects/project-2/assessment") {
+      return Response.json(projectBAssessment);
+    }
+    if (url.includes("/records/child-1")) return Response.json(detail);
+    if (url.endsWith("/evidence")) return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  const user = userEvent.setup();
+  const { rerender } = render(
+    <Workspace
+      clients={clients}
+      projectId="project-1"
+      onProjectChange={vi.fn()}
+      onWorkspaceCreated={vi.fn()}
+    />,
+  );
+  await screen.findByRole("heading", { level: 1, name: "Risk analysis" });
+  await user.click(screen.getByRole("button", { name: "Profile" }));
+  await user.selectOptions(screen.getByLabelText("Next state"), "Needs follow-up");
+  await user.type(screen.getByLabelText("Decision note"), "Project A needs follow-up.");
+  await user.type(screen.getByLabelText("Explicit follow-up work"), "Resolve Project A.");
+  await user.click(screen.getByRole("button", { name: "Record transition" }));
+  await waitFor(() => expect(projectAReadinessReads).toBe(2));
+
+  rerender(
+    <Workspace
+      clients={clients}
+      projectId="project-2"
+      onProjectChange={vi.fn()}
+      onWorkspaceCreated={vi.fn()}
+    />,
+  );
+  expect(await screen.findByRole("heading", { level: 1, name: "Risk analysis" })).toBeVisible();
+  expect(screen.getByText("Northwind Health · HIPAA B")).toBeVisible();
+  expect(screen.getAllByText("Profile complete")).not.toHaveLength(0);
+
+  projectAReload.resolve(Response.json({
+    ...readiness,
+    state: "Needs follow-up",
+    assessment_entry_allowed: false,
+  }));
+  await act(async () => {
+    await projectAReload.promise;
+  });
+
+  expect(screen.getByRole("heading", { level: 1, name: "Risk analysis" })).toBeVisible();
+  expect(screen.getByText("Northwind Health · HIPAA B")).toBeVisible();
+  expect(screen.getAllByText("Profile complete")).not.toHaveLength(0);
+  expect(screen.queryByText("Project A needs follow-up.")).not.toBeInTheDocument();
 });
 
 test("renders a complete walkthrough with separate data-driven progress", async () => {
@@ -272,7 +493,7 @@ test("contains no prompt placement controls or placement mutation requests", asy
 test("renders the exact API-provided no-prompt explanation", async () => {
   const explanation =
     "versioned framework explanation supplied by the pinned prompt layer";
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+  mockApi(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url === "/api/clients") {
       return Response.json([
@@ -326,7 +547,7 @@ test("switching projects never displays another project's prompt answer", async 
       answer: prompt.id === "prompt-check" ? "Project B answer" : "",
     })),
   };
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+  mockApi(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url === "/api/clients") {
       return Response.json([
@@ -406,7 +627,7 @@ test("a late assessment response cannot overwrite the selected project", async (
       answer: prompt.id === "prompt-check" ? "Project B answer" : "",
     })),
   };
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+  mockApi(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url === "/api/projects/project-1/assessment") return projectA.promise;
     if (url === "/api/projects/project-2/assessment") {
@@ -474,7 +695,7 @@ test("a late evidence response cannot replace the selected project's artifacts",
     version_relative_path: `${id}/v1/${name}`,
     version_created_at: "2026-08-26T00:00:00+00:00",
   });
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+  mockApi(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url === "/api/projects/project-1/assessment") return Response.json(assessment);
     if (url === "/api/projects/project-2/assessment") {
@@ -545,7 +766,7 @@ test("autosaves a determination through the API", async () => {
 test("refreshes assessment progress after the final determination save succeeds", async () => {
   let assessmentReads = 0;
   let detailReads = 0;
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+  mockApi(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url === "/api/clients") {
       return Response.json([{ ...clients[0], projects: [clients[0].projects[0]] }]);
@@ -593,7 +814,7 @@ test("opens a creator after the first client project exists", async () => {
 });
 
 test("keeps direct file selection and shows the initial evidence version, hash, and review state", async () => {
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+  mockApi(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url === "/api/clients") {
       return Response.json([
@@ -647,7 +868,7 @@ test("serializes prompt autosaves without acknowledging a newer draft early", as
   const first = deferredResponse();
   const second = deferredResponse();
   let saves = 0;
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+  mockApi(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.includes("/prompts/prompt-check/answer") && init?.method === "PUT") {
       saves += 1;
@@ -690,7 +911,7 @@ test("refreshes the derived determination only after the latest queued save succ
   const second = deferredResponse();
   let saves = 0;
   let detailReads = 0;
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+  mockApi(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.includes("/determinations/child-1") && init?.method === "PUT") {
       saves += 1;
@@ -731,7 +952,7 @@ test("keeps the newest same-record determination refresh when earlier detail rea
   const firstRefresh = deferredResponse();
   const secondRefresh = deferredResponse();
   let detailReads = 0;
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+  mockApi(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.includes("/determinations/child-1") && init?.method === "PUT") {
       return Response.json({ ...detail.determination, status: "Pending" });
@@ -771,7 +992,7 @@ test("keeps the newest same-record determination refresh when earlier detail rea
 test("keeps a failed note draft and retries it without retyping", async () => {
   const retry = deferredResponse();
   let attempts = 0;
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+  mockApi(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.includes("/records/child-1/note") && init?.method === "PUT") {
       attempts += 1;
@@ -806,7 +1027,7 @@ test("keeps a failed note draft and retries it without retyping", async () => {
 test("warns on failed-save navigation and retries the existing note without duplicate client work", async () => {
   let noteWrites = 0;
   let clientReads = 0;
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+  mockApi(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.includes("/records/child-1/note") && init?.method === "PUT") {
       noteWrites += 1;
@@ -851,7 +1072,7 @@ test("serializes prompt, note, and determination autosaves for the same assessme
   const noteSave = deferredResponse();
   const determinationSave = deferredResponse();
   const started: string[] = [];
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+  mockApi(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.includes("/prompts/prompt-check/answer") && init?.method === "PUT") {
       started.push("prompt");
@@ -897,7 +1118,7 @@ test("does not make different assessment records wait on one global queue", asyn
   const firstRecordSave = deferredResponse();
   const secondRecordSave = deferredResponse();
   const started: string[] = [];
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+  mockApi(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.includes("/prompts/prompt-check/answer") && init?.method === "PUT") {
       started.push("child-1");
@@ -938,7 +1159,7 @@ test("does not make different assessment records wait on one global queue", asyn
 test("warns before record navigation and before unload until the latest save succeeds", async () => {
   const pending = deferredResponse();
   let pendingRequests = 0;
-  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+  mockApi(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.includes("/prompts/prompt-check/answer") && init?.method === "PUT") {
       pendingRequests += 1;
