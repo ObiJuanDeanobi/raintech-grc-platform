@@ -105,6 +105,12 @@ class PromptLayerTest(unittest.TestCase):
         self.assertEqual(covered | explained, set(self.records))
         self.assertEqual(covered & explained, set())
 
+    def test_no_prompt_explanations_declare_direct_or_derived_behavior(self):
+        reasons = {item["reason"] for item in self.layer["records_without_prompts"]}
+        self.assertTrue(any("status is derived" in reason for reason in reasons))
+        self.assertTrue(any("questions route to its children" in reason for reason in reasons))
+        self.assertTrue(any("record text is itself the prompt" in reason for reason in reasons))
+
     def test_no_entry_is_empty(self):
         for record_id, entry in self.layer["entries"].items():
             self.assertTrue(entry["prompts"], record_id)

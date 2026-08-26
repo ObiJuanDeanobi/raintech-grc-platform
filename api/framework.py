@@ -18,13 +18,22 @@ def _prompt_id(prompt: dict[str, Any], occurrence: int) -> str:
     return sha256("\0".join(stable_parts).encode()).hexdigest()[:24]
 
 
+def _determination_record_ids(
+    records: list[dict[str, Any]], declarations: dict[str, Any]
+) -> set[str]:
+    rule = declarations["record_shape"]["determination_rule"]
+    if rule == "records_without_children":
+        parent_ids = {record["parent_id"] for record in records if record["parent_id"]}
+        return {record["id"] for record in records if record["id"] not in parent_ids}
+    raise ValueError(f"Unsupported determination rule: {rule}")
+
+
 def seed_framework(database: Database, repository_root: Path) -> None:
     catalog_path = repository_root / "catalog" / "versions" / f"{FRAMEWORK_ID}.json"
     prompts_path = repository_root / "catalog" / "versions" / f"{FRAMEWORK_ID}-prompts.json"
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     prompt_layer = json.loads(prompts_path.read_text(encoding="utf-8"))
     records: list[dict[str, Any]] = catalog["records"]
-    parent_ids = {record["parent_id"] for record in records if record["parent_id"]}
     declarations = {
         "record_shape": {
             "hierarchy": ["standard", "implementation_specification", "paragraph"],
@@ -52,6 +61,12 @@ def seed_framework(database: Database, repository_root: Path) -> None:
             }
         },
         "presentation_mode": "one_record_with_parent_context",
+        "walkthrough_membership": "all_records",
+    }
+    determination_record_ids = _determination_record_ids(records, declarations)
+    no_prompt_explanations = {
+        item["record_id"]: item["reason"]
+        for item in prompt_layer["records_without_prompts"]
     }
     with database.connect() as connection:
         connection.execute(
@@ -72,14 +87,27 @@ def seed_framework(database: Database, repository_root: Path) -> None:
                 json.dumps(declarations),
             ),
         )
+        connection.execute(
+            """
+            UPDATE framework_versions
+            SET record_count = ?, prompt_count = ?, declarations_json = ?
+            WHERE id = ?
+            """,
+            (
+                len(records),
+                prompt_layer["counts"]["prompts_total"],
+                json.dumps(declarations),
+                FRAMEWORK_ID,
+            ),
+        )
         for order, record in enumerate(records):
             connection.execute(
                 """
                 INSERT OR IGNORE INTO framework_records(
                     framework_version_id, record_id, citation, title, regulation_text,
                     work_area, record_type, parent_id, designation, sort_order,
-                    carries_determination
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    carries_determination, no_prompt_explanation
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     FRAMEWORK_ID,
@@ -92,7 +120,21 @@ def seed_framework(database: Database, repository_root: Path) -> None:
                     record["parent_id"],
                     record["designation"],
                     order,
-                    int(record["id"] not in parent_ids),
+                    int(record["id"] in determination_record_ids),
+                    no_prompt_explanations.get(record["id"]),
+                ),
+            )
+            connection.execute(
+                """
+                UPDATE framework_records
+                SET no_prompt_explanation = ?, carries_determination = ?
+                WHERE framework_version_id = ? AND record_id = ?
+                """,
+                (
+                    no_prompt_explanations.get(record["id"]),
+                    int(record["id"] in determination_record_ids),
+                    FRAMEWORK_ID,
+                    record["id"],
                 ),
             )
         occurrences: defaultdict[str, int] = defaultdict(int)

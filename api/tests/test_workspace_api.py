@@ -69,7 +69,8 @@ def test_client_project_and_hipaa_assessment_are_created_and_retrievable(
         assert payload["framework"]["record_count"] == 194
         assert payload["framework"]["prompt_count"] == 1163
         assert payload["framework"]["determination_record_count"] == 149
-        assert len(payload["work_list"]) == 149
+        assert payload["framework"]["walkthrough_record_count"] == 194
+        assert len(payload["work_list"]) == 194
 
 
 def test_record_contract_preserves_parent_context_and_prompt_presentation_roles(
@@ -90,7 +91,7 @@ def test_record_contract_preserves_parent_context_and_prompt_presentation_roles(
         assert payload["parent"]["editable_determination"] is False
         assert payload["parent"]["prompts_collapsed_by_default"] is True
         assert payload["parent_prompts"]
-        assert payload["position"]["total"] == 149
+        assert payload["position"]["total"] == 194
         assert payload["position"]["current"] >= 1
         assert payload["prompts"]
         assert all(
@@ -446,7 +447,7 @@ def test_0001_evidence_artifact_upgrade_refuses_missing_stored_bytes(tmp_path: P
         ).fetchone() is None
 
 
-def test_prompt_answers_and_cross_record_placements_survive_framework_reseed(
+def test_prompt_answers_and_inert_legacy_placements_survive_framework_reseed(
     tmp_path: Path,
 ) -> None:
     database_path = tmp_path / "workspace.db"
@@ -458,58 +459,40 @@ def test_prompt_answers_and_cross_record_placements_survive_framework_reseed(
         destination_id = "164.308(a)(7)(i)"
         source = client.get(record_path(project_id, assessment_id, source_id)).json()
         prompt = next(item for item in source["prompts"] if "contingency plan" in item["text"])
-        context_prompt = next(item for item in source["prompts"] if item["id"] != prompt["id"])
-
         answer = client.put(
             f"/api/assessments/{assessment_id}/prompts/{prompt['id']}/answer",
             json={"answer": "The client maintains CP-001 and tests it annually."},
         )
         assert answer.status_code == 200
-        moved = client.put(
-            f"/api/assessments/{assessment_id}/prompts/{prompt['id']}/placement",
-            json={
-                "destination_record_id": destination_id,
-                "rule_citation": "45 CFR 164.308(a)(7)",
-                "reason": "The question tests the contingency-plan standard.",
-            },
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO prompt_placements(
+                assessment_id, prompt_id, placement_type, destination_record_id,
+                rule_citation, reason, actor_id, created_at
+            ) VALUES (?, ?, 'record', ?, '45 CFR 164.308(a)(7)',
+                      'Historical placement.', 'johnathan',
+                      '2026-08-25T00:00:00+00:00')
+            """,
+            (assessment_id, prompt["id"], destination_id),
         )
-        assert moved.status_code == 200
-        contextualized = client.put(
-            f"/api/assessments/{assessment_id}/prompts/{context_prompt['id']}/placement",
-            json={
-                "destination_record_id": None,
-                "rule_citation": "",
-                "reason": "No governing rule can be named for this general practice.",
-            },
+        connection.execute(
+            """
+            INSERT INTO prompt_move_rejections(
+                assessment_id, prompt_id, proposed_record_id, reason, actor_id, created_at
+            ) VALUES (?, ?, '164.308(a)(1)(ii)(C)', 'Historical rejection.',
+                      'johnathan', '2026-08-25T00:01:00+00:00')
+            """,
+            (assessment_id, prompt["id"]),
         )
-        assert contextualized.status_code == 200
-        rejected = client.post(
-            f"/api/assessments/{assessment_id}/prompts/{prompt['id']}/rejections",
-            json={
-                "proposed_record_id": "164.308(a)(1)(ii)(C)",
-                "reason": "This proposal matched on vocabulary, not the governing rule.",
-            },
-        )
-        assert rejected.status_code == 201
-        rejections = client.get(
-            f"/api/assessments/{assessment_id}/prompts/{prompt['id']}/rejections"
-        ).json()
-        assert [item["proposed_record_id"] for item in rejections] == [
-            "164.308(a)(1)(ii)(C)"
-        ]
 
     restarted = create_app(database_path=database_path, storage_path=storage_path)
     with TestClient(restarted) as client:
         source = client.get(record_path(project_id, assessment_id, source_id)).json()
         destination = client.get(record_path(project_id, assessment_id, destination_id)).json()
-        assert all(item["id"] != prompt["id"] for item in source["prompts"])
-        placed = next(item for item in destination["prompts"] if item["id"] == prompt["id"])
-        assert placed["answer"] == "The client maintains CP-001 and tests it annually."
-        assert placed["moved_from"]["record_id"] == source_id
-        assert placed["placement"]["rule_citation"] == "45 CFR 164.308(a)(7)"
-        assert any(
-            item["id"] == context_prompt["id"] for item in destination["context_prompts"]
-        )
+        saved = next(item for item in source["prompts"] if item["id"] == prompt["id"])
+        assert saved["answer"] == "The client maintains CP-001 and tests it annually."
+        assert all(item["id"] != prompt["id"] for item in destination["prompts"])
 
 
 def test_final_routine_retry_save_persists_and_audits_prompt_answer(tmp_path: Path) -> None:

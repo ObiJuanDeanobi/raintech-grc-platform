@@ -295,6 +295,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
   background: rgba(255, 255, 255, .94);
   backdrop-filter: blur(10px);
 }
+.record-toolbar > div:first-child { display: flex; align-items: center; gap: 12px; }
 .position { color: #5f6a7b; font-size: 12px; font-weight: 600; }
 .rollup-label { color: #776843; }
 .previous-next { display: flex; gap: 5px; }

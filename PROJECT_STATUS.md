@@ -2,26 +2,30 @@
 
 ## Current phase
 
-`IMPLEMENTATION-REVIEWED`. The requirements and implementation plan were
-approved by Johnathan on August 24, 2026. GitHub issue #53 was separately
-approved for BUILD on August 24, 2026 and is ready for a pull request after
-passing its local verification and both independent review axes.
+`IMPLEMENTATION-IN-REVIEW`. GitHub issue #58 is implemented on
+`feature/58-system-owned-hipaa-walkthrough` and has passed its local automated
+verification and synthetic browser QA. Independent review reported five
+findings, and its first re-review reported two more. All seven are remediated
+locally and await another independent re-review before the work can be called
+reviewed or offered for a pull request.
+GitHub issue #53 merged to `main` through PR #57.
 GitHub issue #54 is complete and merged to `main` through PR #55 after both
 required review axes and repository CI passed. Milestone 0 governance
 reconciliation is complete through PR #51 and GitHub issue #50.
 
 ## Current mode
 
-BUILD review complete. Issue #53's approved minimum project-scoped immutable
-local-evidence slice is implemented and locally verified. Its broader evidence
-lifecycle, backup/recovery, authentication/RBAC, hosted storage, and Issue #49
-behavior remain excluded.
+BUILD remediation complete; in review. Issue #58 makes the HIPAA walkthrough
+framework-owned and complete while preserving the separate determination
+denominator and all historical placement/rejection provenance as inert data.
+Automated, migration, and browser verification are complete; independent
+re-review remains.
 
 ## Current objective
 
-Commit the reviewed GitHub issue #53 implementation, open its pull request, and
-require repository CI before requesting merge approval. Preserve stable slice
-numbers and the approved build order `1, 2, 4, 3, 5, 6, 7`.
+Obtain independent re-review of the Issue #58 remediations and address any new
+findings before requesting human review. Do not commit, push, open a pull
+request, or merge from this implementation session.
 
 ## Approved specification
 
@@ -32,13 +36,21 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #53 — implemented / reviewed / ready for PR.** It adds the minimum immutable
-initial EvidenceVersion and upload-time SHA-256, an initial mapping review state,
-project-boundary enforcement, existing-surface observability, synthetic browser
-evidence, and the required operator/developer boundary documentation. Local
-automated, migration, browser, compatibility, Standards, and Specification
-verification passed. No broader evidence-management surface or lifecycle is
-authorized.
+**GitHub issue #58 — implemented / in review.** The pinned framework now supplies
+all 194 catalog records as stable ordered walkthrough steps while 149
+determination-bearing records remain the separate progress denominator.
+Versioned no-prompt explanations are persisted by additive migration and
+framework seeding. Assessment-time placement and rejection writes and their UI
+controls are removed; historical rows and audits remain stored but inert.
+Focused and full local automated checks, clean/populated migration cycles,
+project isolation, ARM64/x64 source review, and synthetic browser QA are
+complete. The initial five independent-review findings (project-switch race,
+stale progress, declaration consumption, missing final screenshot, and stale
+status) and the two re-review findings (evidence-list project-switch race and
+Issue #53/branch-handoff contradictions) are remediated and await another
+independent re-review.
+
+GitHub issue #53 is complete and merged through PR #57.
 
 GitHub issue #54 is complete and closed through PR #55 after local automated
 checks, browser verification, ARM64/x64 source compatibility review, both
@@ -256,14 +268,16 @@ on a clickable walkthrough, and merged.
   API tests, 12 React tests, 73 catalog tests with 15 skipped, migration
   upgrade/downgrade and populated-workspace backfill checks, browser isolation
   with synthetic data, ARM64/x64 source compatibility review, and independent
-  Standards and Specification reviews on August 24, 2026. It is ready for a
-  pull request and repository CI; merge remains separately unauthorized.
+  Standards and Specification reviews on August 24, 2026. It merged to `main`
+  through PR #57 after required CI passed and is complete.
 
 ## In progress
 
-- **GitHub issue #53**: implemented and reviewed on
-  `feature/53-project-scoped-immutable-local-evidence`. The next gate is pull
-  request CI followed by Johnathan's separate merge approval.
+- **GitHub issue #58**: implemented on
+  `feature/58-system-owned-hipaa-walkthrough`; local automated, migration, and
+  synthetic browser verification are complete. All initial-review and first
+  re-review findings are remediated locally. Another independent re-review is
+  pending, so the ticket is not complete.
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
@@ -305,19 +319,6 @@ for an issue. Each names who has to answer it.
 - **Question-level working record test in Issue #49 — Johnathan.** The test is
   isolated from the approved baseline. If accepted, it requires an explicit
   ADR 0012 disposition and a specification revision before any production work.
-- **Security prompt routing sweep — Johnathan.** 143 questions sit on parent
-  standards across 11 standards with five or more each. 800-66r2 tags a key
-  activity with its implementation specification inconsistently, so an untagged
-  activity lands on the standard whether or not it belongs there. Hand-checking
-  45 CFR 164.308(a)(1) found only 2 of 18 survive: ten belong to that
-  standard's own children, six belong to entirely different standards. The test
-  is the practitioner's: *to mark a question Met, name the rule it would be Met
-  against; name it and the question belongs on that rule's record, fail to and
-  it is context.* Automating it was measured and rejected -- title matching
-  agreed on 2 of 3 candidates at best and fails silently. The walkthrough
-  carries the mechanism (`move…` on every question, with export), so this is a
-  pass through the tool, not a decision to reason out. Blocks nothing; the
-  routing is usable now and improves with each pass.
 - **Editable status on a parent standard — Johnathan.** Raised repeatedly on
   July 30 and answered no, on the grounds that 164.306(d)(2) satisfies a
   standard through its implementation specifications and an independently
@@ -375,21 +376,19 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Complete Issue #53 through implementation, migration verification, automated
-and browser acceptance, two-axis review, and a green pull request. Do not merge
-the resulting pull request without Johnathan's approval.
-
-Independently and at any time, Johnathan can make a pass over the Security
-routing in the walkthrough using the `move…` control and send the exported JSON;
-it is folded into `ROUTING_EXCEPTIONS` as recorded decisions. Partial passes are
-useful — the worst three standards are 164.308(a)(5) with 24 questions on the
-parent, 164.312(a)(1) with 21, and 164.308(a)(1) with 18.
+Obtain independent Standards/Specification re-review for Issue #58 against the
+current working tree. If no new findings remain, request human review. Do not
+commit, push, open a pull request, or merge until the requested review workflow
+authorizes those actions.
 
 ## Branch inventory
 
 Recorded so the next agent does not re-derive it, and because a branch reset in
 this repository has already destroyed a day of work once. **Nothing here has
-been deleted.** `main` is the only branch carrying current work.
+been deleted.** Completed Issue #53 and Issue #54 work is on `main`. The current
+uncommitted Issue #58 implementation and review remediations are only in the
+working tree on `feature/58-system-owned-hipaa-walkthrough`; do not reset,
+delete, or switch away from it during this handoff.
 
 Provably merged — every commit has an equivalent already on `main`, verified
 with `git cherry origin/main origin/<branch>`. Safe to delete:
