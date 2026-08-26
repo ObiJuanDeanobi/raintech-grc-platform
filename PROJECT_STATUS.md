@@ -2,12 +2,13 @@
 
 ## Current phase
 
-`IMPLEMENTATION-IN-REVIEW`. GitHub issue #58 is implemented on
-`feature/58-system-owned-hipaa-walkthrough` and has passed its local automated
-verification and synthetic browser QA. Independent review reported five
-findings, and its first re-review reported two more. All seven are remediated
-locally and await another independent re-review before the work can be called
-reviewed or offered for a pull request.
+`IMPLEMENTATION-IN-REVIEW`. GitHub issue #61 is implemented on
+`feature/61-profile-readiness-gate` and has passed its local automated,
+migration, persistence, isolation, and synthetic browser verification.
+Independent Standards and Specification reviews reported Medium findings. Those
+findings are remediated locally and await independent re-review, so the work
+must not be called review-PASS or offered for a pull request from this session.
+GitHub issue #58 merged to `main` through PR #59.
 GitHub issue #53 merged to `main` through PR #57.
 GitHub issue #54 is complete and merged to `main` through PR #55 after both
 required review axes and repository CI passed. Milestone 0 governance
@@ -15,17 +16,17 @@ reconciliation is complete through PR #51 and GitHub issue #50.
 
 ## Current mode
 
-BUILD remediation complete; in review. Issue #58 makes the HIPAA walkthrough
-framework-owned and complete while preserving the separate determination
-denominator and all historical placement/rejection provenance as inert data.
-Automated, migration, and browser verification are complete; independent
-re-review remains.
+BUILD complete; in review. Issue #61 adds a project-scoped profile readiness
+gate with append-only attributed transitions, a local-evidence-boundary
+acknowledgement, concrete blocking reasons, and assessment-entry enforcement.
+Automated, migration, restart, isolation, and browser verification are
+complete after remediation; independent re-review remains.
 
 ## Current objective
 
-Obtain independent re-review of the Issue #58 remediations and address any new
-findings before requesting human review. Do not commit, push, open a pull
-request, or merge from this implementation session.
+Obtain independent Standards and Spec re-review of the remediated Issue #61
+working tree before requesting human review. Do not commit, push, open a pull
+request, or merge from this implementation session, and do not begin Issue #62.
 
 ## Approved specification
 
@@ -36,19 +37,25 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #58 — implemented / in review.** The pinned framework now supplies
-all 194 catalog records as stable ordered walkthrough steps while 149
-determination-bearing records remain the separate progress denominator.
-Versioned no-prompt explanations are persisted by additive migration and
-framework seeding. Assessment-time placement and rejection writes and their UI
-controls are removed; historical rows and audits remain stored but inert.
-Focused and full local automated checks, clean/populated migration cycles,
-project isolation, ARM64/x64 source review, and synthetic browser QA are
-complete. The initial five independent-review findings (project-switch race,
-stale progress, declaration consumption, missing final screenshot, and stale
-status) and the two re-review findings (evidence-list project-switch race and
-Issue #53/branch-handoff contradictions) are remediated and await another
-independent re-review.
+**GitHub issue #61 — implemented / in review.** Each project now has the exact
+approved readiness states: Intake started, Intake complete, Needs follow-up,
+and Profile complete. State changes are append-only and preserve prior state,
+next state, actor, timestamp, decision note, unresolved required fields,
+follow-up work, and named review evidence. The project-scoped acknowledgement
+references `docs/local-evidence-operating-boundary.md` and explicitly does not
+attest that content is free of CUI, PHI, or ePHI. New assessment entry is
+blocked at Intake started and Needs follow-up, permitted at Intake complete and
+Profile complete, and existing assessments remain readable after regression.
+The persisted framework-version declaration supplies the transition graph and
+threshold rules. The latest append-only transition is authoritative for current
+state, and the database rejects discontinuous direct inserts.
+Focused and full local automated checks, a populated migration
+upgrade/downgrade/re-upgrade, restart persistence, two-project isolation,
+append-only enforcement, actor attribution, ARM64/x64 source review, and
+synthetic browser QA are complete. The initial independent reviews' Medium
+findings are remediated; independent re-review has not yet occurred.
+
+GitHub issue #58 is complete and merged through PR #59.
 
 GitHub issue #53 is complete and merged through PR #57.
 
@@ -270,14 +277,17 @@ on a clickable walkthrough, and merged.
   with synthetic data, ARM64/x64 source compatibility review, and independent
   Standards and Specification reviews on August 24, 2026. It merged to `main`
   through PR #57 after required CI passed and is complete.
+- Issue #58's system-owned HIPAA walkthrough merged to `main` through PR #59
+  as merge commit `0193c0c`.
 
 ## In progress
 
-- **GitHub issue #58**: implemented on
-  `feature/58-system-owned-hipaa-walkthrough`; local automated, migration, and
-  synthetic browser verification are complete. All initial-review and first
-  re-review findings are remediated locally. Another independent re-review is
-  pending, so the ticket is not complete.
+- **GitHub issue #61**: implemented on
+  `feature/61-profile-readiness-gate`; local automated, migration, restart,
+  isolation, architecture-source, and synthetic browser verification are
+  complete after remediation. Independent Standards and Specification reviews
+  reported Medium findings; all are remediated locally and await re-review, so
+  the ticket is not complete.
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
@@ -291,7 +301,7 @@ on a clickable walkthrough, and merged.
   judgement about whether these are the right assessable units rather than
   whether they reproduce the regulation.
 
-No other production slice is in flight.
+No other production slice is in flight; Issue #62 has not begun.
 
 ## Ownership
 
@@ -376,19 +386,19 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Obtain independent Standards/Specification re-review for Issue #58 against the
-current working tree. If no new findings remain, request human review. Do not
-commit, push, open a pull request, or merge until the requested review workflow
-authorizes those actions.
+Obtain independent Standards and Specification re-review for the remediated
+Issue #61 working tree. Do not claim either review axis passed. Do not commit,
+push, open a pull request, merge, close the issue, or begin Issue #62 until the
+requested workflow authorizes those actions.
 
 ## Branch inventory
 
 Recorded so the next agent does not re-derive it, and because a branch reset in
 this repository has already destroyed a day of work once. **Nothing here has
-been deleted.** Completed Issue #53 and Issue #54 work is on `main`. The current
-uncommitted Issue #58 implementation and review remediations are only in the
-working tree on `feature/58-system-owned-hipaa-walkthrough`; do not reset,
-delete, or switch away from it during this handoff.
+been deleted.** Completed Issue #53, Issue #54, and Issue #58 work is on `main`.
+The current uncommitted Issue #61 implementation is only in the working tree on
+`feature/61-profile-readiness-gate`; do not reset, delete, or switch away from
+it during this handoff.
 
 Provably merged — every commit has an equivalent already on `main`, verified
 with `git cherry origin/main origin/<branch>`. Safe to delete:

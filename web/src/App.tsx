@@ -18,16 +18,219 @@ import {
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { request } from "./api";
+import { ApiError, request } from "./api";
 import type {
   Artifact,
   Assessment,
   Client,
   EvidenceMapping,
   Prompt,
+  ProfileReadiness,
   RecordDetail,
   Status,
 } from "./types";
+
+function ReadinessPanel({
+  readiness,
+  hasAssessment,
+  onChanged,
+}: {
+  readiness: ProfileReadiness;
+  hasAssessment: boolean;
+  onChanged: () => Promise<void>;
+}) {
+  const [nextState, setNextState] = useState(
+    readiness.allowed_next_states[0] ?? "",
+  );
+  const [decisionNote, setDecisionNote] = useState("");
+  const [unresolved, setUnresolved] = useState(
+    readiness.current_details.unresolved_required_fields.join(", "),
+  );
+  const [followUp, setFollowUp] = useState(readiness.current_details.follow_up_work);
+  const [reviewedBy, setReviewedBy] = useState(readiness.current_details.reviewed_by);
+  const [approvalEvidence, setApprovalEvidence] = useState(
+    readiness.current_details.approval_evidence,
+  );
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState("");
+  const unresolvedValues = unresolved
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const followUpRequired = readiness.follow_up_work_required_states.includes(nextState)
+    || (
+      readiness.follow_up_work_required_when_unresolved_required_fields
+      && unresolvedValues.length > 0
+    );
+
+  useEffect(() => {
+    setNextState(readiness.allowed_next_states[0] ?? "");
+    setUnresolved(readiness.current_details.unresolved_required_fields.join(", "));
+    setFollowUp(readiness.current_details.follow_up_work);
+    setReviewedBy(readiness.current_details.reviewed_by);
+    setApprovalEvidence(readiness.current_details.approval_evidence);
+  }, [readiness]);
+
+  async function acknowledge() {
+    setWorking(true);
+    setError("");
+    try {
+      await request(`/api/projects/${readiness.project_id}/profile-readiness/acknowledgement`, {
+        method: "POST",
+      });
+      await onChanged();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Acknowledgement failed.");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function saveTransition(event: FormEvent) {
+    event.preventDefault();
+    setWorking(true);
+    setError("");
+    try {
+      await request(`/api/projects/${readiness.project_id}/profile-readiness/transitions`, {
+        method: "POST",
+        body: JSON.stringify({
+          next_state: nextState,
+          decision_note: decisionNote,
+          unresolved_required_fields: unresolvedValues,
+          follow_up_work: followUp,
+          reviewed_by: reviewedBy,
+          approval_evidence: approvalEvidence,
+        }),
+      });
+      setDecisionNote("");
+      await onChanged();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Readiness update failed.");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function startAssessment() {
+    setWorking(true);
+    setError("");
+    try {
+      await request(`/api/projects/${readiness.project_id}/assessments`, { method: "POST" });
+      await onChanged();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Assessment creation failed.");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  return (
+    <section className="readiness-panel" aria-labelledby="readiness-title">
+      <div className="readiness-heading">
+        <div>
+          <p className="eyebrow">PROJECT PROFILE</p>
+          <h1 id="readiness-title">Assessment readiness</h1>
+        </div>
+        <span className={`readiness-state ${readiness.assessment_entry_allowed ? "ready" : "blocked"}`}>
+          {readiness.state}
+        </span>
+      </div>
+      <div className="readiness-grid">
+        <article>
+          <h2>Assessment entry</h2>
+          {readiness.assessment_entry_allowed ? (
+            <p className="readiness-ok">This readiness state permits assessment entry.</p>
+          ) : (
+            <ul className="blocking-reasons">
+              {readiness.assessment_entry_blocking_reasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          )}
+          <button
+            className="small-button"
+            disabled={working || hasAssessment || !readiness.assessment_entry_allowed}
+            onClick={() => void startAssessment()}
+          >
+            {hasAssessment ? "Assessment already started" : "Start assessment"}
+          </button>
+        </article>
+        <article>
+          <h2>Operating boundary</h2>
+          <code>{readiness.boundary_document}</code>
+          <p>
+            Acknowledging this document records that it was reviewed. It is explicitly not an
+            attestation that content is free of CUI, PHI, or ePHI.
+          </p>
+          {readiness.acknowledgement ? (
+            <p className="readiness-ok">
+              Acknowledged by {readiness.acknowledgement.actor.display_name}
+            </p>
+          ) : (
+            <button className="secondary-button" disabled={working} onClick={() => void acknowledge()}>
+              Acknowledge boundary
+            </button>
+          )}
+        </article>
+      </div>
+      <form className="readiness-form" onSubmit={(event) => void saveTransition(event)}>
+        <div className="section-title">
+          <h2>Record readiness decision</h2>
+          <span>Append-only history</span>
+        </div>
+        <div className="readiness-fields">
+          <label>
+            Next state
+            <select value={nextState} onChange={(event) => setNextState(event.target.value)}>
+              {readiness.allowed_next_states.map((state) => (
+                <option key={state}>{state}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Decision note
+            <textarea required rows={2} value={decisionNote} onChange={(event) => setDecisionNote(event.target.value)} />
+          </label>
+          <label>
+            Unresolved required fields <small>comma-separated</small>
+            <input value={unresolved} onChange={(event) => setUnresolved(event.target.value)} />
+          </label>
+          <label>
+            Explicit follow-up work
+            <textarea
+              required={followUpRequired}
+              rows={2}
+              value={followUp}
+              onChange={(event) => setFollowUp(event.target.value)}
+            />
+          </label>
+          <label>
+            Named reviewer
+            <input value={reviewedBy} onChange={(event) => setReviewedBy(event.target.value)} />
+          </label>
+          <label>
+            Review / approval evidence
+            <textarea rows={2} value={approvalEvidence} onChange={(event) => setApprovalEvidence(event.target.value)} />
+          </label>
+        </div>
+        {readiness.profile_completion_blocking_reasons.length > 0 && (
+          <div className="profile-blockers">
+            <strong>Profile completion still needs:</strong>
+            <ul>
+              {readiness.profile_completion_blocking_reasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <button className="small-button" disabled={working || !readiness.acknowledgement} type="submit">
+          Record transition
+        </button>
+      </form>
+    </section>
+  );
+}
 
 function statusClass(status: Status): string {
   return status ? `status-${status.toLowerCase().replaceAll(" ", "-").replace("/", "")}` : "status-blank";
@@ -269,8 +472,8 @@ function Setup({ onCreated }: { onCreated: (projectId: string) => void }) {
         <p className="eyebrow">RAINTECH GRC</p>
         <h1>Begin with the work,<br />not the setup.</h1>
         <p>
-          Create the first client project. The assessment is pinned to a versioned
-          framework catalog and saved locally as you work.
+          Create the first client project. Its profile begins with intake, and any later
+          assessment is pinned to a versioned framework catalog.
         </p>
         <div className="setup-facts">
           <span><Check size={16} /> Complete cited walkthrough</span>
@@ -788,6 +991,7 @@ export function Workspace({
   onWorkspaceCreated: (id: string) => void;
 }) {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [readiness, setReadiness] = useState<ProfileReadiness | null>(null);
   const [progress, setProgress] = useState<Assessment["progress"] | null>(null);
   const [recordId, setRecordId] = useState("");
   const [returnRecordId, setReturnRecordId] = useState("");
@@ -800,7 +1004,7 @@ export function Workspace({
   const [routineSaves, setRoutineSaves] = useState<Map<string, RoutineSaveState>>(new Map());
   const [loading, setLoading] = useState(true);
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
-  const [view, setView] = useState<"assessment" | "overview">("assessment");
+  const [view, setView] = useState<"assessment" | "overview" | "profile">("assessment");
   const detailTargetRef = useRef({ assessmentId: "", recordId: "" });
   const detailRequestSequenceRef = useRef(0);
   const assessmentRequestSequenceRef = useRef(0);
@@ -813,7 +1017,7 @@ export function Workspace({
   const loadAssessment = useCallback(async (signal?: AbortSignal) => {
     const targetProjectId = projectId;
     const requestSequence = ++assessmentRequestSequenceRef.current;
-    let next: Assessment;
+    let next: Assessment | null;
     try {
       next = await request<Assessment>(
         `/api/projects/${targetProjectId}/assessment`,
@@ -821,7 +1025,8 @@ export function Workspace({
       );
     } catch (error) {
       if (signal?.aborted) return;
-      throw error;
+      if (error instanceof ApiError && error.status === 404) next = null;
+      else throw error;
     }
     if (
       signal?.aborted
@@ -829,10 +1034,31 @@ export function Workspace({
       || projectTargetRef.current !== targetProjectId
     ) return;
     setAssessment(next);
-    setProgress(next.progress);
-    setRecordId(next.work_list[0]?.record_id || "");
-    setLoading(false);
+    setProgress(next?.progress ?? null);
+    setRecordId(next?.work_list[0]?.record_id || "");
   }, [projectId]);
+
+  const loadReadiness = useCallback(async (signal?: AbortSignal) => {
+    const targetProjectId = projectId;
+    const next = await request<ProfileReadiness>(
+      `/api/projects/${targetProjectId}/profile-readiness`,
+      { signal },
+    );
+    if (signal?.aborted || projectTargetRef.current !== targetProjectId) return undefined;
+    setReadiness(next);
+    return next;
+  }, [projectId]);
+
+  const reloadWorkspace = useCallback(async () => {
+    const nextReadiness = await loadReadiness();
+    if (nextReadiness === undefined) return;
+    if (nextReadiness?.assessment_exists) await loadAssessment();
+    else {
+      setAssessment(null);
+      setProgress(null);
+      setRecordId("");
+    }
+  }, [loadAssessment, loadReadiness]);
 
   const refreshAssessmentProgress = useCallback(async () => {
     if (!assessment) return;
@@ -890,14 +1116,24 @@ export function Workspace({
   useEffect(() => {
     const controller = new AbortController();
     setAssessment(null);
+    setReadiness(null);
     setProgress(null);
     setRecordId("");
     setLoading(true);
     setDetail(null);
     setArtifacts([]);
-    void loadAssessment(controller.signal);
+    void (async () => {
+      try {
+        const nextReadiness = await loadReadiness(controller.signal);
+        if (nextReadiness?.assessment_exists) await loadAssessment(controller.signal);
+      } catch (error) {
+        if (!controller.signal.aborted) throw error;
+      } finally {
+        if (!controller.signal.aborted && projectTargetRef.current === projectId) setLoading(false);
+      }
+    })();
     return () => controller.abort();
-  }, [loadAssessment]);
+  }, [loadAssessment, loadReadiness, projectId]);
 
   useEffect(() => {
     void loadDetail();
@@ -957,7 +1193,7 @@ export function Workspace({
     return true;
   }, [confirmRoutineNavigation, onProjectChange, projectId]);
 
-  const changeView = useCallback((nextView: "assessment" | "overview") => {
+  const changeView = useCallback((nextView: "assessment" | "overview" | "profile") => {
     if (nextView === view || !confirmRoutineNavigation()) return;
     setView(nextView);
   }, [confirmRoutineNavigation, view]);
@@ -988,8 +1224,58 @@ export function Workspace({
     client.projects.map((project) => ({ ...project, clientName: client.name })),
   );
 
-  if (loading || !assessment || !progress || !detail) {
+  const selectedProject = projects.find((project) => project.id === projectId);
+
+  if (loading || !readiness) {
     return <div className="loading-screen"><LoaderCircle className="spin" /><span>Opening assessment workspace…</span></div>;
+  }
+
+  if (!assessment || !progress || !detail) {
+    return (
+      <div className="readiness-shell">
+        <header className="topbar">
+          <div className="topbar-brand">
+            <div className="brand-mark small"><ShieldCheck size={20} /></div>
+            <span>RainTech GRC</span>
+          </div>
+          <nav>
+            <button className={view === "assessment" ? "active" : ""} onClick={() => changeView("assessment")}>Assessments</button>
+            <button className={view === "overview" ? "active" : ""} onClick={() => changeView("overview")}>Overview</button>
+            <button className={view === "profile" ? "active" : ""} onClick={() => changeView("profile")}>Profile</button>
+            <button disabled>Actions</button>
+          </nav>
+          <div className="topbar-utility"><span className="account"><UserRound size={16} /> Johnathan</span></div>
+        </header>
+        <main className="readiness-main">
+          <div className="readiness-project-line">
+            <label>
+              Client project
+              <select value={projectId} onChange={(event) => changeProject(event.target.value)}>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>{project.clientName} · {project.name}</option>
+                ))}
+              </select>
+            </label>
+            <span>{selectedProject?.framework_version_id}</span>
+          </div>
+          <ReadinessPanel
+            readiness={readiness}
+            hasAssessment={Boolean(assessment)}
+            onChanged={reloadWorkspace}
+          />
+        </main>
+        {creatingWorkspace && (
+          <WorkspaceCreator
+            clients={clients}
+            onCancel={() => setCreatingWorkspace(false)}
+            onCreated={(id) => {
+              setCreatingWorkspace(false);
+              onWorkspaceCreated(id);
+            }}
+          />
+        )}
+      </div>
+    );
   }
 
   return (
@@ -1002,7 +1288,7 @@ export function Workspace({
         <nav>
           <button className={view === "assessment" ? "active" : ""} onClick={() => changeView("assessment")}>Assessments</button>
           <button className={view === "overview" ? "active" : ""} onClick={() => changeView("overview")}>Overview</button>
-          <button disabled>Profile</button>
+          <button className={view === "profile" ? "active" : ""} onClick={() => changeView("profile")}>Profile</button>
           <button disabled>Actions</button>
         </nav>
         <div className="topbar-utility">
@@ -1065,9 +1351,12 @@ export function Workspace({
         </div>
       </aside>
 
-      <main className={`assessment-main ${view === "overview" ? "workspace-hidden" : ""}`}>
+      <main className={`assessment-main ${view !== "assessment" ? "workspace-hidden" : ""}`}>
         <div className="record-toolbar">
           <div>
+            <span className={`readiness-state compact ${readiness.assessment_entry_allowed ? "ready" : "blocked"}`}>
+              {readiness.state}
+            </span>
             {returnRecordId ? (
               <button className="back-link" onClick={() => changeRecord(returnRecordId)}>
                 <ArrowLeft size={15} /> Back to determination
@@ -1089,6 +1378,14 @@ export function Workspace({
             </button>
           </div>
         </div>
+        {readiness.assessment_entry_blocking_reasons.length > 0 && (
+          <div className="assessment-readiness-warning">
+            <strong>New assessment entry is blocked.</strong>
+            {readiness.assessment_entry_blocking_reasons.map((reason) => (
+              <span key={reason}>{reason}</span>
+            ))}
+          </div>
+        )}
 
         {detail.parent && (
           <section className="parent-context">
@@ -1157,7 +1454,7 @@ export function Workspace({
         </section>
       </main>
 
-      <aside className={`working-record ${view === "overview" ? "workspace-hidden" : ""}`}>
+      <aside className={`working-record ${view !== "assessment" ? "workspace-hidden" : ""}`}>
         <div className="working-header">
           <div><p className="eyebrow">WORKING RECORD</p><h2>Assessment notes</h2></div>
           <ShieldCheck size={20} />
@@ -1209,6 +1506,20 @@ export function Workspace({
             <article><strong>{assessment.framework.record_count}</strong><span>cited records</span></article>
             <article><strong>{assessment.framework.prompt_count}</strong><span>assessor prompts</span></article>
           </div>
+          <section className="overview-readiness">
+            <div>
+              <p className="eyebrow">PROFILE READINESS</p>
+              <h2>{readiness.state}</h2>
+            </div>
+            {readiness.assessment_entry_blocking_reasons.length > 0 ? (
+              <ul className="blocking-reasons">
+                {readiness.assessment_entry_blocking_reasons.map((reason) => <li key={reason}>{reason}</li>)}
+              </ul>
+            ) : (
+              <p className="readiness-ok">This readiness state permits assessment entry.</p>
+            )}
+            <button className="secondary-button" onClick={() => changeView("profile")}>Review profile gate</button>
+          </section>
           <div className="overview-projects">
             <div className="section-title"><h2>Client projects</h2><span>{projects.length}</span></div>
             {projects.map((project) => (
@@ -1221,6 +1532,15 @@ export function Workspace({
               </button>
             ))}
           </div>
+        </main>
+      )}
+      {view === "profile" && (
+        <main className="overview-panel">
+          <ReadinessPanel
+            readiness={readiness}
+            hasAssessment
+            onChanged={reloadWorkspace}
+          />
         </main>
       )}
       {creatingWorkspace && (

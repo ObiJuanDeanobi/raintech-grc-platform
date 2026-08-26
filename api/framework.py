@@ -62,6 +62,71 @@ def seed_framework(database: Database, repository_root: Path) -> None:
         },
         "presentation_mode": "one_record_with_parent_context",
         "walkthrough_membership": "all_records",
+        "profile_readiness": {
+            "initial_state": "Intake started",
+            "states": [
+                "Intake started",
+                "Intake complete",
+                "Needs follow-up",
+                "Profile complete",
+            ],
+            "transitions": {
+                "Intake started": ["Intake complete", "Needs follow-up"],
+                "Intake complete": ["Needs follow-up", "Profile complete"],
+                "Needs follow-up": ["Intake complete", "Profile complete"],
+                "Profile complete": ["Needs follow-up"],
+            },
+            "assessment_entry": {
+                "allowed_states": ["Intake complete", "Profile complete"],
+                "blocking_reasons": {
+                    "Intake started": (
+                        "Complete the initial intake before starting a new assessment."
+                    ),
+                    "Needs follow-up": (
+                        "Resolve the recorded follow-up before starting a new assessment."
+                    ),
+                },
+            },
+            "profile_completion": {
+                "state": "Profile complete",
+                "requires_boundary_acknowledgement": True,
+                "boundary_acknowledgement_blocking_reason": (
+                    "Acknowledge the local evidence operating boundary."
+                ),
+                "requires_no_unresolved_required_fields": True,
+                "unresolved_required_field_blocking_reason": "Resolve required field: {field}.",
+                "unresolved_required_fields_validation_message": (
+                    "Profile complete cannot have unresolved required fields"
+                ),
+                "required_fields": {
+                    "reviewed_by": {
+                        "validation_message": "Profile complete requires a named reviewer",
+                        "blocking_reason": "Record a named reviewer.",
+                    },
+                    "approval_evidence": {
+                        "validation_message": (
+                            "Profile complete requires review or approval evidence"
+                        ),
+                        "blocking_reason": "Record review or approval evidence.",
+                    },
+                },
+            },
+            "follow_up_work": {
+                "required_states": ["Needs follow-up"],
+                "required_when_unresolved_required_fields": True,
+                "required_state_validation_messages": {
+                    "Needs follow-up": "Needs follow-up requires explicit follow-up work"
+                },
+                "unresolved_required_fields_validation_message": (
+                    "Unknown required fields require explicit follow-up work"
+                ),
+            },
+            "requires_boundary_acknowledgement_before_transition": True,
+            "boundary_acknowledgement_validation_message": (
+                "Acknowledge the local evidence operating boundary first"
+            ),
+            "boundary_document": "docs/local-evidence-operating-boundary.md",
+        },
     }
     determination_record_ids = _determination_record_ids(records, declarations)
     no_prompt_explanations = {
