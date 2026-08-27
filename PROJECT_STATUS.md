@@ -2,38 +2,37 @@
 
 ## Current phase
 
-`IMPLEMENTATION-IN-REVIEW`. GitHub issue #62 is implemented on
-`feature/62-versioned-project-profile` from `main` commit `030096f` and has
-passed its focused and full local automated, migration, persistence, isolation,
-and synthetic browser verification. Initial, final, conclusive, definitive,
-final-independent, and closure reviews reported High/Medium findings; all
-reported findings are remediated locally and await another independent
-re-review, so the
-work must not be called review-PASS or offered for a pull request from this
-session. GitHub issue #61 merged to `main` through PR #63.
-GitHub issue #58 merged to `main` through PR #59.
-GitHub issue #53 merged to `main` through PR #57.
-GitHub issue #54 is complete and merged to `main` through PR #55 after both
-required review axes and repository CI passed. Milestone 0 governance
-reconciliation is complete through PR #51 and GitHub issue #50.
+`REVIEW-PASSED-AWAITING-CI`. GitHub issue #74 is implemented but
+uncommitted on `feature/74-assessment-revision-expand` from `main` commit
+`e2a9c76`. The focused tests and the full local API, catalog, Python lint,
+frontend typecheck/lint/test/build suites pass. Clean and populated migration
+upgrade/downgrade/re-upgrade, preservation, active-pointer, and direct-SQL
+isolation probes pass. The required desktop and 1280x720 browser regression
+evidence is retained under `docs/screenshots/issue-74/`. Initial independent
+reviews found documentation/evidence gaps rather than implementation defects;
+those findings were remediated, and final independent Standards and
+Specification re-reviews both passed with no actionable findings. Repository
+CI has not run because the branch is not yet pushed, so the work is not yet
+complete. Issue #62 merged to `main` through PR #64; issues #61, #58, #53, and
+#54 were already merged.
 
 ## Current mode
 
-BUILD complete; in review. Issue #62 adds project-scoped versioned Profile
-snapshots, append-only Draft/Reviewed/Approved lifecycle, per-value provenance,
-the complete framework-neutral Profile form, environment-grouped inventory,
-typed Profile evidence reuse and new stored-byte upload/hash mapping, strict
-project isolation, and migration preservation. The Issue #61 readiness contract
-and existing assessment evidence mappings remain unchanged. Automated,
-migration, restart, isolation, and browser verification are complete after
-review remediation; independent Standards and Specification re-review remains.
+BUILD complete; awaiting review. Issue #74 is an additive expand migration
+only. It adds `assessment_revisions` metadata and
+`project_active_assessments`, backfills every existing assessment as revision
+1 and as its project's active assessment, and makes future inserts through the
+unchanged assessment creation route receive the same metadata and pointer.
+Existing assessment IDs, data, ownership, API/UI contracts, and the
+one-assessment-per-project uniqueness remain unchanged. No successor creation,
+caller migration, correction UI, or old-constraint removal is included.
 
 ## Current objective
 
-Obtain independent Standards and Specification re-review of the remediated
-Issue #62 working tree before requesting human review. Do not commit, push, open
-a pull request, merge, close the issue, or begin later milestones from this
-implementation session.
+Commit and push the review-PASS Issue #74 tree, open a merge-ready pull request,
+and verify repository CI. Keep GitHub's issue, pull request, and this status
+file sufficient for a GitHub-only Codex handoff. Do not begin Issue #75 or
+remove the old assessment uniqueness in this branch.
 
 ## Approved specification
 
@@ -44,55 +43,44 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #62 — implemented / in review.** Each project now owns flat,
-append-only Profile versions with one active approved-version pointer. Each
-version stores predefined generic item rows and field values with source,
-reviewer, and last-reviewed timestamp. Environments cover cloud, physical
-systems, sites, and networks; inventory is grouped beneath an environment.
-Unknowns require owner plus target date or an explicit follow-up reference.
-Drafts move only through Reviewed to Approved with actor/timestamp attribution
-and a named reviewer on approval. Reviewed and approved snapshots are immutable;
-later edits clone into a new draft version.
+**GitHub issue #74 — implemented / awaiting review.**
 
-Typed Profile evidence mappings reuse the Issue #53 artifact/version/storage/hash
-seam, preserve assessment-record mappings unchanged, and start at `Not reviewed`.
-The neutral form is the only released form; no framework template was added.
-HIPAA and synthetic CMMC browser/API coverage use the same persistence, routes,
-and React `ProfilePanel`. Focused and full checks, clean and populated migration
-cycles, restart persistence, two-project 404/no-mutation isolation, assessment
-mapping regression, ARM64/x64 source review, and browser QA are complete.
-Review remediation now binds mapping destination rows and evidence identities
-to one project at the database and API seams, validates canonical field targets,
-requires environment-owned inventory, rejects unknown actors before mutation,
-uses unique server-generated upload identities, clones mappings into successor
-versions, converts trigger integrity failures to controlled conflicts, and
-guards unsaved or late React mutations across project and Profile-version
-navigation. Final remediation also adds exact optimistic Draft revisions for
-save/review concurrency, makes the latest approval ledger authoritative over
-the active pointer, enforces one-to-one canonical targets in API/database/UI,
-protects mapped item and referenced-environment identity, clones dependent
-inventory environment-first without changing display order, and removes staged
-or final bytes after failed Profile uploads. Conclusive remediation extends the
-revision contract across fields, items, environment links, and Profile evidence
-mappings; every evidence mutation checks and returns that revision under a write
-lock, lifecycle events persist the reviewed revision, direct-SQL content changes
-advance the database authority, delayed saves preserve newer local edits as
-dirty, and the active-pointer invariant is enforced before the first approval
-and during project insertion. Final independent remediation derives the
-revision inside SQLite through a registered `profile_snapshot_revision()`
-function over the complete Profile snapshot. Content and lifecycle triggers
-independently enforce that computed value, the per-Profile ledger rejects
-duplicate/restored tokens and arbitrary inserts, and connections without the
-function fail closed. Profile mappings snapshot artifact display identity
-so live metadata cannot rewrite approved presentation. The UI locks Profile
-editing and version switching for lifecycle requests and immediately applies
-the real server lifecycle result; delayed reuse/upload still merge functionally.
-Closure remediation gives Alembic DBAPI connections the same default
-trigger-only ledger authorizer as application/test connections. Migration
-bootstrap authorization is explicit and bounded to `context.run_migrations()`,
-then the fail-closed default is restored.
-Evidence is recorded in `docs/screenshots/issue-62/VERIFICATION.md`. The initial
-independent findings are remediated; independent re-review has not occurred.
+- `migrations/versions/0006_assessment_revision_expand.py` adds two expansion
+  tables without rebuilding or weakening `assessments`.
+- `assessment_revisions` keeps the existing assessment ID as revision identity,
+  records project ownership, positive revision number, and optional predecessor.
+  Composite foreign keys bind both the revision and predecessor to one project.
+- `project_active_assessments` has one row per assessed project. Its composite
+  foreign key binds the active assessment to that project. The initial pointer
+  cannot be deleted or re-keyed; a later ticket can update it to a valid
+  same-project successor.
+- Migration backfill assigns revision 1 with no predecessor and points each
+  assessed project at its unchanged current assessment. An assessment insert
+  trigger gives newly created assessments the same metadata and pointer while
+  leaving the existing API caller and response untouched.
+- `api/tests/test_issue_m3_assessment_revision_expand.py` covers clean creation,
+  populated upgrade/downgrade/re-upgrade, ID and determination preservation,
+  exactly one active pointer, revision-1 metadata, same-client and cross-client
+  guessed-ID rejection/no mutation, and direct-SQL cross-project
+  pointer/predecessor rejection. The schema represents a successor by the
+  reverse predecessor relationship, but the retained assessment uniqueness and
+  unchanged API deliberately prevent creating one in this expand phase.
+- Verification completed locally: focused `5 passed`; full API `55 passed`;
+  catalog `74 passed`; Ruff passed; frontend typecheck and lint passed; Vitest
+  `39 passed` including delayed project/assessment response protections; and
+  the production frontend build passed. Mypy passes when invoked with the
+  repository config after the test helper annotations were corrected.
+- Required browser regression evidence passed at 1440x900 and 1280x720 using a
+  fresh upgraded database and synthetic data. Next/Previous changed and
+  restored the selected record, all required workspace regions remained
+  visible, document width matched viewport width, and no console or page errors
+  occurred. Evidence and the QA inventory are retained in
+  `docs/screenshots/issue-74/`.
+- Final independent Standards and Specification reviews both passed with no
+  actionable findings after the initial evidence and status-documentation
+  findings were remediated.
+
+GitHub issue #62 is complete and merged through PR #64.
 
 GitHub issue #61 is complete and merged through PR #63.
 
@@ -323,12 +311,11 @@ on a clickable walkthrough, and merged.
 
 ## In progress
 
-- **GitHub issue #62**: implemented on
-  `feature/62-versioned-project-profile`; local focused/full automated,
-  migration, restart, isolation, source-compatibility, and synthetic browser
-  verification are complete after remediating the initial independent
-  Standards and Specification review findings. Re-review has not occurred, so
-  the ticket is in review and not complete.
+- **GitHub issue #74**: implementation, local automated verification, required
+  browser regression capture, remediation, and final independent Standards and
+  Specification reviews are complete on
+  `feature/74-assessment-revision-expand`. Both review axes passed. It awaits
+  the authorized commit/push, pull-request creation, and repository CI.
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
@@ -342,7 +329,8 @@ on a clickable walkthrough, and merged.
   judgement about whether these are the right assessable units rather than
   whether they reproduce the regulation.
 
-No other production slice is in flight.
+No other production slice is in flight. In particular, Issue #75 caller
+migration has not started.
 
 ## Ownership
 
@@ -356,6 +344,11 @@ and operations model, not a claimed segregation of duties.
 
 ## Blocked
 
+- Issue #74 has no implementation or review blocker. Completion is gated on
+  repository CI after the authorized branch push and pull-request creation.
+  Required desktop and 1280x720 browser regression evidence is retained in
+  `docs/screenshots/issue-74/`. The frontend itself is unchanged and its
+  delayed-response regression suite passes.
 - GitHub issue #32 and every claim about the launcher and offline package are
   blocked on Johnathan's Windows machine. A cloud session cannot verify them.
   Backup and restore are approved requirements but are not part of #32; their
@@ -427,19 +420,20 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Obtain independent Standards and Specification re-review for the remediated
-Issue #62 working tree. Do not claim either review axis passed. Do not commit,
-push, open a pull request, merge, close the issue, or begin a later milestone
-until the requested workflow authorizes those actions.
+Commit and push the review-PASS Issue #74 branch, open a merge-ready pull
+request, wait for repository CI, and update this file with the exact commit,
+PR, and CI state for Codex. Do not start Issue #75 on this branch, merge the
+pull request, or close the issue.
 
 ## Branch inventory
 
 Recorded so the next agent does not re-derive it, and because a branch reset in
 this repository has already destroyed a day of work once. **Nothing here has
-been deleted.** Completed Issue #53, Issue #54, Issue #58, and Issue #61 work is
-on `main`. The current uncommitted Issue #62 implementation is only in the
-working tree on `feature/62-versioned-project-profile`; do not reset, delete, or
-switch away from it during this handoff.
+been deleted.** Completed Issue #53, Issue #54, Issue #58, Issue #61, and Issue
+#62 work is on `main` at `e2a9c76`. The current Issue #74 migration, tests,
+browser evidence, and status update are uncommitted in the working tree on
+`feature/74-assessment-revision-expand`; do not reset, delete, or switch away
+from it during this handoff.
 
 Provably merged — every commit has an equivalent already on `main`, verified
 with `git cherry origin/main origin/<branch>`. Safe to delete:
