@@ -2,12 +2,15 @@
 
 ## Current phase
 
-`IMPLEMENTATION-IN-REVIEW`. GitHub issue #61 is implemented on
-`feature/61-profile-readiness-gate` and has passed its local automated,
-migration, persistence, isolation, and synthetic browser verification.
-Independent Standards and Specification reviews reported Medium findings. Those
-findings are remediated locally and await independent re-review, so the work
-must not be called review-PASS or offered for a pull request from this session.
+`IMPLEMENTATION-IN-REVIEW`. GitHub issue #62 is implemented on
+`feature/62-versioned-project-profile` from `main` commit `030096f` and has
+passed its focused and full local automated, migration, persistence, isolation,
+and synthetic browser verification. Initial, final, conclusive, definitive,
+final-independent, and closure reviews reported High/Medium findings; all
+reported findings are remediated locally and await another independent
+re-review, so the
+work must not be called review-PASS or offered for a pull request from this
+session. GitHub issue #61 merged to `main` through PR #63.
 GitHub issue #58 merged to `main` through PR #59.
 GitHub issue #53 merged to `main` through PR #57.
 GitHub issue #54 is complete and merged to `main` through PR #55 after both
@@ -16,17 +19,21 @@ reconciliation is complete through PR #51 and GitHub issue #50.
 
 ## Current mode
 
-BUILD complete; in review. Issue #61 adds a project-scoped profile readiness
-gate with append-only attributed transitions, a local-evidence-boundary
-acknowledgement, concrete blocking reasons, and assessment-entry enforcement.
-Automated, migration, restart, isolation, and browser verification are
-complete after remediation; independent re-review remains.
+BUILD complete; in review. Issue #62 adds project-scoped versioned Profile
+snapshots, append-only Draft/Reviewed/Approved lifecycle, per-value provenance,
+the complete framework-neutral Profile form, environment-grouped inventory,
+typed Profile evidence reuse and new stored-byte upload/hash mapping, strict
+project isolation, and migration preservation. The Issue #61 readiness contract
+and existing assessment evidence mappings remain unchanged. Automated,
+migration, restart, isolation, and browser verification are complete after
+review remediation; independent Standards and Specification re-review remains.
 
 ## Current objective
 
-Obtain independent Standards and Spec re-review of the remediated Issue #61
-working tree before requesting human review. Do not commit, push, open a pull
-request, or merge from this implementation session, and do not begin Issue #62.
+Obtain independent Standards and Specification re-review of the remediated
+Issue #62 working tree before requesting human review. Do not commit, push, open
+a pull request, merge, close the issue, or begin later milestones from this
+implementation session.
 
 ## Approved specification
 
@@ -37,23 +44,57 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #61 — implemented / in review.** Each project now has the exact
-approved readiness states: Intake started, Intake complete, Needs follow-up,
-and Profile complete. State changes are append-only and preserve prior state,
-next state, actor, timestamp, decision note, unresolved required fields,
-follow-up work, and named review evidence. The project-scoped acknowledgement
-references `docs/local-evidence-operating-boundary.md` and explicitly does not
-attest that content is free of CUI, PHI, or ePHI. New assessment entry is
-blocked at Intake started and Needs follow-up, permitted at Intake complete and
-Profile complete, and existing assessments remain readable after regression.
-The persisted framework-version declaration supplies the transition graph and
-threshold rules. The latest append-only transition is authoritative for current
-state, and the database rejects discontinuous direct inserts.
-Focused and full local automated checks, a populated migration
-upgrade/downgrade/re-upgrade, restart persistence, two-project isolation,
-append-only enforcement, actor attribution, ARM64/x64 source review, and
-synthetic browser QA are complete. The initial independent reviews' Medium
-findings are remediated; independent re-review has not yet occurred.
+**GitHub issue #62 — implemented / in review.** Each project now owns flat,
+append-only Profile versions with one active approved-version pointer. Each
+version stores predefined generic item rows and field values with source,
+reviewer, and last-reviewed timestamp. Environments cover cloud, physical
+systems, sites, and networks; inventory is grouped beneath an environment.
+Unknowns require owner plus target date or an explicit follow-up reference.
+Drafts move only through Reviewed to Approved with actor/timestamp attribution
+and a named reviewer on approval. Reviewed and approved snapshots are immutable;
+later edits clone into a new draft version.
+
+Typed Profile evidence mappings reuse the Issue #53 artifact/version/storage/hash
+seam, preserve assessment-record mappings unchanged, and start at `Not reviewed`.
+The neutral form is the only released form; no framework template was added.
+HIPAA and synthetic CMMC browser/API coverage use the same persistence, routes,
+and React `ProfilePanel`. Focused and full checks, clean and populated migration
+cycles, restart persistence, two-project 404/no-mutation isolation, assessment
+mapping regression, ARM64/x64 source review, and browser QA are complete.
+Review remediation now binds mapping destination rows and evidence identities
+to one project at the database and API seams, validates canonical field targets,
+requires environment-owned inventory, rejects unknown actors before mutation,
+uses unique server-generated upload identities, clones mappings into successor
+versions, converts trigger integrity failures to controlled conflicts, and
+guards unsaved or late React mutations across project and Profile-version
+navigation. Final remediation also adds exact optimistic Draft revisions for
+save/review concurrency, makes the latest approval ledger authoritative over
+the active pointer, enforces one-to-one canonical targets in API/database/UI,
+protects mapped item and referenced-environment identity, clones dependent
+inventory environment-first without changing display order, and removes staged
+or final bytes after failed Profile uploads. Conclusive remediation extends the
+revision contract across fields, items, environment links, and Profile evidence
+mappings; every evidence mutation checks and returns that revision under a write
+lock, lifecycle events persist the reviewed revision, direct-SQL content changes
+advance the database authority, delayed saves preserve newer local edits as
+dirty, and the active-pointer invariant is enforced before the first approval
+and during project insertion. Final independent remediation derives the
+revision inside SQLite through a registered `profile_snapshot_revision()`
+function over the complete Profile snapshot. Content and lifecycle triggers
+independently enforce that computed value, the per-Profile ledger rejects
+duplicate/restored tokens and arbitrary inserts, and connections without the
+function fail closed. Profile mappings snapshot artifact display identity
+so live metadata cannot rewrite approved presentation. The UI locks Profile
+editing and version switching for lifecycle requests and immediately applies
+the real server lifecycle result; delayed reuse/upload still merge functionally.
+Closure remediation gives Alembic DBAPI connections the same default
+trigger-only ledger authorizer as application/test connections. Migration
+bootstrap authorization is explicit and bounded to `context.run_migrations()`,
+then the fail-closed default is restored.
+Evidence is recorded in `docs/screenshots/issue-62/VERIFICATION.md`. The initial
+independent findings are remediated; independent re-review has not occurred.
+
+GitHub issue #61 is complete and merged through PR #63.
 
 GitHub issue #58 is complete and merged through PR #59.
 
@@ -282,12 +323,12 @@ on a clickable walkthrough, and merged.
 
 ## In progress
 
-- **GitHub issue #61**: implemented on
-  `feature/61-profile-readiness-gate`; local automated, migration, restart,
-  isolation, architecture-source, and synthetic browser verification are
-  complete after remediation. Independent Standards and Specification reviews
-  reported Medium findings; all are remediated locally and await re-review, so
-  the ticket is not complete.
+- **GitHub issue #62**: implemented on
+  `feature/62-versioned-project-profile`; local focused/full automated,
+  migration, restart, isolation, source-compatibility, and synthetic browser
+  verification are complete after remediating the initial independent
+  Standards and Specification review findings. Re-review has not occurred, so
+  the ticket is in review and not complete.
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
@@ -301,7 +342,7 @@ on a clickable walkthrough, and merged.
   judgement about whether these are the right assessable units rather than
   whether they reproduce the regulation.
 
-No other production slice is in flight; Issue #62 has not begun.
+No other production slice is in flight.
 
 ## Ownership
 
@@ -387,18 +428,18 @@ for an issue. Each names who has to answer it.
 ## Next recommended action
 
 Obtain independent Standards and Specification re-review for the remediated
-Issue #61 working tree. Do not claim either review axis passed. Do not commit,
-push, open a pull request, merge, close the issue, or begin Issue #62 until the
-requested workflow authorizes those actions.
+Issue #62 working tree. Do not claim either review axis passed. Do not commit,
+push, open a pull request, merge, close the issue, or begin a later milestone
+until the requested workflow authorizes those actions.
 
 ## Branch inventory
 
 Recorded so the next agent does not re-derive it, and because a branch reset in
 this repository has already destroyed a day of work once. **Nothing here has
-been deleted.** Completed Issue #53, Issue #54, and Issue #58 work is on `main`.
-The current uncommitted Issue #61 implementation is only in the working tree on
-`feature/61-profile-readiness-gate`; do not reset, delete, or switch away from
-it during this handoff.
+been deleted.** Completed Issue #53, Issue #54, Issue #58, and Issue #61 work is
+on `main`. The current uncommitted Issue #62 implementation is only in the
+working tree on `feature/62-versioned-project-profile`; do not reset, delete, or
+switch away from it during this handoff.
 
 Provably merged — every commit has an equivalent already on `main`, verified
 with `git cherry origin/main origin/<branch>`. Safe to delete:

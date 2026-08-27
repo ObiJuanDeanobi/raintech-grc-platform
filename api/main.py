@@ -1,17 +1,19 @@
 import json
+import sqlite3
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from hashlib import sha256
 from pathlib import Path
 from typing import Annotated, Any, cast
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from api.database import Database
+from api.database import Database, profile_snapshot_revision
 from api.framework import FRAMEWORK_ID, seed_framework
 from api.storage import FileStorage, LocalFileStorage
 
@@ -56,6 +58,58 @@ class EvidenceMappingCreate(BaseModel):
     rationale: str = Field(min_length=1)
 
 
+class ProfileValueSave(BaseModel):
+    section: str = Field(min_length=1, max_length=100)
+    field_key: str = Field(min_length=1, max_length=100)
+    label: str = Field(min_length=1, max_length=200)
+    value: str = Field(max_length=10000)
+    source: str = Field(min_length=1, max_length=1000)
+    reviewer: str = Field(min_length=1, max_length=200)
+    last_reviewed_at: str
+
+
+class ProfileItemSave(BaseModel):
+    client_key: str = Field(min_length=1, max_length=200)
+    item_type: str
+    environment_item_key: str | None = None
+    values: list[ProfileValueSave] = Field(min_length=1)
+
+
+class ProfileVersionSave(BaseModel):
+    actor_id: str = "johnathan"
+    expected_revision: str
+    values: list[ProfileValueSave] = Field(default_factory=list)
+    items: list[ProfileItemSave] = Field(default_factory=list)
+
+
+class ProfileVersionCreate(BaseModel):
+    actor_id: str = "johnathan"
+    base_version_id: str | None = None
+
+
+class ProfileLifecycleCreate(BaseModel):
+    actor_id: str = "johnathan"
+    expected_revision: str
+    status: str
+    reviewer: str = Field(default="", max_length=200)
+
+
+class ProfileEvidenceMappingCreate(BaseModel):
+    actor_id: str = "johnathan"
+    expected_revision: str
+    artifact_id: str
+    evidence_version_id: str
+    target_key: str = Field(min_length=1, max_length=300)
+    rationale: str = Field(min_length=1, max_length=2000)
+
+
+class ProfileEvidenceMappingUpdate(BaseModel):
+    actor_id: str = "johnathan"
+    expected_revision: str
+    target_key: str = Field(min_length=1, max_length=300)
+    rationale: str = Field(min_length=1, max_length=2000)
+
+
 class PromptAnswerSave(BaseModel):
     answer: str
 
@@ -70,14 +124,15 @@ def _audit(
     entity_type: str,
     entity_id: str,
     details: dict[str, Any],
+    actor_id: str = "johnathan",
 ) -> None:
     connection.execute(
         """
         INSERT INTO audit_events(
             id, actor_id, action, entity_type, entity_id, details_json, created_at
-        ) VALUES (?, 'johnathan', ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (str(uuid4()), action, entity_type, entity_id, json.dumps(details), now()),
+        (str(uuid4()), actor_id, action, entity_type, entity_id, json.dumps(details), now()),
     )
 
 
@@ -86,6 +141,414 @@ def _project_or_404(connection: Any, project_id: str) -> Any:
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
+
+
+def _user_or_422(connection: Any, actor_id: str) -> Any:
+    user = connection.execute(
+        "SELECT * FROM user_accounts WHERE id = ?", (actor_id,)
+    ).fetchone()
+    if user is None:
+        raise HTTPException(status_code=422, detail="Unknown Profile actor")
+    return user
+
+
+PROFILE_ITEM_TYPES = {
+    "scope_item",
+    "environment",
+    "business_process",
+    "location",
+    "external_service",
+    "person_role",
+    "exclusion_constraint",
+    "reference",
+    "unknown_follow_up",
+}
+ENVIRONMENT_TYPES = {"cloud", "physical", "site", "network"}
+
+
+def _profile_target_key(item: ProfileItemSave | None, field: ProfileValueSave) -> str:
+    if item is None:
+        return f"field:{field.section}:{field.field_key}"
+    return f"item:{item.client_key}:{field.field_key}"
+
+
+def _profile_target_or_404(
+    connection: Any, project_id: str, version_id: str, target_key: str
+) -> Any:
+    targets = connection.execute(
+        """
+        SELECT field_values.id, field_values.profile_version_id
+        FROM profile_field_values field_values
+        JOIN profile_versions versions ON versions.id = field_values.profile_version_id
+        LEFT JOIN profile_items items ON items.id = field_values.profile_item_id
+        WHERE field_values.profile_version_id = ?
+          AND (
+            (
+              field_values.profile_item_id IS NULL
+              AND ? = 'field:' || field_values.section || ':' || field_values.field_key
+            ) OR (
+              field_values.profile_item_id IS NOT NULL
+              AND ? = 'item:' || items.client_key || ':' || field_values.field_key
+            )
+          )
+          AND versions.project_id = ?
+        """,
+        (version_id, target_key, target_key, project_id),
+    ).fetchall()
+    if len(targets) != 1:
+        raise HTTPException(status_code=404, detail="Profile evidence target not found")
+    return targets[0]
+
+
+def _profile_mapping_destination_or_404(
+    connection: Any, project_id: str, version_id: str, mapping_id: str
+) -> Any:
+    mapping = connection.execute(
+        """
+        SELECT mappings.*
+        FROM evidence_mappings mappings
+        JOIN profile_versions versions
+          ON versions.id = mappings.profile_version_id
+         AND versions.project_id = mappings.project_id
+        JOIN evidence_artifacts artifacts
+          ON artifacts.id = mappings.artifact_id
+         AND artifacts.project_id = mappings.project_id
+        JOIN evidence_versions evidence_version
+          ON evidence_version.id = mappings.evidence_version_id
+         AND evidence_version.artifact_id = mappings.artifact_id
+         AND evidence_version.project_id = mappings.project_id
+        WHERE mappings.id = ?
+          AND mappings.target_type = 'profile'
+          AND mappings.profile_version_id = ?
+          AND mappings.project_id = ?
+          AND versions.project_id = ?
+        """,
+        (mapping_id, version_id, project_id, project_id),
+    ).fetchone()
+    if mapping is None:
+        raise HTTPException(status_code=404, detail="Profile evidence mapping not found")
+    return mapping
+
+
+def _profile_version_or_404(connection: Any, project_id: str, version_id: str) -> Any:
+    version = connection.execute(
+        "SELECT * FROM profile_versions WHERE id = ? AND project_id = ?",
+        (version_id, project_id),
+    ).fetchone()
+    if version is None:
+        raise HTTPException(status_code=404, detail="Profile version not found")
+    return version
+
+
+def _profile_status(connection: Any, version_id: str) -> str:
+    event = connection.execute(
+        """
+        SELECT status FROM profile_lifecycle_events
+        WHERE profile_version_id = ? ORDER BY rowid DESC LIMIT 1
+        """,
+        (version_id,),
+    ).fetchone()
+    if event is None:
+        raise RuntimeError(f"Profile version {version_id} has no lifecycle event")
+    return cast(str, event["status"])
+
+
+def _profile_content_revision(connection: Any, version_id: str) -> str:
+    """Derive the review token from the complete current Profile snapshot."""
+    generation = connection.execute(
+        """
+        SELECT COUNT(*) AS generation FROM profile_content_changes
+        WHERE profile_version_id = ?
+        """,
+        (version_id,),
+    ).fetchone()["generation"]
+    return profile_snapshot_revision(connection, version_id, generation)
+
+
+def _require_profile_revision(
+    connection: Any, version_id: str, expected_revision: str
+) -> str:
+    current_revision = _profile_content_revision(connection, version_id)
+    if expected_revision != current_revision:
+        raise HTTPException(
+            status_code=409,
+            detail="Profile snapshot changed after it was loaded; reload and review again",
+        )
+    return current_revision
+
+
+def _profile_mapping(connection: Any, mapping: Any) -> dict[str, Any]:
+    return {
+        "mapping_id": mapping["mapping_id"],
+        "artifact_id": mapping["artifact_id"],
+        "name": mapping["name"],
+        "uploaded_file_id": mapping["uploaded_file_id"],
+        "evidence_version_id": mapping["evidence_version_id"],
+        "version_number": mapping["version_number"],
+        "sha256": mapping["sha256"],
+        "relative_path": mapping["relative_path"],
+        "target_type": mapping["target_type"],
+        "target_key": mapping["target_key"],
+        "rationale": mapping["rationale"],
+        "review_state": mapping["review_state"],
+        "created_at": mapping["created_at"],
+    }
+
+
+def _profile_version_detail(connection: Any, project_id: str, version_id: str) -> dict[str, Any]:
+    version = _profile_version_or_404(connection, project_id, version_id)
+    top_values = [
+        {
+            **_row(row),
+            "target_key": f"field:{row['section']}:{row['field_key']}",
+        }
+        for row in connection.execute(
+            """
+            SELECT id, section, field_key, label, value, source, reviewer,
+                   last_reviewed_at, sort_order
+            FROM profile_field_values
+            WHERE profile_version_id = ? AND profile_item_id IS NULL
+            ORDER BY sort_order, rowid
+            """,
+            (version_id,),
+        )
+    ]
+    items: list[dict[str, Any]] = []
+    for item in connection.execute(
+        """
+        SELECT id, client_key, item_type, environment_item_id, sort_order
+        FROM profile_items WHERE profile_version_id = ?
+        ORDER BY sort_order, rowid
+        """,
+        (version_id,),
+    ):
+        result = _row(item)
+        result["values"] = [
+            {
+                **_row(row),
+                "target_key": f"item:{item['client_key']}:{row['field_key']}",
+            }
+            for row in connection.execute(
+                """
+                SELECT id, section, field_key, label, value, source, reviewer,
+                       last_reviewed_at, sort_order
+                FROM profile_field_values
+                WHERE profile_version_id = ? AND profile_item_id = ?
+                ORDER BY sort_order, rowid
+                """,
+                (version_id, item["id"]),
+            )
+        ]
+        items.append(result)
+    lifecycle = [
+        {
+            "id": row["id"],
+            "status": row["status"],
+            "actor": {"id": row["actor_id"], "display_name": row["display_name"]},
+            "reviewer": row["reviewer"],
+            "content_revision": row["content_revision"],
+            "timestamp": row["created_at"],
+        }
+        for row in connection.execute(
+            """
+            SELECT events.*, users.display_name
+            FROM profile_lifecycle_events events
+            JOIN user_accounts users ON users.id = events.actor_id
+            WHERE events.profile_version_id = ? ORDER BY events.rowid
+            """,
+            (version_id,),
+        )
+    ]
+    evidence = [
+        _profile_mapping(connection, row)
+        for row in connection.execute(
+            """
+            SELECT mappings.id AS mapping_id, mappings.artifact_id,
+                   mappings.evidence_version_id, mappings.target_type,
+                   mappings.target_key, mappings.rationale, mappings.review_state,
+                   mappings.created_at,
+                   mappings.artifact_name_snapshot AS name,
+                   mappings.uploaded_file_id_snapshot AS uploaded_file_id,
+                   versions.version_number,
+                   versions.sha256, versions.relative_path
+            FROM evidence_mappings mappings
+            JOIN evidence_versions versions ON versions.id = mappings.evidence_version_id
+            WHERE mappings.target_type = 'profile'
+              AND mappings.profile_version_id = ?
+              AND versions.project_id = ?
+            ORDER BY mappings.created_at, mappings.rowid
+            """,
+            (version_id, project_id),
+        )
+    ]
+    return {
+        "id": version["id"],
+        "project_id": version["project_id"],
+        "version_number": version["version_number"],
+        "status": lifecycle[-1]["status"],
+        "created_by": version["created_by"],
+        "created_at": version["created_at"],
+        "content_revision": _profile_content_revision(connection, version_id),
+        "values": top_values,
+        "items": items,
+        "lifecycle": lifecycle,
+        "evidence": evidence,
+    }
+
+
+def _profile_overview(connection: Any, project_id: str) -> dict[str, Any]:
+    project = _project_or_404(connection, project_id)
+    versions = [
+        _profile_version_detail(connection, project_id, row["id"])
+        for row in connection.execute(
+            """
+            SELECT id FROM profile_versions
+            WHERE project_id = ? ORDER BY version_number DESC
+            """,
+            (project_id,),
+        )
+    ]
+    return {
+        "project_id": project_id,
+        "active_version_id": project["active_profile_version_id"],
+        "versions": versions,
+        "template": {
+            "available": False,
+            "name": None,
+            "message": "No framework template is released. Use the complete neutral Profile form.",
+        },
+    }
+
+
+def _initialize_profile(connection: Any, project: dict[str, Any]) -> str:
+    version_id = str(uuid4())
+    connection.execute(
+        """
+        INSERT INTO profile_versions(
+            id, project_id, version_number, created_by, created_at, content_revision
+        ) VALUES (?, ?, 1, 'johnathan', ?, ?)
+        """,
+        (version_id, project["id"], project["created_at"], "1"),
+    )
+    connection.execute(
+        """
+        INSERT INTO profile_lifecycle_events(
+            id, profile_version_id, status, actor_id, reviewer, created_at
+        ) VALUES (?, ?, 'Draft', 'johnathan', '', ?)
+        """,
+        (str(uuid4()), version_id, project["created_at"]),
+    )
+    connection.execute(
+        """
+        INSERT INTO profile_field_values(
+            id, profile_version_id, profile_item_id, section, field_key, label,
+            value, source, reviewer, last_reviewed_at, sort_order
+        ) VALUES (?, ?, NULL, 'project_metadata', 'project_name', 'Project name',
+                  ?, 'Project creation', 'Johnathan', ?, 0)
+        """,
+        (str(uuid4()), version_id, project["name"], project["created_at"]),
+    )
+    return version_id
+
+
+def _validate_profile_payload(payload: ProfileVersionSave) -> None:
+    seen_keys: set[str] = set()
+    target_keys: set[str] = set()
+    environment_keys: set[str] = set()
+    for field in payload.values:
+        if ":" in field.section or ":" in field.field_key:
+            raise HTTPException(
+                status_code=422, detail="Profile target identity components cannot contain ':'"
+            )
+        target_key = _profile_target_key(None, field)
+        if target_key in target_keys:
+            raise HTTPException(status_code=422, detail="Profile target identities must be unique")
+        target_keys.add(target_key)
+        try:
+            datetime.fromisoformat(field.last_reviewed_at)
+        except ValueError as error:
+            raise HTTPException(
+                status_code=422, detail="Profile last-reviewed timestamps must be ISO-8601"
+            ) from error
+    for item in payload.items:
+        if item.client_key in seen_keys:
+            raise HTTPException(status_code=422, detail="Profile item keys must be unique")
+        seen_keys.add(item.client_key)
+        if ":" in item.client_key:
+            raise HTTPException(
+                status_code=422, detail="Profile target identity components cannot contain ':'"
+            )
+        if item.item_type not in PROFILE_ITEM_TYPES:
+            raise HTTPException(status_code=422, detail="Unknown Profile item type")
+        fields = {field.field_key: field.value.strip() for field in item.values}
+        for field in item.values:
+            if ":" in field.section or ":" in field.field_key:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Profile target identity components cannot contain ':'",
+                )
+            target_key = _profile_target_key(item, field)
+            if target_key in target_keys:
+                raise HTTPException(
+                    status_code=422, detail="Profile target identities must be unique"
+                )
+            target_keys.add(target_key)
+            try:
+                datetime.fromisoformat(field.last_reviewed_at)
+            except ValueError as error:
+                raise HTTPException(
+                    status_code=422, detail="Profile last-reviewed timestamps must be ISO-8601"
+                ) from error
+        if item.item_type == "environment":
+            environment_keys.add(item.client_key)
+            if fields.get("environment_type") not in ENVIRONMENT_TYPES:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Environment type must be cloud, physical, site, or network",
+                )
+        if item.item_type == "unknown_follow_up":
+            owner_and_date = bool(fields.get("owner") and fields.get("target_date"))
+            follow_up = bool(fields.get("follow_up_reference"))
+            if not (owner_and_date or follow_up):
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "An unknown requires an owner and target date or an explicit "
+                        "follow-up reference"
+                    ),
+                )
+            if fields.get("target_date"):
+                try:
+                    date.fromisoformat(fields["target_date"])
+                except ValueError as error:
+                    raise HTTPException(
+                        status_code=422, detail="Unknown target dates must be ISO-8601 dates"
+                    ) from error
+    for item in payload.items:
+        if item.item_type == "scope_item" and not item.environment_item_key:
+            raise HTTPException(
+                status_code=422, detail="Scope inventory requires an environment"
+            )
+        if item.item_type != "scope_item" and item.environment_item_key:
+            raise HTTPException(
+                status_code=422,
+                detail="Only scope inventory may reference an environment",
+            )
+        if item.environment_item_key and item.environment_item_key not in environment_keys:
+            raise HTTPException(
+                status_code=422, detail="Inventory must reference an environment in this version"
+            )
+
+
+def _profile_payload_target_keys(payload: ProfileVersionSave) -> set[str]:
+    return {
+        *(_profile_target_key(None, field) for field in payload.values),
+        *(
+            _profile_target_key(item, field)
+            for item in payload.items
+            for field in item.values
+        ),
+    }
 
 
 def _project_readiness_declaration(connection: Any, project_id: str) -> dict[str, Any]:
@@ -443,7 +906,8 @@ def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[
         {
             **_row(mapping),
             "shared_record_count": connection.execute(
-                "SELECT COUNT(*) AS count FROM evidence_mappings WHERE artifact_id = ?",
+                "SELECT COUNT(*) AS count FROM evidence_mappings "
+                "WHERE artifact_id = ? AND target_type = 'assessment_record'",
                 (mapping["artifact_id"],),
             ).fetchone()["count"],
         }
@@ -454,9 +918,9 @@ def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[
                    ev.version_number, ev.sha256
             FROM evidence_mappings em
             JOIN evidence_artifacts ea ON ea.id = em.artifact_id
-            JOIN evidence_versions ev
-              ON ev.artifact_id = ea.id AND ev.version_number = 1
-            WHERE em.assessment_id = ? AND em.record_id = ?
+            JOIN evidence_versions ev ON ev.id = em.evidence_version_id
+            WHERE em.target_type = 'assessment_record'
+              AND em.assessment_id = ? AND em.record_id = ?
             ORDER BY em.created_at
             """,
             (assessment_id, record_id),
@@ -510,6 +974,16 @@ def create_app(
         yield
 
     app = FastAPI(title="RainTech GRC API", version="0.1.0", lifespan=lifespan)
+
+    @app.exception_handler(sqlite3.IntegrityError)
+    async def profile_integrity_error(
+        _request: Request, _error: sqlite3.IntegrityError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "The requested mutation violates a persisted integrity rule."},
+        )
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -606,8 +1080,863 @@ def create_app(
                 """,
                 (str(uuid4()), item["id"], initial_state, initial_state, item["created_at"]),
             )
+            _initialize_profile(connection, item)
             _audit(connection, "project.created", "project", item["id"], {"name": item["name"]})
         return item
+
+    @app.get("/api/projects/{project_id}/profile")
+    def get_profile(
+        project_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            return _profile_overview(connection, project_id)
+
+    @app.get("/api/projects/{project_id}/profile/versions/{version_id}")
+    def get_profile_version(
+        project_id: str,
+        version_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            return _profile_version_detail(connection, project_id, version_id)
+
+    @app.post("/api/projects/{project_id}/profile/versions", status_code=201)
+    def create_profile_version(
+        project_id: str,
+        payload: ProfileVersionCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            _user_or_422(connection, payload.actor_id)
+            base = None
+            if payload.base_version_id:
+                base = _profile_version_or_404(connection, project_id, payload.base_version_id)
+            next_number = connection.execute(
+                "SELECT COALESCE(MAX(version_number), 0) + 1 AS number "
+                "FROM profile_versions WHERE project_id = ?",
+                (project_id,),
+            ).fetchone()["number"]
+            version_id = str(uuid4())
+            created_at = now()
+            connection.execute(
+                """
+                INSERT INTO profile_versions(
+                    id, project_id, version_number, created_by, created_at, content_revision
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    version_id,
+                    project_id,
+                    next_number,
+                    payload.actor_id,
+                    created_at,
+                    "1",
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO profile_lifecycle_events(
+                    id, profile_version_id, status, actor_id, reviewer, created_at
+                ) VALUES (?, ?, 'Draft', ?, '', ?)
+                """,
+                (str(uuid4()), version_id, payload.actor_id, created_at),
+            )
+            if base is not None:
+                item_ids: dict[str, str] = {}
+                base_items = connection.execute(
+                    """
+                    SELECT * FROM profile_items
+                    WHERE profile_version_id = ? ORDER BY sort_order, rowid
+                    """,
+                    (base["id"],),
+                ).fetchall()
+                for item in sorted(
+                    base_items,
+                    key=lambda row: (
+                        row["item_type"] != "environment",
+                        row["sort_order"],
+                    ),
+                ):
+                    item_ids[item["id"]] = str(uuid4())
+                for item in sorted(
+                    base_items,
+                    key=lambda row: (
+                        row["item_type"] != "environment",
+                        row["sort_order"],
+                    ),
+                ):
+                    connection.execute(
+                        """
+                        INSERT INTO profile_items(
+                            id, profile_version_id, client_key, item_type,
+                            environment_item_id, sort_order
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            item_ids[item["id"]],
+                            version_id,
+                            item["client_key"],
+                            item["item_type"],
+                            item_ids.get(item["environment_item_id"]),
+                            item["sort_order"],
+                        ),
+                    )
+                for field in connection.execute(
+                    """
+                    SELECT * FROM profile_field_values
+                    WHERE profile_version_id = ? ORDER BY sort_order, rowid
+                    """,
+                    (base["id"],),
+                ):
+                    connection.execute(
+                        """
+                        INSERT INTO profile_field_values(
+                            id, profile_version_id, profile_item_id, section, field_key,
+                            label, value, source, reviewer, last_reviewed_at, sort_order
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            str(uuid4()),
+                            version_id,
+                            item_ids.get(field["profile_item_id"]),
+                            field["section"],
+                            field["field_key"],
+                            field["label"],
+                            field["value"],
+                            field["source"],
+                            field["reviewer"],
+                            field["last_reviewed_at"],
+                            field["sort_order"],
+                        ),
+                    )
+                for mapping in connection.execute(
+                    """
+                    SELECT * FROM evidence_mappings
+                    WHERE target_type = 'profile' AND profile_version_id = ?
+                    ORDER BY created_at, rowid
+                    """,
+                    (base["id"],),
+                ):
+                    connection.execute(
+                        """
+                        INSERT INTO evidence_mappings(
+                            id, project_id, artifact_id, evidence_version_id, target_type,
+                            assessment_id, record_id, profile_version_id, target_key,
+                            artifact_name_snapshot, uploaded_file_id_snapshot,
+                            rationale, review_state, created_at
+                        ) VALUES (
+                            ?, ?, ?, ?, 'profile', NULL, NULL, ?, ?, ?, ?,
+                            ?, 'Not reviewed', ?
+                        )
+                        """,
+                        (
+                            str(uuid4()),
+                            project_id,
+                            mapping["artifact_id"],
+                            mapping["evidence_version_id"],
+                            version_id,
+                            mapping["target_key"],
+                            mapping["artifact_name_snapshot"],
+                            mapping["uploaded_file_id_snapshot"],
+                            mapping["rationale"],
+                            created_at,
+                        ),
+                    )
+            _profile_content_revision(connection, version_id)
+            _audit(
+                connection,
+                "profile.version_created",
+                "profile_version",
+                version_id,
+                {
+                    "project_id": project_id,
+                    "version_number": next_number,
+                    "base_version_id": payload.base_version_id,
+                },
+                payload.actor_id,
+            )
+            return _profile_version_detail(connection, project_id, version_id)
+
+    @app.put("/api/projects/{project_id}/profile/versions/{version_id}")
+    def save_profile_version(
+        project_id: str,
+        version_id: str,
+        payload: ProfileVersionSave,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        _validate_profile_payload(payload)
+        with database.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            _user_or_422(connection, payload.actor_id)
+            _profile_version_or_404(connection, project_id, version_id)
+            _require_profile_revision(connection, version_id, payload.expected_revision)
+            if _profile_status(connection, version_id) != "Draft":
+                raise HTTPException(
+                    status_code=409,
+                    detail="Reviewed and approved Profile versions are immutable",
+                )
+            retained_targets = _profile_payload_target_keys(payload)
+            existing_targets = {
+                row["target_key"]
+                for row in connection.execute(
+                    """
+                    SELECT target_key FROM evidence_mappings
+                    WHERE target_type = 'profile' AND profile_version_id = ?
+                    """,
+                    (version_id,),
+                )
+            }
+            if not existing_targets <= retained_targets:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Draft cannot remove a Profile field that has mapped evidence",
+                )
+            preserved_mappings = connection.execute(
+                """
+                SELECT * FROM evidence_mappings
+                WHERE target_type = 'profile' AND profile_version_id = ?
+                ORDER BY created_at, rowid
+                """,
+                (version_id,),
+            ).fetchall()
+            connection.execute(
+                """
+                DELETE FROM evidence_mappings
+                WHERE target_type = 'profile' AND profile_version_id = ?
+                """,
+                (version_id,),
+            )
+            connection.execute(
+                "DELETE FROM profile_field_values WHERE profile_version_id = ?",
+                (version_id,),
+            )
+            connection.execute(
+                "DELETE FROM profile_items WHERE profile_version_id = ?",
+                (version_id,),
+            )
+            for order, field in enumerate(payload.values):
+                connection.execute(
+                    """
+                    INSERT INTO profile_field_values(
+                        id, profile_version_id, profile_item_id, section, field_key,
+                        label, value, source, reviewer, last_reviewed_at, sort_order
+                    ) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        str(uuid4()),
+                        version_id,
+                        field.section,
+                        field.field_key,
+                        field.label,
+                        field.value,
+                        field.source,
+                        field.reviewer,
+                        field.last_reviewed_at,
+                        order,
+                    ),
+                )
+            item_ids = {item.client_key: str(uuid4()) for item in payload.items}
+            item_orders = {item.client_key: order for order, item in enumerate(payload.items)}
+            for item in sorted(
+                payload.items,
+                key=lambda candidate: (
+                    candidate.item_type != "environment",
+                    item_orders[candidate.client_key],
+                ),
+            ):
+                connection.execute(
+                    """
+                    INSERT INTO profile_items(
+                        id, profile_version_id, client_key, item_type,
+                        environment_item_id, sort_order
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        item_ids[item.client_key],
+                        version_id,
+                        item.client_key,
+                        item.item_type,
+                        (
+                            item_ids[item.environment_item_key]
+                            if item.environment_item_key
+                            else None
+                        ),
+                        item_orders[item.client_key],
+                    ),
+                )
+            field_order = len(payload.values)
+            for item in payload.items:
+                for field in item.values:
+                    connection.execute(
+                        """
+                        INSERT INTO profile_field_values(
+                            id, profile_version_id, profile_item_id, section, field_key,
+                            label, value, source, reviewer, last_reviewed_at, sort_order
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            str(uuid4()),
+                            version_id,
+                            item_ids[item.client_key],
+                            field.section,
+                            field.field_key,
+                            field.label,
+                            field.value,
+                            field.source,
+                            field.reviewer,
+                            field.last_reviewed_at,
+                            field_order,
+                        ),
+                    )
+                    field_order += 1
+            for mapping in preserved_mappings:
+                connection.execute(
+                    """
+                    INSERT INTO evidence_mappings(
+                        id, project_id, artifact_id, evidence_version_id, target_type,
+                        assessment_id, record_id, profile_version_id, target_key,
+                        artifact_name_snapshot, uploaded_file_id_snapshot,
+                        rationale, review_state, created_at
+                    ) VALUES (?, ?, ?, ?, 'profile', NULL, NULL, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        mapping["id"],
+                        project_id,
+                        mapping["artifact_id"],
+                        mapping["evidence_version_id"],
+                        version_id,
+                        mapping["target_key"],
+                        mapping["artifact_name_snapshot"],
+                        mapping["uploaded_file_id_snapshot"],
+                        mapping["rationale"],
+                        mapping["review_state"],
+                        mapping["created_at"],
+                    ),
+                )
+            _profile_content_revision(connection, version_id)
+            _audit(
+                connection,
+                "profile.version_saved",
+                "profile_version",
+                version_id,
+                {"project_id": project_id},
+                payload.actor_id,
+            )
+            return _profile_version_detail(connection, project_id, version_id)
+
+    @app.post(
+        "/api/projects/{project_id}/profile/versions/{version_id}/lifecycle",
+        status_code=201,
+    )
+    def create_profile_lifecycle_event(
+        project_id: str,
+        version_id: str,
+        payload: ProfileLifecycleCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            _user_or_422(connection, payload.actor_id)
+            _profile_version_or_404(connection, project_id, version_id)
+            reviewed_revision = _require_profile_revision(
+                connection, version_id, payload.expected_revision
+            )
+            current = _profile_status(connection, version_id)
+            expected = {"Draft": "Reviewed", "Reviewed": "Approved"}.get(current)
+            if payload.status != expected:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Profile lifecycle must follow Draft to Reviewed to Approved",
+                )
+            reviewer = payload.reviewer.strip()
+            if payload.status == "Approved" and not reviewer:
+                raise HTTPException(status_code=422, detail="Approval requires a named reviewer")
+            event_id = str(uuid4())
+            created_at = now()
+            connection.execute(
+                """
+                INSERT INTO profile_lifecycle_events(
+                    id, profile_version_id, status, actor_id, reviewer,
+                    content_revision, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event_id,
+                    version_id,
+                    payload.status,
+                    payload.actor_id,
+                    reviewer,
+                    reviewed_revision,
+                    created_at,
+                ),
+            )
+            _audit(
+                connection,
+                "profile.lifecycle_recorded",
+                "profile_lifecycle_event",
+                event_id,
+                {
+                    "project_id": project_id,
+                    "profile_version_id": version_id,
+                    "status": payload.status,
+                    "reviewer": reviewer,
+                    "content_revision": reviewed_revision,
+                },
+                payload.actor_id,
+            )
+            if payload.status == "Approved":
+                _audit(
+                    connection,
+                    "profile.version_approved",
+                    "profile_version",
+                    version_id,
+                    {
+                        "project_id": project_id,
+                        "reviewer": reviewer,
+                        "content_revision": reviewed_revision,
+                    },
+                    payload.actor_id,
+                )
+            overview = _profile_overview(connection, project_id)
+            return {
+                "active_version_id": overview["active_version_id"],
+                "version": _profile_version_detail(connection, project_id, version_id),
+            }
+
+    @app.post(
+        "/api/projects/{project_id}/profile/versions/{version_id}/evidence-mappings",
+        status_code=201,
+    )
+    def create_profile_evidence_mapping(
+        project_id: str,
+        version_id: str,
+        payload: ProfileEvidenceMappingCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            _user_or_422(connection, payload.actor_id)
+            _profile_version_or_404(connection, project_id, version_id)
+            _require_profile_revision(connection, version_id, payload.expected_revision)
+            if _profile_status(connection, version_id) != "Draft":
+                raise HTTPException(
+                    status_code=409, detail="Approved Profile snapshots are immutable"
+                )
+            _profile_target_or_404(connection, project_id, version_id, payload.target_key)
+            artifact = connection.execute(
+                """
+                SELECT artifacts.id
+                FROM evidence_artifacts artifacts
+                JOIN evidence_versions versions ON versions.artifact_id = artifacts.id
+                WHERE artifacts.id = ? AND artifacts.project_id = ?
+                  AND versions.id = ? AND versions.project_id = ?
+                """,
+                (
+                    payload.artifact_id,
+                    project_id,
+                    payload.evidence_version_id,
+                    project_id,
+                ),
+            ).fetchone()
+            if artifact is None:
+                raise HTTPException(status_code=404, detail="Evidence artifact/version not found")
+            mapping_id = str(uuid4())
+            created_at = now()
+            try:
+                connection.execute(
+                    """
+                INSERT INTO evidence_mappings(
+                    id, project_id, artifact_id, evidence_version_id, target_type,
+                    assessment_id, record_id, profile_version_id, target_key,
+                    artifact_name_snapshot, uploaded_file_id_snapshot,
+                    rationale, review_state, created_at
+                )
+                SELECT ?, ?, ?, ?, 'profile', NULL, NULL, ?, ?, name, uploaded_file_id,
+                       ?, 'Not reviewed', ?
+                FROM evidence_artifacts WHERE id = ? AND project_id = ?
+                    """,
+                    (
+                        mapping_id,
+                        project_id,
+                        payload.artifact_id,
+                        payload.evidence_version_id,
+                        version_id,
+                    payload.target_key.strip(),
+                    payload.rationale.strip(),
+                    created_at,
+                    payload.artifact_id,
+                    project_id,
+                    ),
+                )
+            except Exception as error:
+                if "UNIQUE constraint failed" in str(error):
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Evidence version is already mapped to this Profile target",
+                    ) from error
+                raise
+            _audit(
+                connection,
+                "evidence.mapped",
+                "evidence_mapping",
+                mapping_id,
+                {
+                    "project_id": project_id,
+                    "profile_version_id": version_id,
+                    "target_type": "profile",
+                    "target_key": payload.target_key.strip(),
+                    "artifact_id": payload.artifact_id,
+                },
+                payload.actor_id,
+            )
+            row = connection.execute(
+                """
+                SELECT mappings.id AS mapping_id, mappings.artifact_id,
+                       mappings.evidence_version_id, mappings.target_type,
+                       mappings.target_key, mappings.rationale, mappings.review_state,
+                       mappings.created_at,
+                       mappings.artifact_name_snapshot AS name,
+                       mappings.uploaded_file_id_snapshot AS uploaded_file_id,
+                       versions.version_number,
+                       versions.sha256, versions.relative_path
+                FROM evidence_mappings mappings
+                JOIN evidence_versions versions ON versions.id = mappings.evidence_version_id
+                WHERE mappings.id = ?
+                """,
+                (mapping_id,),
+            ).fetchone()
+            result = _profile_mapping(connection, row)
+            result["content_revision"] = _profile_content_revision(connection, version_id)
+            return result
+
+    @app.post(
+        "/api/projects/{project_id}/profile/versions/{version_id}/evidence",
+        status_code=201,
+    )
+    async def create_profile_evidence(
+        project_id: str,
+        version_id: str,
+        target_key: Annotated[str, Form(min_length=1, max_length=300)],
+        rationale: Annotated[str, Form(min_length=1, max_length=2000)],
+        expected_revision: Annotated[str, Form()],
+        file: Annotated[UploadFile, File()],
+        database: Annotated[Database, Depends(db)],
+        file_storage: Annotated[FileStorage, Depends(files)],
+        actor_id: Annotated[str, Form()] = "johnathan",
+    ) -> dict[str, Any]:
+        if not file.filename:
+            raise HTTPException(status_code=422, detail="Evidence filename is required")
+        content = await file.read()
+        artifact_id = str(uuid4())
+        uploaded_file_id = str(uuid4())
+        with database.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            _user_or_422(connection, actor_id)
+            _profile_version_or_404(connection, project_id, version_id)
+            _require_profile_revision(connection, version_id, expected_revision)
+            if _profile_status(connection, version_id) != "Draft":
+                raise HTTPException(
+                    status_code=409, detail="Approved Profile snapshots are immutable"
+                )
+            _profile_target_or_404(connection, project_id, version_id, target_key)
+            staged_path, relative_path = file_storage.stage(
+                project_id, artifact_id, file.filename, content
+            )
+            created_at = now()
+            version = {
+                "id": str(uuid4()),
+                "project_id": project_id,
+                "version_number": 1,
+                "sha256": sha256(file_storage.read(staged_path)).hexdigest(),
+                "relative_path": relative_path,
+                "created_at": created_at,
+            }
+            try:
+                connection.execute(
+                    """
+                    INSERT INTO evidence_artifacts(
+                        id, project_id, name, relative_path, created_at, uploaded_file_id
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        artifact_id,
+                        project_id,
+                        file.filename,
+                        relative_path,
+                        created_at,
+                        uploaded_file_id,
+                    ),
+                )
+                connection.execute(
+                    """
+                    INSERT INTO evidence_versions(
+                        id, artifact_id, project_id, version_number,
+                        relative_path, sha256, created_at
+                    ) VALUES (?, ?, ?, 1, ?, ?, ?)
+                    """,
+                    (
+                        version["id"],
+                        artifact_id,
+                        project_id,
+                        relative_path,
+                        version["sha256"],
+                        created_at,
+                    ),
+                )
+                mapping_id = str(uuid4())
+                connection.execute(
+                    """
+                    INSERT INTO evidence_mappings(
+                        id, project_id, artifact_id, evidence_version_id, target_type,
+                        assessment_id, record_id, profile_version_id, target_key,
+                        artifact_name_snapshot, uploaded_file_id_snapshot,
+                        rationale, review_state, created_at
+                    ) VALUES (
+                        ?, ?, ?, ?, 'profile', NULL, NULL, ?, ?, ?, ?,
+                        ?, 'Not reviewed', ?
+                    )
+                    """,
+                    (
+                        mapping_id,
+                        project_id,
+                        artifact_id,
+                        version["id"],
+                        version_id,
+                        target_key.strip(),
+                        file.filename,
+                        uploaded_file_id,
+                        rationale.strip(),
+                        created_at,
+                    ),
+                )
+            except Exception:
+                file_storage.delete(staged_path)
+                raise
+            try:
+                _audit(
+                    connection,
+                    "evidence.created",
+                    "evidence_artifact",
+                    artifact_id,
+                    {
+                        "project_id": project_id,
+                        "name": file.filename,
+                        "uploaded_file_id": uploaded_file_id,
+                        "profile_version_id": version_id,
+                    },
+                    actor_id,
+                )
+                _audit(
+                    connection,
+                    "evidence.mapped",
+                    "evidence_mapping",
+                    mapping_id,
+                    {
+                        "project_id": project_id,
+                        "profile_version_id": version_id,
+                        "target_type": "profile",
+                        "target_key": target_key.strip(),
+                        "artifact_id": artifact_id,
+                    },
+                    actor_id,
+                )
+                mapping = connection.execute(
+                    """
+                    SELECT mappings.id AS mapping_id, mappings.artifact_id,
+                           mappings.evidence_version_id, mappings.target_type,
+                           mappings.target_key, mappings.rationale, mappings.review_state,
+                           mappings.created_at,
+                           mappings.artifact_name_snapshot AS name,
+                           mappings.uploaded_file_id_snapshot AS uploaded_file_id,
+                           versions.version_number, versions.sha256, versions.relative_path
+                    FROM evidence_mappings mappings
+                    JOIN evidence_versions versions ON versions.id = mappings.evidence_version_id
+                    WHERE mappings.id = ?
+                    """,
+                    (mapping_id,),
+                ).fetchone()
+                file_storage.promote(staged_path, relative_path)
+            except Exception:
+                file_storage.delete(staged_path)
+                file_storage.delete(relative_path)
+                raise
+            return {
+                "artifact": {
+                    "id": artifact_id,
+                    "project_id": project_id,
+                    "name": file.filename,
+                    "uploaded_file_id": uploaded_file_id,
+                    "relative_path": relative_path,
+                    "created_at": created_at,
+                    "version": version,
+                },
+                "mapping": _profile_mapping(connection, mapping),
+                "content_revision": _profile_content_revision(connection, version_id),
+            }
+
+    @app.put(
+        "/api/projects/{project_id}/profile/versions/{version_id}"
+        "/evidence-mappings/{mapping_id}"
+    )
+    def update_profile_evidence_mapping(
+        project_id: str,
+        version_id: str,
+        mapping_id: str,
+        payload: ProfileEvidenceMappingUpdate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            _user_or_422(connection, payload.actor_id)
+            _profile_version_or_404(connection, project_id, version_id)
+            _require_profile_revision(connection, version_id, payload.expected_revision)
+            mapping = _profile_mapping_destination_or_404(
+                connection, project_id, version_id, mapping_id
+            )
+            if _profile_status(connection, version_id) != "Draft":
+                raise HTTPException(
+                    status_code=409, detail="Reviewed and approved Profile snapshots are immutable"
+                )
+            _profile_target_or_404(connection, project_id, version_id, payload.target_key)
+            connection.execute(
+                """
+                UPDATE evidence_mappings
+                SET target_key = ?, rationale = ?
+                WHERE id = ? AND project_id = ? AND target_type = 'profile'
+                  AND profile_version_id = ?
+                """,
+                (
+                    payload.target_key.strip(),
+                    payload.rationale.strip(),
+                    mapping_id,
+                    project_id,
+                    version_id,
+                ),
+            )
+            _audit(
+                connection,
+                "evidence.mapping_updated",
+                "evidence_mapping",
+                mapping_id,
+                {
+                    "project_id": project_id,
+                    "profile_version_id": version_id,
+                    "artifact_id": mapping["artifact_id"],
+                    "target_key": payload.target_key.strip(),
+                },
+                payload.actor_id,
+            )
+            row = connection.execute(
+                """
+                SELECT mappings.id AS mapping_id, mappings.artifact_id,
+                       mappings.evidence_version_id, mappings.target_type,
+                       mappings.target_key, mappings.rationale, mappings.review_state,
+                       mappings.created_at,
+                       mappings.artifact_name_snapshot AS name,
+                       mappings.uploaded_file_id_snapshot AS uploaded_file_id,
+                       versions.version_number, versions.sha256, versions.relative_path
+                FROM evidence_mappings mappings
+                JOIN evidence_versions versions ON versions.id = mappings.evidence_version_id
+                WHERE mappings.id = ?
+                """,
+                (mapping_id,),
+            ).fetchone()
+            result = _profile_mapping(connection, row)
+            result["content_revision"] = _profile_content_revision(connection, version_id)
+            return result
+
+    @app.delete(
+        "/api/projects/{project_id}/profile/versions/{version_id}"
+        "/evidence-mappings/{mapping_id}"
+    )
+    def delete_profile_evidence_mapping(
+        project_id: str,
+        version_id: str,
+        mapping_id: str,
+        database: Annotated[Database, Depends(db)],
+        expected_revision: str,
+        actor_id: str = "johnathan",
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            _user_or_422(connection, actor_id)
+            _profile_version_or_404(connection, project_id, version_id)
+            _require_profile_revision(connection, version_id, expected_revision)
+            mapping = _profile_mapping_destination_or_404(
+                connection, project_id, version_id, mapping_id
+            )
+            if _profile_status(connection, version_id) != "Draft":
+                raise HTTPException(
+                    status_code=409, detail="Reviewed and approved Profile snapshots are immutable"
+                )
+            deleted = connection.execute(
+                """
+                DELETE FROM evidence_mappings
+                WHERE id = ? AND project_id = ? AND target_type = 'profile'
+                  AND profile_version_id = ?
+                """,
+                (mapping_id, project_id, version_id),
+            )
+            if deleted.rowcount != 1:
+                raise HTTPException(status_code=404, detail="Profile evidence mapping not found")
+            _audit(
+                connection,
+                "evidence.unmapped",
+                "evidence_mapping",
+                mapping_id,
+                {
+                    "project_id": project_id,
+                    "profile_version_id": version_id,
+                    "artifact_id": mapping["artifact_id"],
+                },
+                actor_id,
+            )
+            return {
+                "deleted": True,
+                "content_revision": _profile_content_revision(connection, version_id),
+            }
+
+    @app.get("/api/projects/{project_id}/profile/audit")
+    def list_profile_audit(
+        project_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> list[dict[str, Any]]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            rows = connection.execute(
+                """
+                SELECT events.*, users.display_name
+                FROM audit_events events
+                JOIN user_accounts users ON users.id = events.actor_id
+                WHERE json_extract(events.details_json, '$.project_id') = ?
+                  AND (
+                    events.action LIKE 'profile.%'
+                    OR (
+                        events.action IN ('evidence.created', 'evidence.mapped')
+                        AND json_extract(events.details_json, '$.profile_version_id') IS NOT NULL
+                    )
+                  )
+                ORDER BY events.created_at, events.rowid
+                """,
+                (project_id,),
+            )
+            return [
+                {
+                    "id": row["id"],
+                    "actor": {
+                        "id": row["actor_id"],
+                        "display_name": row["display_name"],
+                    },
+                    "action": row["action"],
+                    "entity_type": row["entity_type"],
+                    "entity_id": row["entity_id"],
+                    "details": json.loads(row["details_json"]),
+                    "created_at": row["created_at"],
+                }
+                for row in rows
+            ]
 
     @app.get("/api/projects/{project_id}/profile-readiness")
     def get_profile_readiness(
@@ -991,7 +2320,8 @@ def create_app(
                 evidence = connection.execute(
                     """
                     SELECT id FROM evidence_mappings
-                    WHERE assessment_id = ? AND record_id = ? LIMIT 1
+                    WHERE target_type = 'assessment_record'
+                      AND assessment_id = ? AND record_id = ? LIMIT 1
                     """,
                     (assessment_id, record_id),
                 ).fetchone()
@@ -1079,6 +2409,7 @@ def create_app(
         file_storage: Annotated[FileStorage, Depends(files)],
     ) -> dict[str, Any]:
         artifact_id = str(uuid4())
+        uploaded_file_id = str(uuid4())
         content = await file.read()
         if not file.filename:
             raise HTTPException(status_code=422, detail="Evidence filename is required")
@@ -1096,10 +2427,18 @@ def create_app(
             }
             connection.execute(
                 """
-                INSERT INTO evidence_artifacts(id, project_id, name, relative_path, created_at)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO evidence_artifacts(
+                    id, project_id, name, relative_path, created_at, uploaded_file_id
+                ) VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (artifact_id, project_id, file.filename, relative_path, created_at),
+                (
+                    artifact_id,
+                    project_id,
+                    file.filename,
+                    relative_path,
+                    created_at,
+                    uploaded_file_id,
+                ),
             )
             connection.execute(
                 """
@@ -1130,6 +2469,7 @@ def create_app(
             "name": file.filename,
             "relative_path": relative_path,
             "created_at": created_at,
+            "uploaded_file_id": uploaded_file_id,
             "version": version,
         }
 
@@ -1144,7 +2484,8 @@ def create_app(
                 {
                     **_row(row),
                     "shared_record_count": connection.execute(
-                        "SELECT COUNT(*) AS count FROM evidence_mappings WHERE artifact_id = ?",
+                        "SELECT COUNT(*) AS count FROM evidence_mappings "
+                        "WHERE artifact_id = ? AND target_type = 'assessment_record'",
                         (row["id"],),
                     ).fetchone()["count"],
                 }
@@ -1192,13 +2533,22 @@ def create_app(
                 connection.execute(
                     """
                     INSERT INTO evidence_mappings(
-                        id, artifact_id, assessment_id, record_id, rationale, review_state,
-                        created_at
-                    ) VALUES (?, ?, ?, ?, ?, 'Not reviewed', ?)
+                        id, project_id, artifact_id, evidence_version_id, target_type,
+                        assessment_id, record_id, profile_version_id, target_key,
+                        rationale, review_state, created_at
+                    ) VALUES (?, ?, ?, ?, 'assessment_record', ?, ?, NULL, NULL,
+                              ?, 'Not reviewed', ?)
                     """,
                     (
                         mapping_id,
+                        project_id,
                         payload.artifact_id,
+                        connection.execute(
+                            "SELECT id FROM evidence_versions "
+                            "WHERE artifact_id = ? AND project_id = ? "
+                            "ORDER BY version_number DESC LIMIT 1",
+                            (payload.artifact_id, project_id),
+                        ).fetchone()["id"],
                         assessment_id,
                         payload.record_id,
                         payload.rationale.strip(),
@@ -1224,7 +2574,8 @@ def create_app(
                 },
             )
             shared_count = connection.execute(
-                "SELECT COUNT(*) AS count FROM evidence_mappings WHERE artifact_id = ?",
+                "SELECT COUNT(*) AS count FROM evidence_mappings "
+                "WHERE artifact_id = ? AND target_type = 'assessment_record'",
                 (payload.artifact_id,),
             ).fetchone()["count"]
         return {
@@ -1252,7 +2603,8 @@ def create_app(
                 SELECT em.*
                 FROM evidence_mappings em
                 JOIN evidence_artifacts ea ON ea.id = em.artifact_id
-                WHERE em.assessment_id = ? AND em.id = ? AND ea.project_id = ?
+                WHERE em.target_type = 'assessment_record'
+                  AND em.assessment_id = ? AND em.id = ? AND ea.project_id = ?
                 """,
                 (assessment_id, mapping_id, project_id),
             ).fetchone()
@@ -1269,7 +2621,8 @@ def create_app(
             mapping_count = connection.execute(
                 """
                 SELECT COUNT(*) AS count FROM evidence_mappings
-                WHERE assessment_id = ? AND record_id = ?
+                WHERE target_type = 'assessment_record'
+                  AND assessment_id = ? AND record_id = ?
                 """,
                 (assessment_id, mapping["record_id"]),
             ).fetchone()["count"]
