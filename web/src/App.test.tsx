@@ -460,6 +460,77 @@ test("a late Project A action reload cannot clear the loaded Project B assessmen
   expect(screen.queryByText("Project A needs follow-up.")).not.toBeInTheDocument();
 });
 
+test("project switching confirms before discarding unsaved Profile edits", async () => {
+  const profile = {
+    project_id: "project-1",
+    active_version_id: null,
+    template: { available: false, name: null, message: "Neutral form." },
+    versions: [{
+      id: "profile-v1",
+      project_id: "project-1",
+      version_number: 1,
+      status: "Draft",
+      created_by: "johnathan",
+      created_at: "2026-08-26T00:00:00Z",
+      content_revision: "revision-1",
+      values: [{
+        section: "project_metadata",
+        field_key: "name",
+        target_key: "field:project_metadata:name",
+        label: "Name",
+        value: "Project A Profile",
+        source: "Synthetic",
+        reviewer: "Johnathan",
+        last_reviewed_at: "2026-08-26T00:00:00Z",
+      }],
+      items: [],
+      lifecycle: [{
+        id: "draft",
+        status: "Draft",
+        actor: { id: "johnathan", display_name: "Johnathan" },
+        reviewer: "",
+        timestamp: "2026-08-26T00:00:00Z",
+      }],
+      evidence: [],
+    }],
+  };
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/projects/project-1/profile-readiness") {
+      return Response.json(readiness);
+    }
+    if (url === "/api/projects/project-1/assessment") return Response.json(assessment);
+    if (url.includes("/records/child-1")) return Response.json(detail);
+    if (url === "/api/projects/project-1/profile") return Response.json(profile);
+    if (url === "/api/projects/project-1/evidence") return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  const onProjectChange = vi.fn();
+  const user = userEvent.setup();
+  render(
+    <Workspace
+      clients={clients}
+      projectId="project-1"
+      onProjectChange={onProjectChange}
+      onWorkspaceCreated={vi.fn()}
+    />,
+  );
+  await screen.findByRole("heading", { name: "Risk analysis" });
+  await user.click(screen.getByRole("button", { name: "Profile" }));
+  const name = await screen.findByDisplayValue("Project A Profile");
+  await user.clear(name);
+  await user.type(name, "Unsaved Project A");
+  const projectSelect = screen.getAllByRole("combobox").find(
+    (element) => (element as HTMLSelectElement).value === "project-1",
+  );
+  expect(projectSelect).toBeDefined();
+  await user.selectOptions(projectSelect!, "project-2");
+  expect(confirm).toHaveBeenCalled();
+  expect(onProjectChange).not.toHaveBeenCalled();
+  expect(screen.getByDisplayValue("Unsaved Project A")).toBeVisible();
+});
+
 test("renders a complete walkthrough with separate data-driven progress", async () => {
   const user = userEvent.setup();
   render(<App />);

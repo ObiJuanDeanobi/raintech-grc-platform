@@ -19,6 +19,7 @@ import {
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ApiError, request } from "./api";
+import { ProfilePanel } from "./ProfilePanel";
 import type {
   Artifact,
   Assessment,
@@ -1004,6 +1005,7 @@ export function Workspace({
   const [routineSaves, setRoutineSaves] = useState<Map<string, RoutineSaveState>>(new Map());
   const [loading, setLoading] = useState(true);
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
+  const [profileDirty, setProfileDirty] = useState(false);
   const [view, setView] = useState<"assessment" | "overview" | "profile">("assessment");
   const detailTargetRef = useRef({ assessmentId: "", recordId: "" });
   const detailRequestSequenceRef = useRef(0);
@@ -1177,9 +1179,9 @@ export function Workspace({
         : "";
 
   const confirmRoutineNavigation = useCallback(() => {
-    if (!hasUnsavedRoutineEdit) return true;
+    if (!hasUnsavedRoutineEdit && !profileDirty) return true;
     return window.confirm("Changes are still saving or failed to save. Leave this record?");
-  }, [hasUnsavedRoutineEdit]);
+  }, [hasUnsavedRoutineEdit, profileDirty]);
 
   const changeRecord = useCallback((nextRecordId: string, nextReturnRecordId = "") => {
     if (nextRecordId === recordId || !confirmRoutineNavigation()) return;
@@ -1199,14 +1201,14 @@ export function Workspace({
   }, [confirmRoutineNavigation, view]);
 
   useEffect(() => {
-    if (!hasUnsavedRoutineEdit) return;
+    if (!hasUnsavedRoutineEdit && !profileDirty) return;
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", warnBeforeUnload);
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [hasUnsavedRoutineEdit]);
+  }, [hasUnsavedRoutineEdit, profileDirty]);
 
   const filtered = useMemo(() => {
     if (!assessment) return [];
@@ -1258,11 +1260,15 @@ export function Workspace({
             </label>
             <span>{selectedProject?.framework_version_id}</span>
           </div>
-          <ReadinessPanel
-            readiness={readiness}
-            hasAssessment={Boolean(assessment)}
-            onChanged={reloadWorkspace}
-          />
+          {view === "profile" ? (
+            <ProfilePanel projectId={projectId} onDirtyChange={setProfileDirty} />
+          ) : (
+            <ReadinessPanel
+              readiness={readiness}
+              hasAssessment={Boolean(assessment)}
+              onChanged={reloadWorkspace}
+            />
+          )}
         </main>
         {creatingWorkspace && (
           <WorkspaceCreator
@@ -1536,6 +1542,7 @@ export function Workspace({
       )}
       {view === "profile" && (
         <main className="overview-panel">
+          <ProfilePanel projectId={projectId} onDirtyChange={setProfileDirty} />
           <ReadinessPanel
             readiness={readiness}
             hasAssessment

@@ -157,6 +157,91 @@ export interface Artifact {
   version_created_at: string;
 }
 
+export type ProfileItemType =
+  | "scope_item"
+  | "environment"
+  | "business_process"
+  | "location"
+  | "external_service"
+  | "person_role"
+  | "exclusion_constraint"
+  | "reference"
+  | "unknown_follow_up";
+
+export interface ProfileValue {
+  id?: string;
+  target_key?: string;
+  section: string;
+  field_key: string;
+  label: string;
+  value: string;
+  source: string;
+  reviewer: string;
+  last_reviewed_at: string;
+  sort_order?: number;
+}
+
+export interface ProfileItem {
+  id?: string;
+  client_key: string;
+  item_type: ProfileItemType;
+  environment_item_id: string | null;
+  environment_item_key?: string | null;
+  sort_order?: number;
+  values: ProfileValue[];
+}
+
+export interface ProfileLifecycleEvent {
+  id: string;
+  status: "Draft" | "Reviewed" | "Approved";
+  actor: { id: string; display_name: string };
+  reviewer: string;
+  content_revision?: string;
+  timestamp: string;
+}
+
+export interface ProfileEvidenceMapping {
+  mapping_id: string;
+  artifact_id: string;
+  name: string;
+  uploaded_file_id: string;
+  evidence_version_id: string;
+  version_number: number;
+  sha256: string;
+  relative_path: string;
+  target_type: "profile";
+  target_key: string;
+  rationale: string;
+  review_state: string;
+  created_at: string;
+  content_revision?: string;
+}
+
+export interface ProfileVersion {
+  id: string;
+  project_id: string;
+  version_number: number;
+  status: "Draft" | "Reviewed" | "Approved";
+  created_by: string;
+  created_at: string;
+  content_revision: string;
+  values: ProfileValue[];
+  items: ProfileItem[];
+  lifecycle: ProfileLifecycleEvent[];
+  evidence: ProfileEvidenceMapping[];
+}
+
+export interface ProjectProfile {
+  project_id: string;
+  active_version_id: string | null;
+  versions: ProfileVersion[];
+  template: {
+    available: boolean;
+    name: string | null;
+    message: string;
+  };
+}
+
 export interface RecordDetail {
   record: RecordSummary;
   determination: Determination;
