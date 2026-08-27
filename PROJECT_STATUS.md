@@ -2,23 +2,25 @@
 
 ## Current phase
 
-`REVIEW-PASSED-AWAITING-CI`. GitHub issue #74 is implemented but
-uncommitted on `feature/74-assessment-revision-expand` from `main` commit
-`e2a9c76`. The focused tests and the full local API, catalog, Python lint,
+`PR-READY-FOR-HUMAN`. GitHub issue #74 is implemented on
+`feature/74-assessment-revision-expand` from `main` commit `e2a9c76`; the
+implementation commit is `6c19cb5`, and merge-ready PR #82 targets `main`.
+The focused tests and the full local API, catalog, Python lint,
 frontend typecheck/lint/test/build suites pass. Clean and populated migration
 upgrade/downgrade/re-upgrade, preservation, active-pointer, and direct-SQL
 isolation probes pass. The required desktop and 1280x720 browser regression
 evidence is retained under `docs/screenshots/issue-74/`. Initial independent
 reviews found documentation/evidence gaps rather than implementation defects;
 those findings were remediated, and final independent Standards and
-Specification re-reviews both passed with no actionable findings. Repository
-CI has not run because the branch is not yet pushed, so the work is not yet
-complete. Issue #62 merged to `main` through PR #64; issues #61, #58, #53, and
-#54 were already merged.
+Specification re-reviews both passed with no actionable findings. All GitHub
+CI jobs on PR #82 pass. The issue and PR remain open for human merge review;
+Issue #75 must not start until #74 merges. Issue #62 merged to `main` through
+PR #64; issues #61, #58, #53, and #54 were already merged.
 
 ## Current mode
 
-BUILD complete; awaiting review. Issue #74 is an additive expand migration
+BUILD complete; PR ready for human merge review. Issue #74 is an additive
+expand migration
 only. It adds `assessment_revisions` metadata and
 `project_active_assessments`, backfills every existing assessment as revision
 1 and as its project's active assessment, and makes future inserts through the
@@ -29,10 +31,11 @@ caller migration, correction UI, or old-constraint removal is included.
 
 ## Current objective
 
-Commit and push the review-PASS Issue #74 tree, open a merge-ready pull request,
-and verify repository CI. Keep GitHub's issue, pull request, and this status
-file sufficient for a GitHub-only Codex handoff. Do not begin Issue #75 or
-remove the old assessment uniqueness in this branch.
+Human-review and merge PR #82. After merge, confirm Issue #74 closed and `main`
+is green, then begin Issue #75 as the next dependent expand-contract step.
+Issues #67 and #69 remain independent `ready-for-agent` Milestone 3 work and
+can proceed without waiting for #74. Do not remove the old assessment
+uniqueness outside Issue #75's approved caller-migration scope.
 
 ## Approved specification
 
@@ -43,7 +46,7 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #74 — implemented / awaiting review.**
+**GitHub issue #74 — implemented / PR #82 ready for human review.**
 
 - `migrations/versions/0006_assessment_revision_expand.py` adds two expansion
   tables without rebuilding or weakening `assessments`.
@@ -79,6 +82,9 @@ CI passed.
 - Final independent Standards and Specification reviews both passed with no
   actionable findings after the initial evidence and status-documentation
   findings were remediated.
+- Implementation commit `6c19cb5` is pushed to
+  `origin/feature/74-assessment-revision-expand`. PR #82 is open against
+  `main`, and every GitHub CI job passes.
 
 GitHub issue #62 is complete and merged through PR #64.
 
@@ -314,8 +320,9 @@ on a clickable walkthrough, and merged.
 - **GitHub issue #74**: implementation, local automated verification, required
   browser regression capture, remediation, and final independent Standards and
   Specification reviews are complete on
-  `feature/74-assessment-revision-expand`. Both review axes passed. It awaits
-  the authorized commit/push, pull-request creation, and repository CI.
+  `feature/74-assessment-revision-expand`. Both review axes and all PR #82 CI
+  jobs passed. It awaits human merge review; do not continue #74 implementation
+  or begin dependent Issue #75 before merge.
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
@@ -329,8 +336,9 @@ on a clickable walkthrough, and merged.
   judgement about whether these are the right assessable units rather than
   whether they reproduce the regulation.
 
-No other production slice is in flight. In particular, Issue #75 caller
-migration has not started.
+No other production slice is in flight. Issue #75 caller migration has not
+started and remains dependent on #74 merging. Issues #67 and #69 are the
+independent `ready-for-agent` Milestone 3 frontier.
 
 ## Ownership
 
@@ -344,11 +352,10 @@ and operations model, not a claimed segregation of duties.
 
 ## Blocked
 
-- Issue #74 has no implementation or review blocker. Completion is gated on
-  repository CI after the authorized branch push and pull-request creation.
-  Required desktop and 1280x720 browser regression evidence is retained in
-  `docs/screenshots/issue-74/`. The frontend itself is unchanged and its
-  delayed-response regression suite passes.
+- Issue #74 has no implementation, review, or CI blocker. PR #82 awaits human
+  merge review. Required desktop and 1280x720 browser regression evidence is
+  retained in `docs/screenshots/issue-74/`. The frontend itself is unchanged
+  and its delayed-response regression suite passes.
 - GitHub issue #32 and every claim about the launcher and offline package are
   blocked on Johnathan's Windows machine. A cloud session cannot verify them.
   Backup and restore are approved requirements but are not part of #32; their
@@ -420,20 +427,19 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Commit and push the review-PASS Issue #74 branch, open a merge-ready pull
-request, wait for repository CI, and update this file with the exact commit,
-PR, and CI state for Codex. Do not start Issue #75 on this branch, merge the
-pull request, or close the issue.
+Human-review and merge PR #82. After merge, confirm Issue #74 closed and the
+default branch remains green, then start Issue #75 in a fresh branch and
+context. If work must proceed before that merge, select independent Issue #67
+or #69 instead. No additional implementation belongs on the Issue #74 branch.
 
 ## Branch inventory
 
 Recorded so the next agent does not re-derive it, and because a branch reset in
 this repository has already destroyed a day of work once. **Nothing here has
 been deleted.** Completed Issue #53, Issue #54, Issue #58, Issue #61, and Issue
-#62 work is on `main` at `e2a9c76`. The current Issue #74 migration, tests,
-browser evidence, and status update are uncommitted in the working tree on
-`feature/74-assessment-revision-expand`; do not reset, delete, or switch away
-from it during this handoff.
+#62 work is on `main` at `e2a9c76`. Issue #74 is committed and pushed on
+`feature/74-assessment-revision-expand` at implementation commit `6c19cb5`;
+PR #82 targets `main`. Keep the branch until PR #82 merges.
 
 Provably merged — every commit has an equivalent already on `main`, verified
 with `git cherry origin/main origin/<branch>`. Safe to delete:
