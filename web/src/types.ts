@@ -104,6 +104,34 @@ export interface Determination {
   interview_observation: string;
 }
 
+export type ReconciliationDisposition = "create" | "link_existing" | "not_needed";
+export interface ReconciliationLink {
+  id: string;
+  finding_id?: string | null;
+  title?: string;
+  status?: string;
+  linked_at?: string;
+  linked_by?: string;
+}
+export interface ReconciliationRecord {
+  state?: "pending" | "unresolved" | "reconciled";
+  outcome?: ReconciliationDisposition;
+  prefill?: Record<string, string | null>;
+  evidence_references?: Array<{
+    mapping_id: string;
+    artifact_id: string;
+    version_id: string;
+    name: string;
+    relative_path: string;
+    review_state: string;
+    sha256: string;
+  }>;
+  finding_id?: string | null;
+  corrective_action_id?: string | null;
+  links: ReconciliationLink[];
+  history: Array<{ id: string; outcome: ReconciliationDisposition; rationale?: string; changed_at: string; actor_id?: string }>;
+}
+
 export interface RecordSummary {
   record_id: string;
   citation: string;

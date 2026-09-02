@@ -679,6 +679,14 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .interview-box summary { color: #566375; cursor: pointer; font-size: 10px; font-weight: 700; }
 .interview-box p { color: #7a8594; font-size: 9px; line-height: 1.45; }
 .rollup-section { background: #fffcf6; }
+.reconciliation { background: #fffafa; }
+.reconciliation-form { display: grid; gap: 9px; margin-top: 11px; }
+.reconciliation-links { display: grid; gap: 5px; margin: 9px 0; font-size: 10px; }
+.reconciliation-links div { display: flex; justify-content: space-between; padding: 7px 8px; border: 1px solid #eadfe0; border-radius: 6px; background: white; }
+.reconciliation-links small { color: #8a6570; }
+.reconciliation-history { margin-top: 11px; color: #697485; font-size: 10px; }
+.reconciliation-history ul { margin: 8px 0 0; padding-left: 17px; }
+.error-copy { color: var(--red); font-size: 10px; }
 .muted { color: #7a8491; font-size: 10px; line-height: 1.5; }
 .evidence-list { display: grid; gap: 7px; }
 .evidence-item { display: grid; padding: 10px; grid-template-columns: auto 1fr auto; gap: 8px; border: 1px solid #e0e5ea; border-radius: 7px; background: #fafbfc; }
