@@ -2,40 +2,29 @@
 
 ## Current phase
 
-`PR-READY-FOR-HUMAN`. GitHub issue #74 is implemented on
-`feature/74-assessment-revision-expand` from `main` commit `e2a9c76`; the
-implementation commit is `6c19cb5`, and merge-ready PR #82 targets `main`.
-The focused tests and the full local API, catalog, Python lint,
-frontend typecheck/lint/test/build suites pass. Clean and populated migration
-upgrade/downgrade/re-upgrade, preservation, active-pointer, and direct-SQL
-isolation probes pass. The required desktop and 1280x720 browser regression
-evidence is retained under `docs/screenshots/issue-74/`. Initial independent
-reviews found documentation/evidence gaps rather than implementation defects;
-those findings were remediated, and final independent Standards and
-Specification re-reviews both passed with no actionable findings. All GitHub
-CI jobs on PR #82 pass. The issue and PR remain open for human merge review;
-Issue #75 must not start until #74 merges. Issue #62 merged to `main` through
-PR #64; issues #61, #58, #53, and #54 were already merged.
+`BUILD-VERIFY`. GitHub issue #67 is implemented on
+`feature/67-not-met-reconciliation` from `main` commit `87400ac`. The focused
+Issue #67 tests, full API and catalog suites, Ruff, Mypy, frontend typecheck,
+ESLint, Vitest, and production build pass locally. Chrome regression at
+1440x900 and 1280x720 passed with synthetic data, no horizontal overflow, and
+no console or page errors; evidence is under `docs/screenshots/issue-67/`.
+Independent review findings on composite history ownership, prefill coverage,
+UI field separation, and idempotent response shape were remediated. Issue #74
+merged through PR #82 and closed; its post-merge `main` CI passed.
 
 ## Current mode
 
-BUILD complete; PR ready for human merge review. Issue #74 is an additive
-expand migration
-only. It adds `assessment_revisions` metadata and
-`project_active_assessments`, backfills every existing assessment as revision
-1 and as its project's active assessment, and makes future inserts through the
-unchanged assessment creation route receive the same metadata and pointer.
-Existing assessment IDs, data, ownership, API/UI contracts, and the
-one-assessment-per-project uniqueness remain unchanged. No successor creation,
-caller migration, correction UI, or old-constraint removal is included.
+BUILD and local verification for Issue #67. The slice adds project-scoped
+findings, corrective actions, current Not Met reconciliation, immutable history,
+and an assessment working-record UI. It introduces no generic queue or workflow
+engine and does not change assessment revision identity.
 
 ## Current objective
 
-Human-review and merge PR #82. After merge, confirm Issue #74 closed and `main`
-is green, then begin Issue #75 as the next dependent expand-contract step.
-Issues #67 and #69 remain independent `ready-for-agent` Milestone 3 work and
-can proceed without waiting for #74. Do not remove the old assessment
-uniqueness outside Issue #75's approved caller-migration scope.
+Commit and push Issue #67, open its pull request, and require GitHub CI plus
+human merge review. Issue #75 remains blocked by Issue #73 despite Issue #74
+being complete. Issue #69 remains the other independent `ready-for-agent`
+Milestone 3 frontier.
 
 ## Approved specification
 

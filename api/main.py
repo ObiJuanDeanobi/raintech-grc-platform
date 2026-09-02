@@ -48,6 +48,18 @@ class DeterminationSave(BaseModel):
     interview_observation: str = ""
 
 
+class ReconciliationSave(BaseModel):
+    actor_id: str = "johnathan"
+    outcome: str
+    finding_id: str | None = None
+    corrective_action_id: str | None = None
+    rationale: str = ""
+    title: str = ""
+    description: str = ""
+    action_title: str = ""
+    action_description: str = ""
+
+
 class NoteSave(BaseModel):
     note: str
 
@@ -144,9 +156,7 @@ def _project_or_404(connection: Any, project_id: str) -> Any:
 
 
 def _user_or_422(connection: Any, actor_id: str) -> Any:
-    user = connection.execute(
-        "SELECT * FROM user_accounts WHERE id = ?", (actor_id,)
-    ).fetchone()
+    user = connection.execute("SELECT * FROM user_accounts WHERE id = ?", (actor_id,)).fetchone()
     if user is None:
         raise HTTPException(status_code=422, detail="Unknown Profile actor")
     return user
@@ -265,9 +275,7 @@ def _profile_content_revision(connection: Any, version_id: str) -> str:
     return profile_snapshot_revision(connection, version_id, generation)
 
 
-def _require_profile_revision(
-    connection: Any, version_id: str, expected_revision: str
-) -> str:
+def _require_profile_revision(connection: Any, version_id: str, expected_revision: str) -> str:
     current_revision = _profile_content_revision(connection, version_id)
     if expected_revision != current_revision:
         raise HTTPException(
@@ -526,9 +534,7 @@ def _validate_profile_payload(payload: ProfileVersionSave) -> None:
                     ) from error
     for item in payload.items:
         if item.item_type == "scope_item" and not item.environment_item_key:
-            raise HTTPException(
-                status_code=422, detail="Scope inventory requires an environment"
-            )
+            raise HTTPException(status_code=422, detail="Scope inventory requires an environment")
         if item.item_type != "scope_item" and item.environment_item_key:
             raise HTTPException(
                 status_code=422,
@@ -543,11 +549,7 @@ def _validate_profile_payload(payload: ProfileVersionSave) -> None:
 def _profile_payload_target_keys(payload: ProfileVersionSave) -> set[str]:
     return {
         *(_profile_target_key(None, field) for field in payload.values),
-        *(
-            _profile_target_key(item, field)
-            for item in payload.items
-            for field in item.values
-        ),
+        *(_profile_target_key(item, field) for item in payload.items for field in item.values),
     }
 
 
@@ -769,6 +771,12 @@ def _determination(connection: Any, assessment_id: str, record: Any) -> dict[str
         }
     )
     result["derived"] = False
+    reconciliation = connection.execute(
+        "SELECT id, outcome, finding_id, corrective_action_id, rationale, updated_at "
+        "FROM not_met_reconciliations WHERE assessment_id = ? AND record_id = ?",
+        (assessment_id, record["record_id"]),
+    ).fetchone()
+    result["reconciliation"] = _row(reconciliation) if reconciliation else None
     return result
 
 
@@ -1563,11 +1571,11 @@ def create_app(
                         payload.artifact_id,
                         payload.evidence_version_id,
                         version_id,
-                    payload.target_key.strip(),
-                    payload.rationale.strip(),
-                    created_at,
-                    payload.artifact_id,
-                    project_id,
+                        payload.target_key.strip(),
+                        payload.rationale.strip(),
+                        created_at,
+                        payload.artifact_id,
+                        project_id,
                     ),
                 )
             except Exception as error:
@@ -1777,8 +1785,7 @@ def create_app(
             }
 
     @app.put(
-        "/api/projects/{project_id}/profile/versions/{version_id}"
-        "/evidence-mappings/{mapping_id}"
+        "/api/projects/{project_id}/profile/versions/{version_id}/evidence-mappings/{mapping_id}"
     )
     def update_profile_evidence_mapping(
         project_id: str,
@@ -1848,8 +1855,7 @@ def create_app(
             return result
 
     @app.delete(
-        "/api/projects/{project_id}/profile/versions/{version_id}"
-        "/evidence-mappings/{mapping_id}"
+        "/api/projects/{project_id}/profile/versions/{version_id}/evidence-mappings/{mapping_id}"
     )
     def delete_profile_evidence_mapping(
         project_id: str,
@@ -2040,8 +2046,7 @@ def create_app(
                 )
             if (
                 declaration.get("requires_boundary_acknowledgement_before_transition")
-                and
-                connection.execute(
+                and connection.execute(
                     "SELECT id FROM profile_boundary_acknowledgements WHERE project_id = ?",
                     (project_id,),
                 ).fetchone()
@@ -2052,9 +2057,7 @@ def create_app(
                     detail=declaration["boundary_acknowledgement_validation_message"],
                 )
             unresolved = [
-                value.strip()
-                for value in payload.unresolved_required_fields
-                if value.strip()
+                value.strip() for value in payload.unresolved_required_fields if value.strip()
             ]
             if not payload.decision_note.strip():
                 raise HTTPException(status_code=422, detail="Decision note is required")
@@ -2089,9 +2092,7 @@ def create_app(
             ):
                 raise HTTPException(
                     status_code=422,
-                    detail=follow_up_rule[
-                        "unresolved_required_fields_validation_message"
-                    ],
+                    detail=follow_up_rule["unresolved_required_fields_validation_message"],
                 )
             transition_id = str(uuid4())
             created_at = now()
@@ -2197,9 +2198,7 @@ def create_app(
                 "SELECT * FROM framework_versions WHERE id = ?",
                 (assessment["framework_version_id"],),
             ).fetchone()
-            walkthrough_rows = _walkthrough_records(
-                connection, assessment["framework_version_id"]
-            )
+            walkthrough_rows = _walkthrough_records(connection, assessment["framework_version_id"])
             work_list = [
                 {
                     **_row(row),
@@ -2298,9 +2297,7 @@ def create_app(
                 )
             if payload.status == "N/A" and not payload.na_rationale.strip():
                 raise HTTPException(status_code=422, detail="N/A requires a rationale")
-            designation_rule = declarations.get("designation_rules", {}).get(
-                record["designation"]
-            )
+            designation_rule = declarations.get("designation_rules", {}).get(record["designation"])
             if designation_rule:
                 if payload.addressable_disposition not in set(designation_rule["dispositions"]):
                     raise HTTPException(
@@ -2308,8 +2305,7 @@ def create_app(
                         detail="Addressable specifications require a disposition",
                     )
                 if (
-                    payload.addressable_disposition
-                    in set(designation_rule["reason_required_for"])
+                    payload.addressable_disposition in set(designation_rule["reason_required_for"])
                     and not payload.disposition_reason.strip()
                 ):
                     raise HTTPException(
@@ -2372,6 +2368,356 @@ def create_app(
             )
             saved = _record_detail(connection, assessment_id, record_id)["determination"]
             return cast(dict[str, Any], saved)
+
+    @app.get(
+        "/api/projects/{project_id}/assessments/{assessment_id}/records/{record_id}/reconciliation"
+    )
+    def get_reconciliation(
+        project_id: str,
+        assessment_id: str,
+        record_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
+            record = _record_or_404(connection, assessment_id, record_id)
+            row = connection.execute(
+                """
+                SELECT * FROM not_met_reconciliations
+                WHERE project_id = ? AND assessment_id = ? AND record_id = ?
+                """,
+                (project_id, assessment_id, record_id),
+            ).fetchone()
+            links: list[dict[str, Any]] = []
+            if row and row["finding_id"]:
+                finding = connection.execute(
+                    "SELECT * FROM findings WHERE id = ? AND project_id = ?",
+                    (row["finding_id"], project_id),
+                ).fetchone()
+                if finding:
+                    links.append({"type": "finding", **_row(finding)})
+            if row and row["corrective_action_id"]:
+                action = connection.execute(
+                    "SELECT * FROM corrective_actions WHERE id = ? AND project_id = ?",
+                    (row["corrective_action_id"], project_id),
+                ).fetchone()
+                if action:
+                    links.append({"type": "corrective_action", **_row(action)})
+            history = [
+                _row(item)
+                for item in connection.execute(
+                    """
+                    SELECT * FROM not_met_reconciliation_history
+                    WHERE project_id = ? AND assessment_id = ? AND record_id = ?
+                    ORDER BY changed_at, id
+                    """,
+                    (project_id, assessment_id, record_id),
+                ).fetchall()
+            ]
+            note = connection.execute(
+                "SELECT note FROM record_notes WHERE assessment_id = ? AND record_id = ?",
+                (assessment_id, record_id),
+            ).fetchone()
+            determination = connection.execute(
+                "SELECT status FROM determinations WHERE assessment_id = ? AND record_id = ?",
+                (assessment_id, record_id),
+            ).fetchone()
+            evidence_references = [
+                _row(item)
+                for item in connection.execute(
+                    """
+                    SELECT em.id AS mapping_id, em.artifact_id, ea.name,
+                           ea.relative_path, em.rationale, em.review_state,
+                           ev.id AS version_id, ev.version_number, ev.sha256
+                    FROM evidence_mappings em
+                    JOIN evidence_artifacts ea ON ea.id = em.artifact_id
+                    JOIN evidence_versions ev ON ev.id = em.evidence_version_id
+                    WHERE em.target_type = 'assessment_record'
+                      AND em.assessment_id = ? AND em.record_id = ?
+                    ORDER BY em.created_at
+                    """,
+                    (assessment_id, record_id),
+                ).fetchall()
+            ]
+            return {
+                "state": "reconciled" if row else "unresolved",
+                "outcome": row["outcome"] if row else None,
+                "finding_id": row["finding_id"] if row else None,
+                "corrective_action_id": row["corrective_action_id"] if row else None,
+                "prefill": {
+                    "citation": record["citation"],
+                    "requirement_title": record["title"],
+                    "determination_status": determination["status"] if determination else "",
+                    "notes": note["note"] if note else "",
+                    "recommendation": None,
+                    "risk_rating": None,
+                    "finding_title": f"Not Met: {record['citation']} {record['title']}",
+                    "action_title": f"Remediate: {record_id}",
+                },
+                "evidence_references": evidence_references,
+                "links": links,
+                "history": history,
+            }
+
+    @app.put(
+        "/api/projects/{project_id}/assessments/{assessment_id}/records/{record_id}/reconciliation"
+    )
+    def save_reconciliation(
+        project_id: str,
+        assessment_id: str,
+        record_id: str,
+        payload: ReconciliationSave,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
+            _record_or_404(connection, assessment_id, record_id)
+            determination = connection.execute(
+                "SELECT status FROM determinations WHERE assessment_id=? AND record_id=?",
+                (assessment_id, record_id),
+            ).fetchone()
+            if determination is None or determination["status"] != "Not Met":
+                raise HTTPException(
+                    422, "Reconciliation is only available for a current Not Met determination"
+                )
+            _user_or_422(connection, payload.actor_id)
+            if payload.outcome not in {"create", "link_existing", "not_needed"}:
+                raise HTTPException(422, "Unknown reconciliation outcome")
+            if payload.outcome == "not_needed" and not payload.rationale.strip():
+                raise HTTPException(422, "not_needed requires a rationale")
+            old = connection.execute(
+                """
+                SELECT * FROM not_met_reconciliations
+                WHERE project_id = ? AND assessment_id = ? AND record_id = ?
+                """,
+                (project_id, assessment_id, record_id),
+            ).fetchone()
+            finding_id, action_id = payload.finding_id, payload.corrective_action_id
+            if payload.outcome == "create" and (
+                not payload.title.strip() or not payload.action_title.strip()
+            ):
+                raise HTTPException(
+                    422, "create requires explicit finding and corrective action titles"
+                )
+            if payload.outcome == "create":
+                stamp = now()
+                if old and old["finding_id"] and old["corrective_action_id"]:
+                    finding_id = old["finding_id"]
+                    action_id = old["corrective_action_id"]
+                    connection.execute(
+                        """
+                        UPDATE findings SET title = ?, description = ?, updated_at = ?
+                        WHERE id = ? AND project_id = ?
+                        """,
+                        (
+                            payload.title.strip(),
+                            payload.description.strip(),
+                            stamp,
+                            finding_id,
+                            project_id,
+                        ),
+                    )
+                    connection.execute(
+                        """
+                        UPDATE corrective_actions
+                        SET title = ?, description = ?, updated_at = ?
+                        WHERE id = ? AND project_id = ?
+                        """,
+                        (
+                            payload.action_title.strip(),
+                            payload.action_description.strip(),
+                            stamp,
+                            action_id,
+                            project_id,
+                        ),
+                    )
+                else:
+                    finding_id, action_id = str(uuid4()), str(uuid4())
+                    connection.execute(
+                        """
+                        INSERT INTO findings(
+                            id, project_id, title, description, created_at, updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            finding_id,
+                            project_id,
+                            payload.title.strip(),
+                            payload.description.strip(),
+                            stamp,
+                            stamp,
+                        ),
+                    )
+                    connection.execute(
+                        """
+                        INSERT INTO corrective_actions(
+                            id, project_id, finding_id, title, description,
+                            created_at, updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            action_id,
+                            project_id,
+                            finding_id,
+                            payload.action_title.strip(),
+                            payload.action_description.strip(),
+                            stamp,
+                            stamp,
+                        ),
+                    )
+            elif payload.outcome == "link_existing":
+                if not finding_id or not action_id:
+                    raise HTTPException(
+                        422, "link_existing requires finding_id and corrective_action_id"
+                    )
+                valid = connection.execute(
+                    """
+                    SELECT 1
+                    FROM findings f
+                    JOIN corrective_actions a
+                      ON a.finding_id = f.id AND a.project_id = f.project_id
+                    WHERE f.id = ? AND a.id = ? AND f.project_id = ?
+                    """,
+                    (finding_id, action_id, project_id),
+                ).fetchone()
+                if valid is None:
+                    raise HTTPException(
+                        422, "Finding and corrective action must belong to this project"
+                    )
+            if old and all(
+                old[k] == v
+                for k, v in {
+                    "outcome": payload.outcome,
+                    "finding_id": finding_id,
+                    "corrective_action_id": action_id,
+                    "rationale": payload.rationale.strip(),
+                }.items()
+            ):
+                links = []
+                for table, entity_id, entity_type in (
+                    ("findings", finding_id, "finding"),
+                    ("corrective_actions", action_id, "corrective_action"),
+                ):
+                    if entity_id:
+                        linked = connection.execute(
+                            f"SELECT * FROM {table} WHERE id = ? AND project_id = ?",
+                            (entity_id, project_id),
+                        ).fetchone()
+                        if linked:
+                            links.append({"type": entity_type, **_row(linked)})
+                history = [
+                    _row(item)
+                    for item in connection.execute(
+                        """
+                        SELECT * FROM not_met_reconciliation_history
+                        WHERE reconciliation_id = ? ORDER BY changed_at, id
+                        """,
+                        (old["id"],),
+                    ).fetchall()
+                ]
+                return {
+                    **_row(old),
+                    "state": "reconciled",
+                    "links": links,
+                    "history": history,
+                }
+            stamp = now()
+            rid = old["id"] if old else str(uuid4())
+            connection.execute(
+                """
+                INSERT INTO not_met_reconciliations(
+                    id, project_id, assessment_id, record_id, outcome,
+                    finding_id, corrective_action_id, rationale, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(assessment_id, record_id) DO UPDATE SET
+                    outcome = excluded.outcome,
+                    finding_id = excluded.finding_id,
+                    corrective_action_id = excluded.corrective_action_id,
+                    rationale = excluded.rationale,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    rid,
+                    project_id,
+                    assessment_id,
+                    record_id,
+                    payload.outcome,
+                    finding_id,
+                    action_id,
+                    payload.rationale.strip(),
+                    stamp,
+                    stamp,
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO not_met_reconciliation_history(
+                    id, reconciliation_id, project_id, assessment_id, record_id,
+                    outcome, finding_id, corrective_action_id, rationale,
+                    actor_id, changed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(uuid4()),
+                    rid,
+                    project_id,
+                    assessment_id,
+                    record_id,
+                    payload.outcome,
+                    finding_id,
+                    action_id,
+                    payload.rationale.strip(),
+                    payload.actor_id,
+                    stamp,
+                ),
+            )
+            _audit(
+                connection,
+                "not_met_reconciliation.saved",
+                "not_met_reconciliation",
+                rid,
+                {
+                    "assessment_id": assessment_id,
+                    "record_id": record_id,
+                    "outcome": payload.outcome,
+                },
+                payload.actor_id,
+            )
+            saved = connection.execute(
+                "SELECT * FROM not_met_reconciliations WHERE id = ?", (rid,)
+            ).fetchone()
+            assert saved is not None
+            links = []
+            if finding_id:
+                finding = connection.execute(
+                    "SELECT * FROM findings WHERE id = ? AND project_id = ?",
+                    (finding_id, project_id),
+                ).fetchone()
+                if finding:
+                    links.append({"type": "finding", **_row(finding)})
+            if action_id:
+                action = connection.execute(
+                    "SELECT * FROM corrective_actions WHERE id = ? AND project_id = ?",
+                    (action_id, project_id),
+                ).fetchone()
+                if action:
+                    links.append({"type": "corrective_action", **_row(action)})
+            history = [
+                _row(item)
+                for item in connection.execute(
+                    """
+                    SELECT * FROM not_met_reconciliation_history
+                    WHERE reconciliation_id = ? ORDER BY changed_at, id
+                    """,
+                    (rid,),
+                ).fetchall()
+            ]
+            return {
+                **_row(saved),
+                "state": "reconciled",
+                "links": links,
+                "history": history,
+            }
 
     @app.put("/api/assessments/{assessment_id}/records/{record_id}/note")
     def save_note(

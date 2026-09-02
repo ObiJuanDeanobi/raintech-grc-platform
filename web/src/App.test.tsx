@@ -287,6 +287,39 @@ beforeEach(() => {
   );
 });
 
+test("Not Met reconciliation uses project-scoped PUT and create payload", async () => {
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    const url = String(input); calls.push({ url, init });
+    if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
+    if (url.endsWith("/assessment")) return Response.json(assessment);
+    if (url.includes("/records/child-1/reconciliation")) return Response.json({ outcome: "unresolved", prefill: { citation: "45 CFR 164.308", finding_title: "Prefilled finding", action_title: "Prefilled action" }, links: [], history: [] });
+    if (url.includes("/records/child-1")) return Response.json(refreshedDeterminationDetail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({});
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  expect(await screen.findByText("Prefilled context")).toBeVisible();
+  expect(screen.getByDisplayValue("Prefilled finding")).toBeVisible();
+  await userEvent.setup().click(screen.getByRole("button", { name: "Save reconciliation" }));
+  await waitFor(() => expect(calls.some((call) => call.url === "/api/projects/project-1/assessments/assessment-1/records/child-1/reconciliation" && call.init?.method === "PUT")).toBe(true));
+  const call = calls.find((item) => item.url.includes("reconciliation") && item.init?.method === "PUT")!;
+  expect(JSON.parse(String(call.init?.body))).toMatchObject({ outcome: "create", title: "Prefilled finding" });
+});
+
+test("Pending reconciliation explains that no work is created", async () => {
+  vi.mocked(fetch).mockImplementation(async (input) => {
+    const url = String(input);
+    if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
+    if (url.endsWith("/assessment")) return Response.json(assessment);
+    if (url.includes("/records/child-1")) return Response.json({ ...detail, determination: { ...detail.determination, status: "Pending" } });
+    return Response.json([]);
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  expect(await screen.findByText(/Pending does not create reconciliation work/i)).toBeVisible();
+  expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes("reconciliation"))).toBe(false);
+});
+
 test("shows readiness state and concrete assessment blocking before an assessment exists", async () => {
   vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
     const url = String(input);

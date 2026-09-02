@@ -28,6 +28,8 @@ import type {
   Prompt,
   ProfileReadiness,
   RecordDetail,
+  ReconciliationDisposition,
+  ReconciliationRecord,
   Status,
 } from "./types";
 
@@ -788,6 +790,46 @@ function DeterminationPanel({
   );
 }
 
+function NotMetReconciliation({ projectId, assessmentId, recordId, status }: { projectId: string; assessmentId: string; recordId: string; status: string }) {
+  const [data, setData] = useState<ReconciliationRecord | null>(null);
+  const [choice, setChoice] = useState<ReconciliationDisposition>("create");
+  const [title, setTitle] = useState("");
+  const [findingDescription, setFindingDescription] = useState("");
+  const [actionTitle, setActionTitle] = useState("");
+  const [actionDescription, setActionDescription] = useState("");
+  const [rationale, setRationale] = useState("");
+  const [existingId, setExistingId] = useState("");
+  const [actionId, setActionId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    setData(null); setError(""); setTitle(""); setFindingDescription(""); setActionTitle(""); setActionDescription(""); setRationale(""); setExistingId(""); setActionId("");
+    if (status !== "Not Met") return () => controller.abort();
+    void request<ReconciliationRecord | null>(`/api/projects/${projectId}/assessments/${assessmentId}/records/${encodeURIComponent(recordId)}/reconciliation`, { signal: controller.signal })
+      .then((next) => { if (!controller.signal.aborted) { setData(next); setTitle(next?.prefill?.finding_title ?? `Not Met: ${recordId}`); setActionTitle(next?.prefill?.action_title ?? `Remediate: ${recordId}`); } })
+      .catch((e) => { if (!controller.signal.aborted) setError(e instanceof Error ? e.message : "Could not load reconciliation."); });
+    return () => controller.abort();
+  }, [projectId, assessmentId, recordId, status]);
+  if (status === "Pending") return <section className="working-section reconciliation"><p className="eyebrow">RECONCILIATION</p><p className="muted">Pending does not create reconciliation work. Resolve the determination first.</p></section>;
+  if (status !== "Not Met") return null;
+  const submit = async (event: FormEvent) => {
+    event.preventDefault(); setBusy(true); setError("");
+    try {
+      const payload = choice === "create" ? { outcome: choice, title, description: findingDescription, action_title: actionTitle, action_description: actionDescription, rationale } : choice === "link_existing" ? { outcome: choice, finding_id: existingId, corrective_action_id: actionId, rationale } : { outcome: choice, rationale };
+      const next = await request<ReconciliationRecord>(`/api/projects/${projectId}/assessments/${assessmentId}/records/${encodeURIComponent(recordId)}/reconciliation`, { method: "PUT", body: JSON.stringify(payload) });
+      setData(next); setRationale("");
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not save reconciliation."); } finally { setBusy(false); }
+  };
+  return <section className="working-section reconciliation"><div className="section-title"><div><p className="eyebrow">RECONCILIATION</p><h3>Not Met corrective work</h3></div><span className="status-pill status-not-met">{data?.outcome ?? "Unresolved"}</span></div>
+    {error && <p className="error-copy">{error}</p>}
+    {data?.prefill && <div className="reconciliation-links"><strong>Prefilled context</strong>{Object.entries(data.prefill).filter(([, value]) => value).map(([key, value]) => <div key={key}><span>{key.replaceAll("_", " ")}</span><small>{value}</small></div>)}</div>}
+    {data?.links?.length ? <div className="reconciliation-links"><strong>Current links</strong>{data.links.map((link) => <div key={link.id}><span>{link.title ?? link.finding_id}</span><small>{link.status}</small></div>)}</div> : <p className="muted">No finding or corrective action is linked yet.</p>}
+    <form className="reconciliation-form" onSubmit={submit}><label>Disposition<select value={choice} onChange={(e) => setChoice(e.target.value as ReconciliationDisposition)}><option value="create">Create prefilled finding</option><option value="link_existing">Link existing finding</option><option value="not_needed">Not needed</option></select></label>{choice === "create" && <><label>Finding title<input value={title} onChange={(e) => setTitle(e.target.value)} required /></label><label>Finding description<textarea rows={2} value={findingDescription} onChange={(e) => setFindingDescription(e.target.value)} /></label><label>Corrective action title<input value={actionTitle} onChange={(e) => setActionTitle(e.target.value)} required /></label><label>Corrective action description<textarea rows={2} value={actionDescription} onChange={(e) => setActionDescription(e.target.value)} /></label></>}{choice === "link_existing" && <><label>Finding ID<input value={existingId} onChange={(e) => setExistingId(e.target.value)} required /></label><label>Corrective action ID<input value={actionId} onChange={(e) => setActionId(e.target.value)} required /></label></>}<label>{choice === "not_needed" ? "Rationale (required)" : "Rationale"}<textarea rows={2} value={rationale} onChange={(e) => setRationale(e.target.value)} required={choice === "not_needed"} /></label><button className="small-button" disabled={busy} type="submit">{busy ? "Saving…" : "Save reconciliation"}</button></form>
+    {!!data?.history?.length && <details className="reconciliation-history"><summary>History</summary><ul>{data.history.map((item) => <li key={item.id}>{item.outcome} · {new Date(item.changed_at).toLocaleDateString()}</li>)}</ul></details>}
+  </section>;
+}
+
 function RecordNotes({
   assessmentId,
   recordId,
@@ -1476,6 +1518,13 @@ export function Workspace({
             void loadDetail();
             void refreshAssessmentProgress();
           }}
+        />
+        <NotMetReconciliation
+          key={`${assessment.id}:${detail.record.record_id}:reconciliation`}
+          assessmentId={assessment.id}
+          projectId={assessment.project.id}
+          recordId={detail.record.record_id}
+          status={detail.determination.status}
         />
         <RecordNotes
           key={`${assessment.id}:${detail.record.record_id}:notes`}
