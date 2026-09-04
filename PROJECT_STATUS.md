@@ -2,16 +2,16 @@
 
 ## Current phase
 
-`BUILD-VERIFY`. GitHub issue #69 is implemented on `feature/69-hipaa-sra` from
+`REVIEW`. GitHub issue #69 is implemented on `feature/69-hipaa-sra` from
 `main` commit `c6cb780`, which includes merged Issues #74 and #67. Focused SRA
 and risk tests, the full API suite, Ruff, Mypy, frontend typecheck, ESLint,
 Vitest, and the production build pass locally. Both independent review axes
-were run and their findings were remediated. Chrome viewport evidence remains
-pending because Chrome is not connected to the current Codex session.
+were run and their findings were remediated. Chrome viewport verification and
+GitHub CI pass. Draft PR #84 is ready to be marked ready for human review.
 
 ## Current mode
 
-BUILD and local verification for Issue #69. The slice adds a declaration-driven
+Review and handoff for Issue #69. The slice adds a declaration-driven
 HIPAA Security Risk Analysis projection over the existing catalog anchor,
 approved-Profile scope reviews, project-scoped risk and evidence records, and a
 single dependency-free 5x5 scorer. It does not create a fourth catalog area,
@@ -19,10 +19,10 @@ duplicate a framework record, or introduce a universal risk workflow.
 
 ## Current objective
 
-Complete Chrome visual verification at 1440x900 and 1280x720, retain the
-evidence, then commit, push, open the Issue #69 pull request, and require GitHub
-CI plus human merge review. Issue #70 remains dependent on Issues #68 and #69;
-its transition-aware close decision is deliberately not implemented here.
+Commit and push the retained Chrome evidence, update PR #84, re-run GitHub CI,
+and mark the PR ready for human review. Do not merge without explicit approval.
+Issue #70 remains dependent on Issues #68 and #69; its transition-aware close
+decision is deliberately not implemented here.
 
 ## Approved specification
 
@@ -33,7 +33,7 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #69 - implemented locally / Chrome evidence pending.**
+**GitHub issue #69 - implemented / draft PR #84 verification complete.**
 
 - Framework declarations identify the SRA anchor, workflow label, Profile scope
   target mappings, required risk fields, acceptance fields, and elevated-risk
@@ -53,6 +53,10 @@ CI passed.
 - Independent specification and security reviews passed after remediation.
   Issue #70 owns consuming the exposed completion result in the later
   transition-aware HIPAA close decision.
+- Chrome verification passed at 1440x900 and 1280x720 with no horizontal
+  overflow or console/page warnings or errors. Retained evidence covers the
+  incomplete blocker, explicit exclusion with rationale, completed state, and
+  inherent/residual risk bands.
 
 ### Recently completed ticket detail
 
@@ -433,17 +437,17 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Connect Chrome, complete Issue #69 visual verification at 1440x900 and
-1280x720, and retain the screenshots and verification inventory. Then commit,
-push, open the Issue #69 pull request, and require CI plus human merge review.
+Commit and push the Issue #69 Chrome evidence, update draft PR #84, re-run CI,
+then mark it ready for human review. Merge only after explicit user approval.
 
 ## Branch inventory
 
 Recorded so the next agent does not re-derive it, and because a branch reset in
 this repository has already destroyed a day of work once. **Nothing here has
 been deleted.** Issues #53, #54, #58, #61, #62, #74, and #67 are merged on
-`main` at `c6cb780`. Issue #69 is uncommitted on `feature/69-hipaa-sra`; keep
-this worktree and branch until its PR merges.
+`main` at `c6cb780`. Issue #69 is committed and published on
+`feature/69-hipaa-sra` through draft PR #84; keep this worktree and branch until
+its PR merges.
 
 Provably merged — every commit has an equivalent already on `main`, verified
 with `git cherry origin/main origin/<branch>`. Safe to delete:
