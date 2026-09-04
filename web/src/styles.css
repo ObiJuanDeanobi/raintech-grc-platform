@@ -705,3 +705,22 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
   .topbar nav button { padding: 0 11px; }
   .account { display: none; }
 }
+.sra-panel { overflow: auto; padding: 32px 42px; }
+.sra-scope-list, .sra-risk { display: grid; gap: 8px; }
+.sra-scope-list article, .sra-risk { padding: 12px; border: 1px solid #e0e5ea; border-radius: 8px; background: #fff; }
+.sra-scope-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 10px 16px; }
+.sra-scope-list article > label { grid-column: 1 / -1; }
+.scope-actions { display: flex; align-items: center; gap: 10px; }
+.sra-scope-list small, .sra-risk small { display: block; color: #7b8795; font-size: 10px; text-transform: uppercase; }
+.sra-scope-list article p { grid-column: 1 / -1; margin: 0; }
+.sra-risk { grid-template-columns: 1fr auto; margin-bottom: 8px; }
+.sra-risk p { margin: 5px 0; color: #657184; font-size: 11px; }
+.sra-risk-form { display: grid; gap: 10px; margin-top: 18px; padding-top: 18px; border-top: 1px solid #e6eaee; }
+.sra-two-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.risk-score { color: #16756e; font-size: 12px; }
+
+@media (max-width: 900px) {
+  .sra-panel { padding: 24px; }
+  .sra-two-columns, .readiness-fields { grid-template-columns: 1fr; }
+  .readiness-fields label:nth-child(2), .readiness-fields label:nth-child(4) { grid-column: 1; }
+}

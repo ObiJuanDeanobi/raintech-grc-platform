@@ -62,6 +62,42 @@ def seed_framework(database: Database, repository_root: Path) -> None:
         },
         "presentation_mode": "one_record_with_parent_context",
         "walkthrough_membership": "all_records",
+        "sra": {
+            "anchor_record_id": "164.308(a)(1)(ii)(A)",
+            "work_area": "Security Risk Analysis",
+            "scope_targets": [
+                {"scope_type": "system", "profile_item_types": ["scope_item"]},
+                {"scope_type": "location", "profile_item_types": ["location"]},
+                {"scope_type": "vendor", "profile_item_types": ["external_service"]},
+                {
+                    "scope_type": "flow",
+                    "profile_item_types": ["business_process"],
+                    "profile_sections": [
+                        "flows",
+                        "information_flows",
+                        "data_flows",
+                        "ephi_flows",
+                    ],
+                },
+            ],
+            "risk_required_fields": [
+                "threat",
+                "vulnerability",
+                "cia_impact",
+                "safeguards",
+                "owner",
+                "status",
+                "reviewed_by",
+                "reviewed_at",
+            ],
+            "acceptance_required_fields": [
+                "acceptance_rationale",
+                "owner",
+                "review_date",
+            ],
+            "approval_required_bands": ["High", "Critical"],
+            "approval_required_fields": ["approver", "approved_at"],
+        },
         "profile_readiness": {
             "initial_state": "Intake started",
             "states": [
@@ -130,8 +166,7 @@ def seed_framework(database: Database, repository_root: Path) -> None:
     }
     determination_record_ids = _determination_record_ids(records, declarations)
     no_prompt_explanations = {
-        item["record_id"]: item["reason"]
-        for item in prompt_layer["records_without_prompts"]
+        item["record_id"]: item["reason"] for item in prompt_layer["records_without_prompts"]
     }
     with database.connect() as connection:
         connection.execute(

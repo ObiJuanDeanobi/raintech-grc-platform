@@ -2,29 +2,27 @@
 
 ## Current phase
 
-`BUILD-VERIFY`. GitHub issue #67 is implemented on
-`feature/67-not-met-reconciliation` from `main` commit `87400ac`. The focused
-Issue #67 tests, full API and catalog suites, Ruff, Mypy, frontend typecheck,
-ESLint, Vitest, and production build pass locally. Chrome regression at
-1440x900 and 1280x720 passed with synthetic data, no horizontal overflow, and
-no console or page errors; evidence is under `docs/screenshots/issue-67/`.
-Independent review findings on composite history ownership, prefill coverage,
-UI field separation, and idempotent response shape were remediated. Issue #74
-merged through PR #82 and closed; its post-merge `main` CI passed.
+`BUILD-VERIFY`. GitHub issue #69 is implemented on `feature/69-hipaa-sra` from
+`main` commit `c6cb780`, which includes merged Issues #74 and #67. Focused SRA
+and risk tests, the full API suite, Ruff, Mypy, frontend typecheck, ESLint,
+Vitest, and the production build pass locally. Both independent review axes
+were run and their findings were remediated. Chrome viewport evidence remains
+pending because Chrome is not connected to the current Codex session.
 
 ## Current mode
 
-BUILD and local verification for Issue #67. The slice adds project-scoped
-findings, corrective actions, current Not Met reconciliation, immutable history,
-and an assessment working-record UI. It introduces no generic queue or workflow
-engine and does not change assessment revision identity.
+BUILD and local verification for Issue #69. The slice adds a declaration-driven
+HIPAA Security Risk Analysis projection over the existing catalog anchor,
+approved-Profile scope reviews, project-scoped risk and evidence records, and a
+single dependency-free 5x5 scorer. It does not create a fourth catalog area,
+duplicate a framework record, or introduce a universal risk workflow.
 
 ## Current objective
 
-Commit and push Issue #67, open its pull request, and require GitHub CI plus
-human merge review. Issue #75 remains blocked by Issue #73 despite Issue #74
-being complete. Issue #69 remains the other independent `ready-for-agent`
-Milestone 3 frontier.
+Complete Chrome visual verification at 1440x900 and 1280x720, retain the
+evidence, then commit, push, open the Issue #69 pull request, and require GitHub
+CI plus human merge review. Issue #70 remains dependent on Issues #68 and #69;
+its transition-aware close decision is deliberately not implemented here.
 
 ## Approved specification
 
@@ -35,7 +33,30 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #74 — implemented / PR #82 ready for human review.**
+**GitHub issue #69 - implemented locally / Chrome evidence pending.**
+
+- Framework declarations identify the SRA anchor, workflow label, Profile scope
+  target mappings, required risk fields, acceptance fields, and elevated-risk
+  human approval policy. The application resolves those values through each
+  project's pinned framework version.
+- Migration `0008` adds composite project/Profile/assessment ownership for SRA
+  scope reviews and risks plus project-scoped risk evidence links. Its downgrade
+  removes only schema introduced by `0008` and restores the prior declaration.
+- `api/risk.py` is the one dependency-free shared 5x5 scorer. The API computes
+  scores and bands rather than persisting a second calculation source.
+- The UI exposes SRA as a fourth declared HIPAA work area, shows incomplete
+  scope/risk blockers, captures explicit exclusions, and records complete risk,
+  acceptance, reviewer, and High/Critical approval metadata.
+- Focused backend tests pass (`40 passed`). Full API tests pass (`94 passed`).
+  Ruff, Mypy, frontend typecheck, ESLint, Vitest (`45 passed`), and production
+  build pass. The unchanged catalog suite passed (`74 passed`) during this build.
+- Independent specification and security reviews passed after remediation.
+  Issue #70 owns consuming the exposed completion result in the later
+  transition-aware HIPAA close decision.
+
+### Recently completed ticket detail
+
+**GitHub issue #74 — complete and merged through PR #82.**
 
 - `migrations/versions/0006_assessment_revision_expand.py` adds two expansion
   tables without rebuilding or weakening `assessments`.
@@ -306,12 +327,8 @@ on a clickable walkthrough, and merged.
 
 ## In progress
 
-- **GitHub issue #74**: implementation, local automated verification, required
-  browser regression capture, remediation, and final independent Standards and
-  Specification reviews are complete on
-  `feature/74-assessment-revision-expand`. Both review axes and all PR #82 CI
-  jobs passed. It awaits human merge review; do not continue #74 implementation
-  or begin dependent Issue #75 before merge.
+- **GitHub issue #74**: complete and merged through PR #82. Its assessment
+  revision foundation is present on `main` and is the base used by Issue #69.
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
 - **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
@@ -416,19 +433,17 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Human-review and merge PR #82. After merge, confirm Issue #74 closed and the
-default branch remains green, then start Issue #75 in a fresh branch and
-context. If work must proceed before that merge, select independent Issue #67
-or #69 instead. No additional implementation belongs on the Issue #74 branch.
+Connect Chrome, complete Issue #69 visual verification at 1440x900 and
+1280x720, and retain the screenshots and verification inventory. Then commit,
+push, open the Issue #69 pull request, and require CI plus human merge review.
 
 ## Branch inventory
 
 Recorded so the next agent does not re-derive it, and because a branch reset in
 this repository has already destroyed a day of work once. **Nothing here has
-been deleted.** Completed Issue #53, Issue #54, Issue #58, Issue #61, and Issue
-#62 work is on `main` at `e2a9c76`. Issue #74 is committed and pushed on
-`feature/74-assessment-revision-expand` at implementation commit `6c19cb5`;
-PR #82 targets `main`. Keep the branch until PR #82 merges.
+been deleted.** Issues #53, #54, #58, #61, #62, #74, and #67 are merged on
+`main` at `c6cb780`. Issue #69 is uncommitted on `feature/69-hipaa-sra`; keep
+this worktree and branch until its PR merges.
 
 Provably merged — every commit has an equivalent already on `main`, verified
 with `git cherry origin/main origin/<branch>`. Safe to delete:

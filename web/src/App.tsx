@@ -20,6 +20,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 
 import { ApiError, request } from "./api";
 import { ProfilePanel } from "./ProfilePanel";
+import { SraPanel } from "./SraPanel";
 import type {
   Artifact,
   Assessment,
@@ -1048,7 +1049,7 @@ export function Workspace({
   const [loading, setLoading] = useState(true);
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const [profileDirty, setProfileDirty] = useState(false);
-  const [view, setView] = useState<"assessment" | "overview" | "profile">("assessment");
+  const [view, setView] = useState<"assessment" | "overview" | "profile" | "sra">("assessment");
   const detailTargetRef = useRef({ assessmentId: "", recordId: "" });
   const detailRequestSequenceRef = useRef(0);
   const assessmentRequestSequenceRef = useRef(0);
@@ -1237,7 +1238,7 @@ export function Workspace({
     return true;
   }, [confirmRoutineNavigation, onProjectChange, projectId]);
 
-  const changeView = useCallback((nextView: "assessment" | "overview" | "profile") => {
+  const changeView = useCallback((nextView: "assessment" | "overview" | "profile" | "sra") => {
     if (nextView === view || !confirmRoutineNavigation()) return;
     setView(nextView);
   }, [confirmRoutineNavigation, view]);
@@ -1304,6 +1305,8 @@ export function Workspace({
           </div>
           {view === "profile" ? (
             <ProfilePanel projectId={projectId} onDirtyChange={setProfileDirty} />
+          ) : view === "sra" ? (
+            <SraPanel projectId={projectId} onDirtyChange={setProfileDirty} />
           ) : (
             <ReadinessPanel
               readiness={readiness}
@@ -1337,6 +1340,9 @@ export function Workspace({
           <button className={view === "assessment" ? "active" : ""} onClick={() => changeView("assessment")}>Assessments</button>
           <button className={view === "overview" ? "active" : ""} onClick={() => changeView("overview")}>Overview</button>
           <button className={view === "profile" ? "active" : ""} onClick={() => changeView("profile")}>Profile</button>
+          {assessment.framework.declarations.sra && (
+            <button className={view === "sra" ? "active" : ""} onClick={() => changeView("sra")}>{assessment.framework.declarations.sra.work_area}</button>
+          )}
           <button disabled>Actions</button>
         </nav>
         <div className="topbar-utility">
@@ -1399,6 +1405,7 @@ export function Workspace({
         </div>
       </aside>
 
+      {view === "sra" && <SraPanel projectId={projectId} onDirtyChange={setProfileDirty} />}
       <main className={`assessment-main ${view !== "assessment" ? "workspace-hidden" : ""}`}>
         <div className="record-toolbar">
           <div>
