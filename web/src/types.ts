@@ -18,6 +18,10 @@ export interface FrameworkDeclarations {
     { dispositions: string[]; reason_required_for: string[] }
   >;
   presentation_mode: string;
+  sra?: {
+    anchor_record_id: string;
+    work_area: string;
+  };
 }
 
 export interface Project {
@@ -268,6 +272,67 @@ export interface ProjectProfile {
     name: string | null;
     message: string;
   };
+}
+
+export interface SraScopeItem {
+  id: string | null;
+  scope_type: string;
+  target_key: string;
+  name: string;
+  included: boolean | null;
+  exclusion_rationale: string;
+  reviewed_by: string;
+  reviewed_at: string | null;
+}
+
+export interface RiskScore {
+  likelihood: number;
+  impact: number;
+  score: number;
+  band: "Low" | "Moderate" | "High" | "Critical";
+}
+
+export interface SraRisk {
+  id: string;
+  profile_version_id: string;
+  assessment_id: string;
+  title: string;
+  threat: string;
+  vulnerability: string;
+  cia_impact: string;
+  safeguards: string;
+  corrective_action: string;
+  inherent_likelihood: number;
+  inherent_impact: number;
+  residual_likelihood: number;
+  residual_impact: number;
+  treatment: "corrective_action" | "acceptance";
+  owner: string;
+  status: string;
+  acceptance_rationale: string;
+  approver: string;
+  approved_at: string | null;
+  review_date: string | null;
+  reviewed_by: string;
+  reviewed_at: string;
+  inherent: RiskScore;
+  residual: RiskScore;
+  evidence_links: EvidenceMapping[];
+}
+
+export interface SraWorkspace {
+  project_id: string;
+  assessment_id: string | null;
+  profile_version_id: string;
+  work_area: string;
+  status: "Complete" | "Incomplete";
+  anchor: Pick<RecordSummary, "record_id" | "citation" | "title" | "work_area"> & {
+    regulation_text: string;
+  };
+  scope_items: SraScopeItem[];
+  risks: SraRisk[];
+  blockers: string[];
+  completion: { complete: boolean; percentage: number; missing: string[] };
 }
 
 export interface RecordDetail {

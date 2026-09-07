@@ -11,10 +11,11 @@ from uuid import uuid4
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from api.database import Database, profile_snapshot_revision
 from api.framework import FRAMEWORK_ID, seed_framework
+from api.risk import RiskScore, score_risk
 from api.storage import FileStorage, LocalFileStorage
 
 
@@ -124,6 +125,81 @@ class ProfileEvidenceMappingUpdate(BaseModel):
 
 class PromptAnswerSave(BaseModel):
     answer: str
+
+
+class SRAScopeSave(BaseModel):
+    actor_id: str = "johnathan"
+    profile_version_id: str
+    scope_type: str
+    target_key: str
+    included: bool = True
+    exclusion_rationale: str = ""
+    reviewed_by: str = Field(default="Johnathan", min_length=1, max_length=200)
+
+    @field_validator("reviewed_by")
+    @classmethod
+    def reviewed_by_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("reviewed_by cannot be blank")
+        return value.strip()
+
+
+class RiskSave(BaseModel):
+    actor_id: str = "johnathan"
+    profile_version_id: str
+    assessment_id: str
+    title: str = Field(min_length=1, max_length=300)
+    threat: str = Field(min_length=1, max_length=4000)
+    vulnerability: str = Field(min_length=1, max_length=4000)
+    cia_impact: str = Field(min_length=1, max_length=4000)
+    safeguards: str = Field(min_length=1, max_length=4000)
+    corrective_action: str = ""
+    treatment: str = "corrective_action"
+    owner: str = Field(min_length=1, max_length=200)
+    status: str = Field(min_length=1, max_length=100)
+    review_date: str | None = None
+    inherent_likelihood: int = Field(ge=1, le=5)
+    inherent_impact: int = Field(ge=1, le=5)
+    residual_likelihood: int = Field(ge=1, le=5)
+    residual_impact: int = Field(ge=1, le=5)
+    acceptance_rationale: str = ""
+    approver: str = ""
+    approved_at: str | None = None
+    reviewed_by: str = Field(min_length=1, max_length=200)
+    reviewed_at: str
+
+    @field_validator(
+        "title",
+        "threat",
+        "vulnerability",
+        "cia_impact",
+        "safeguards",
+        "owner",
+        "status",
+        "reviewed_by",
+    )
+    @classmethod
+    def required_text_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("required risk text cannot be blank")
+        return value.strip()
+
+    @field_validator(
+        "corrective_action",
+        "treatment",
+        "acceptance_rationale",
+        "approver",
+    )
+    @classmethod
+    def normalize_optional_text(cls, value: str) -> str:
+        return value.strip()
+
+
+class RiskEvidenceMappingCreate(BaseModel):
+    actor_id: str = "johnathan"
+    artifact_id: str
+    evidence_version_id: str
+    rationale: str = Field(min_length=1, max_length=2000)
 
 
 def _row(row: Any) -> dict[str, Any]:
@@ -3091,6 +3167,520 @@ def create_app(
                 }
                 for row in rows
             ]
+
+    def sra_declaration(connection: Any, project_id: str) -> tuple[Any, dict[str, Any]]:
+        project = _project_or_404(connection, project_id)
+        framework = connection.execute(
+            "SELECT declarations_json FROM framework_versions WHERE id = ?",
+            (project["framework_version_id"],),
+        ).fetchone()
+        declaration = json.loads(framework["declarations_json"]).get("sra")
+        if not declaration:
+            raise HTTPException(status_code=404, detail="SRA is not declared for this framework")
+        return project, cast(dict[str, Any], declaration)
+
+    def approved_profile_or_409(connection: Any, project: Any) -> Any:
+        version_id = project["active_profile_version_id"]
+        if not version_id or _profile_status(connection, version_id) != "Approved":
+            raise HTTPException(
+                status_code=409,
+                detail="Approve a Profile version before completing the SRA",
+            )
+        return _profile_version_or_404(connection, project["id"], version_id)
+
+    def sra_scope_inventory(
+        connection: Any,
+        project_id: str,
+        profile_version_id: str,
+        declaration: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        inventory: list[dict[str, Any]] = []
+        for target in declaration["scope_targets"]:
+            scope_type = cast(str, target["scope_type"])
+            item_types = cast(list[str], target.get("profile_item_types", []))
+            if item_types:
+                placeholders = ",".join("?" for _ in item_types)
+                rows = connection.execute(
+                    f"""
+                    SELECT items.client_key,
+                           COALESCE(MAX(CASE WHEN field_values.field_key = 'name'
+                                             THEN field_values.value END),
+                                    items.client_key) AS name
+                    FROM profile_items items
+                    LEFT JOIN profile_field_values field_values
+                      ON field_values.profile_item_id = items.id
+                     AND field_values.profile_version_id = items.profile_version_id
+                    WHERE items.profile_version_id = ?
+                      AND items.item_type IN ({placeholders})
+                    GROUP BY items.id, items.client_key, items.sort_order
+                    ORDER BY items.sort_order
+                    """,
+                    (profile_version_id, *item_types),
+                ).fetchall()
+                inventory.extend(
+                    {
+                        "scope_type": scope_type,
+                        "target_key": f"item:{row['client_key']}",
+                        "name": row["name"],
+                    }
+                    for row in rows
+                )
+            sections = cast(list[str], target.get("profile_sections", []))
+            if sections:
+                placeholders = ",".join("?" for _ in sections)
+                rows = connection.execute(
+                    f"""
+                    SELECT section, field_key, label, value, sort_order
+                    FROM profile_field_values
+                    WHERE profile_version_id = ? AND profile_item_id IS NULL
+                      AND section IN ({placeholders}) AND trim(value) != ''
+                    ORDER BY sort_order
+                    """,
+                    (profile_version_id, *sections),
+                ).fetchall()
+                inventory.extend(
+                    {
+                        "scope_type": scope_type,
+                        "target_key": f"field:{row['section']}:{row['field_key']}",
+                        "name": row["value"] or row["label"],
+                    }
+                    for row in rows
+                )
+        reviews = {
+            (row["scope_type"], row["target_key"]): row
+            for row in connection.execute(
+                """
+                SELECT * FROM sra_scope_reviews
+                WHERE project_id = ? AND profile_version_id = ?
+                """,
+                (project_id, profile_version_id),
+            )
+        }
+        return [
+            item
+            | (
+                _row(reviews[(item["scope_type"], item["target_key"])])
+                if (item["scope_type"], item["target_key"]) in reviews
+                else {
+                    "id": None,
+                    "included": None,
+                    "exclusion_rationale": "",
+                    "reviewed_by": "",
+                    "reviewed_at": None,
+                }
+            )
+            for item in inventory
+        ]
+
+    def risk_result(connection: Any, row: Any) -> dict[str, Any]:
+        evidence = [
+            _row(mapping)
+            for mapping in connection.execute(
+                """
+                SELECT mappings.*, artifacts.name, versions.version_number,
+                       versions.sha256, versions.relative_path
+                FROM risk_evidence_mappings mappings
+                JOIN evidence_artifacts artifacts
+                  ON artifacts.id = mappings.artifact_id
+                 AND artifacts.project_id = mappings.project_id
+                JOIN evidence_versions versions
+                  ON versions.id = mappings.evidence_version_id
+                 AND versions.artifact_id = mappings.artifact_id
+                 AND versions.project_id = mappings.project_id
+                WHERE mappings.risk_id = ? AND mappings.project_id = ?
+                ORDER BY mappings.created_at
+                """,
+                (row["id"], row["project_id"]),
+            )
+        ]
+        return _row(row) | {
+            "inherent": score_risk(row["inherent_likelihood"], row["inherent_impact"]),
+            "residual": score_risk(row["residual_likelihood"], row["residual_impact"]),
+            "evidence_links": evidence,
+        }
+
+    def validate_risk(
+        connection: Any, project_id: str, payload: RiskSave
+    ) -> tuple[RiskScore, RiskScore]:
+        project, declaration = sra_declaration(connection, project_id)
+        approved = approved_profile_or_409(connection, project)
+        actor = _user_or_422(connection, payload.actor_id)
+        payload.reviewed_by = actor["display_name"]
+        if payload.profile_version_id != approved["id"]:
+            raise HTTPException(
+                status_code=422, detail="Risk must use the approved Profile version"
+            )
+        _assessment_for_project_or_404(connection, project_id, payload.assessment_id)
+        active = connection.execute(
+            "SELECT assessment_id FROM project_active_assessments WHERE project_id = ?",
+            (project_id,),
+        ).fetchone()
+        if active is None or payload.assessment_id != active["assessment_id"]:
+            raise HTTPException(
+                status_code=422, detail="Risk must use the project's active assessment"
+            )
+        if payload.treatment not in {"corrective_action", "acceptance"}:
+            raise HTTPException(status_code=422, detail="Unknown risk treatment")
+        for value, label in (
+            (payload.reviewed_at, "reviewed_at"),
+            (payload.review_date, "review_date"),
+            (payload.approved_at, "approved_at"),
+        ):
+            if value:
+                try:
+                    if label == "review_date":
+                        date.fromisoformat(value)
+                    else:
+                        datetime.fromisoformat(value)
+                except ValueError as error:
+                    raise HTTPException(
+                        status_code=422, detail=f"{label} must be ISO-8601"
+                    ) from error
+        inherent = score_risk(payload.inherent_likelihood, payload.inherent_impact)
+        residual = score_risk(payload.residual_likelihood, payload.residual_impact)
+        values = payload.model_dump(exclude={"actor_id"})
+        missing_required = [
+            field for field in declaration["risk_required_fields"] if not values.get(field)
+        ]
+        if missing_required:
+            raise HTTPException(
+                status_code=422,
+                detail="Risk requires " + ", ".join(missing_required),
+            )
+        if payload.treatment == "acceptance":
+            missing = [
+                field
+                for field in declaration["acceptance_required_fields"]
+                if not values.get(field)
+            ]
+            if missing:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Risk acceptance requires " + ", ".join(missing),
+                )
+        bands = {inherent["band"], residual["band"]}
+        if payload.treatment == "acceptance" and bands & set(
+            declaration["approval_required_bands"]
+        ):
+            missing = [
+                field for field in declaration["approval_required_fields"] if not values.get(field)
+            ]
+            if missing:
+                raise HTTPException(
+                    status_code=422,
+                    detail="High or Critical risk requires " + ", ".join(missing),
+                )
+        return inherent, residual
+
+    def sra_workspace(connection: Any, project_id: str) -> dict[str, Any]:
+        project, declaration = sra_declaration(connection, project_id)
+        approved = approved_profile_or_409(connection, project)
+        anchor = connection.execute(
+            """
+            SELECT record_id, citation, title, regulation_text, work_area
+            FROM framework_records
+            WHERE framework_version_id = ? AND record_id = ?
+            """,
+            (project["framework_version_id"], declaration["anchor_record_id"]),
+        ).fetchone()
+        if anchor is None:
+            raise HTTPException(status_code=409, detail="Declared SRA anchor does not resolve")
+        scope = sra_scope_inventory(connection, project_id, approved["id"], declaration)
+        risks = [
+            risk_result(connection, row)
+            for row in connection.execute(
+                "SELECT * FROM risks WHERE project_id = ? ORDER BY created_at, id",
+                (project_id,),
+            )
+        ]
+        blockers = [
+            f"Review {item['scope_type']} scope: {item['name']}"
+            for item in scope
+            if item["included"] is None
+        ]
+        if not scope:
+            blockers.append("Approved Profile contains no declared ePHI scope facts")
+        if not risks:
+            blockers.append("Record at least one complete threat-vulnerability risk")
+        complete_count = sum(item["included"] is not None for item in scope) + len(risks)
+        total_count = len(scope) + max(1, len(risks))
+        percentage = round(100 * complete_count / total_count) if total_count else 0
+        active_assessment = connection.execute(
+            """
+            SELECT assessment_id AS id
+            FROM project_active_assessments WHERE project_id = ?
+            """,
+            (project_id,),
+        ).fetchone()
+        return {
+            "project_id": project_id,
+            "assessment_id": active_assessment["id"] if active_assessment else None,
+            "work_area": declaration["work_area"],
+            "anchor": _row(anchor),
+            "profile_version_id": approved["id"],
+            "scope_items": scope,
+            "risks": risks,
+            "blockers": blockers,
+            "status": "Complete" if not blockers else "Incomplete",
+            "completion": {
+                "complete": not blockers,
+                "percentage": percentage,
+                "missing": blockers,
+            },
+        }
+
+    @app.get("/api/projects/{project_id}/sra")
+    def get_sra(project_id: str, database: Annotated[Database, Depends(db)]) -> dict[str, Any]:
+        with database.connect() as connection:
+            return sra_workspace(connection, project_id)
+
+    @app.get("/api/projects/{project_id}/sra/scope")
+    def list_sra_scope(
+        project_id: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            workspace = sra_workspace(connection, project_id)
+            return {
+                "profile_version_id": workspace["profile_version_id"],
+                "items": workspace["scope_items"],
+                "complete": not any(item["included"] is None for item in workspace["scope_items"]),
+            }
+
+    @app.put("/api/projects/{project_id}/sra/scope")
+    def save_sra_scope(
+        project_id: str,
+        payload: SRAScopeSave,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            project, declaration = sra_declaration(connection, project_id)
+            approved = approved_profile_or_409(connection, project)
+            actor = _user_or_422(connection, payload.actor_id)
+            payload.reviewed_by = actor["display_name"]
+            if payload.profile_version_id != approved["id"]:
+                raise HTTPException(
+                    status_code=422, detail="SRA scope must use the approved Profile version"
+                )
+            valid_targets = {
+                (item["scope_type"], item["target_key"])
+                for item in sra_scope_inventory(connection, project_id, approved["id"], declaration)
+            }
+            if (payload.scope_type, payload.target_key) not in valid_targets:
+                raise HTTPException(status_code=404, detail="SRA scope target not found")
+            if not payload.included and not payload.exclusion_rationale.strip():
+                raise HTTPException(status_code=422, detail="Exclusion requires a rationale")
+            stamp = now()
+            connection.execute(
+                """
+                INSERT INTO sra_scope_reviews(
+                    id, project_id, profile_version_id, scope_type, target_key,
+                    included, exclusion_rationale, reviewed_by, reviewed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(project_id, profile_version_id, scope_type, target_key)
+                DO UPDATE SET included = excluded.included,
+                              exclusion_rationale = excluded.exclusion_rationale,
+                              reviewed_by = excluded.reviewed_by,
+                              reviewed_at = excluded.reviewed_at
+                """,
+                (
+                    str(uuid4()),
+                    project_id,
+                    approved["id"],
+                    payload.scope_type,
+                    payload.target_key,
+                    int(payload.included),
+                    payload.exclusion_rationale.strip(),
+                    payload.reviewed_by.strip(),
+                    stamp,
+                ),
+            )
+            _audit(
+                connection,
+                "sra.scope_saved",
+                "sra_scope",
+                f"{project_id}:{payload.target_key}",
+                {"project_id": project_id, "scope_type": payload.scope_type},
+                payload.actor_id,
+            )
+            return sra_workspace(connection, project_id)
+
+    @app.get("/api/projects/{project_id}/risks")
+    def list_risks(
+        project_id: str, database: Annotated[Database, Depends(db)]
+    ) -> list[dict[str, Any]]:
+        with database.connect() as connection:
+            sra_declaration(connection, project_id)
+            return [
+                risk_result(connection, row)
+                for row in connection.execute(
+                    "SELECT * FROM risks WHERE project_id = ? ORDER BY created_at, id",
+                    (project_id,),
+                )
+            ]
+
+    @app.post("/api/projects/{project_id}/risks", status_code=201)
+    def create_risk(
+        project_id: str,
+        payload: RiskSave,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            inherent, residual = validate_risk(connection, project_id, payload)
+            risk_id, stamp = str(uuid4()), now()
+            values = payload.model_dump(exclude={"actor_id"}) | {
+                "id": risk_id,
+                "project_id": project_id,
+                "created_by": payload.actor_id,
+                "created_at": stamp,
+                "updated_at": stamp,
+            }
+            columns = ", ".join(values)
+            parameters = ", ".join(f":{column}" for column in values)
+            connection.execute(f"INSERT INTO risks({columns}) VALUES ({parameters})", values)
+            _audit(
+                connection,
+                "risk.created",
+                "risk",
+                risk_id,
+                {"project_id": project_id, "inherent": inherent, "residual": residual},
+                payload.actor_id,
+            )
+            row = connection.execute(
+                "SELECT * FROM risks WHERE id = ? AND project_id = ?",
+                (risk_id, project_id),
+            ).fetchone()
+            return risk_result(connection, row)
+
+    @app.get("/api/projects/{project_id}/risks/{risk_id}")
+    def get_risk(
+        project_id: str,
+        risk_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            sra_declaration(connection, project_id)
+            row = connection.execute(
+                "SELECT * FROM risks WHERE id = ? AND project_id = ?",
+                (risk_id, project_id),
+            ).fetchone()
+            if row is None:
+                raise HTTPException(status_code=404, detail="Risk not found")
+            return risk_result(connection, row)
+
+    @app.put("/api/projects/{project_id}/risks/{risk_id}")
+    def update_risk(
+        project_id: str,
+        risk_id: str,
+        payload: RiskSave,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            if (
+                connection.execute(
+                    "SELECT 1 FROM risks WHERE id = ? AND project_id = ?",
+                    (risk_id, project_id),
+                ).fetchone()
+                is None
+            ):
+                raise HTTPException(status_code=404, detail="Risk not found")
+            validate_risk(connection, project_id, payload)
+            values = payload.model_dump(exclude={"actor_id"}) | {
+                "risk_id": risk_id,
+                "project_id": project_id,
+                "updated_at": now(),
+            }
+            update_columns = [
+                column for column in values if column not in {"risk_id", "project_id"}
+            ]
+            assignments = ", ".join(f"{column} = :{column}" for column in update_columns)
+            connection.execute(
+                f"UPDATE risks SET {assignments} WHERE id = :risk_id AND project_id = :project_id",
+                values,
+            )
+            _audit(
+                connection,
+                "risk.updated",
+                "risk",
+                risk_id,
+                {"project_id": project_id},
+                payload.actor_id,
+            )
+            row = connection.execute(
+                "SELECT * FROM risks WHERE id = ? AND project_id = ?",
+                (risk_id, project_id),
+            ).fetchone()
+            return risk_result(connection, row)
+
+    @app.post(
+        "/api/projects/{project_id}/risks/{risk_id}/evidence-mappings",
+        status_code=201,
+    )
+    def create_risk_evidence_mapping(
+        project_id: str,
+        risk_id: str,
+        payload: RiskEvidenceMappingCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _user_or_422(connection, payload.actor_id)
+            if (
+                connection.execute(
+                    "SELECT 1 FROM risks WHERE id = ? AND project_id = ?",
+                    (risk_id, project_id),
+                ).fetchone()
+                is None
+            ):
+                raise HTTPException(status_code=404, detail="Risk not found")
+            evidence = connection.execute(
+                """
+                SELECT 1 FROM evidence_versions versions
+                JOIN evidence_artifacts artifacts
+                  ON artifacts.id = versions.artifact_id
+                 AND artifacts.project_id = versions.project_id
+                WHERE artifacts.id = ? AND versions.id = ?
+                  AND artifacts.project_id = ? AND versions.project_id = ?
+                """,
+                (
+                    payload.artifact_id,
+                    payload.evidence_version_id,
+                    project_id,
+                    project_id,
+                ),
+            ).fetchone()
+            if evidence is None:
+                raise HTTPException(status_code=404, detail="Evidence artifact/version not found")
+            mapping_id = str(uuid4())
+            connection.execute(
+                """
+                INSERT INTO risk_evidence_mappings(
+                    id, project_id, risk_id, artifact_id, evidence_version_id,
+                    rationale, created_by, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    mapping_id,
+                    project_id,
+                    risk_id,
+                    payload.artifact_id,
+                    payload.evidence_version_id,
+                    payload.rationale.strip(),
+                    payload.actor_id,
+                    now(),
+                ),
+            )
+            _audit(
+                connection,
+                "risk.evidence_mapped",
+                "risk_evidence_mapping",
+                mapping_id,
+                {"project_id": project_id, "risk_id": risk_id},
+                payload.actor_id,
+            )
+            row = connection.execute(
+                "SELECT * FROM risks WHERE id = ? AND project_id = ?",
+                (risk_id, project_id),
+            ).fetchone()
+            return risk_result(connection, row)
 
     return app
 
