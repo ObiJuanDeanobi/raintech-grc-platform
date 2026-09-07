@@ -322,7 +322,7 @@ test("Pending reconciliation explains that no work is created", async () => {
 
 test("Issue 68 validation marks the action ready and records binary validation with notes", async () => {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
-  let ready = false;
+  let actionStatus = "In Progress";
   vi.mocked(fetch).mockImplementation(async (input, init) => {
     const url = String(input); calls.push({ url, init });
     if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
@@ -330,16 +330,16 @@ test("Issue 68 validation marks the action ready and records binary validation w
     if (url.includes("/records/child-1/reconciliation")) return Response.json({
       outcome: "create", finding_id: "finding-1", corrective_action_id: "action-1", links: [
         { id: "finding-1", type: "finding", title: "Risk finding", status: "Open" },
-        { id: "action-1", type: "corrective_action", title: "Remediate risk", status: ready ? "Ready for Validation" : "In Progress" },
+        { id: "action-1", type: "corrective_action", title: "Remediate risk", status: actionStatus },
       ], history: [],
     });
-    if (url.includes("/corrective-actions/action-1/validation") && init?.method === "POST") return Response.json({ id: "event-1" });
+    if (url.includes("/corrective-actions/action-1/validation") && init?.method === "POST") { actionStatus = "In Progress"; return Response.json({ id: "event-1" }); }
     if (url.includes("/corrective-actions/action-1/validation")) return Response.json({
       finding: { id: "finding-1", title: "Risk finding", description: "Gap", status: "Open" },
-      corrective_action: { id: "action-1", title: "Remediate risk", description: "Fix it", status: ready ? "Ready for Validation" : "In Progress", validation_state: ready ? "Ready" : "Pending" },
+      corrective_action: { id: "action-1", title: "Remediate risk", description: "Fix it", status: actionStatus, validation_state: actionStatus === "Ready for Validation" ? "Ready" : "Failed" },
       determination: { status: "Not Met", interview_observation: "Observed" }, events: [],
     });
-    if (url.endsWith("/corrective-actions/action-1") && init?.method === "PUT") { ready = true; return Response.json({ id: "action-1", status: "Ready for Validation" }); }
+    if (url.endsWith("/corrective-actions/action-1") && init?.method === "PUT") { actionStatus = "Ready for Validation"; return Response.json({ id: "action-1", status: actionStatus }); }
     if (url.includes("/records/child-1")) return Response.json(refreshedDeterminationDetail);
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
@@ -361,6 +361,8 @@ test("Issue 68 validation marks the action ready and records binary validation w
   await waitFor(() => expect(calls.some((call) => call.url.includes("/corrective-actions/action-1/validation") && call.init?.method === "POST")).toBe(true));
   const validationCall = calls.find((call) => call.url.includes("/corrective-actions/action-1/validation") && call.init?.method === "POST")!;
   expect(JSON.parse(String(validationCall.init?.body))).toEqual({ actor_id: "johnathan", outcome: "Failed", notes: "Control evidence reviewed." });
+  await waitFor(() => expect(screen.getByText("In Progress")).toBeVisible());
+  expect(screen.getByText("Remediate risk · In Progress")).toBeVisible();
 });
 
 test("shows readiness state and concrete assessment blocking before an assessment exists", async () => {

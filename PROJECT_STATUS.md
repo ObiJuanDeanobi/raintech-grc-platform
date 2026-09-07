@@ -7,8 +7,8 @@ issue #68 is implemented on `feature/68-remediation-validation` from `main`
 commit `97e8e8a`. Focused validation tests, the full API and catalog suites,
 Ruff, Mypy, frontend typecheck, ESLint, Vitest, the production build, and a
 fresh migration upgrade/downgrade/re-upgrade pass locally. Draft PR #85 is open
-and all GitHub CI jobs pass. Final Chrome viewport verification remains before
-the PR can be marked ready for human review.
+and all GitHub CI jobs pass. Chrome verification passed at 1440x900 and
+1280x720 with no horizontal overflow or console warnings/errors.
 
 ## Current mode
 
@@ -20,9 +20,8 @@ open, and failed validation returns only the action to In Progress.
 
 ## Current objective
 
-Reopen Chrome and complete viewport verification for Issue #68, then mark PR
-#85 ready for human review and obtain explicit merge approval. After merge,
-implement the usable-pilot critical path in order:
+Commit the Chrome evidence and final UI regression fix, rerun CI, and merge PR
+#85 under Johnathan's explicit approval. After merge, implement the usable-pilot critical path in order:
 #70, #71, #72, and #73. Issue #66 requires Johnathan's explicit approval of
 sanitized report inputs before #71 can release report templates.
 
@@ -35,7 +34,7 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #68 - implemented / local review in progress.**
+**GitHub issue #68 - implemented / Chrome review passed.**
 
 - Migration `0009` adds corrective-action validation state, immutable validation
   events, immutable determination history, composite ownership constraints, and
@@ -50,6 +49,11 @@ CI passed.
 - Local verification passes: focused backend `7 passed`; full API `105 passed`;
   catalog `74 passed`; Ruff; Mypy; frontend typecheck; ESLint; Vitest `46
   passed`; production build; and migration upgrade/downgrade/re-upgrade.
+- Chrome verified both Failed and Validated paths against a persistent local
+  workspace. Failed returned the action and current link to In Progress;
+  Validated changed the determination to Met, closed only the action, left the
+  finding Open, and retained both immutable events after reload. Screenshots at
+  1440x900 and 1280x720 show no horizontal overflow; the console was clean.
 - An independent review found a cross-record SQL-trigger scope weakness and a
   post-validation history visibility gap. Both were remediated and are being
   covered by regression tests before PR creation.

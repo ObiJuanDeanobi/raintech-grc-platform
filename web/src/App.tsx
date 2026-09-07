@@ -853,7 +853,9 @@ function NotMetReconciliation({ projectId, assessmentId, recordId, status }: { p
     try {
       await request(`/api/projects/${projectId}/assessments/${assessmentId}/records/${encodeURIComponent(recordId)}/corrective-actions/${encodeURIComponent(actionIdForValidation)}/validation`, { method: "POST", body: JSON.stringify({ actor_id: "johnathan", outcome: validationOutcome, notes: validationNotes }) });
       const refreshed = await request<CorrectiveActionValidation>(`/api/projects/${projectId}/assessments/${assessmentId}/records/${encodeURIComponent(recordId)}/corrective-actions/${encodeURIComponent(actionIdForValidation)}/validation`);
-      setValidation(refreshed); setValidationNotes("");
+      setValidation(refreshed);
+      setData((current) => current ? { ...current, links: current.links.map((link) => link.id === refreshed.corrective_action.id ? { ...link, status: refreshed.corrective_action.status, validation_state: refreshed.corrective_action.validation_state } : link) } : current);
+      setValidationNotes("");
     } catch (e) { setError(e instanceof Error ? e.message : "Could not save validation."); } finally { setValidationBusy(false); }
   };
   return <section className="working-section reconciliation"><div className="section-title"><div><p className="eyebrow">RECONCILIATION</p><h3>{status === "Not Met" ? "Not Met corrective work" : "Corrective action validation"}</h3></div><span className="status-pill status-not-met">{data?.outcome ?? "Resolved"}</span></div>
