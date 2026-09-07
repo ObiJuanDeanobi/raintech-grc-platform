@@ -6,8 +6,9 @@
 issue #68 is implemented on `feature/68-remediation-validation` from `main`
 commit `97e8e8a`. Focused validation tests, the full API and catalog suites,
 Ruff, Mypy, frontend typecheck, ESLint, Vitest, the production build, and a
-fresh migration upgrade/downgrade/re-upgrade pass locally. Final Chrome
-viewport verification and repository CI remain before completion.
+fresh migration upgrade/downgrade/re-upgrade pass locally. Draft PR #85 is open
+and all GitHub CI jobs pass. Final Chrome viewport verification remains before
+the PR can be marked ready for human review.
 
 ## Current mode
 
@@ -19,9 +20,9 @@ open, and failed validation returns only the action to In Progress.
 
 ## Current objective
 
-Complete Chrome verification for Issue #68, finish independent review, update
-tests for any findings, commit and push, open a PR, and require passing GitHub
-CI before merge. Then implement the usable-pilot critical path in order:
+Reopen Chrome and complete viewport verification for Issue #68, then mark PR
+#85 ready for human review and obtain explicit merge approval. After merge,
+implement the usable-pilot critical path in order:
 #70, #71, #72, and #73. Issue #66 requires Johnathan's explicit approval of
 sanitized report inputs before #71 can release report templates.
 
