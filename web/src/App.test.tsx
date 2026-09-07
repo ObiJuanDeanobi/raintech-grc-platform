@@ -320,6 +320,51 @@ test("Pending reconciliation explains that no work is created", async () => {
   expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes("reconciliation"))).toBe(false);
 });
 
+test("Issue 68 validation marks the action ready and records binary validation with notes", async () => {
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  let actionStatus = "In Progress";
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    const url = String(input); calls.push({ url, init });
+    if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
+    if (url.endsWith("/assessment")) return Response.json(assessment);
+    if (url.includes("/records/child-1/reconciliation")) return Response.json({
+      outcome: "create", finding_id: "finding-1", corrective_action_id: "action-1", links: [
+        { id: "finding-1", type: "finding", title: "Risk finding", status: "Open" },
+        { id: "action-1", type: "corrective_action", title: "Remediate risk", status: actionStatus },
+      ], history: [],
+    });
+    if (url.includes("/corrective-actions/action-1/validation") && init?.method === "POST") { actionStatus = "In Progress"; return Response.json({ id: "event-1" }); }
+    if (url.includes("/corrective-actions/action-1/validation")) return Response.json({
+      finding: { id: "finding-1", title: "Risk finding", description: "Gap", status: "Open" },
+      corrective_action: { id: "action-1", title: "Remediate risk", description: "Fix it", status: actionStatus, validation_state: actionStatus === "Ready for Validation" ? "Ready" : "Failed" },
+      determination: { status: "Not Met", interview_observation: "Observed" }, events: [],
+    });
+    if (url.endsWith("/corrective-actions/action-1") && init?.method === "PUT") { actionStatus = "Ready for Validation"; return Response.json({ id: "action-1", status: actionStatus }); }
+    if (url.includes("/records/child-1")) return Response.json(refreshedDeterminationDetail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({});
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  expect(await screen.findByText("Risk finding")).toBeVisible();
+  await userEvent.setup().click(screen.getByRole("button", { name: "Mark Ready for Validation" }));
+  await waitFor(() => expect(calls.some((call) => call.url.endsWith("/corrective-actions/action-1") && call.init?.method === "PUT")).toBe(true));
+  const stateCall = calls.find((call) => call.url.endsWith("/corrective-actions/action-1") && call.init?.method === "PUT")!;
+  expect(JSON.parse(String(stateCall.init?.body))).toEqual({ actor_id: "johnathan", state: "Ready for Validation" });
+  expect(screen.getByRole("option", { name: "Validated" })).toBeVisible();
+  expect(screen.getByRole("option", { name: "Failed" })).toBeVisible();
+  const submit = screen.getByRole("button", { name: "Record validation" });
+  const notes = screen.getByLabelText(/Validation notes/);
+  expect(notes).toBeRequired();
+  await userEvent.setup().type(notes, "Control evidence reviewed.");
+  await userEvent.setup().selectOptions(screen.getByLabelText("Outcome"), "Failed");
+  await userEvent.setup().click(submit);
+  await waitFor(() => expect(calls.some((call) => call.url.includes("/corrective-actions/action-1/validation") && call.init?.method === "POST")).toBe(true));
+  const validationCall = calls.find((call) => call.url.includes("/corrective-actions/action-1/validation") && call.init?.method === "POST")!;
+  expect(JSON.parse(String(validationCall.init?.body))).toEqual({ actor_id: "johnathan", outcome: "Failed", notes: "Control evidence reviewed." });
+  await waitFor(() => expect(screen.getByText("In Progress")).toBeVisible());
+  expect(screen.getByText("Remediate risk · In Progress")).toBeVisible();
+});
+
 test("shows readiness state and concrete assessment blocking before an assessment exists", async () => {
   vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
     const url = String(input);

@@ -31,6 +31,7 @@ import type {
   RecordDetail,
   ReconciliationDisposition,
   ReconciliationRecord,
+  CorrectiveActionValidation,
   Status,
 } from "./types";
 
@@ -803,17 +804,31 @@ function NotMetReconciliation({ projectId, assessmentId, recordId, status }: { p
   const [actionId, setActionId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [validation, setValidation] = useState<CorrectiveActionValidation | null>(null);
+  const [validationOutcome, setValidationOutcome] = useState<"Validated" | "Failed">("Validated");
+  const [validationNotes, setValidationNotes] = useState("");
+  const [validationBusy, setValidationBusy] = useState(false);
+  const correctiveAction = data?.links?.find((link) => link.type === "corrective_action") ?? (data?.corrective_action_id ? { id: data.corrective_action_id } : undefined);
+  const actionIdForValidation = correctiveAction?.id ?? "";
   useEffect(() => {
     const controller = new AbortController();
-    setData(null); setError(""); setTitle(""); setFindingDescription(""); setActionTitle(""); setActionDescription(""); setRationale(""); setExistingId(""); setActionId("");
-    if (status !== "Not Met") return () => controller.abort();
+    setData(null); setValidation(null); setError(""); setTitle(""); setFindingDescription(""); setActionTitle(""); setActionDescription(""); setRationale(""); setExistingId(""); setActionId(""); setValidationNotes("");
+    if (status !== "Not Met" && status !== "Met") return () => controller.abort();
     void request<ReconciliationRecord | null>(`/api/projects/${projectId}/assessments/${assessmentId}/records/${encodeURIComponent(recordId)}/reconciliation`, { signal: controller.signal })
       .then((next) => { if (!controller.signal.aborted) { setData(next); setTitle(next?.prefill?.finding_title ?? `Not Met: ${recordId}`); setActionTitle(next?.prefill?.action_title ?? `Remediate: ${recordId}`); } })
-      .catch((e) => { if (!controller.signal.aborted) setError(e instanceof Error ? e.message : "Could not load reconciliation."); });
+      .catch((e) => { if (!controller.signal.aborted && (e as ApiError)?.status !== 404) setError(e instanceof Error ? e.message : "Could not load reconciliation."); });
     return () => controller.abort();
   }, [projectId, assessmentId, recordId, status]);
+  useEffect(() => {
+    const controller = new AbortController();
+    if ((status !== "Not Met" && status !== "Met") || !actionIdForValidation) return () => controller.abort();
+    void request<CorrectiveActionValidation>(`/api/projects/${projectId}/assessments/${assessmentId}/records/${encodeURIComponent(recordId)}/corrective-actions/${encodeURIComponent(actionIdForValidation)}/validation`, { signal: controller.signal })
+      .then((next) => { if (!controller.signal.aborted) setValidation(next); })
+      .catch((e) => { if (!controller.signal.aborted && (e as ApiError)?.status !== 404) setError(e instanceof Error ? e.message : "Could not load validation context."); });
+    return () => controller.abort();
+  }, [projectId, assessmentId, recordId, status, actionIdForValidation]);
   if (status === "Pending") return <section className="working-section reconciliation"><p className="eyebrow">RECONCILIATION</p><p className="muted">Pending does not create reconciliation work. Resolve the determination first.</p></section>;
-  if (status !== "Not Met") return null;
+  if (status !== "Not Met" && !validation) return null;
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setBusy(true); setError("");
     try {
@@ -822,11 +837,34 @@ function NotMetReconciliation({ projectId, assessmentId, recordId, status }: { p
       setData(next); setRationale("");
     } catch (e) { setError(e instanceof Error ? e.message : "Could not save reconciliation."); } finally { setBusy(false); }
   };
-  return <section className="working-section reconciliation"><div className="section-title"><div><p className="eyebrow">RECONCILIATION</p><h3>Not Met corrective work</h3></div><span className="status-pill status-not-met">{data?.outcome ?? "Unresolved"}</span></div>
+  const saveActionState = async () => {
+    if (!actionIdForValidation) return;
+    setBusy(true); setError("");
+    try {
+      const next = await request<{ id: string; status: string }>(`/api/projects/${projectId}/corrective-actions/${encodeURIComponent(actionIdForValidation)}`, { method: "PUT", body: JSON.stringify({ actor_id: "johnathan", state: "Ready for Validation" }) });
+      setData((current) => current ? { ...current, corrective_action_id: next.id, links: current.links.map((link) => link.id === next.id ? { ...link, status: next.status } : link) } : current);
+      setValidation((current) => current ? { ...current, corrective_action: { ...current.corrective_action, status: "Ready for Validation", validation_state: "Ready" } } : current);
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not update corrective action."); } finally { setBusy(false); }
+  };
+  const submitValidation = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!validationNotes.trim()) { setError("Validation notes are required."); return; }
+    setValidationBusy(true); setError("");
+    try {
+      await request(`/api/projects/${projectId}/assessments/${assessmentId}/records/${encodeURIComponent(recordId)}/corrective-actions/${encodeURIComponent(actionIdForValidation)}/validation`, { method: "POST", body: JSON.stringify({ actor_id: "johnathan", outcome: validationOutcome, notes: validationNotes }) });
+      const refreshed = await request<CorrectiveActionValidation>(`/api/projects/${projectId}/assessments/${assessmentId}/records/${encodeURIComponent(recordId)}/corrective-actions/${encodeURIComponent(actionIdForValidation)}/validation`);
+      setValidation(refreshed);
+      setData((current) => current ? { ...current, links: current.links.map((link) => link.id === refreshed.corrective_action.id ? { ...link, status: refreshed.corrective_action.status, validation_state: refreshed.corrective_action.validation_state } : link) } : current);
+      setValidationNotes("");
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not save validation."); } finally { setValidationBusy(false); }
+  };
+  return <section className="working-section reconciliation"><div className="section-title"><div><p className="eyebrow">RECONCILIATION</p><h3>{status === "Not Met" ? "Not Met corrective work" : "Corrective action validation"}</h3></div><span className="status-pill status-not-met">{data?.outcome ?? "Resolved"}</span></div>
     {error && <p className="error-copy">{error}</p>}
     {data?.prefill && <div className="reconciliation-links"><strong>Prefilled context</strong>{Object.entries(data.prefill).filter(([, value]) => value).map(([key, value]) => <div key={key}><span>{key.replaceAll("_", " ")}</span><small>{value}</small></div>)}</div>}
     {data?.links?.length ? <div className="reconciliation-links"><strong>Current links</strong>{data.links.map((link) => <div key={link.id}><span>{link.title ?? link.finding_id}</span><small>{link.status}</small></div>)}</div> : <p className="muted">No finding or corrective action is linked yet.</p>}
-    <form className="reconciliation-form" onSubmit={submit}><label>Disposition<select value={choice} onChange={(e) => setChoice(e.target.value as ReconciliationDisposition)}><option value="create">Create prefilled finding</option><option value="link_existing">Link existing finding</option><option value="not_needed">Not needed</option></select></label>{choice === "create" && <><label>Finding title<input value={title} onChange={(e) => setTitle(e.target.value)} required /></label><label>Finding description<textarea rows={2} value={findingDescription} onChange={(e) => setFindingDescription(e.target.value)} /></label><label>Corrective action title<input value={actionTitle} onChange={(e) => setActionTitle(e.target.value)} required /></label><label>Corrective action description<textarea rows={2} value={actionDescription} onChange={(e) => setActionDescription(e.target.value)} /></label></>}{choice === "link_existing" && <><label>Finding ID<input value={existingId} onChange={(e) => setExistingId(e.target.value)} required /></label><label>Corrective action ID<input value={actionId} onChange={(e) => setActionId(e.target.value)} required /></label></>}<label>{choice === "not_needed" ? "Rationale (required)" : "Rationale"}<textarea rows={2} value={rationale} onChange={(e) => setRationale(e.target.value)} required={choice === "not_needed"} /></label><button className="small-button" disabled={busy} type="submit">{busy ? "Saving…" : "Save reconciliation"}</button></form>
+    {status === "Not Met" && actionIdForValidation && <div className="reconciliation-links"><strong>Corrective action readiness</strong><button className="small-button" type="button" disabled={busy || validation?.corrective_action.status === "Ready for Validation"} onClick={() => void saveActionState()}>{validation?.corrective_action.status === "Ready for Validation" ? "Ready for Validation" : "Mark Ready for Validation"}</button></div>}
+    {status === "Not Met" && <form className="reconciliation-form" onSubmit={submit}><label>Disposition<select value={choice} onChange={(e) => setChoice(e.target.value as ReconciliationDisposition)}><option value="create">Create prefilled finding</option><option value="link_existing">Link existing finding</option><option value="not_needed">Not needed</option></select></label>{choice === "create" && <><label>Finding title<input value={title} onChange={(e) => setTitle(e.target.value)} required /></label><label>Finding description<textarea rows={2} value={findingDescription} onChange={(e) => setFindingDescription(e.target.value)} /></label><label>Corrective action title<input value={actionTitle} onChange={(e) => setActionTitle(e.target.value)} required /></label><label>Corrective action description<textarea rows={2} value={actionDescription} onChange={(e) => setActionDescription(e.target.value)} /></label></>}{choice === "link_existing" && <><label>Finding ID<input value={existingId} onChange={(e) => setExistingId(e.target.value)} required /></label><label>Corrective action ID<input value={actionId} onChange={(e) => setActionId(e.target.value)} required /></label></>}<label>{choice === "not_needed" ? "Rationale (required)" : "Rationale"}<textarea rows={2} value={rationale} onChange={(e) => setRationale(e.target.value)} required={choice === "not_needed"} /></label><button className="small-button" disabled={busy} type="submit">{busy ? "Saving…" : "Save reconciliation"}</button></form>}
+    {validation && <div className="reconciliation-links"><strong>Validation context</strong><div><span>Finding</span><small>{validation.finding.title} · {validation.finding.status}</small></div><div><span>Corrective action</span><small>{validation.corrective_action.title} · {validation.corrective_action.status}</small></div><div><span>Determination</span><small>{validation.determination?.status ?? "Unavailable"}</small></div><div><span>Evidence / interview</span><small>{validation.determination?.interview_observation || "See validation history for mapped evidence"}</small></div>{status === "Not Met" && <form className="reconciliation-form" onSubmit={submitValidation}><label>Outcome<select value={validationOutcome} onChange={(e) => setValidationOutcome(e.target.value as "Validated" | "Failed")}><option value="Validated">Validated</option><option value="Failed">Failed</option></select></label><label>Validation notes <span className="required">required</span><textarea rows={3} value={validationNotes} onChange={(e) => setValidationNotes(e.target.value)} required /></label><button className="small-button" disabled={validationBusy || validation.corrective_action.status !== "Ready for Validation"} type="submit">{validationBusy ? "Saving…" : "Record validation"}</button></form>}{validation.events.length > 0 && <details className="reconciliation-history"><summary>Validation history</summary><ul>{validation.events.map((event) => <li key={event.id}><strong>{event.outcome}</strong> from {event.prior_determination} · {event.notes} · {new Date(event.created_at).toLocaleDateString()} · {event.evidence_context.interview_observation || `${event.evidence_context.presented.length} mapped evidence item(s)`}</li>)}</ul></details>}</div>}
     {!!data?.history?.length && <details className="reconciliation-history"><summary>History</summary><ul>{data.history.map((item) => <li key={item.id}>{item.outcome} · {new Date(item.changed_at).toLocaleDateString()}</li>)}</ul></details>}
   </section>;
 }

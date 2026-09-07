@@ -2,27 +2,28 @@
 
 ## Current phase
 
-`REVIEW`. GitHub issue #69 is implemented on `feature/69-hipaa-sra` from
-`main` commit `c6cb780`, which includes merged Issues #74 and #67. Focused SRA
-and risk tests, the full API suite, Ruff, Mypy, frontend typecheck, ESLint,
-Vitest, and the production build pass locally. Both independent review axes
-were run and their findings were remediated. Chrome viewport verification and
-GitHub CI pass. Draft PR #84 is ready to be marked ready for human review.
+`BUILD/REVIEW`. GitHub issue #69 is complete and merged through PR #84. GitHub
+issue #68 is implemented on `feature/68-remediation-validation` from `main`
+commit `97e8e8a`. Focused validation tests, the full API and catalog suites,
+Ruff, Mypy, frontend typecheck, ESLint, Vitest, the production build, and a
+fresh migration upgrade/downgrade/re-upgrade pass locally. Draft PR #85 is open
+and all GitHub CI jobs pass. Chrome verification passed at 1440x900 and
+1280x720 with no horizontal overflow or console warnings/errors.
 
 ## Current mode
 
-Review and handoff for Issue #69. The slice adds a declaration-driven
-HIPAA Security Risk Analysis projection over the existing catalog anchor,
-approved-Profile scope reviews, project-scoped risk and evidence records, and a
-single dependency-free 5x5 scorer. It does not create a fourth catalog area,
-duplicate a framework record, or introduce a universal risk workflow.
+Build and review for Issue #68. The slice adds a project-scoped corrective-action
+Ready for Validation state and immutable binary Validated/Failed reassessment.
+Only a validated action with mapped evidence or documented interview/observation
+may change its linked determination from Not Met to Met. The finding remains
+open, and failed validation returns only the action to In Progress.
 
 ## Current objective
 
-Commit and push the retained Chrome evidence, update PR #84, re-run GitHub CI,
-and mark the PR ready for human review. Do not merge without explicit approval.
-Issue #70 remains dependent on Issues #68 and #69; its transition-aware close
-decision is deliberately not implemented here.
+Commit the Chrome evidence and final UI regression fix, rerun CI, and merge PR
+#85 under Johnathan's explicit approval. After merge, implement the usable-pilot critical path in order:
+#70, #71, #72, and #73. Issue #66 requires Johnathan's explicit approval of
+sanitized report inputs before #71 can release report templates.
 
 ## Approved specification
 
@@ -33,30 +34,29 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #69 - implemented / draft PR #84 verification complete.**
+**GitHub issue #68 - implemented / Chrome review passed.**
 
-- Framework declarations identify the SRA anchor, workflow label, Profile scope
-  target mappings, required risk fields, acceptance fields, and elevated-risk
-  human approval policy. The application resolves those values through each
-  project's pinned framework version.
-- Migration `0008` adds composite project/Profile/assessment ownership for SRA
-  scope reviews and risks plus project-scoped risk evidence links. Its downgrade
-  removes only schema introduced by `0008` and restores the prior declaration.
-- `api/risk.py` is the one dependency-free shared 5x5 scorer. The API computes
-  scores and bands rather than persisting a second calculation source.
-- The UI exposes SRA as a fourth declared HIPAA work area, shows incomplete
-  scope/risk blockers, captures explicit exclusions, and records complete risk,
-  acceptance, reviewer, and High/Critical approval metadata.
-- Focused backend tests pass (`40 passed`). Full API tests pass (`94 passed`).
-  Ruff, Mypy, frontend typecheck, ESLint, Vitest (`45 passed`), and production
-  build pass. The unchanged catalog suite passed (`74 passed`) during this build.
-- Independent specification and security reviews passed after remediation.
-  Issue #70 owns consuming the exposed completion result in the later
-  transition-aware HIPAA close decision.
-- Chrome verification passed at 1440x900 and 1280x720 with no horizontal
-  overflow or console/page warnings or errors. Retained evidence covers the
-  incomplete blocker, explicit exclusion with rationale, completed state, and
-  inherent/residual risk bands.
+- Migration `0009` adds corrective-action validation state, immutable validation
+  events, immutable determination history, composite ownership constraints, and
+  SQL triggers that prevent direct unvalidated closure and Not Met-to-Met bypass.
+- The API records exactly Validated or Failed outcomes atomically, derives the
+  evidence context and assessment revision server-side, verifies actor and full
+  project/assessment/record/action ownership, and never closes the finding as a
+  side effect.
+- The UI supports Ready for Validation, requires notes, shows only the two
+  outcomes, and retains finding, action, determination, evidence/interview, and
+  validation history after successful closure.
+- Local verification passes: focused backend `7 passed`; full API `105 passed`;
+  catalog `74 passed`; Ruff; Mypy; frontend typecheck; ESLint; Vitest `46
+  passed`; production build; and migration upgrade/downgrade/re-upgrade.
+- Chrome verified both Failed and Validated paths against a persistent local
+  workspace. Failed returned the action and current link to In Progress;
+  Validated changed the determination to Met, closed only the action, left the
+  finding Open, and retained both immutable events after reload. Screenshots at
+  1440x900 and 1280x720 show no horizontal overflow; the console was clean.
+- An independent review found a cross-record SQL-trigger scope weakness and a
+  post-validation history visibility gap. Both were remediated and are being
+  covered by regression tests before PR creation.
 
 ### Recently completed ticket detail
 

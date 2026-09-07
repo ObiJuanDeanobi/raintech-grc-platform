@@ -116,6 +116,9 @@ export interface ReconciliationLink {
   status?: string;
   linked_at?: string;
   linked_by?: string;
+  type?: "finding" | "corrective_action";
+  description?: string;
+  validation_state?: string;
 }
 export interface ReconciliationRecord {
   state?: "pending" | "unresolved" | "reconciled";
@@ -134,6 +137,20 @@ export interface ReconciliationRecord {
   corrective_action_id?: string | null;
   links: ReconciliationLink[];
   history: Array<{ id: string; outcome: ReconciliationDisposition; rationale?: string; changed_at: string; actor_id?: string }>;
+}
+
+export interface CorrectiveActionValidation {
+  finding: { id: string; title: string; description?: string; status?: string };
+  corrective_action: { id: string; title: string; description?: string; status: string; validation_state?: string };
+  determination: { status: string; interview_observation?: string } | null;
+  events: Array<Record<string, unknown> & {
+    id: string;
+    outcome: "Validated" | "Failed";
+    notes: string;
+    created_at: string;
+    prior_determination: "Not Met";
+    evidence_context: { interview_observation?: string; presented: Array<{ name: string; sha256: string }> };
+  }>;
 }
 
 export interface RecordSummary {
