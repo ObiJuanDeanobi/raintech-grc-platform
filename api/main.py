@@ -61,6 +61,17 @@ class ReconciliationSave(BaseModel):
     action_description: str = ""
 
 
+class CorrectiveActionStateSave(BaseModel):
+    actor_id: str = "johnathan"
+    state: str
+
+
+class ValidationSave(BaseModel):
+    actor_id: str = "johnathan"
+    outcome: str
+    notes: str = ""
+
+
 class NoteSave(BaseModel):
     note: str
 
@@ -2388,6 +2399,18 @@ def create_app(
                         status_code=422,
                         detail="This addressable disposition requires reasoning",
                     )
+            if payload.status == "Met":
+                blocked = connection.execute(
+                    """SELECT 1 FROM not_met_reconciliations r JOIN corrective_actions a
+                       ON a.id = r.corrective_action_id AND a.project_id = r.project_id
+                       WHERE r.assessment_id = ? AND r.record_id = ?
+                         AND a.validation_state != 'Validated'""",
+                    (assessment_id, record_id),
+                ).fetchone()
+                if blocked is not None:
+                    raise HTTPException(
+                        422, "Linked corrective action must be validated before Met"
+                    )
             if payload.status == "Met" and not payload.interview_observation.strip():
                 evidence = connection.execute(
                     """
@@ -2660,6 +2683,19 @@ def create_app(
                     raise HTTPException(
                         422, "Finding and corrective action must belong to this project"
                     )
+                existing_link = connection.execute(
+                    """
+                    SELECT assessment_id, record_id FROM not_met_reconciliations
+                    WHERE project_id = ? AND corrective_action_id = ?
+                      AND NOT (assessment_id = ? AND record_id = ?)
+                    """,
+                    (project_id, action_id, assessment_id, record_id),
+                ).fetchone()
+                if existing_link is not None:
+                    raise HTTPException(
+                        409,
+                        "Corrective action is already linked to another assessment record",
+                    )
             if old and all(
                 old[k] == v
                 for k, v in {
@@ -2793,6 +2829,315 @@ def create_app(
                 "state": "reconciled",
                 "links": links,
                 "history": history,
+            }
+
+    @app.put("/api/projects/{project_id}/corrective-actions/{action_id}")
+    def save_corrective_action_state(
+        project_id: str,
+        action_id: str,
+        payload: CorrectiveActionStateSave,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        transitions = {
+            "Draft": {"Draft", "Open", "Withdrawn"},
+            "Open": {"Open", "In Progress", "Waiting", "Ready for Validation", "Withdrawn"},
+            "In Progress": {
+                "Open",
+                "In Progress",
+                "Waiting",
+                "Ready for Validation",
+                "Withdrawn",
+            },
+            "Waiting": {"Open", "In Progress", "Waiting", "Ready for Validation", "Withdrawn"},
+            "Ready for Validation": {"Ready for Validation", "Withdrawn"},
+            "Closed": {"Closed"},
+            "Withdrawn": {"Withdrawn"},
+        }
+        if payload.state not in transitions:
+            raise HTTPException(422, "Unknown corrective action state")
+        with database.connect() as connection:
+            action = connection.execute(
+                "SELECT * FROM corrective_actions WHERE id = ? AND project_id = ?",
+                (action_id, project_id),
+            ).fetchone()
+            if action is None:
+                raise HTTPException(404, "Corrective action not found")
+            if payload.state not in transitions.get(action["status"], set()):
+                raise HTTPException(422, "Corrective action state transition is not permitted")
+            _user_or_422(connection, payload.actor_id)
+            stamp = now()
+            validation_state = (
+                "Ready" if payload.state == "Ready for Validation" else action["validation_state"]
+            )
+            connection.execute(
+                """
+                UPDATE corrective_actions
+                SET status = ?, validation_state = ?, updated_at = ?
+                WHERE id = ? AND project_id = ?
+                """,
+                (payload.state, validation_state, stamp, action_id, project_id),
+            )
+            _audit(
+                connection,
+                "corrective_action.state_changed",
+                "corrective_action",
+                action_id,
+                {"project_id": project_id, "state": payload.state},
+                payload.actor_id,
+            )
+            saved = connection.execute(
+                "SELECT * FROM corrective_actions WHERE id = ? AND project_id = ?",
+                (action_id, project_id),
+            ).fetchone()
+            assert saved is not None
+            return _row(saved)
+
+    validation_path = (
+        "/api/projects/{project_id}/assessments/{assessment_id}/records/{record_id}"
+        "/corrective-actions/{action_id}/validation"
+    )
+
+    @app.post(validation_path)
+    def validate_corrective_action(
+        project_id: str,
+        assessment_id: str,
+        record_id: str,
+        action_id: str,
+        payload: ValidationSave,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        if payload.outcome not in {"Validated", "Failed"}:
+            raise HTTPException(422, "Validation outcome must be Validated or Failed")
+        if not payload.notes.strip():
+            raise HTTPException(422, "Validation notes are required")
+        with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
+            _user_or_422(connection, payload.actor_id)
+            action = connection.execute(
+                "SELECT * FROM corrective_actions WHERE id = ? AND project_id = ?",
+                (action_id, project_id),
+            ).fetchone()
+            if action is None:
+                raise HTTPException(404, "Corrective action not found")
+            reconciliation = connection.execute(
+                """
+                SELECT finding_id FROM not_met_reconciliations
+                WHERE project_id = ? AND assessment_id = ? AND record_id = ?
+                  AND corrective_action_id = ? AND outcome IN ('create','link_existing')
+                """,
+                (project_id, assessment_id, record_id, action_id),
+            ).fetchone()
+            if reconciliation is None:
+                raise HTTPException(422, "Corrective action is not linked to this assessed record")
+            determination = connection.execute(
+                """
+                SELECT status, interview_observation FROM determinations
+                WHERE assessment_id = ? AND record_id = ?
+                """,
+                (assessment_id, record_id),
+            ).fetchone()
+            if determination is None:
+                raise HTTPException(422, "Determination is required before validation")
+            if determination["status"] != "Not Met":
+                raise HTTPException(422, "Validation requires a current Not Met determination")
+            if action["status"] != "Ready for Validation":
+                raise HTTPException(422, "Corrective action must be Ready for Validation")
+            evidence_rows = connection.execute(
+                """
+                SELECT em.id AS mapping_id, em.artifact_id, em.evidence_version_id,
+                       em.rationale, em.review_state, ev.sha256, ev.version_number
+                FROM evidence_mappings em
+                JOIN evidence_artifacts ea
+                  ON ea.id = em.artifact_id AND ea.project_id = ?
+                JOIN evidence_versions ev
+                  ON ev.id = em.evidence_version_id
+                 AND ev.artifact_id = ea.id AND ev.project_id = ea.project_id
+                WHERE em.target_type = 'assessment_record'
+                  AND em.assessment_id = ? AND em.record_id = ?
+                ORDER BY em.created_at, em.id
+                """,
+                (project_id, assessment_id, record_id),
+            ).fetchall()
+            if payload.outcome == "Validated":
+                has_interview = bool(
+                    (determination["interview_observation"] or "").strip()
+                )
+                if not evidence_rows and not has_interview:
+                    raise HTTPException(
+                        422,
+                        "Validated requires mapped evidence or documented interview/observation",
+                    )
+            revision = connection.execute(
+                """
+                SELECT revision_number FROM assessment_revisions
+                WHERE assessment_id = ? AND project_id = ?
+                """,
+                (assessment_id, project_id),
+            ).fetchone()
+            assert revision is not None
+            stamp = now()
+            event_id = str(uuid4())
+            evidence_context = {
+                "presented": [_row(row) for row in evidence_rows],
+                "interview_observation": determination["interview_observation"] or "",
+            }
+            connection.execute(
+                """
+                INSERT INTO validation_events(
+                    id, project_id, assessment_id, assessment_revision, record_id,
+                    finding_id, corrective_action_id, prior_determination,
+                    prior_work_state, outcome, notes, actor_id, created_at,
+                    evidence_context_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event_id,
+                    project_id,
+                    assessment_id,
+                    revision["revision_number"],
+                    record_id,
+                    reconciliation["finding_id"],
+                    action_id,
+                    determination["status"],
+                    action["status"],
+                    payload.outcome,
+                    payload.notes.strip(),
+                    payload.actor_id,
+                    stamp,
+                    json.dumps(evidence_context),
+                ),
+            )
+            if payload.outcome == "Validated":
+                connection.execute(
+                    """
+                    UPDATE determinations SET status = 'Met', updated_at = ?
+                    WHERE assessment_id = ? AND record_id = ?
+                    """,
+                    (stamp, assessment_id, record_id),
+                )
+                connection.execute(
+                    """
+                    UPDATE corrective_actions
+                    SET status = 'Closed', validation_state = 'Validated', updated_at = ?
+                    WHERE id = ? AND project_id = ?
+                    """,
+                    (stamp, action_id, project_id),
+                )
+            else:
+                connection.execute(
+                    """
+                    UPDATE corrective_actions
+                    SET status = 'In Progress', validation_state = 'Failed', updated_at = ?
+                    WHERE id = ? AND project_id = ?
+                    """,
+                    (stamp, action_id, project_id),
+                )
+            if payload.outcome == "Validated":
+                connection.execute(
+                    """
+                    INSERT INTO determination_history(
+                        id, project_id, assessment_id, record_id, prior_status,
+                        new_status, actor_id, created_at, validation_event_id
+                    ) VALUES (?, ?, ?, ?, ?, 'Met', ?, ?, ?)
+                    """,
+                    (
+                        str(uuid4()),
+                        project_id,
+                        assessment_id,
+                        record_id,
+                        determination["status"],
+                        payload.actor_id,
+                        stamp,
+                        event_id,
+                    ),
+                )
+            _audit(
+                connection,
+                "corrective_action.validation",
+                "validation_event",
+                event_id,
+                {
+                    "project_id": project_id,
+                    "assessment_id": assessment_id,
+                    "record_id": record_id,
+                    "outcome": payload.outcome,
+                },
+                payload.actor_id,
+            )
+            saved = connection.execute(
+                "SELECT * FROM validation_events WHERE id = ? AND project_id = ?",
+                (event_id, project_id),
+            ).fetchone()
+            assert saved is not None
+            result = _row(saved)
+            result["evidence_context"] = json.loads(result.pop("evidence_context_json"))
+            return result
+
+    @app.get(validation_path)
+    def list_validations(
+        project_id: str,
+        assessment_id: str,
+        record_id: str,
+        action_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
+            reconciliation = connection.execute(
+                """
+                SELECT r.*, f.title AS finding_title, f.description AS finding_description,
+                       f.status AS finding_status, a.title AS action_title,
+                       a.description AS action_description, a.status AS action_status,
+                       a.validation_state
+                FROM not_met_reconciliations r
+                JOIN findings f ON f.id = r.finding_id AND f.project_id = r.project_id
+                JOIN corrective_actions a
+                  ON a.id = r.corrective_action_id
+                 AND a.finding_id = f.id AND a.project_id = f.project_id
+                WHERE r.project_id = ? AND r.assessment_id = ? AND r.record_id = ?
+                  AND r.corrective_action_id = ?
+                """,
+                (project_id, assessment_id, record_id, action_id),
+            ).fetchone()
+            if reconciliation is None:
+                raise HTTPException(404, "Corrective action validation context not found")
+            determination = connection.execute(
+                """
+                SELECT status, interview_observation FROM determinations
+                WHERE assessment_id = ? AND record_id = ?
+                """,
+                (assessment_id, record_id),
+            ).fetchone()
+            rows = connection.execute(
+                """
+                SELECT * FROM validation_events
+                WHERE project_id = ? AND assessment_id = ? AND record_id = ?
+                  AND corrective_action_id = ?
+                ORDER BY created_at, id
+                """,
+                (project_id, assessment_id, record_id, action_id),
+            ).fetchall()
+            events = []
+            for row in rows:
+                event = _row(row)
+                event["evidence_context"] = json.loads(event.pop("evidence_context_json"))
+                events.append(event)
+            return {
+                "finding": {
+                    "id": reconciliation["finding_id"],
+                    "title": reconciliation["finding_title"],
+                    "description": reconciliation["finding_description"],
+                    "status": reconciliation["finding_status"],
+                },
+                "corrective_action": {
+                    "id": reconciliation["corrective_action_id"],
+                    "title": reconciliation["action_title"],
+                    "description": reconciliation["action_description"],
+                    "status": reconciliation["action_status"],
+                    "validation_state": reconciliation["validation_state"],
+                },
+                "determination": _row(determination) if determination else None,
+                "events": events,
             }
 
     @app.put("/api/assessments/{assessment_id}/records/{record_id}/note")
