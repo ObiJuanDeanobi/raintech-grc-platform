@@ -17,6 +17,7 @@ from api.database import Database, profile_snapshot_revision
 from api.framework import FRAMEWORK_ID, seed_framework
 from api.risk import RiskScore, score_risk
 from api.storage import FileStorage, LocalFileStorage
+from api.close import fieldwork_ready
 
 
 def now() -> str:
@@ -1096,6 +1097,13 @@ def create_app(
     @app.get("/api/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/api/projects/{project_id}/close-readiness/{target}")
+    def get_close_readiness(project_id: str, target: str, database: Annotated[Database, Depends(db)]) -> dict[str, Any]:
+        if target != "fieldwork_ready_for_generation":
+            raise HTTPException(422, "Unknown close-readiness target")
+        with database.connect() as connection:
+            return fieldwork_ready(connection, project_id)
 
     @app.get("/api/clients")
     def list_clients(database: Annotated[Database, Depends(db)]) -> list[dict[str, Any]]:
