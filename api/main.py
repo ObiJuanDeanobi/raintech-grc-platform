@@ -10,15 +10,15 @@ from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
 from api.close import fieldwork_ready
 from api.database import Database, profile_snapshot_revision
 from api.framework import FRAMEWORK_ID, seed_framework
+from api.generation import generate_package, list_packages
 from api.risk import RiskScore, score_risk
 from api.storage import FileStorage, LocalFileStorage
-from api.generation import generate_package, list_packages
 
 
 def now() -> str:
@@ -1121,7 +1121,12 @@ def create_app(
             return fieldwork_ready(connection, project_id, assessment_id)
 
     @app.post("/api/projects/{project_id}/assessments/{assessment_id}/packages", status_code=201)
-    def create_package(project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)], files: Annotated[FileStorage, Depends(files)]) -> dict[str, Any]:
+    def create_package(
+        project_id: str,
+        assessment_id: str,
+        database: Annotated[Database, Depends(db)],
+        files: Annotated[FileStorage, Depends(files)],
+    ) -> dict[str, Any]:
         with database.connect() as connection:
             try:
                 return generate_package(connection, files, root, project_id, assessment_id)
@@ -1129,27 +1134,54 @@ def create_app(
                 raise HTTPException(409, str(exc)) from exc
 
     @app.get("/api/projects/{project_id}/packages")
-    def get_packages(project_id: str, database: Annotated[Database, Depends(db)]) -> list[dict[str, Any]]:
+    def get_packages(
+        project_id: str, database: Annotated[Database, Depends(db)]
+    ) -> list[dict[str, Any]]:
         with database.connect() as connection:
-            if connection.execute("SELECT 1 FROM projects WHERE id=?", (project_id,)).fetchone() is None:
+            if (
+                connection.execute("SELECT 1 FROM projects WHERE id=?", (project_id,)).fetchone()
+                is None
+            ):
                 raise HTTPException(404, "Project not found")
             packages = list_packages(connection, project_id)
             for package in packages:
                 package["manifest"] = json.loads(package["manifest_json"])
-                package["components"] = [dict(row) for row in connection.execute("SELECT * FROM generated_components WHERE package_id=? AND project_id=?", (package["id"], project_id))]
+                package["components"] = [
+                    dict(row)
+                    for row in connection.execute(
+                        "SELECT * FROM generated_components WHERE package_id=? AND project_id=?",
+                        (package["id"], project_id),
+                    )
+                ]
             return packages
 
     @app.get("/api/projects/{project_id}/packages/{package_id}/components/{component_id}")
-    def download_package_component(project_id: str, package_id: str, component_id: str, database: Annotated[Database, Depends(db)]) -> FileResponse:
+    def download_package_component(
+        project_id: str,
+        package_id: str,
+        component_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> FileResponse:
         with database.connect() as connection:
-            row = connection.execute("SELECT c.* FROM generated_components c JOIN generated_packages p ON p.id=c.package_id AND p.project_id=c.project_id WHERE c.id=? AND c.package_id=? AND c.project_id=?", (component_id, package_id, project_id)).fetchone()
+            row = connection.execute(
+                """
+                SELECT c.*
+                FROM generated_components c
+                JOIN generated_packages p
+                  ON p.id = c.package_id AND p.project_id = c.project_id
+                WHERE c.id = ? AND c.package_id = ? AND c.project_id = ?
+                """,
+                (component_id, package_id, project_id),
+            ).fetchone()
             if row is None:
                 raise HTTPException(404, "Package component not found")
             path = (database.managed_storage_root / row["relative_path"]).resolve()
             root_path = database.managed_storage_root.resolve()
             if root_path not in path.parents or not path.is_file():
                 raise HTTPException(404, "Package component is unavailable")
-            return FileResponse(path, filename=row["filename"], media_type="application/octet-stream")
+            return FileResponse(
+                path, filename=row["filename"], media_type="application/octet-stream"
+            )
 
     @app.get("/api/clients")
     def list_clients(database: Annotated[Database, Depends(db)]) -> list[dict[str, Any]]:

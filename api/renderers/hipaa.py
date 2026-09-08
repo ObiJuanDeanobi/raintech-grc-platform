@@ -9,14 +9,15 @@ its canonical hash with the generated artifacts.
 from __future__ import annotations
 
 import copy
-import html
 import hashlib
+import html
 import json
 import re
 import zipfile
+from collections.abc import Mapping
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 REPORT_SECTIONS = (
     "Assessment Scope",
@@ -36,21 +37,55 @@ REPORT_SECTIONS = (
 )
 
 POAM_COLUMNS = (
-    "POA&M ID", "Control Reference", "Requirement", "Control Group",
-    "Control Description", "Finding ID", "Action ID", "Action Owner",
-    "Risk Rating", "Status", "Scheduled Completion", "Milestone",
-    "Resources", "Validation Owner", "Validation Evidence", "Closure Date",
+    "POA&M ID",
+    "Control Reference",
+    "Requirement",
+    "Control Group",
+    "Control Description",
+    "Finding ID",
+    "Action ID",
+    "Action Owner",
+    "Risk Rating",
+    "Status",
+    "Scheduled Completion",
+    "Milestone",
+    "Resources",
+    "Validation Owner",
+    "Validation Evidence",
+    "Closure Date",
     "Source Snapshot ID",
 )
 
 OPEN_POAM_COLUMNS = (
-    "POA&M ID", "Assessment ID", "Source Record ID", "Control Reference",
-    "Requirement Family", "Requirement ID", "Requirement", "Requirement Description",
-    "Control Group", "Control Description", "Finding", "Risk Rating", "Recommendation",
-    "Status", "Finding Date", "Scheduled Completion Date", "Actual Completion Date",
-    "Owner / Point of Contact", "Milestones", "Status Summary", "Resources Needed",
-    "Comments", "Evidence Link", "Validation Owner", "Validation Date", "Closure Basis",
-    "Action Link", "Risk Link", "Package / Snapshot ID",
+    "POA&M ID",
+    "Assessment ID",
+    "Source Record ID",
+    "Control Reference",
+    "Requirement Family",
+    "Requirement ID",
+    "Requirement",
+    "Requirement Description",
+    "Control Group",
+    "Control Description",
+    "Finding",
+    "Risk Rating",
+    "Recommendation",
+    "Status",
+    "Finding Date",
+    "Scheduled Completion Date",
+    "Actual Completion Date",
+    "Owner / Point of Contact",
+    "Milestones",
+    "Status Summary",
+    "Resources Needed",
+    "Comments",
+    "Evidence Link",
+    "Validation Owner",
+    "Validation Date",
+    "Closure Basis",
+    "Action Link",
+    "Risk Link",
+    "Package / Snapshot ID",
 )
 
 _TOKEN = re.compile(r"\{\{([a-zA-Z0-9_]+)\}\}")
@@ -79,7 +114,7 @@ def snapshot_sha256(snapshot: Mapping[str, Any]) -> str:
 def _none(value: Any, convention: str = "None recorded") -> str:
     if value is None or value == "" or value == [] or value == {}:
         return convention
-    if isinstance(value, (list, tuple, set)):
+    if isinstance(value, list | tuple | set):
         return "; ".join(str(item) for item in value) or convention
     return str(value)
 
@@ -103,56 +138,85 @@ def report_values(snapshot: Mapping[str, Any]) -> dict[str, str]:
     records = _records(s)
     statuses = [str(row.get("status", row.get("determination", ""))) for row in records]
     values: dict[str, str] = {
-        "client_name": _none(profile.get("client_name")), "project_name": _none(assessment.get("project_name")),
-        "assessment_start_date": _none(assessment.get("start_date")), "assessment_end_date": _none(assessment.get("end_date")),
-        "assessment_revision": _none(assessment.get("revision")), "profile_snapshot_id": _none(profile.get("snapshot_id")),
-        "source_snapshot_id": _none(s.get("snapshot_id")), "template_version": _none(s.get("template_version", "hipaa-v2")),
-        "framework_title": _none(framework.get("title")), "framework_version": _none(framework.get("version", framework.get("id"))),
+        "client_name": _none(profile.get("client_name")),
+        "project_name": _none(assessment.get("project_name")),
+        "assessment_start_date": _none(assessment.get("start_date")),
+        "assessment_end_date": _none(assessment.get("end_date")),
+        "assessment_revision": _none(assessment.get("revision")),
+        "profile_snapshot_id": _none(profile.get("snapshot_id")),
+        "source_snapshot_id": _none(s.get("snapshot_id")),
+        "template_version": _none(s.get("template_version", "hipaa-v2")),
+        "framework_title": _none(framework.get("title")),
+        "framework_version": _none(framework.get("version", framework.get("id"))),
         "framework_declaration_id": _none(framework.get("declaration_id", framework.get("id"))),
-        "assessment_source_sha256": s["source_sha256"], "empty_state_none_recorded": "None recorded",
-        "met_count": str(statuses.count("Met")), "not_met_count": str(statuses.count("Not Met")),
+        "assessment_source_sha256": s["source_sha256"],
+        "empty_state_none_recorded": "None recorded",
+        "met_count": str(statuses.count("Met")),
+        "not_met_count": str(statuses.count("Not Met")),
         "not_applicable_count": str(statuses.count("N/A")),
-        "assessment_decision": _none(assessment.get("decision")), "issuance_decision": _none(assessment.get("issuance_decision")),
+        "assessment_decision": _none(assessment.get("decision")),
+        "issuance_decision": _none(assessment.get("issuance_decision")),
     }
     rows = [_joined_record(s, row) for row in _records(s)]
+
     # Repeated appendix/table fields are newline-delimited so the same approved
     # template remains useful for one or many framework records.
     def joined(key: str, *fallback: str) -> str:
-        return "\n".join(_none(next((row.get(k) for k in (key, *fallback) if row.get(k) not in (None, "")), None)) for row in rows) or "None recorded"
-    values.update({
-        "control_reference": joined("citation", "record_id", "id"),
-        "framework_record_id": joined("record_id", "id"),
-        "objective": joined("objective", "assessment_objective"),
-        "designation": joined("designation"),
-        "citation": joined("citation", "record_id", "id"),
-        "requirement_text": joined("text", "title"),
-        "final_determination": joined("status", "determination"),
-        "implementation_statement": joined("implementation_statement", "assessor_note"),
-        "scope_context": joined("scope_context", "work_area"),
-        "evidence_references": joined("evidence_references", "evidence"),
-        "finding_id": joined("finding_id"), "action_id": joined("corrective_action_id", "action_id"),
-        "validation_state": joined("validation_state", "status"),
-        "requirement": joined("requirement", "text", "title"),
-        "control_group": joined("control_group", "work_area"),
-        "control_description": joined("control_description", "text", "title"),
-        "poam_id": joined("poam_id", "poa_m_id"), "risk_rating": joined("risk_rating", "risk"),
-        "poam_status": joined("poam_status", "status"), "scheduled_completion_date": joined("scheduled_completion_date"),
-        "action_owner": joined("action_owner", "owner"), "validation_evidence": joined("validation_evidence"),
-        "findings_grouped_by_source": "\n".join(f"{_none(r.get('work_area'))}: {_none(r.get('finding_id'))}" for r in rows) or "None recorded",
-        "assessment_scope_narrative": _none(s.get("scope", {}).get("narrative")),
-        "impact_determination_narrative": _none(s.get("impact_determination")),
-        "poam_summary_and_artifact_reference": _none(s.get("poam_artifact_reference")),
-        "sra_scope_summary": _none(s.get("sra", {}).get("scope")),
-        "sra_threat_summary": _none(s.get("sra", {}).get("threats")),
-        "sra_vulnerability_summary": _none(s.get("sra", {}).get("vulnerabilities")),
-        "sra_likelihood_summary": _none(s.get("sra", {}).get("likelihood")),
-        "sra_impact_summary": _none(s.get("sra", {}).get("impact")),
-        "sra_inherent_risk_summary": _none(s.get("sra", {}).get("inherent_risk")),
-        "sra_safeguard_summary": _none(s.get("sra", {}).get("safeguards")),
-        "sra_residual_risk_summary": _none(s.get("sra", {}).get("residual_risk")),
-        "sra_treatment_summary": _none(s.get("sra", {}).get("treatment")),
-        "sra_exclusions_with_rationale": _none(s.get("sra", {}).get("exclusions")),
-    })
+        return (
+            "\n".join(
+                _none(
+                    next(
+                        (row.get(k) for k in (key, *fallback) if row.get(k) not in (None, "")), None
+                    )
+                )
+                for row in rows
+            )
+            or "None recorded"
+        )
+
+    values.update(
+        {
+            "control_reference": joined("citation", "record_id", "id"),
+            "framework_record_id": joined("record_id", "id"),
+            "objective": joined("objective", "assessment_objective"),
+            "designation": joined("designation"),
+            "citation": joined("citation", "record_id", "id"),
+            "requirement_text": joined("text", "title"),
+            "final_determination": joined("status", "determination"),
+            "implementation_statement": joined("implementation_statement", "assessor_note"),
+            "scope_context": joined("scope_context", "work_area"),
+            "evidence_references": joined("evidence_references", "evidence"),
+            "finding_id": joined("finding_id"),
+            "action_id": joined("corrective_action_id", "action_id"),
+            "validation_state": joined("validation_state", "status"),
+            "requirement": joined("requirement", "text", "title"),
+            "control_group": joined("control_group", "work_area"),
+            "control_description": joined("control_description", "text", "title"),
+            "poam_id": joined("poam_id", "poa_m_id"),
+            "risk_rating": joined("risk_rating", "risk"),
+            "poam_status": joined("poam_status", "status"),
+            "scheduled_completion_date": joined("scheduled_completion_date"),
+            "action_owner": joined("action_owner", "owner"),
+            "validation_evidence": joined("validation_evidence"),
+            "findings_grouped_by_source": "\n".join(
+                f"{_none(r.get('work_area'))}: {_none(r.get('finding_id'))}" for r in rows
+            )
+            or "None recorded",
+            "assessment_scope_narrative": _none(s.get("scope", {}).get("narrative")),
+            "impact_determination_narrative": _none(s.get("impact_determination")),
+            "poam_summary_and_artifact_reference": _none(s.get("poam_artifact_reference")),
+            "sra_scope_summary": _none(s.get("sra", {}).get("scope")),
+            "sra_threat_summary": _none(s.get("sra", {}).get("threats")),
+            "sra_vulnerability_summary": _none(s.get("sra", {}).get("vulnerabilities")),
+            "sra_likelihood_summary": _none(s.get("sra", {}).get("likelihood")),
+            "sra_impact_summary": _none(s.get("sra", {}).get("impact")),
+            "sra_inherent_risk_summary": _none(s.get("sra", {}).get("inherent_risk")),
+            "sra_safeguard_summary": _none(s.get("sra", {}).get("safeguards")),
+            "sra_residual_risk_summary": _none(s.get("sra", {}).get("residual_risk")),
+            "sra_treatment_summary": _none(s.get("sra", {}).get("treatment")),
+            "sra_exclusions_with_rationale": _none(s.get("sra", {}).get("exclusions")),
+        }
+    )
     # Every remaining approved token is intentionally resolved to a safe empty state.
     return values
 
@@ -161,15 +225,23 @@ def render_report(template_path: Path, output_path: Path, snapshot: Mapping[str,
     """Render named fields into a DOCX while preserving the approved package."""
     values = report_values(snapshot)
     source = BytesIO()
-    with zipfile.ZipFile(template_path, "r") as zin, zipfile.ZipFile(source, "w", zipfile.ZIP_DEFLATED) as zout:
+    with (
+        zipfile.ZipFile(template_path, "r") as zin,
+        zipfile.ZipFile(source, "w", zipfile.ZIP_DEFLATED) as zout,
+    ):
         for item in zin.infolist():
             data = zin.read(item.filename)
-            if item.filename == "word/document.xml":
+            if item.filename == "word/document.xml" or item.filename in {
+                "word/header1.xml",
+                "word/footer1.xml",
+            }:
                 text = data.decode("utf-8")
-                data = _TOKEN.sub(lambda match: html.escape(values.get(match.group(1), "None recorded"), quote=True), text).encode("utf-8")
-            elif item.filename in {"word/header1.xml", "word/footer1.xml"}:
-                text = data.decode("utf-8")
-                data = _TOKEN.sub(lambda match: html.escape(values.get(match.group(1), "None recorded"), quote=True), text).encode("utf-8")
+                data = _TOKEN.sub(
+                    lambda match: html.escape(
+                        values.get(match.group(1), "None recorded"), quote=True
+                    ),
+                    text,
+                ).encode("utf-8")
             zout.writestr(item, data)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(source.getvalue())
@@ -194,10 +266,21 @@ def _joined_record(snapshot: Mapping[str, Any], row: Mapping[str, Any]) -> dict[
     """Join normalized finding/action/risk collections to one framework record."""
     key = row.get("record_id", row.get("id"))
     result = dict(row)
-    for collection, aliases in (("findings", ("finding_id", "id")), ("actions", ("action_id", "id")), ("risks", ("risk_id", "id"))):
+    for collection, aliases in (
+        ("findings", ("finding_id", "id")),
+        ("actions", ("action_id", "id")),
+        ("risks", ("risk_id", "id")),
+    ):
         wanted = row.get(aliases[0], row.get(aliases[1]))
         if wanted:
-            match = next((item for item in snapshot.get(collection, []) if item.get("id") == wanted or item.get("record_id") == key), None)
+            match = next(
+                (
+                    item
+                    for item in snapshot.get(collection, [])
+                    if item.get("id") == wanted or item.get("record_id") == key
+                ),
+                None,
+            )
             if match:
                 result.update(match)
     return result
@@ -206,20 +289,62 @@ def _joined_record(snapshot: Mapping[str, Any], row: Mapping[str, Any]) -> dict[
 def render_poam(template_path: Path, output_path: Path, snapshot: Mapping[str, Any]) -> str:
     """Populate the approved workbook using inline strings and exact 29-column rows."""
     s = canonical_snapshot(snapshot)
-    rows = [_joined_record(s, r) for r in _records(s) if r.get("status", r.get("determination")) == "Not Met"]
+    rows = [
+        _joined_record(s, r)
+        for r in _records(s)
+        if r.get("status", r.get("determination")) == "Not Met"
+    ]
     source = BytesIO()
-    with zipfile.ZipFile(template_path, "r") as zin, zipfile.ZipFile(source, "w", zipfile.ZIP_DEFLATED) as zout:
+    with (
+        zipfile.ZipFile(template_path, "r") as zin,
+        zipfile.ZipFile(source, "w", zipfile.ZIP_DEFLATED) as zout,
+    ):
         for item in zin.infolist():
             data = zin.read(item.filename)
             if item.filename in {"xl/worksheets/sheet2.xml", "xl/worksheets/sheet4.xml"}:
                 xml = data.decode("utf-8")
-                match = re.search(r"(<(?:[A-Za-z0-9_]+:)?row r=\"3\".*?</(?:[A-Za-z0-9_]+:)?row>)", xml)
+                match = re.search(
+                    r"(<(?:[A-Za-z0-9_]+:)?row r=\"3\".*?</(?:[A-Za-z0-9_]+:)?row>)", xml
+                )
                 if match:
                     template_row = match.group(1)
                     generated = []
                     for n, row in enumerate(rows, 3):
-                        values = [s.get("snapshot_id"), s.get("assessment", {}).get("id"), row.get("record_id"), row.get("citation", row.get("record_id")), row.get("work_area"), row.get("record_id"), row.get("title"), row.get("text"), row.get("control_group", row.get("work_area")), row.get("control_description", row.get("text")), row.get("finding_id"), row.get("risk_rating", row.get("risk")), row.get("recommendation"), row.get("status", "Not Met"), row.get("finding_date"), row.get("scheduled_completion_date"), row.get("actual_completion_date"), row.get("action_owner", row.get("owner")), row.get("milestones"), row.get("status_summary"), row.get("resources"), row.get("comments"), row.get("evidence_link"), row.get("validation_owner"), row.get("validation_date"), row.get("closure_basis"), row.get("action_id"), row.get("risk_id"), s.get("snapshot_id")]
-                        cells = "".join(_xlsx_cell(f"{_excel_column(i + 1)}{n}", value) for i, value in enumerate(values))
+                        values = [
+                            s.get("snapshot_id"),
+                            s.get("assessment", {}).get("id"),
+                            row.get("record_id"),
+                            row.get("citation", row.get("record_id")),
+                            row.get("work_area"),
+                            row.get("record_id"),
+                            row.get("title"),
+                            row.get("text"),
+                            row.get("control_group", row.get("work_area")),
+                            row.get("control_description", row.get("text")),
+                            row.get("finding_id"),
+                            row.get("risk_rating", row.get("risk")),
+                            row.get("recommendation"),
+                            row.get("status", "Not Met"),
+                            row.get("finding_date"),
+                            row.get("scheduled_completion_date"),
+                            row.get("actual_completion_date"),
+                            row.get("action_owner", row.get("owner")),
+                            row.get("milestones"),
+                            row.get("status_summary"),
+                            row.get("resources"),
+                            row.get("comments"),
+                            row.get("evidence_link"),
+                            row.get("validation_owner"),
+                            row.get("validation_date"),
+                            row.get("closure_basis"),
+                            row.get("action_id"),
+                            row.get("risk_id"),
+                            s.get("snapshot_id"),
+                        ]
+                        cells = "".join(
+                            _xlsx_cell(f"{_excel_column(i + 1)}{n}", value)
+                            for i, value in enumerate(values)
+                        )
                         generated.append(f'<row r="{n}">{cells}</row>')
                     xml = xml.replace(template_row, "".join(generated) or template_row)
                     data = xml.encode("utf-8")
@@ -229,14 +354,23 @@ def render_poam(template_path: Path, output_path: Path, snapshot: Mapping[str, A
     return s["source_sha256"]
 
 
-def render_package_components(template_dir: Path, output_dir: Path, snapshot: Mapping[str, Any]) -> dict[str, Any]:
+def render_package_components(
+    template_dir: Path, output_dir: Path, snapshot: Mapping[str, Any]
+) -> dict[str, Any]:
     """Generate the governed report and POA&M as a single traceable package."""
     output_dir.mkdir(parents=True, exist_ok=True)
     report = output_dir / "HIPAA_Assessment_Report.docx"
     poam = output_dir / "HIPAA_POAM.xlsx"
-    source_hash = render_report(template_dir / "RainTech_HIPAA_Combined_Assessment_Report_v2.docx", report, snapshot)
+    source_hash = render_report(
+        template_dir / "RainTech_HIPAA_Combined_Assessment_Report_v2.docx", report, snapshot
+    )
     render_poam(template_dir / "RainTech_HIPAA_POAM_v2.xlsx", poam, snapshot)
-    return {"source_snapshot_id": snapshot["snapshot_id"], "source_sha256": source_hash, "report": report, "poam": poam}
+    return {
+        "source_snapshot_id": snapshot["snapshot_id"],
+        "source_sha256": source_hash,
+        "report": report,
+        "poam": poam,
+    }
 
 
 def validate_snapshot(snapshot: Mapping[str, Any]) -> list[str]:
