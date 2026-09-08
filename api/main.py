@@ -18,6 +18,7 @@ from api.database import Database, profile_snapshot_revision
 from api.framework import FRAMEWORK_ID, seed_framework
 from api.risk import RiskScore, score_risk
 from api.storage import FileStorage, LocalFileStorage
+from api.generation import generate_package, list_packages
 
 
 def now() -> str:
@@ -1118,6 +1119,21 @@ def create_app(
             raise HTTPException(422, "Unknown close-readiness target")
         with database.connect() as connection:
             return fieldwork_ready(connection, project_id, assessment_id)
+
+    @app.post("/api/projects/{project_id}/assessments/{assessment_id}/packages", status_code=201)
+    def create_package(project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)], files: Annotated[FileStorage, Depends(files)]) -> dict[str, Any]:
+        with database.connect() as connection:
+            try:
+                return generate_package(connection, files, root, project_id, assessment_id)
+            except ValueError as exc:
+                raise HTTPException(409, str(exc)) from exc
+
+    @app.get("/api/projects/{project_id}/packages")
+    def get_packages(project_id: str, database: Annotated[Database, Depends(db)]) -> list[dict[str, Any]]:
+        with database.connect() as connection:
+            if connection.execute("SELECT 1 FROM projects WHERE id=?", (project_id,)).fetchone() is None:
+                raise HTTPException(404, "Project not found")
+            return list_packages(connection, project_id)
 
     @app.get("/api/clients")
     def list_clients(database: Annotated[Database, Depends(db)]) -> list[dict[str, Any]]:
