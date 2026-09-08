@@ -2,7 +2,8 @@
 
 ## Current phase
 
-`BUILD/REVIEW`. GitHub issues #68 and #69 are complete and merged through PRs
+`BUILD/REVIEW`. GitHub issue #66 is complete as a governed human approval gate.
+Issues #68 and #69 are complete and merged through PRs
 #85 and #84. GitHub issue #70 is implemented on
 `feature/70-hipaa-close-readiness` from merge commit `53079ac`. Focused backend
 and frontend tests, Ruff, Mypy, frontend typecheck, ESLint, the production
@@ -19,10 +20,9 @@ informational for this transition.
 
 ## Current objective
 
-Publish the final Issue #70 browser evidence, mark PR #86 ready, and merge it.
-Then implement the usable-pilot critical path in order: #71, #72, and #73.
-Issue #66 requires Johnathan's explicit approval of sanitized report inputs
-before #71 can release report templates.
+Implement the usable-pilot critical path beginning with #71, then #72 and #73.
+Issue #66's approved HIPAA report and POA&M templates are now governed in
+`docs/templates/hipaa/v2/`; #71 may use them as immutable template version v2.
 
 ## Approved specification
 
@@ -114,6 +114,16 @@ CI passed.
   `main`, and every GitHub CI job passes.
 
 GitHub issue #62 is complete and merged through PR #64.
+
+**GitHub issue #66 — approval gate complete (2026-09-08).**
+
+- Johnathan Dean approved the revised HIPAA combined assessment report and POA&M
+  candidates for governed use after CMMC L2 workflow review.
+- The approved DOCX/XLSX pair is preserved under
+  `docs/templates/hipaa/v2/` with exact SHA-256 hashes and a provenance,
+  sanitization, validation, and workflow-conventions record.
+- Original drafts, client sources, and intermediate inspection artifacts remain
+  outside Git. Issue #71 is the next implementation slice.
 
 GitHub issue #61 is complete and merged through PR #63.
 
