@@ -25,6 +25,7 @@ import type {
   Artifact,
   Assessment,
   Client,
+  CloseReadiness,
   EvidenceMapping,
   Prompt,
   ProfileReadiness,
@@ -1061,6 +1062,30 @@ function EvidencePanel({
   );
 }
 
+function CloseReadinessPanel({ projectId, assessmentId, onNavigate }: { projectId: string; assessmentId: string; onNavigate: (link: Record<string, unknown>) => void }) {
+  const [data, setData] = useState<CloseReadiness | null>(null);
+  const [error, setError] = useState("");
+  const sequenceRef = useRef(0);
+  useEffect(() => {
+    const controller = new AbortController(); const sequence = ++sequenceRef.current;
+    setData(null); setError("");
+    void request<CloseReadiness>(`/api/projects/${projectId}/assessments/${assessmentId}/close-readiness?target=fieldwork_ready_for_generation`, { signal: controller.signal })
+      .then((next) => { if (!controller.signal.aborted && sequenceRef.current === sequence && next && typeof next.status === "string" && Array.isArray(next.checks) && Array.isArray(next.blockers)) setData(next); })
+      .catch((caught) => { if (!controller.signal.aborted && sequenceRef.current === sequence) setError(caught instanceof Error ? caught.message : "Could not load close readiness."); });
+    return () => controller.abort();
+  }, [projectId, assessmentId]);
+  if (error) return <section className="close-readiness-panel"><p className="error-copy">{error}</p></section>;
+  if (!data) return null;
+  const text = (value: unknown) => typeof value === "string" ? value : JSON.stringify(value);
+  return <section className={`close-readiness-panel ${data.status.toLowerCase()}`} aria-labelledby="close-readiness-title">
+    <div className="section-title"><div><p className="eyebrow">CLOSE READINESS</p><h2 id="close-readiness-title">Fieldwork ready for generation</h2></div><span className={`readiness-state ${data.status === "Ready" ? "ready" : "blocked"}`}>{data.status}</span></div>
+    {data.blockers.length > 0 && <div className="close-readiness-blockers"><strong>Blockers</strong><ul>{data.blockers.map((blocker, index) => <li key={index}>{typeof blocker === "string" ? blocker : text(blocker.detail ?? blocker.message ?? blocker.reason ?? blocker)}</li>)}</ul></div>}
+    <div className="close-readiness-checks"><strong>Checks</strong><ul>{data.checks.map((check, index) => <li key={index}><span>{text(check.label ?? check.name ?? check.key ?? `Check ${index + 1}`)}</span><small>{text(check.status ?? check.result ?? check.value)}</small></li>)}</ul></div>
+    {data.links && data.links.length > 0 && <div className="close-readiness-links"><strong>Next actions</strong>{data.links.map((link, index) => <button key={index} className="text-button" onClick={() => onNavigate(link)}>{text(link.label ?? link.title ?? link.action ?? "Open related work")}</button>)}</div>}
+    {(data.informational || data.metadata) && <details><summary>Later gates and metadata</summary><ul>{Object.entries(data.informational ?? data.metadata ?? {}).map(([key, value]) => <li key={key}>{key.replaceAll("_", " ")} · {text(value)}</li>)}</ul></details>}
+  </section>;
+}
+
 export function Workspace({
   clients,
   projectId,
@@ -1479,6 +1504,11 @@ export function Workspace({
             ))}
           </div>
         )}
+        <CloseReadinessPanel projectId={assessment.project.id} assessmentId={assessment.id} onNavigate={(link) => {
+          const target = String(link.target ?? link.view ?? "");
+          if (target === "profile" || target === "sra" || target === "overview") changeView(target as "profile" | "sra" | "overview");
+          else if (link.record_id || link.recordId) changeRecord(String(link.record_id ?? link.recordId));
+        }} />
 
         {detail.parent && (
           <section className="parent-context">

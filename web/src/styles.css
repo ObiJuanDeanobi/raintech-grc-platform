@@ -557,6 +557,16 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
   background: #fffaf0;
   font-size: 11px;
 }
+.close-readiness-panel { margin: 14px 28px 0; padding: 16px; border: 1px solid #dbe3e8; border-radius: 9px; background: #fff; }
+.close-readiness-panel.blocked { border-color: #ecd6d6; background: #fffafa; }
+.close-readiness-panel.ready { border-color: #c9e3dc; background: #f8fffc; }
+.close-readiness-panel h2 { margin: 0; font-size: 15px; }
+.close-readiness-blockers, .close-readiness-checks, .close-readiness-links { display: grid; gap: 6px; margin-top: 12px; font-size: 11px; }
+.close-readiness-panel ul { margin: 0; padding-left: 18px; }
+.close-readiness-checks li { display: flex; justify-content: space-between; gap: 12px; }
+.close-readiness-checks small { color: #687789; }
+.close-readiness-links .text-button { justify-self: start; }
+.close-readiness-panel pre { max-height: 140px; overflow: auto; font-size: 10px; white-space: pre-wrap; }
 .assessment-readiness-warning span { color: #806541; }
 .position { color: #5f6a7b; font-size: 12px; font-weight: 600; }
 .rollup-label { color: #776843; }

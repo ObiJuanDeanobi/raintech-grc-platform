@@ -2,28 +2,27 @@
 
 ## Current phase
 
-`BUILD/REVIEW`. GitHub issue #69 is complete and merged through PR #84. GitHub
-issue #68 is implemented on `feature/68-remediation-validation` from `main`
-commit `97e8e8a`. Focused validation tests, the full API and catalog suites,
-Ruff, Mypy, frontend typecheck, ESLint, Vitest, the production build, and a
-fresh migration upgrade/downgrade/re-upgrade pass locally. Draft PR #85 is open
-and all GitHub CI jobs pass. Chrome verification passed at 1440x900 and
-1280x720 with no horizontal overflow or console warnings/errors.
+`BUILD/REVIEW`. GitHub issues #68 and #69 are complete and merged through PRs
+#85 and #84. GitHub issue #70 is implemented on
+`feature/70-hipaa-close-readiness` from merge commit `53079ac`. Focused backend
+and frontend tests, Ruff, Mypy, frontend typecheck, ESLint, the production
+build, and the full API/catalog/frontend suites pass locally. Extension-backed
+Edge verification passes at 1440x900 and 1280x720, and all six PR checks pass.
 
 ## Current mode
 
-Build and review for Issue #68. The slice adds a project-scoped corrective-action
-Ready for Validation state and immutable binary Validated/Failed reassessment.
-Only a validated action with mapped evidence or documented interview/observation
-may change its linked determination from Not Met to Met. The finding remains
-open, and failed validation returns only the action to In Progress.
+Build and review for Issue #70. The slice adds one read-only, declaration-driven
+close decision for `fieldwork_ready_for_generation`. It evaluates the active
+approved Profile, final determinations, Not Met reconciliation, and complete SRA
+scope/risk work while keeping package, review, sign, backup, and snapshot gates
+informational for this transition.
 
 ## Current objective
 
-Commit the Chrome evidence and final UI regression fix, rerun CI, and merge PR
-#85 under Johnathan's explicit approval. After merge, implement the usable-pilot critical path in order:
-#70, #71, #72, and #73. Issue #66 requires Johnathan's explicit approval of
-sanitized report inputs before #71 can release report templates.
+Publish the final Issue #70 browser evidence, mark PR #86 ready, and merge it.
+Then implement the usable-pilot critical path in order: #71, #72, and #73.
+Issue #66 requires Johnathan's explicit approval of sanitized report inputs
+before #71 can release report templates.
 
 ## Approved specification
 
@@ -34,7 +33,21 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #68 - implemented / Chrome review passed.**
+**GitHub issue #70 - implemented / verification complete.**
+
+- The assessment-scoped close endpoint returns deterministic Ready/Blocked
+  decisions with named checks, actionable blockers, and later-gate information.
+- Pinned framework declarations drive validator selection, final statuses,
+  determination-bearing records, and the SRA anchor/required risk fields.
+- The service reads current source records only and persists no readiness truth.
+- Verification passes: focused backend `9 passed`; full API `114 passed`;
+  catalog `74 passed`; frontend `47 passed`; Ruff; Mypy; frontend typecheck;
+  ESLint; the production build; extension-backed Edge QA at 1440x900 and
+  1280x720; and all six PR #86 CI checks.
+
+### Recently completed ticket detail
+
+**GitHub issue #68 - complete and merged through PR #85.**
 
 - Migration `0009` adds corrective-action validation state, immutable validation
   events, immutable determination history, composite ownership constraints, and
@@ -437,8 +450,8 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Commit and push the Issue #69 Chrome evidence, update draft PR #84, re-run CI,
-then mark it ready for human review. Merge only after explicit user approval.
+Commit and push the Issue #70 Edge evidence, mark PR #86 ready for review,
+re-run CI, and merge after the already-recorded user approval.
 
 ## Branch inventory
 
