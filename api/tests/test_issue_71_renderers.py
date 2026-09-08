@@ -1,5 +1,6 @@
 from pathlib import Path
 from zipfile import ZipFile
+import re
 
 from api.renderers.hipaa import (
     POAM_COLUMNS,
@@ -30,7 +31,7 @@ def _snapshot() -> dict:
         "profile": {"client_name": "Synthetic client", "snapshot_id": "profile-1"},
         "records": [
             {"record_id": "parent", "carries_determination": False, "status": ""},
-            {"record_id": "r-1", "carries_determination": True, "status": "Met"},
+            {"record_id": "r-1", "carries_determination": True, "status": "Met", "citation": "ALTERED-1", "title": "Altered requirement", "text": "Altered requirement text", "objective": "Altered objective", "designation": "addressable"},
         ],
         "risks": [],
     }
@@ -62,6 +63,9 @@ def test_report_render_is_parseable_and_resolves_tokens(tmp_path: Path) -> None:
     assert "{{client_name}}" not in document
     assert "Synthetic client" in document
     assert "decl-test-1" in document
+    assert "Altered requirement" in document
+    assert "Altered requirement text" in document
+    assert "{{requirement_text}}" not in document
 
 
 def test_template_contract_is_explicit() -> None:
@@ -82,3 +86,6 @@ def test_poam_render_is_parseable_and_populates_exact_row(tmp_path: Path) -> Non
     assert "finding-1" in workbook
     assert "action-1" in workbook
     assert "decl-test-1" not in workbook
+    assert 'r="AC3"' in workbook
+    row = re.search(r'<(?:[A-Za-z0-9_]+:)?row r="3".*?</(?:[A-Za-z0-9_]+:)?row>', workbook).group(0)
+    assert row.count('<c r="') == 29

@@ -114,13 +114,17 @@ def report_values(snapshot: Mapping[str, Any]) -> dict[str, str]:
         "not_applicable_count": str(statuses.count("N/A")),
         "assessment_decision": _none(assessment.get("decision")), "issuance_decision": _none(assessment.get("issuance_decision")),
     }
-    rows = list(_records(s))
+    rows = [_joined_record(s, row) for row in _records(s)]
     # Repeated appendix/table fields are newline-delimited so the same approved
     # template remains useful for one or many framework records.
     def joined(key: str, *fallback: str) -> str:
         return "\n".join(_none(next((row.get(k) for k in (key, *fallback) if row.get(k) not in (None, "")), None)) for row in rows) or "None recorded"
     values.update({
         "control_reference": joined("citation", "record_id", "id"),
+        "framework_record_id": joined("record_id", "id"),
+        "objective": joined("objective", "assessment_objective"),
+        "designation": joined("designation"),
+        "citation": joined("citation", "record_id", "id"),
         "requirement_text": joined("text", "title"),
         "final_determination": joined("status", "determination"),
         "implementation_statement": joined("implementation_statement", "assessor_note"),
@@ -177,10 +181,32 @@ def _xlsx_cell(reference: str, value: Any) -> str:
     return f'<c r="{reference}" t="inlineStr"><is><t xml:space="preserve">{escaped}</t></is></c>'
 
 
+def _excel_column(index: int) -> str:
+    """Return a one-based Excel column name (1=A, 27=AA)."""
+    result = ""
+    while index:
+        index, remainder = divmod(index - 1, 26)
+        result = chr(65 + remainder) + result
+    return result
+
+
+def _joined_record(snapshot: Mapping[str, Any], row: Mapping[str, Any]) -> dict[str, Any]:
+    """Join normalized finding/action/risk collections to one framework record."""
+    key = row.get("record_id", row.get("id"))
+    result = dict(row)
+    for collection, aliases in (("findings", ("finding_id", "id")), ("actions", ("action_id", "id")), ("risks", ("risk_id", "id"))):
+        wanted = row.get(aliases[0], row.get(aliases[1]))
+        if wanted:
+            match = next((item for item in snapshot.get(collection, []) if item.get("id") == wanted or item.get("record_id") == key), None)
+            if match:
+                result.update(match)
+    return result
+
+
 def render_poam(template_path: Path, output_path: Path, snapshot: Mapping[str, Any]) -> str:
     """Populate the approved workbook using inline strings and exact 29-column rows."""
     s = canonical_snapshot(snapshot)
-    rows = [r for r in _records(s) if r.get("status", r.get("determination")) == "Not Met"]
+    rows = [_joined_record(s, r) for r in _records(s) if r.get("status", r.get("determination")) == "Not Met"]
     source = BytesIO()
     with zipfile.ZipFile(template_path, "r") as zin, zipfile.ZipFile(source, "w", zipfile.ZIP_DEFLATED) as zout:
         for item in zin.infolist():
@@ -193,7 +219,7 @@ def render_poam(template_path: Path, output_path: Path, snapshot: Mapping[str, A
                     generated = []
                     for n, row in enumerate(rows, 3):
                         values = [s.get("snapshot_id"), s.get("assessment", {}).get("id"), row.get("record_id"), row.get("citation", row.get("record_id")), row.get("work_area"), row.get("record_id"), row.get("title"), row.get("text"), row.get("control_group", row.get("work_area")), row.get("control_description", row.get("text")), row.get("finding_id"), row.get("risk_rating", row.get("risk")), row.get("recommendation"), row.get("status", "Not Met"), row.get("finding_date"), row.get("scheduled_completion_date"), row.get("actual_completion_date"), row.get("action_owner", row.get("owner")), row.get("milestones"), row.get("status_summary"), row.get("resources"), row.get("comments"), row.get("evidence_link"), row.get("validation_owner"), row.get("validation_date"), row.get("closure_basis"), row.get("action_id"), row.get("risk_id"), s.get("snapshot_id")]
-                        cells = "".join(_xlsx_cell(f"{chr(65 + (i % 26))}{n}", value) for i, value in enumerate(values))
+                        cells = "".join(_xlsx_cell(f"{_excel_column(i + 1)}{n}", value) for i, value in enumerate(values))
                         generated.append(f'<row r="{n}">{cells}</row>')
                     xml = xml.replace(template_row, "".join(generated) or template_row)
                     data = xml.encode("utf-8")
