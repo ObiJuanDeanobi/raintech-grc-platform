@@ -6,8 +6,8 @@
 #85 and #84. GitHub issue #70 is implemented on
 `feature/70-hipaa-close-readiness` from merge commit `53079ac`. Focused backend
 and frontend tests, Ruff, Mypy, frontend typecheck, ESLint, the production
-build, and the full API/catalog/frontend suites pass locally. Chrome
-verification remains before the PR is ready for review.
+build, and the full API/catalog/frontend suites pass locally. Extension-backed
+Edge verification passes at 1440x900 and 1280x720, and all six PR checks pass.
 
 ## Current mode
 
@@ -19,10 +19,10 @@ informational for this transition.
 
 ## Current objective
 
-Complete full verification and Chrome evidence for Issue #70, publish its PR,
-and merge after CI/review. Then implement the usable-pilot critical path in
-order: #71, #72, and #73. Issue #66 requires Johnathan's explicit approval of
-sanitized report inputs before #71 can release report templates.
+Publish the final Issue #70 browser evidence, mark PR #86 ready, and merge it.
+Then implement the usable-pilot critical path in order: #71, #72, and #73.
+Issue #66 requires Johnathan's explicit approval of sanitized report inputs
+before #71 can release report templates.
 
 ## Approved specification
 
@@ -33,7 +33,7 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #70 - implemented / local review in progress.**
+**GitHub issue #70 - implemented / verification complete.**
 
 - The assessment-scoped close endpoint returns deterministic Ready/Blocked
   decisions with named checks, actionable blockers, and later-gate information.
@@ -42,7 +42,8 @@ CI passed.
 - The service reads current source records only and persists no readiness truth.
 - Verification passes: focused backend `9 passed`; full API `114 passed`;
   catalog `74 passed`; frontend `47 passed`; Ruff; Mypy; frontend typecheck;
-  ESLint; and the production build.
+  ESLint; the production build; extension-backed Edge QA at 1440x900 and
+  1280x720; and all six PR #86 CI checks.
 
 ### Recently completed ticket detail
 
@@ -449,8 +450,8 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Commit and push the Issue #69 Chrome evidence, update draft PR #84, re-run CI,
-then mark it ready for human review. Merge only after explicit user approval.
+Commit and push the Issue #70 Edge evidence, mark PR #86 ready for review,
+re-run CI, and merge after the already-recorded user approval.
 
 ## Branch inventory
 
