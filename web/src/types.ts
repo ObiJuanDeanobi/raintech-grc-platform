@@ -102,6 +102,7 @@ export interface GeneratedPackage {
   source_sha256?: string;
   template_version?: string;
   components: GeneratedPackageComponent[];
+  manifest?: { components?: GeneratedPackageComponent[]; source_snapshot_sha256?: string; template_version?: string };
 }
 
 export interface ProfileReadiness {

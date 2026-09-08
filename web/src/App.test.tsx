@@ -308,6 +308,31 @@ test("renders close-readiness checks, blockers, later gates, and actionable reco
   expect(calls.some((url) => url.includes("close-readiness"))).toBe(true);
 });
 
+test("generates and exposes only the promoted two-component package", async () => {
+  const calls: Array<{ url: string; method?: string }> = [];
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    const url = String(input); calls.push({ url, method: init?.method });
+    if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
+    if (url.endsWith("/assessment")) return Response.json(assessment);
+    if (url.includes("close-readiness")) return Response.json({ status: "Ready", blockers: [], checks: [] });
+    if (url.endsWith("/packages") && init?.method === "POST") return Response.json({ id: "pkg-new", state: "promoted" });
+    if (url.endsWith("/packages")) return Response.json([
+      { id: "staged", assessment_id: "assessment-1", state: "staged", created_at: "2026-01-01T00:00:00Z", components: [] },
+      { id: "pkg-1", assessment_id: "assessment-1", state: "promoted", created_at: "2026-01-02T00:00:00Z", source_snapshot_id: "snap-1", manifest: { source_snapshot_sha256: "abc", components: [{ id: "report", kind: "assessment_report", filename: "report.docx" }, { id: "poam", kind: "poam", filename: "poam.xlsx" }] } },
+    ]);
+    if (url.includes("/records/child-1")) return Response.json(detail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({});
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  expect(await screen.findByText("Complete package")).toBeVisible();
+  expect(screen.queryByText("Package staged")).not.toBeInTheDocument();
+  expect(screen.getByText("report.docx")).toBeVisible();
+  expect(screen.getByText("poam.xlsx")).toBeVisible();
+  await userEvent.setup().click(screen.getByRole("button", { name: "Generate package" }));
+  await waitFor(() => expect(calls.some((call) => call.method === "POST" && call.url.endsWith("/api/projects/project-1/assessments/assessment-1/packages"))).toBe(true));
+});
+
 test("Not Met reconciliation uses project-scoped PUT and create payload", async () => {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   vi.mocked(fetch).mockImplementation(async (input, init) => {
