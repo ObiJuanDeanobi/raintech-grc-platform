@@ -6,6 +6,7 @@ from api.renderers.hipaa import (
     REPORT_SECTIONS,
     canonical_snapshot,
     render_report,
+    render_poam,
     snapshot_sha256,
     validate_snapshot,
 )
@@ -69,3 +70,15 @@ def test_template_contract_is_explicit() -> None:
     assert "Control Group" in POAM_COLUMNS
     assert "Control Description" in POAM_COLUMNS
     assert "Source Snapshot ID" in POAM_COLUMNS
+
+
+def test_poam_render_is_parseable_and_populates_exact_row(tmp_path: Path) -> None:
+    source = _snapshot()
+    source["records"][1].update(status="Not Met", finding_id="finding-1", action_id="action-1")
+    output = tmp_path / "poam.xlsx"
+    render_poam(ROOT / "docs/templates/hipaa/v2/RainTech_HIPAA_POAM_v2.xlsx", output, source)
+    with ZipFile(output) as package:
+        workbook = package.read("xl/worksheets/sheet2.xml").decode("utf-8")
+    assert "finding-1" in workbook
+    assert "action-1" in workbook
+    assert "decl-test-1" not in workbook

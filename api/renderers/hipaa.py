@@ -9,6 +9,7 @@ its canonical hash with the generated artifacts.
 from __future__ import annotations
 
 import copy
+import html
 import hashlib
 import json
 import re
@@ -40,6 +41,16 @@ POAM_COLUMNS = (
     "Risk Rating", "Status", "Scheduled Completion", "Milestone",
     "Resources", "Validation Owner", "Validation Evidence", "Closure Date",
     "Source Snapshot ID",
+)
+
+OPEN_POAM_COLUMNS = (
+    "POA&M ID", "Assessment ID", "Source Record ID", "Control Reference",
+    "Requirement Family", "Requirement ID", "Requirement", "Requirement Description",
+    "Control Group", "Control Description", "Finding", "Risk Rating", "Recommendation",
+    "Status", "Finding Date", "Scheduled Completion Date", "Actual Completion Date",
+    "Owner / Point of Contact", "Milestones", "Status Summary", "Resources Needed",
+    "Comments", "Evidence Link", "Validation Owner", "Validation Date", "Closure Basis",
+    "Action Link", "Risk Link", "Package / Snapshot ID",
 )
 
 _TOKEN = re.compile(r"\{\{([a-zA-Z0-9_]+)\}\}")
@@ -103,6 +114,41 @@ def report_values(snapshot: Mapping[str, Any]) -> dict[str, str]:
         "not_applicable_count": str(statuses.count("N/A")),
         "assessment_decision": _none(assessment.get("decision")), "issuance_decision": _none(assessment.get("issuance_decision")),
     }
+    rows = list(_records(s))
+    # Repeated appendix/table fields are newline-delimited so the same approved
+    # template remains useful for one or many framework records.
+    def joined(key: str, *fallback: str) -> str:
+        return "\n".join(_none(next((row.get(k) for k in (key, *fallback) if row.get(k) not in (None, "")), None)) for row in rows) or "None recorded"
+    values.update({
+        "control_reference": joined("citation", "record_id", "id"),
+        "requirement_text": joined("text", "title"),
+        "final_determination": joined("status", "determination"),
+        "implementation_statement": joined("implementation_statement", "assessor_note"),
+        "scope_context": joined("scope_context", "work_area"),
+        "evidence_references": joined("evidence_references", "evidence"),
+        "finding_id": joined("finding_id"), "action_id": joined("corrective_action_id", "action_id"),
+        "validation_state": joined("validation_state", "status"),
+        "requirement": joined("requirement", "text", "title"),
+        "control_group": joined("control_group", "work_area"),
+        "control_description": joined("control_description", "text", "title"),
+        "poam_id": joined("poam_id", "poa_m_id"), "risk_rating": joined("risk_rating", "risk"),
+        "poam_status": joined("poam_status", "status"), "scheduled_completion_date": joined("scheduled_completion_date"),
+        "action_owner": joined("action_owner", "owner"), "validation_evidence": joined("validation_evidence"),
+        "findings_grouped_by_source": "\n".join(f"{_none(r.get('work_area'))}: {_none(r.get('finding_id'))}" for r in rows) or "None recorded",
+        "assessment_scope_narrative": _none(s.get("scope", {}).get("narrative")),
+        "impact_determination_narrative": _none(s.get("impact_determination")),
+        "poam_summary_and_artifact_reference": _none(s.get("poam_artifact_reference")),
+        "sra_scope_summary": _none(s.get("sra", {}).get("scope")),
+        "sra_threat_summary": _none(s.get("sra", {}).get("threats")),
+        "sra_vulnerability_summary": _none(s.get("sra", {}).get("vulnerabilities")),
+        "sra_likelihood_summary": _none(s.get("sra", {}).get("likelihood")),
+        "sra_impact_summary": _none(s.get("sra", {}).get("impact")),
+        "sra_inherent_risk_summary": _none(s.get("sra", {}).get("inherent_risk")),
+        "sra_safeguard_summary": _none(s.get("sra", {}).get("safeguards")),
+        "sra_residual_risk_summary": _none(s.get("sra", {}).get("residual_risk")),
+        "sra_treatment_summary": _none(s.get("sra", {}).get("treatment")),
+        "sra_exclusions_with_rationale": _none(s.get("sra", {}).get("exclusions")),
+    })
     # Every remaining approved token is intentionally resolved to a safe empty state.
     return values
 
@@ -116,11 +162,55 @@ def render_report(template_path: Path, output_path: Path, snapshot: Mapping[str,
             data = zin.read(item.filename)
             if item.filename == "word/document.xml":
                 text = data.decode("utf-8")
-                data = _TOKEN.sub(lambda match: values.get(match.group(1), "None recorded").replace("&", "&amp;"), text).encode("utf-8")
+                data = _TOKEN.sub(lambda match: html.escape(values.get(match.group(1), "None recorded"), quote=True), text).encode("utf-8")
+            elif item.filename in {"word/header1.xml", "word/footer1.xml"}:
+                text = data.decode("utf-8")
+                data = _TOKEN.sub(lambda match: html.escape(values.get(match.group(1), "None recorded"), quote=True), text).encode("utf-8")
             zout.writestr(item, data)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(source.getvalue())
     return snapshot_sha256(snapshot)
+
+
+def _xlsx_cell(reference: str, value: Any) -> str:
+    escaped = html.escape(_none(value), quote=True)
+    return f'<c r="{reference}" t="inlineStr"><is><t xml:space="preserve">{escaped}</t></is></c>'
+
+
+def render_poam(template_path: Path, output_path: Path, snapshot: Mapping[str, Any]) -> str:
+    """Populate the approved workbook using inline strings and exact 29-column rows."""
+    s = canonical_snapshot(snapshot)
+    rows = [r for r in _records(s) if r.get("status", r.get("determination")) == "Not Met"]
+    source = BytesIO()
+    with zipfile.ZipFile(template_path, "r") as zin, zipfile.ZipFile(source, "w", zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+            if item.filename in {"xl/worksheets/sheet2.xml", "xl/worksheets/sheet4.xml"}:
+                xml = data.decode("utf-8")
+                match = re.search(r"(<(?:[A-Za-z0-9_]+:)?row r=\"3\".*?</(?:[A-Za-z0-9_]+:)?row>)", xml)
+                if match:
+                    template_row = match.group(1)
+                    generated = []
+                    for n, row in enumerate(rows, 3):
+                        values = [s.get("snapshot_id"), s.get("assessment", {}).get("id"), row.get("record_id"), row.get("citation", row.get("record_id")), row.get("work_area"), row.get("record_id"), row.get("title"), row.get("text"), row.get("control_group", row.get("work_area")), row.get("control_description", row.get("text")), row.get("finding_id"), row.get("risk_rating", row.get("risk")), row.get("recommendation"), row.get("status", "Not Met"), row.get("finding_date"), row.get("scheduled_completion_date"), row.get("actual_completion_date"), row.get("action_owner", row.get("owner")), row.get("milestones"), row.get("status_summary"), row.get("resources"), row.get("comments"), row.get("evidence_link"), row.get("validation_owner"), row.get("validation_date"), row.get("closure_basis"), row.get("action_id"), row.get("risk_id"), s.get("snapshot_id")]
+                        cells = "".join(_xlsx_cell(f"{chr(65 + (i % 26))}{n}", value) for i, value in enumerate(values))
+                        generated.append(f'<row r="{n}">{cells}</row>')
+                    xml = xml.replace(template_row, "".join(generated) or template_row)
+                    data = xml.encode("utf-8")
+            zout.writestr(item, data)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_bytes(source.getvalue())
+    return s["source_sha256"]
+
+
+def render_package_components(template_dir: Path, output_dir: Path, snapshot: Mapping[str, Any]) -> dict[str, Any]:
+    """Generate the governed report and POA&M as a single traceable package."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    report = output_dir / "HIPAA_Assessment_Report.docx"
+    poam = output_dir / "HIPAA_POAM.xlsx"
+    source_hash = render_report(template_dir / "RainTech_HIPAA_Combined_Assessment_Report_v2.docx", report, snapshot)
+    render_poam(template_dir / "RainTech_HIPAA_POAM_v2.xlsx", poam, snapshot)
+    return {"source_snapshot_id": snapshot["snapshot_id"], "source_sha256": source_hash, "report": report, "poam": poam}
 
 
 def validate_snapshot(snapshot: Mapping[str, Any]) -> list[str]:
@@ -141,4 +231,3 @@ def validate_snapshot(snapshot: Mapping[str, Any]) -> list[str]:
         if status == "Not Met" and not row.get("finding_id"):
             errors.append(f"records[{index}] Not Met requires finding_id")
     return errors
-
