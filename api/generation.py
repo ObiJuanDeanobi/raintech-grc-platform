@@ -5,7 +5,7 @@ from hashlib import sha256
 from pathlib import Path
 from uuid import uuid4
 from api.close import fieldwork_ready
-from api.renderers.hipaa import render_report, validate_snapshot
+from api.renderers.hipaa import render_report, render_poam, validate_snapshot
 from api.storage import FileStorage
 
 TEMPLATE_ROOT="docs/templates/hipaa/v2"
@@ -18,7 +18,15 @@ def _snapshot(c, project_id, assessment_id, assessment):
     profile=c.execute("SELECT pv.* FROM profile_versions pv JOIN profile_lifecycle_events le ON le.profile_version_id=pv.id WHERE pv.project_id=? AND le.status='Approved' ORDER BY le.created_at DESC LIMIT 1",(project_id,)).fetchone()
     if profile is None: raise ValueError("An approved Profile lifecycle snapshot is required")
     framework=c.execute("SELECT * FROM framework_versions WHERE id=?",(assessment["framework_version_id"],)).fetchone()
-    source={"snapshot_id":str(uuid4()),"template_version":"hipaa-v2","framework":{"id":assessment["framework_version_id"],"version":dict(framework) if framework else {},"declarations":_rows(c,"framework_declarations","framework_version_id=?",(assessment["framework_version_id"],))},"assessment":dict(assessment),"profile":{**dict(profile),"snapshot_id":profile["id"]},"records":_rows(c,"framework_records","framework_version_id=?",(assessment["framework_version_id"],)),"risks":_rows(c,"risks","project_id=?",(project_id,)),"profile_values":_rows(c,"profile_field_values","profile_version_id=?",(profile["id"],)),"determinations":_rows(c,"determinations","assessment_id=?",(assessment_id,)),"findings":_rows(c,"findings","project_id=?",(project_id,)),"corrective_actions":_rows(c,"corrective_actions","project_id=?",(project_id,)),"reconciliations":_rows(c,"not_met_reconciliations","project_id=?",(project_id,)),"sra_scope":_rows(c,"sra_scope_reviews","project_id=?",(project_id,)),"evidence_versions":_rows(c,"evidence_versions","project_id=?",(project_id,)),"readiness":fieldwork_ready(c,project_id,assessment_id)}
+    records=_rows(c,"framework_records","framework_version_id=?",(assessment["framework_version_id"],))
+    determinations={r["record_id"]:r for r in _rows(c,"determinations","assessment_id=?",(assessment_id,))}
+    findings=_rows(c,"findings","project_id=?",(project_id,)); actions=_rows(c,"corrective_actions","project_id=?",(project_id,))
+    for row in records:
+        d=determinations.get(row.get("record_id")); row.update(d or {})
+        f=next((x for x in findings if x.get("record_id")==row.get("record_id")),None); a=next((x for x in actions if f and x.get("finding_id")==f.get("id")),None)
+        if f: row.update({"finding_id":f.get("id"), **f})
+        if a: row.update({"action_id":a.get("id"), "corrective_action_id":a.get("id"), **a})
+    source={"snapshot_id":str(uuid4()),"template_version":"hipaa-v2","framework":{"id":assessment["framework_version_id"],"version":dict(framework) if framework else {},"declarations":_rows(c,"framework_declarations","framework_version_id=?",(assessment["framework_version_id"],))},"assessment":dict(assessment),"profile":{**dict(profile),"snapshot_id":profile["id"]},"records":records,"risks":_rows(c,"risks","project_id=?",(project_id,)),"profile_values":_rows(c,"profile_field_values","profile_version_id=?",(profile["id"],)),"determinations":list(determinations.values()),"findings":findings,"corrective_actions":actions,"actions":actions,"reconciliations":_rows(c,"not_met_reconciliations","project_id=?",(project_id,)),"sra_scope":_rows(c,"sra_scope_reviews","project_id=?",(project_id,)),"evidence_versions":_rows(c,"evidence_versions","project_id=?",(project_id,)),"readiness":fieldwork_ready(c,project_id,assessment_id)}
     errors=validate_snapshot(source)
     if errors: raise ValueError("Snapshot is not renderable: "+"; ".join(errors))
     encoded=json.dumps(source,sort_keys=True,separators=(",",":")); return source,sha256(encoded.encode()).hexdigest(),profile
@@ -35,6 +43,8 @@ def generate_package(connection: sqlite3.Connection, storage: FileStorage, root:
             template=root/TEMPLATE_ROOT/filename; component_id=str(uuid4()); content=template.read_bytes()
             if kind=="assessment_report":
                 out=root/"data"/"generation-staging"/f"{component_id}-{filename}"; render_report(template,out,source); content=out.read_bytes(); out.unlink(missing_ok=True)
+            elif kind=="poam":
+                out=root/"data"/"generation-staging"/f"{component_id}-{filename}"; render_poam(template,out,source); content=out.read_bytes(); out.unlink(missing_ok=True)
             staged_path,final_path=storage.stage(project_id,component_id,filename,content); staged.append((staged_path,final_path)); components.append({"id":component_id,"kind":kind,"filename":filename,"path":final_path,"sha256":sha256(content).hexdigest(),"bytes":len(content)})
         manifest={"project_id":project_id,"assessment_id":assessment_id,"source_snapshot_sha256":source_hash,"template_version":"hipaa-v2","components":components}; manifest_json=json.dumps(manifest,sort_keys=True,separators=(",",":")); connection.execute("INSERT INTO generated_packages VALUES (?,?,?,?,?,?,?,?,?,?)",(package_id,project_id,assessment_id,attempt_id,snapshot_id,"hipaa-v2","staged",manifest_json,sha256(manifest_json.encode()).hexdigest(),created))
         for item in components: connection.execute("INSERT INTO generated_components VALUES (?,?,?,?,?,?,?,?,?)",(item["id"],project_id,package_id,item["kind"],item["filename"],item["path"],item["sha256"],item["bytes"],created))
