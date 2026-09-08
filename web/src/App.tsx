@@ -1070,7 +1070,7 @@ function CloseReadinessPanel({ projectId, assessmentId, onNavigate }: { projectI
     const controller = new AbortController(); const sequence = ++sequenceRef.current;
     setData(null); setError("");
     void request<CloseReadiness>(`/api/projects/${projectId}/assessments/${assessmentId}/close-readiness?target=fieldwork_ready_for_generation`, { signal: controller.signal })
-      .then((next) => { if (!controller.signal.aborted && sequenceRef.current === sequence) setData(next); })
+      .then((next) => { if (!controller.signal.aborted && sequenceRef.current === sequence && next && typeof next.status === "string" && Array.isArray(next.checks) && Array.isArray(next.blockers)) setData(next); })
       .catch((caught) => { if (!controller.signal.aborted && sequenceRef.current === sequence) setError(caught instanceof Error ? caught.message : "Could not load close readiness."); });
     return () => controller.abort();
   }, [projectId, assessmentId]);

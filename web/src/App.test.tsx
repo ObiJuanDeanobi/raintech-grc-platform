@@ -287,6 +287,26 @@ beforeEach(() => {
   );
 });
 
+test("renders close-readiness checks, blockers, later gates, and actionable record link", async () => {
+  const calls: string[] = [];
+  vi.mocked(fetch).mockImplementation(async (input) => {
+    const url = String(input); calls.push(url);
+    if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
+    if (url.endsWith("/assessment")) return Response.json(assessment);
+    if (url.includes("close-readiness")) return Response.json({ target: "fieldwork_ready_for_generation", status: "Blocked", blockers: [{ message: "Resolve open findings" }], checks: [{ name: "Determinations", status: "pass" }], links: [{ label: "Open risk record", record_id: "child-1" }], metadata: { later_gates: ["Package sign-off"] } });
+    if (url.includes("/records/child-1")) return Response.json(detail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({});
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  expect(await screen.findByText("Fieldwork ready for generation")).toBeVisible();
+  expect(screen.getByText("Resolve open findings")).toBeVisible();
+  expect(screen.getByText("Determinations")).toBeVisible();
+  expect(screen.getByText("Package sign-off")).toBeVisible();
+  await userEvent.setup().click(screen.getByRole("button", { name: "Open risk record" }));
+  expect(calls.some((url) => url.includes("close-readiness"))).toBe(true);
+});
+
 test("Not Met reconciliation uses project-scoped PUT and create payload", async () => {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   vi.mocked(fetch).mockImplementation(async (input, init) => {
