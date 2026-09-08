@@ -83,6 +83,27 @@ export interface CloseReadiness {
   metadata?: Record<string, unknown>;
 }
 
+export interface GeneratedPackageComponent {
+  id: string;
+  kind: string;
+  filename: string;
+  relative_path?: string;
+  sha256?: string;
+  byte_count?: number;
+  download_url?: string;
+}
+
+export interface GeneratedPackage {
+  id: string;
+  assessment_id: string;
+  state: string;
+  created_at: string;
+  source_snapshot_id?: string;
+  source_sha256?: string;
+  template_version?: string;
+  components: GeneratedPackageComponent[];
+}
+
 export interface ProfileReadiness {
   project_id: string;
   state: string;
