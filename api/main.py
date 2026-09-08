@@ -1105,6 +1105,13 @@ def create_app(
         with database.connect() as connection:
             return fieldwork_ready(connection, project_id)
 
+    @app.get("/api/projects/{project_id}/assessments/{assessment_id}/close-readiness")
+    def get_assessment_close_readiness(project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)], target: str = "fieldwork_ready_for_generation") -> dict[str, Any]:
+        if target != "fieldwork_ready_for_generation":
+            raise HTTPException(422, "Unknown close-readiness target")
+        with database.connect() as connection:
+            return fieldwork_ready(connection, project_id, assessment_id)
+
     @app.get("/api/clients")
     def list_clients(database: Annotated[Database, Depends(db)]) -> list[dict[str, Any]]:
         with database.connect() as connection:

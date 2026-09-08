@@ -73,6 +73,15 @@ export interface Assessment {
   record_index: RecordIndex[];
 }
 
+export interface CloseReadiness {
+  target: string;
+  status: "Ready" | "Blocked" | string;
+  checks: Array<Record<string, unknown>>;
+  blockers: Array<Record<string, unknown> | string>;
+  links?: Array<Record<string, unknown>>;
+  metadata?: Record<string, unknown>;
+}
+
 export interface ProfileReadiness {
   project_id: string;
   state: string;

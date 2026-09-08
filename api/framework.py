@@ -163,6 +163,17 @@ def seed_framework(database: Database, repository_root: Path) -> None:
             ),
             "boundary_document": "docs/local-evidence-operating-boundary.md",
         },
+        "close_readiness": {
+            "fieldwork_ready_for_generation": {
+                "validators": [
+                    "approved_profile_complete",
+                    "determinations_final",
+                    "not_met_reconciled",
+                    "sra_complete",
+                ],
+                "informational": ["package", "review", "sign", "backup", "snapshot"],
+            }
+        },
     }
     determination_record_ids = _determination_record_ids(records, declarations)
     no_prompt_explanations = {
