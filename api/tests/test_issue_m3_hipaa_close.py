@@ -71,3 +71,41 @@ def test_close_readiness_consumes_framework_declaration(tmp_path: Path) -> None:
             connection.commit()
         result = close(client, pid).json()
         assert any(item["code"] == "profile_not_complete" for item in result["blockers"])
+
+
+def test_assessment_id_is_scoped_to_project_and_response_has_actionable_shape(tmp_path: Path) -> None:
+    with TestClient(create_app(database_path=tmp_path / "db.sqlite", storage_path=tmp_path / "files")) as client:
+        one = project(client, "one")
+        two = project(client, "two")
+        for pid in (one, two):
+            client.post(f"/api/projects/{pid}/profile-readiness/acknowledgement")
+            client.post(f"/api/projects/{pid}/profile-readiness/transitions", json={"next_state":"Intake complete", "decision_note":"test"})
+        assessment = client.post(f"/api/projects/{one}/assessments").json()["id"]
+        wrong = client.get(f"/api/projects/{two}/assessments/{assessment}/close-readiness")
+        assert wrong.status_code == 404
+        body = client.get(f"/api/projects/{one}/assessments/{assessment}/close-readiness").json()
+        assert {"target", "status", "ready", "checks", "blockers", "links", "informational"} <= body.keys()
+        assert isinstance(body["links"], list)
+
+
+def test_na_without_rationale_blocks_but_justified_na_is_not_a_na_blocker(tmp_path: Path) -> None:
+    with TestClient(create_app(database_path=tmp_path / "db.sqlite", storage_path=tmp_path / "files")) as client:
+        pid = project(client, "na")
+        client.post(f"/api/projects/{pid}/profile-readiness/acknowledgement")
+        client.post(f"/api/projects/{pid}/profile-readiness/transitions", json={"next_state":"Intake complete", "decision_note":"test"})
+        aid = client.post(f"/api/projects/{pid}/assessments").json()["id"]
+        record = "164.308(a)(1)(ii)(B)"
+        assert client.put(f"/api/assessments/{aid}/determinations/{record}", json={"status":"N/A"}).status_code == 422
+        assert client.put(f"/api/assessments/{aid}/determinations/{record}", json={"status":"N/A", "na_rationale":"Not applicable to this documented environment."}).status_code == 200
+        body = client.get(f"/api/projects/{pid}/assessments/{aid}/close-readiness").json()
+        assert not any(item["code"] == "na_rationale_missing" for item in body["blockers"])
+
+
+def test_sra_and_risk_review_are_explicit_close_checks(tmp_path: Path) -> None:
+    with TestClient(create_app(database_path=tmp_path / "db.sqlite", storage_path=tmp_path / "files")) as client:
+        pid = project(client, "sra")
+        body = close(client, pid).json()
+        codes = {item["code"] for item in body["blockers"]}
+        assert "sra_incomplete" in codes or "sra_not_approved" in codes
+        assert "risk_incomplete" in codes or "risk_review_missing" in codes
+        assert body["informational"]["package"] == "not_applicable"
