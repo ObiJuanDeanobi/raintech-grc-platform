@@ -13,11 +13,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
+from api.close import fieldwork_ready
 from api.database import Database, profile_snapshot_revision
 from api.framework import FRAMEWORK_ID, seed_framework
 from api.risk import RiskScore, score_risk
 from api.storage import FileStorage, LocalFileStorage
-from api.close import fieldwork_ready
 
 
 def now() -> str:
@@ -1099,14 +1099,21 @@ def create_app(
         return {"status": "ok"}
 
     @app.get("/api/projects/{project_id}/close-readiness/{target}")
-    def get_close_readiness(project_id: str, target: str, database: Annotated[Database, Depends(db)]) -> dict[str, Any]:
+    def get_close_readiness(
+        project_id: str, target: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any]:
         if target != "fieldwork_ready_for_generation":
             raise HTTPException(422, "Unknown close-readiness target")
         with database.connect() as connection:
             return fieldwork_ready(connection, project_id)
 
     @app.get("/api/projects/{project_id}/assessments/{assessment_id}/close-readiness")
-    def get_assessment_close_readiness(project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)], target: str = "fieldwork_ready_for_generation") -> dict[str, Any]:
+    def get_assessment_close_readiness(
+        project_id: str,
+        assessment_id: str,
+        database: Annotated[Database, Depends(db)],
+        target: str = "fieldwork_ready_for_generation",
+    ) -> dict[str, Any]:
         if target != "fieldwork_ready_for_generation":
             raise HTTPException(422, "Unknown close-readiness target")
         with database.connect() as connection:
@@ -2974,9 +2981,7 @@ def create_app(
                 (project_id, assessment_id, record_id),
             ).fetchall()
             if payload.outcome == "Validated":
-                has_interview = bool(
-                    (determination["interview_observation"] or "").strip()
-                )
+                has_interview = bool((determination["interview_observation"] or "").strip())
                 if not evidence_rows and not has_interview:
                     raise HTTPException(
                         422,

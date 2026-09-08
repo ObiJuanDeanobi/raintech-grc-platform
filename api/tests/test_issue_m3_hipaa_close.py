@@ -1,8 +1,10 @@
 import json
 import sqlite3
 from pathlib import Path
+from typing import cast
 
 from fastapi.testclient import TestClient
+from httpx import Response
 
 from api.main import create_app
 from api.tests.test_issue_m3_hipaa_sra import _risk, _setup
@@ -10,10 +12,13 @@ from api.tests.test_issue_m3_hipaa_sra import _risk, _setup
 
 def project(client: TestClient, name: str) -> str:
     cid = client.post("/api/clients", json={"name": name}).json()["id"]
-    return client.post(f"/api/clients/{cid}/projects", json={"name": name}).json()["id"]
+    return cast(
+        str,
+        client.post(f"/api/clients/{cid}/projects", json={"name": name}).json()["id"],
+    )
 
 
-def close(client: TestClient, project_id: str):
+def close(client: TestClient, project_id: str) -> Response:
     return client.get(f"/api/projects/{project_id}/close-readiness/fieldwork_ready_for_generation")
 
 
