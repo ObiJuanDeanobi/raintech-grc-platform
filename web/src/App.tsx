@@ -1079,10 +1079,10 @@ function CloseReadinessPanel({ projectId, assessmentId, onNavigate }: { projectI
   const text = (value: unknown) => typeof value === "string" ? value : JSON.stringify(value);
   return <section className={`close-readiness-panel ${data.status.toLowerCase()}`} aria-labelledby="close-readiness-title">
     <div className="section-title"><div><p className="eyebrow">CLOSE READINESS</p><h2 id="close-readiness-title">Fieldwork ready for generation</h2></div><span className={`readiness-state ${data.status === "Ready" ? "ready" : "blocked"}`}>{data.status}</span></div>
-    {data.blockers.length > 0 && <div className="close-readiness-blockers"><strong>Blockers</strong><ul>{data.blockers.map((blocker, index) => <li key={index}>{typeof blocker === "string" ? blocker : text(blocker.message ?? blocker.reason ?? blocker)}</li>)}</ul></div>}
+    {data.blockers.length > 0 && <div className="close-readiness-blockers"><strong>Blockers</strong><ul>{data.blockers.map((blocker, index) => <li key={index}>{typeof blocker === "string" ? blocker : text(blocker.detail ?? blocker.message ?? blocker.reason ?? blocker)}</li>)}</ul></div>}
     <div className="close-readiness-checks"><strong>Checks</strong><ul>{data.checks.map((check, index) => <li key={index}><span>{text(check.label ?? check.name ?? check.key ?? `Check ${index + 1}`)}</span><small>{text(check.status ?? check.result ?? check.value)}</small></li>)}</ul></div>
     {data.links && data.links.length > 0 && <div className="close-readiness-links"><strong>Next actions</strong>{data.links.map((link, index) => <button key={index} className="text-button" onClick={() => onNavigate(link)}>{text(link.label ?? link.title ?? link.action ?? "Open related work")}</button>)}</div>}
-    {data.metadata && <details><summary>Later gates and metadata</summary><pre>{JSON.stringify(data.metadata, null, 2)}</pre></details>}
+    {(data.informational || data.metadata) && <details><summary>Later gates and metadata</summary><ul>{Object.entries(data.informational ?? data.metadata ?? {}).map(([key, value]) => <li key={key}>{key.replaceAll("_", " ")} · {text(value)}</li>)}</ul></details>}
   </section>;
 }
 

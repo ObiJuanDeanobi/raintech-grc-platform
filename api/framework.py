@@ -165,6 +165,9 @@ def seed_framework(database: Database, repository_root: Path) -> None:
         },
         "close_readiness": {
             "fieldwork_ready_for_generation": {
+                "final_statuses": ["Met", "Not Met", "N/A"],
+                "not_met_status": "Not Met",
+                "not_applicable_status": "N/A",
                 "validators": [
                     "approved_profile_complete",
                     "determinations_final",

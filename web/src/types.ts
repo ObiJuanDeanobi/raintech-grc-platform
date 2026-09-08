@@ -79,6 +79,7 @@ export interface CloseReadiness {
   checks: Array<Record<string, unknown>>;
   blockers: Array<Record<string, unknown> | string>;
   links?: Array<Record<string, unknown>>;
+  informational?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
 }
 
