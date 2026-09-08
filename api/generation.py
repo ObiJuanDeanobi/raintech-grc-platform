@@ -30,6 +30,7 @@ def _rows(c, table, where, args=()):
 
 
 def _snapshot(c, project_id, assessment_id, assessment):
+    active = c.execute("SELECT active_profile_version_id FROM projects WHERE id=?", (project_id,)).fetchone()
     profile = c.execute(
         """
         SELECT pv.*
@@ -41,6 +42,8 @@ def _snapshot(c, project_id, assessment_id, assessment):
         """,
         (project_id,),
     ).fetchone()
+    if active and active["active_profile_version_id"]:
+        profile = c.execute("SELECT pv.* FROM profile_versions pv JOIN profile_lifecycle_events le ON le.profile_version_id=pv.id WHERE pv.id=? AND le.status='Approved' ORDER BY le.created_at DESC LIMIT 1", (active["active_profile_version_id"],)).fetchone() or profile
     if profile is None:
         raise ValueError("An approved Profile lifecycle snapshot is required")
     framework = c.execute(
@@ -57,8 +60,12 @@ def _snapshot(c, project_id, assessment_id, assessment):
     for row in records:
         d = determinations.get(row.get("record_id"))
         row.update(d or {})
-        f = next((x for x in findings if x.get("record_id") == row.get("record_id")), None)
-        a = next((x for x in actions if f and x.get("finding_id") == f.get("id")), None)
+        row["text"] = row.get("text") or row.get("regulation_text") or row.get("title")
+        if d and d.get("na_rationale"):
+            row["rationale"] = d["na_rationale"]
+        reconciliation = next((x for x in _rows(c, "not_met_reconciliations", "assessment_id=? AND record_id=?", (assessment_id, row.get("record_id")))), None)
+        f = next((x for x in findings if reconciliation and x.get("id") == reconciliation.get("finding_id")), None)
+        a = next((x for x in actions if reconciliation and x.get("id") == reconciliation.get("corrective_action_id")), None)
         if f:
             row.update({"finding_id": f.get("id"), **f})
         if a:

@@ -47,7 +47,7 @@ def upgrade() -> None:
       kind TEXT NOT NULL, filename TEXT NOT NULL, relative_path TEXT NOT NULL,
       sha256 TEXT NOT NULL, byte_count INTEGER NOT NULL, created_at TEXT NOT NULL,
       FOREIGN KEY(package_id, project_id) REFERENCES generated_packages(id, project_id),
-      UNIQUE(package_id, project_id)
+      UNIQUE(id, project_id), UNIQUE(package_id, project_id, kind)
     )
     """)
     op.execute(
@@ -62,15 +62,22 @@ def upgrade() -> None:
     op.execute(
         "CREATE INDEX idx_generated_components_project ON generated_components(project_id, package_id)"
     )
-    for table in (
-        "source_snapshots",
-        "generation_attempts",
-        "generated_packages",
-        "generated_components",
-    ):
-        op.execute(
-            f"CREATE TRIGGER {table}_append_only_update BEFORE UPDATE ON {table} BEGIN SELECT RAISE(ABORT, '{table} are immutable'); END"
-        )
+    op.execute("""CREATE TRIGGER generation_attempts_guard BEFORE UPDATE ON generation_attempts
+      WHEN NOT (OLD.state='staged' AND NEW.state IN ('promoted','failed') AND NEW.id=OLD.id
+        AND NEW.project_id=OLD.project_id AND NEW.assessment_id=OLD.assessment_id
+        AND NEW.target=OLD.target AND NEW.source_snapshot_id=OLD.source_snapshot_id
+        AND (NEW.error IS OLD.error OR NEW.state='failed'))
+      BEGIN SELECT RAISE(ABORT, 'generation attempts are immutable'); END""")
+    op.execute("""CREATE TRIGGER generated_packages_guard BEFORE UPDATE ON generated_packages
+      WHEN NOT (OLD.state='staged' AND NEW.state='promoted' AND NEW.id=OLD.id
+        AND NEW.project_id=OLD.project_id AND NEW.assessment_id=OLD.assessment_id
+        AND NEW.generation_attempt_id=OLD.generation_attempt_id AND NEW.source_snapshot_id=OLD.source_snapshot_id
+        AND NEW.template_version=OLD.template_version AND NEW.manifest_json=OLD.manifest_json
+        AND NEW.sha256=OLD.sha256 AND NEW.created_at=OLD.created_at)
+      BEGIN SELECT RAISE(ABORT, 'generated packages are immutable'); END""")
+    for table in ("source_snapshots", "generated_components"):
+        op.execute(f"CREATE TRIGGER {table}_append_only_update BEFORE UPDATE ON {table} BEGIN SELECT RAISE(ABORT, '{table} are immutable'); END")
+    for table in ("source_snapshots", "generation_attempts", "generated_packages", "generated_components"):
         op.execute(
             f"CREATE TRIGGER {table}_append_only_delete BEFORE DELETE ON {table} BEGIN SELECT RAISE(ABORT, '{table} are immutable'); END"
         )
@@ -83,6 +90,9 @@ def downgrade() -> None:
         "generation_attempts",
         "source_snapshots",
     ):
-        op.execute(f"DROP TRIGGER {table}_append_only_update")
         op.execute(f"DROP TRIGGER {table}_append_only_delete")
+    op.execute("DROP TRIGGER generation_attempts_guard")
+    op.execute("DROP TRIGGER generated_packages_guard")
+    for table in ("source_snapshots", "generated_components"):
+        op.execute(f"DROP TRIGGER {table}_append_only_update")
         op.execute(f"DROP TABLE {table}")
