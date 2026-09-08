@@ -5,8 +5,9 @@
 `BUILD/REVIEW`. GitHub issues #68 and #69 are complete and merged through PRs
 #85 and #84. GitHub issue #70 is implemented on
 `feature/70-hipaa-close-readiness` from merge commit `53079ac`. Focused backend
-and frontend tests, Ruff, Mypy, frontend typecheck, and ESLint pass locally.
-Full-suite, build, migration-cycle, and Chrome verification remain before PR.
+and frontend tests, Ruff, Mypy, frontend typecheck, ESLint, the production
+build, and the full API/catalog/frontend suites pass locally. Chrome
+verification remains before the PR is ready for review.
 
 ## Current mode
 
@@ -39,8 +40,9 @@ CI passed.
 - Pinned framework declarations drive validator selection, final statuses,
   determination-bearing records, and the SRA anchor/required risk fields.
 - The service reads current source records only and persists no readiness truth.
-- Focused verification passes: backend `9 passed`; frontend `27 passed`;
-  frontend typecheck; ESLint; targeted Ruff and Mypy.
+- Verification passes: focused backend `9 passed`; full API `114 passed`;
+  catalog `74 passed`; frontend `47 passed`; Ruff; Mypy; frontend typecheck;
+  ESLint; and the production build.
 
 ### Recently completed ticket detail
 
