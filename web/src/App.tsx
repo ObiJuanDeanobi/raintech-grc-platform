@@ -27,6 +27,7 @@ import type {
   Client,
   CloseReadiness,
   GeneratedPackage,
+  PackageReview,
   EvidenceMapping,
   Prompt,
   ProfileReadiness,
@@ -1093,6 +1094,9 @@ function PackageGenerationPanel({ projectId, assessmentId }: { projectId: string
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
+  const [reviews, setReviews] = useState<Record<string, PackageReview>>({});
+  const [reviewForms, setReviewForms] = useState<Record<string, { reviewer_name: string; reviewer_role: string; note: string; confirmations: Record<string, boolean> }>>({});
+  const [reviewWorking, setReviewWorking] = useState<string | null>(null);
   const sequenceRef = useRef(0);
   const load = useCallback(async (signal?: AbortSignal) => {
     const sequence = ++sequenceRef.current;
@@ -1106,6 +1110,12 @@ function PackageGenerationPanel({ projectId, assessmentId }: { projectId: string
       setReadiness(nextReadiness);
       const listed = Array.isArray(nextPackages) ? nextPackages : nextPackages.packages ?? [];
       setPackages(listed.filter((pkg) => pkg.assessment_id === assessmentId && pkg.state === "promoted").map((pkg) => ({ ...pkg, source_sha256: pkg.source_sha256 ?? pkg.manifest?.source_snapshot_sha256, template_version: pkg.template_version ?? pkg.manifest?.template_version, components: pkg.components?.length ? pkg.components : pkg.manifest?.components ?? [] })));
+      const promoted = listed.filter((pkg) => pkg.assessment_id === assessmentId && pkg.state === "promoted");
+      const loadedReviews = await Promise.all(promoted.map(async (pkg) => {
+        try { const review = await request<PackageReview>(`/api/projects/${projectId}/packages/${pkg.id}/review`, { signal }); return [pkg.id, review && typeof review.state === "string" ? review : { package_id: pkg.id, state: "Complete candidate" }] as const; }
+        catch { return [pkg.id, { package_id: pkg.id, state: "Complete candidate" }] as const; }
+      }));
+      if (sequence === sequenceRef.current && !signal?.aborted) setReviews(Object.fromEntries(loadedReviews));
     } catch (caught) {
       if (sequence === sequenceRef.current && !signal?.aborted) setError(caught instanceof Error ? caught.message : "Could not load generated packages.");
     } finally { if (sequence === sequenceRef.current && !signal?.aborted) setLoading(false); }
@@ -1120,12 +1130,32 @@ function PackageGenerationPanel({ projectId, assessmentId }: { projectId: string
     } catch (caught) { if (sequence === sequenceRef.current) setError(caught instanceof Error ? caught.message : "Package generation failed."); }
     finally { setGenerating(false); }
   }
+  function formFor(pkg: GeneratedPackage) {
+    return reviewForms[pkg.id] ?? { reviewer_name: "", reviewer_role: "", note: "", confirmations: Object.fromEntries(pkg.components.map((component) => [component.kind, false])) };
+  }
+  async function transition(pkg: GeneratedPackage, nextState: "In Review" | "Reviewed" | "Ready to issue") {
+    const sequence = sequenceRef.current;
+    const form = formFor(pkg);
+    const review = reviews[pkg.id];
+    const drift = review?.drift ?? [];
+    const allConfirmed = pkg.components.every((component) => form.confirmations[component.kind]) && Boolean(form.confirmations.__source);
+    if (nextState === "Ready to issue" && (!form.reviewer_name.trim() || !form.reviewer_role.trim() || !form.note.trim() || !allConfirmed || drift.length > 0 || (review?.blockers?.length ?? 0) > 0)) {
+      setError("Package sign-off is blocked: complete reviewer fields, component confirmations, and resolve drift or blockers.");
+      return;
+    }
+    setReviewWorking(pkg.id); setError("");
+    try {
+      const next = await request<PackageReview>(`/api/projects/${projectId}/packages/${pkg.id}/review/transitions`, { method: "POST", body: JSON.stringify({ next_state: nextState, actor_id: "johnathan", reviewer_name: form.reviewer_name, reviewer_role: form.reviewer_role, note: form.note, approval: nextState === "Ready to issue" ? "I approve this exact package for issuance." : "", component_confirmations: form.confirmations }) });
+      if (sequenceRef.current === sequence) setReviews((current) => ({ ...current, [pkg.id]: next }));
+    } catch (caught) { if (sequenceRef.current === sequence) setError(caught instanceof Error ? caught.message : "Package review update failed."); }
+    finally { if (sequenceRef.current === sequence) setReviewWorking(null); }
+  }
   if (loading) return <section className="package-generation-panel"><p className="eyebrow">PACKAGE GENERATION</p><p>Loading package status…</p></section>;
   return <section className="package-generation-panel" aria-labelledby="package-generation-title">
     <div className="section-title"><div><p className="eyebrow">PACKAGE GENERATION</p><h2 id="package-generation-title">HIPAA assessment package</h2></div>{readiness?.status === "Ready" && <span className="readiness-state ready">Ready to generate</span>}</div>
     {error && <p className="error-copy" role="alert">{error}</p>}
     {readiness?.status !== "Ready" ? <p className="package-generation-blocked">Complete fieldwork close readiness before generating the report and POA&amp;M.</p> : <div className="package-generation-action"><p>Generate the combined assessment report and separate POA&amp;M from one immutable source snapshot.</p><button className="small-button" disabled={generating} onClick={() => void generate()}>{generating ? "Generating both components…" : "Generate package"}</button></div>}
-    {packages.length > 0 && <div className="generated-package-list"><strong>Generated packages</strong>{packages.map((pkg) => <article key={pkg.id} className="generated-package"><div><strong>Complete package</strong><small>{new Date(pkg.created_at).toLocaleString()} · Source {pkg.source_snapshot_id ?? "snapshot recorded"}</small></div><div className="generated-components">{pkg.components.map((component) => <a key={component.id} className="text-button" href={component.download_url ?? `/api/projects/${projectId}/packages/${pkg.id}/components/${component.id}/download`}>{component.filename || component.kind}</a>)}</div>{pkg.source_sha256 && <small>Source SHA-256: {pkg.source_sha256}</small>}</article>)}</div>}
+    {packages.length > 0 && <div className="generated-package-list"><strong>Generated packages</strong>{packages.map((pkg) => { const review = reviews[pkg.id] ?? { package_id: pkg.id, state: "Complete candidate" }; const form = formFor(pkg); return <article key={pkg.id} className="generated-package"><div><strong>Complete package</strong><small>{new Date(pkg.created_at).toLocaleString()} · Source {pkg.source_snapshot_id ?? "snapshot recorded"}</small></div><div className="generated-components">{pkg.components.map((component) => <a key={component.id} className="text-button" href={component.download_url ?? `/api/projects/${projectId}/packages/${pkg.id}/components/${component.id}/download`}>{component.filename || component.kind}</a>)}</div>{pkg.source_sha256 && <small>Source SHA-256: {pkg.source_sha256}</small>}<div className="package-review" aria-label={`Review ${pkg.id}`} aria-busy={reviewWorking === pkg.id}><div className="section-title"><strong>Package review</strong><span className={`readiness-state ${review.state === "Ready to issue" ? "ready" : "blocked"}`}>{review.state}</span></div>{(review.drift?.length ?? 0) > 0 && <div className="package-review-error" role="alert">Source or template drift detected: {review.drift!.join("; ")}</div>}{(review.blockers?.length ?? 0) > 0 && <div className="package-review-error" role="alert">Review blockers: {review.blockers!.join("; ")}</div>}<div className="package-review-fields"><label>Reviewer name<input value={form.reviewer_name} onChange={(event) => setReviewForms((all) => ({ ...all, [pkg.id]: { ...form, reviewer_name: event.target.value } }))} /></label><label>Reviewer role<input value={form.reviewer_role} onChange={(event) => setReviewForms((all) => ({ ...all, [pkg.id]: { ...form, reviewer_role: event.target.value } }))} /></label><label>Review note<textarea rows={2} value={form.note} onChange={(event) => setReviewForms((all) => ({ ...all, [pkg.id]: { ...form, note: event.target.value } }))} /></label></div><div className="package-review-confirmations">{pkg.components.map((component) => <label key={component.id}><input type="checkbox" checked={Boolean(form.confirmations[component.kind])} onChange={(event) => setReviewForms((all) => ({ ...all, [pkg.id]: { ...form, confirmations: { ...form.confirmations, [component.kind]: event.target.checked } } }))} /> Confirm {component.filename || component.kind}{component.sha256 ? ` (${component.sha256.slice(0, 12)}…)` : ""}</label>)}<label><input type="checkbox" checked={Boolean(form.confirmations.__source)} onChange={(event) => setReviewForms((all) => ({ ...all, [pkg.id]: { ...form, confirmations: { ...form.confirmations, __source: event.target.checked } } }))} /> Confirm source snapshot and template version</label></div><div className="package-review-actions"><button className="secondary-button" disabled={reviewWorking === pkg.id || review.state !== "Complete candidate"} onClick={() => void transition(pkg, "In Review")}>Start review</button><button className="small-button" disabled={reviewWorking === pkg.id || review.state !== "In Review"} onClick={() => void transition(pkg, "Reviewed")}>Mark reviewed</button><button className="primary-button" disabled={reviewWorking === pkg.id || review.state !== "Reviewed"} onClick={() => void transition(pkg, "Ready to issue")}>Sign off: Ready to issue</button></div></div></article>; })}</div>}
   </section>;
 }
 

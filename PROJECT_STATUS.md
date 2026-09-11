@@ -2,27 +2,27 @@
 
 ## Current phase
 
-`BUILD/REVIEW`. GitHub issue #71 is implemented on
-`feature/71-hipaa-generation`. The governed HIPAA package uses one immutable
-source snapshot to atomically produce the approved combined-report DOCX and
-companion POA&M XLSX. Issue #68's stale open state was reconciled and closed;
-its implementation remains merged through PR #85. The authoritative remaining
-path to a usable HIPAA and CMMC V1 is tracked in GitHub issue #88.
+`BUILD/REVIEW`. GitHub issue #71 is complete and merged through PR #89. GitHub
+issue #72 is implemented on `feature/72-hipaa-package-review`: one exact
+generated package advances through append-only In Review, Reviewed, and Ready
+to issue events only while its source, templates, and component bytes remain
+current and intact. The authoritative remaining path to a usable HIPAA and CMMC
+V1 is tracked in GitHub issue #88.
 
 ## Current mode
 
-Build and review for Issue #71. Generation is gated by the declaration-driven
-`fieldwork_ready_for_generation` decision, stages both artifacts, validates and
-promotes them together, records failed attempts without publishing partial
-packages, and retains source/component hashes for later review and issuance.
+Build and review for Issue #72. Named review and explicit sign-off bind the
+package, both component hashes, source snapshot, approved template hashes,
+reviewer identity/role, note, confirmation set, and lifecycle sequence. Source,
+template, or stored-byte drift blocks further transition and requires a new
+package.
 
 ## Current objective
 
-Complete the usable-pilot critical path by merging #71, then implementing #72
-and #73. Refresh Windows/offline packaging acceptance under #32 after the full
-issuance path exists. CMMC #30/#31 now correctly preserve the already extracted
-catalog and practitioner guidance as migration inputs rather than greenfield
-ingestion work.
+Complete the usable-pilot critical path by merging #72, then implementing #73.
+Refresh Windows/offline packaging acceptance under #32 after the full issuance
+path exists. CMMC #30/#31 preserve the already extracted catalog and
+practitioner guidance as migration inputs rather than greenfield ingestion work.
 
 ## Approved specification
 
@@ -33,7 +33,27 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #71 - implemented / verification complete.**
+**GitHub issue #72 - implemented / verification complete.**
+
+- A promoted #71 package begins as a Complete candidate and can move only
+  through In Review, Reviewed, and Ready to issue; no transition issues it.
+- Every append-only event pins the package/source/component/template hashes,
+  actor, reviewer name and role, note, confirmations, approval, and timestamp.
+- Live source reconstruction, approved-template hashing, and managed component
+  byte hashing block stale, incomplete, missing, or corrupted candidates.
+- Database guards reject mutation, deletion, skipped states, reordered sequence,
+  cross-project ownership, and package/assessment mismatch.
+- The UI exposes both exact components and their hashes, requires named review
+  and confirmations, locks consequential actions, and ignores stale responses.
+- Verification passes: focused generation/review tests `12 passed`; full API
+  `131 passed`; catalog `74 passed` with 15 optional PyMuPDF tests skipped;
+  Ruff; Mypy; frontend typecheck; ESLint; Vitest `49 passed`; production build;
+  clean migration upgrade/downgrade/re-upgrade; and a synthetic browser flow
+  through Ready to issue with no page error.
+
+### Previously completed ticket detail
+
+**GitHub issue #71 - complete and merged through PR #89.**
 
 - One action generates the approved combined assessment report and separate
   POA&M from the same immutable, hashed source snapshot.
