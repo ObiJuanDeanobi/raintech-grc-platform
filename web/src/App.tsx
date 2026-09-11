@@ -26,6 +26,7 @@ import type {
   Assessment,
   Client,
   CloseReadiness,
+  GeneratedPackage,
   EvidenceMapping,
   Prompt,
   ProfileReadiness,
@@ -1086,6 +1087,48 @@ function CloseReadinessPanel({ projectId, assessmentId, onNavigate }: { projectI
   </section>;
 }
 
+function PackageGenerationPanel({ projectId, assessmentId }: { projectId: string; assessmentId: string }) {
+  const [readiness, setReadiness] = useState<CloseReadiness | null>(null);
+  const [packages, setPackages] = useState<GeneratedPackage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState("");
+  const sequenceRef = useRef(0);
+  const load = useCallback(async (signal?: AbortSignal) => {
+    const sequence = ++sequenceRef.current;
+    setLoading(true); setError("");
+    try {
+      const [nextReadiness, nextPackages] = await Promise.all([
+        request<CloseReadiness>(`/api/projects/${projectId}/assessments/${assessmentId}/close-readiness?target=fieldwork_ready_for_generation`, { signal }),
+        request<GeneratedPackage[] | { packages?: GeneratedPackage[] }>(`/api/projects/${projectId}/packages`, { signal }),
+      ]);
+      if (sequence !== sequenceRef.current || signal?.aborted) return;
+      setReadiness(nextReadiness);
+      const listed = Array.isArray(nextPackages) ? nextPackages : nextPackages.packages ?? [];
+      setPackages(listed.filter((pkg) => pkg.assessment_id === assessmentId && pkg.state === "promoted").map((pkg) => ({ ...pkg, source_sha256: pkg.source_sha256 ?? pkg.manifest?.source_snapshot_sha256, template_version: pkg.template_version ?? pkg.manifest?.template_version, components: pkg.components?.length ? pkg.components : pkg.manifest?.components ?? [] })));
+    } catch (caught) {
+      if (sequence === sequenceRef.current && !signal?.aborted) setError(caught instanceof Error ? caught.message : "Could not load generated packages.");
+    } finally { if (sequence === sequenceRef.current && !signal?.aborted) setLoading(false); }
+  }, [projectId, assessmentId]);
+  useEffect(() => { const controller = new AbortController(); void load(controller.signal); return () => { sequenceRef.current += 1; controller.abort(); }; }, [load]);
+  async function generate() {
+    const sequence = sequenceRef.current;
+    setGenerating(true); setError("");
+    try {
+      await request(`/api/projects/${projectId}/assessments/${assessmentId}/packages`, { method: "POST" });
+      if (sequence === sequenceRef.current) await load();
+    } catch (caught) { if (sequence === sequenceRef.current) setError(caught instanceof Error ? caught.message : "Package generation failed."); }
+    finally { setGenerating(false); }
+  }
+  if (loading) return <section className="package-generation-panel"><p className="eyebrow">PACKAGE GENERATION</p><p>Loading package status…</p></section>;
+  return <section className="package-generation-panel" aria-labelledby="package-generation-title">
+    <div className="section-title"><div><p className="eyebrow">PACKAGE GENERATION</p><h2 id="package-generation-title">HIPAA assessment package</h2></div>{readiness?.status === "Ready" && <span className="readiness-state ready">Ready to generate</span>}</div>
+    {error && <p className="error-copy" role="alert">{error}</p>}
+    {readiness?.status !== "Ready" ? <p className="package-generation-blocked">Complete fieldwork close readiness before generating the report and POA&amp;M.</p> : <div className="package-generation-action"><p>Generate the combined assessment report and separate POA&amp;M from one immutable source snapshot.</p><button className="small-button" disabled={generating} onClick={() => void generate()}>{generating ? "Generating both components…" : "Generate package"}</button></div>}
+    {packages.length > 0 && <div className="generated-package-list"><strong>Generated packages</strong>{packages.map((pkg) => <article key={pkg.id} className="generated-package"><div><strong>Complete package</strong><small>{new Date(pkg.created_at).toLocaleString()} · Source {pkg.source_snapshot_id ?? "snapshot recorded"}</small></div><div className="generated-components">{pkg.components.map((component) => <a key={component.id} className="text-button" href={component.download_url ?? `/api/projects/${projectId}/packages/${pkg.id}/components/${component.id}/download`}>{component.filename || component.kind}</a>)}</div>{pkg.source_sha256 && <small>Source SHA-256: {pkg.source_sha256}</small>}</article>)}</div>}
+  </section>;
+}
+
 export function Workspace({
   clients,
   projectId,
@@ -1509,6 +1552,7 @@ export function Workspace({
           if (target === "profile" || target === "sra" || target === "overview") changeView(target as "profile" | "sra" | "overview");
           else if (link.record_id || link.recordId) changeRecord(String(link.record_id ?? link.recordId));
         }} />
+        <PackageGenerationPanel projectId={assessment.project.id} assessmentId={assessment.id} />
 
         {detail.parent && (
           <section className="parent-context">
