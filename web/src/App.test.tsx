@@ -331,6 +331,7 @@ test("generates and exposes only the promoted two-component package", async () =
   expect(screen.getByText("poam.xlsx")).toBeVisible();
   await userEvent.setup().click(screen.getByRole("button", { name: "Generate package" }));
   await waitFor(() => expect(calls.some((call) => call.method === "POST" && call.url.endsWith("/api/projects/project-1/assessments/assessment-1/packages"))).toBe(true));
+  expect(await screen.findByRole("button", { name: "Generate package" })).toBeEnabled();
 });
 
 test("Not Met reconciliation uses project-scoped PUT and create payload", async () => {

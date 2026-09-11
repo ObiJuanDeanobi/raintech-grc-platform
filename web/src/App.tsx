@@ -1118,7 +1118,7 @@ function PackageGenerationPanel({ projectId, assessmentId }: { projectId: string
       await request(`/api/projects/${projectId}/assessments/${assessmentId}/packages`, { method: "POST" });
       if (sequence === sequenceRef.current) await load();
     } catch (caught) { if (sequence === sequenceRef.current) setError(caught instanceof Error ? caught.message : "Package generation failed."); }
-    finally { if (sequence === sequenceRef.current) setGenerating(false); }
+    finally { setGenerating(false); }
   }
   if (loading) return <section className="package-generation-panel"><p className="eyebrow">PACKAGE GENERATION</p><p>Loading package status…</p></section>;
   return <section className="package-generation-panel" aria-labelledby="package-generation-title">

@@ -76,8 +76,15 @@ def upgrade() -> None:
         AND NEW.sha256=OLD.sha256 AND NEW.created_at=OLD.created_at)
       BEGIN SELECT RAISE(ABORT, 'generated packages are immutable'); END""")
     for table in ("source_snapshots", "generated_components"):
-        op.execute(f"CREATE TRIGGER {table}_append_only_update BEFORE UPDATE ON {table} BEGIN SELECT RAISE(ABORT, '{table} are immutable'); END")
-    for table in ("source_snapshots", "generation_attempts", "generated_packages", "generated_components"):
+        op.execute(
+            f"CREATE TRIGGER {table}_append_only_update BEFORE UPDATE ON {table} BEGIN SELECT RAISE(ABORT, '{table} are immutable'); END"
+        )
+    for table in (
+        "source_snapshots",
+        "generation_attempts",
+        "generated_packages",
+        "generated_components",
+    ):
         op.execute(
             f"CREATE TRIGGER {table}_append_only_delete BEFORE DELETE ON {table} BEGIN SELECT RAISE(ABORT, '{table} are immutable'); END"
         )
@@ -95,4 +102,10 @@ def downgrade() -> None:
     op.execute("DROP TRIGGER generated_packages_guard")
     for table in ("source_snapshots", "generated_components"):
         op.execute(f"DROP TRIGGER {table}_append_only_update")
+    for table in (
+        "generated_components",
+        "generated_packages",
+        "generation_attempts",
+        "source_snapshots",
+    ):
         op.execute(f"DROP TABLE {table}")

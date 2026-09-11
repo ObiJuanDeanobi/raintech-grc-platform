@@ -2,27 +2,27 @@
 
 ## Current phase
 
-`BUILD/REVIEW`. GitHub issue #66 is complete as a governed human approval gate.
-Issues #68 and #69 are complete and merged through PRs
-#85 and #84. GitHub issue #70 is implemented on
-`feature/70-hipaa-close-readiness` from merge commit `53079ac`. Focused backend
-and frontend tests, Ruff, Mypy, frontend typecheck, ESLint, the production
-build, and the full API/catalog/frontend suites pass locally. Extension-backed
-Edge verification passes at 1440x900 and 1280x720, and all six PR checks pass.
+`BUILD/REVIEW`. GitHub issue #71 is implemented on
+`feature/71-hipaa-generation`. The governed HIPAA package uses one immutable
+source snapshot to atomically produce the approved combined-report DOCX and
+companion POA&M XLSX. Issue #68's stale open state was reconciled and closed;
+its implementation remains merged through PR #85. The authoritative remaining
+path to a usable HIPAA and CMMC V1 is tracked in GitHub issue #88.
 
 ## Current mode
 
-Build and review for Issue #70. The slice adds one read-only, declaration-driven
-close decision for `fieldwork_ready_for_generation`. It evaluates the active
-approved Profile, final determinations, Not Met reconciliation, and complete SRA
-scope/risk work while keeping package, review, sign, backup, and snapshot gates
-informational for this transition.
+Build and review for Issue #71. Generation is gated by the declaration-driven
+`fieldwork_ready_for_generation` decision, stages both artifacts, validates and
+promotes them together, records failed attempts without publishing partial
+packages, and retains source/component hashes for later review and issuance.
 
 ## Current objective
 
-Implement the usable-pilot critical path beginning with #71, then #72 and #73.
-Issue #66's approved HIPAA report and POA&M templates are now governed in
-`docs/templates/hipaa/v2/`; #71 may use them as immutable template version v2.
+Complete the usable-pilot critical path by merging #71, then implementing #72
+and #73. Refresh Windows/offline packaging acceptance under #32 after the full
+issuance path exists. CMMC #30/#31 now correctly preserve the already extracted
+catalog and practitioner guidance as migration inputs rather than greenfield
+ingestion work.
 
 ## Approved specification
 
@@ -33,7 +33,27 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #70 - implemented / verification complete.**
+**GitHub issue #71 - implemented / verification complete.**
+
+- One action generates the approved combined assessment report and separate
+  POA&M from the same immutable, hashed source snapshot.
+- Package/component ownership is project-scoped; generated records are guarded
+  against mutation and deletion; failed rendering leaves prior promoted output
+  unchanged and records an attributable failure.
+- DOCX and XLSX renderers resolve approved-template tokens throughout the OOXML
+  package, preserve the exact 29-column POA&M contract, and reject incomplete
+  source snapshots.
+- The UI gates generation on close readiness, prevents stale project responses,
+  lists only promoted packages for the selected assessment, and downloads both
+  components through ownership-checked routes.
+- Verification passes: focused generation/renderer tests `12 passed`; full API
+  `126 passed`; catalog `74 passed` with 15 optional PyMuPDF tests skipped;
+  Ruff; Mypy; frontend typecheck; ESLint; Vitest `48 passed`; production build;
+  and clean migration upgrade/downgrade/re-upgrade.
+
+### Previously completed ticket detail
+
+**GitHub issue #70 - complete and merged through PR #86.**
 
 - The assessment-scoped close endpoint returns deterministic Ready/Blocked
   decisions with named checks, actionable blockers, and later-gate information.

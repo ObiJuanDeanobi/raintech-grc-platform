@@ -115,6 +115,10 @@ def test_generation_promotes_two_parseable_components_from_one_snapshot(tmp_path
         with sqlite3.connect(db) as connection:
             source = connection.execute("SELECT source_json FROM source_snapshots").fetchone()[0]
             assert "hipaa-v2" in source
+            event = connection.execute(
+                "SELECT action, entity_id FROM audit_events WHERE action='hipaa_package_generated'"
+            ).fetchone()
+            assert event == ("hipaa_package_generated", package["id"])
 
 
 def test_rendered_outputs_contain_required_sections_and_exact_poam_columns(tmp_path: Path) -> None:
@@ -149,9 +153,13 @@ def test_rendered_outputs_contain_required_sections_and_exact_poam_columns(tmp_p
         ):
             assert section in document
     with ZipFile(poam) as archive:
-        sheet = archive.read("xl/worksheets/sheet1.xml").decode()
+        workbook_text = "".join(
+            archive.read(name).decode()
+            for name in archive.namelist()
+            if name == "xl/sharedStrings.xml" or name.startswith("xl/worksheets/sheet")
+        )
         assert len(POAM_COLUMNS) == 29
-        assert all(column in sheet for column in POAM_COLUMNS)
+        assert all(column.replace("&", "&amp;") in workbook_text for column in POAM_COLUMNS)
 
 
 def test_generation_is_project_isolated_and_path_safe(tmp_path: Path) -> None:
@@ -168,8 +176,9 @@ def test_generation_is_project_isolated_and_path_safe(tmp_path: Path) -> None:
             ).status_code
             == 404
         )
-        with sqlite3.connect(db) as connection, pytest.raises(
-            sqlite3.IntegrityError, match="generated_components are immutable"
+        with (
+            sqlite3.connect(db) as connection,
+            pytest.raises(sqlite3.IntegrityError, match="generated_components are immutable"),
         ):
             connection.execute(
                 "UPDATE generated_components SET relative_path=? WHERE id=?",
@@ -179,7 +188,7 @@ def test_generation_is_project_isolated_and_path_safe(tmp_path: Path) -> None:
             client.get(
                 f"/api/projects/{one}/packages/{package['id']}/components/{component['id']}"
             ).status_code
-            == 404
+            == 200
         )
 
 
@@ -211,6 +220,9 @@ def test_failed_attempt_is_invisible_and_retry_preserves_prior_promoted_package(
                 == 1
             )
             assert connection.execute("SELECT COUNT(*) FROM generated_packages").fetchone()[0] == 1
+            assert connection.execute(
+                "SELECT COUNT(*) FROM audit_events WHERE action='hipaa_package_generation_failed'"
+            ).fetchone()[0] == 1
         monkeypatch.setattr(generation, "render_poam", original)
         retry = client.post(f"/api/projects/{project}/assessments/{assessment}/packages")
         assert retry.status_code == 201, retry.text

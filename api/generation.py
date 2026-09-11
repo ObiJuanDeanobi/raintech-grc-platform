@@ -5,35 +5,51 @@ import sqlite3
 from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from api.close import fieldwork_ready
 from api.renderers.hipaa import render_poam, render_report, validate_snapshot
 from api.storage import FileStorage
 
+__all__ = ["generate_package", "list_packages", "render_poam", "render_report"]
+
 TEMPLATE_ROOT = "docs/templates/hipaa/v2"
-TEMPLATES = (
+TEMPLATES: tuple[tuple[str, str], ...] = (
     ("assessment_report", "RainTech_HIPAA_Combined_Assessment_Report_v2.docx"),
     ("poam", "RainTech_HIPAA_POAM_v2.xlsx"),
 )
 
 
-def _now():
+def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _rows(c, table, where, args=()):
+def _decision_is_ready(decision: dict[str, Any]) -> bool:
+    return decision.get("ready") is True and decision.get("status") == "Ready"
+
+
+def _rows(
+    c: sqlite3.Connection, table: str, where: str, args: tuple[Any, ...] = ()
+) -> list[dict[str, Any]]:
     try:
         return [dict(r) for r in c.execute(f"SELECT * FROM {table} WHERE {where}", args)]
     except sqlite3.OperationalError:
         return []
 
 
-def _snapshot(c, project_id, assessment_id, assessment):
-    active = c.execute("SELECT active_profile_version_id FROM projects WHERE id=?", (project_id,)).fetchone()
+def _snapshot(
+    c: sqlite3.Connection,
+    project_id: str,
+    assessment_id: str,
+    assessment: sqlite3.Row,
+) -> tuple[dict[str, Any], str, sqlite3.Row]:
+    active = c.execute(
+        "SELECT active_profile_version_id FROM projects WHERE id=?", (project_id,)
+    ).fetchone()
     profile = c.execute(
         """
-        SELECT pv.*
+        SELECT pv.*, le.content_revision AS revision_token
         FROM profile_versions pv
         JOIN profile_lifecycle_events le ON le.profile_version_id = pv.id
         WHERE pv.project_id = ? AND le.status = 'Approved'
@@ -43,12 +59,27 @@ def _snapshot(c, project_id, assessment_id, assessment):
         (project_id,),
     ).fetchone()
     if active and active["active_profile_version_id"]:
-        profile = c.execute("SELECT pv.* FROM profile_versions pv JOIN profile_lifecycle_events le ON le.profile_version_id=pv.id WHERE pv.id=? AND le.status='Approved' ORDER BY le.created_at DESC LIMIT 1", (active["active_profile_version_id"],)).fetchone() or profile
+        profile = (
+            c.execute(
+                """
+            SELECT pv.*, le.content_revision AS revision_token
+            FROM profile_versions pv
+            JOIN profile_lifecycle_events le ON le.profile_version_id = pv.id
+            WHERE pv.id = ? AND le.status = 'Approved'
+            ORDER BY le.created_at DESC
+            LIMIT 1
+            """,
+                (active["active_profile_version_id"],),
+            ).fetchone()
+            or profile
+        )
     if profile is None:
         raise ValueError("An approved Profile lifecycle snapshot is required")
     framework = c.execute(
         "SELECT * FROM framework_versions WHERE id=?", (assessment["framework_version_id"],)
     ).fetchone()
+    framework_row = dict(framework) if framework else {}
+    declarations = json.loads(framework_row.get("declarations_json", "{}"))
     records = _rows(
         c, "framework_records", "framework_version_id=?", (assessment["framework_version_id"],)
     )
@@ -63,9 +94,33 @@ def _snapshot(c, project_id, assessment_id, assessment):
         row["text"] = row.get("text") or row.get("regulation_text") or row.get("title")
         if d and d.get("na_rationale"):
             row["rationale"] = d["na_rationale"]
-        reconciliation = next((x for x in _rows(c, "not_met_reconciliations", "assessment_id=? AND record_id=?", (assessment_id, row.get("record_id")))), None)
-        f = next((x for x in findings if reconciliation and x.get("id") == reconciliation.get("finding_id")), None)
-        a = next((x for x in actions if reconciliation and x.get("id") == reconciliation.get("corrective_action_id")), None)
+        reconciliation = next(
+            iter(
+                _rows(
+                    c,
+                    "not_met_reconciliations",
+                    "assessment_id=? AND record_id=?",
+                    (assessment_id, row.get("record_id")),
+                )
+            ),
+            None,
+        )
+        f = next(
+            (
+                x
+                for x in findings
+                if reconciliation and x.get("id") == reconciliation.get("finding_id")
+            ),
+            None,
+        )
+        a = next(
+            (
+                x
+                for x in actions
+                if reconciliation and x.get("id") == reconciliation.get("corrective_action_id")
+            ),
+            None,
+        )
         if f:
             row.update({"finding_id": f.get("id"), **f})
         if a:
@@ -75,13 +130,9 @@ def _snapshot(c, project_id, assessment_id, assessment):
         "template_version": "hipaa-v2",
         "framework": {
             "id": assessment["framework_version_id"],
-            "version": dict(framework) if framework else {},
-            "declarations": _rows(
-                c,
-                "framework_declarations",
-                "framework_version_id=?",
-                (assessment["framework_version_id"],),
-            ),
+            "title": framework_row.get("name"),
+            "version": assessment["framework_version_id"],
+            "declarations": declarations,
         },
         "assessment": dict(assessment),
         "profile": {**dict(profile), "snapshot_id": profile["id"]},
@@ -112,15 +163,21 @@ def generate_package(
     root: Path,
     project_id: str,
     assessment_id: str,
-    *,
-    actor_id="johnathan",
-):
+) -> dict[str, Any]:
     assessment = connection.execute(
-        "SELECT * FROM assessments WHERE id=? AND project_id=?", (assessment_id, project_id)
+        """
+        SELECT assessments.*, assessment_revisions.revision_number
+        FROM assessments
+        JOIN assessment_revisions
+          ON assessment_revisions.assessment_id = assessments.id
+         AND assessment_revisions.project_id = assessments.project_id
+        WHERE assessments.id = ? AND assessments.project_id = ?
+        """,
+        (assessment_id, project_id),
     ).fetchone()
     if assessment is None:
         raise ValueError("Assessment does not belong to project")
-    if fieldwork_ready(connection, project_id, assessment_id).get("decision") != "ready":
+    if not _decision_is_ready(fieldwork_ready(connection, project_id, assessment_id)):
         raise ValueError("Assessment is not ready for generation")
     source, source_hash, profile = _snapshot(connection, project_id, assessment_id, assessment)
     snapshot_id, attempt_id, package_id, created = (
@@ -253,7 +310,7 @@ def generate_package(
         raise
 
 
-def list_packages(connection, project_id):
+def list_packages(connection: sqlite3.Connection, project_id: str) -> list[dict[str, Any]]:
     return [
         dict(r)
         for r in connection.execute(

@@ -83,7 +83,13 @@ and starts first, because it needs practitioner review time rather than build ti
 
 Built after Slice 4. See the ordering note above.
 
-- Versioned CMMC Level 2 catalog.
+- Validate, sanitize, and migrate the existing legacy CMMC Level 2 catalog
+  (14 domains, 110 requirements, and 320 assessment objectives) into the
+  current versioned production framework model; do not re-extract it from
+  scratch.
+- Reconcile and migrate the existing worksheet-derived practitioner guidance
+  with field-level RainTech provenance, keeping it distinct from authoritative
+  DoD/NIST content.
 - Requirement-centered gap analysis with all assessment objectives.
 - Official CMMC scoring only.
 - One requirement-level finding containing failed objectives; Pending creates

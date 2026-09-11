@@ -1129,9 +1129,35 @@ def create_app(
     ) -> dict[str, Any]:
         with database.connect() as connection:
             try:
-                return generate_package(connection, files, root, project_id, assessment_id)
+                package = generate_package(connection, files, root, project_id, assessment_id)
+                _audit(
+                    connection,
+                    "hipaa_package_generated",
+                    "generated_package",
+                    package["id"],
+                    {
+                        "project_id": project_id,
+                        "assessment_id": assessment_id,
+                        "source_snapshot_sha256": package["manifest"][
+                            "source_snapshot_sha256"
+                        ],
+                    },
+                )
+                return package
             except ValueError as exc:
                 raise HTTPException(409, str(exc)) from exc
+            except Exception as exc:
+                # The generator records the failed attempt before re-raising. Persist that
+                # audit record while keeping the half-built package and files unpublished.
+                _audit(
+                    connection,
+                    "hipaa_package_generation_failed",
+                    "assessment",
+                    assessment_id,
+                    {"project_id": project_id},
+                )
+                connection.commit()
+                raise HTTPException(500, "Package generation failed") from exc
 
     @app.get("/api/projects/{project_id}/packages")
     def get_packages(

@@ -36,26 +36,6 @@ REPORT_SECTIONS = (
     "Appendix C POA&M Summary",
 )
 
-POAM_COLUMNS = (
-    "POA&M ID",
-    "Control Reference",
-    "Requirement",
-    "Control Group",
-    "Control Description",
-    "Finding ID",
-    "Action ID",
-    "Action Owner",
-    "Risk Rating",
-    "Status",
-    "Scheduled Completion",
-    "Milestone",
-    "Resources",
-    "Validation Owner",
-    "Validation Evidence",
-    "Closure Date",
-    "Source Snapshot ID",
-)
-
 OPEN_POAM_COLUMNS = (
     "POA&M ID",
     "Assessment ID",
@@ -88,7 +68,20 @@ OPEN_POAM_COLUMNS = (
     "Package / Snapshot ID",
 )
 
-_TOKEN = re.compile(r"\{\{([a-zA-Z0-9_]+)\}\}")
+# Backward-compatible public name used by validators and golden tests.
+POAM_COLUMNS: tuple[str, ...] = OPEN_POAM_COLUMNS
+
+_TOKEN = re.compile(r"\{\{([^{}]+)\}\}")
+
+
+def _replace_tokens(xml: str, values: Mapping[str, Any]) -> str:
+    """Resolve approved OOXML tokens, including entity-encoded token names."""
+    return _TOKEN.sub(
+        lambda match: html.escape(
+            _none(values.get(html.unescape(match.group(1)), "None recorded")), quote=True
+        ),
+        xml,
+    )
 
 
 def canonical_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
@@ -231,17 +224,8 @@ def render_report(template_path: Path, output_path: Path, snapshot: Mapping[str,
     ):
         for item in zin.infolist():
             data = zin.read(item.filename)
-            if item.filename == "word/document.xml" or item.filename in {
-                "word/header1.xml",
-                "word/footer1.xml",
-            }:
-                text = data.decode("utf-8")
-                data = _TOKEN.sub(
-                    lambda match: html.escape(
-                        values.get(match.group(1), "None recorded"), quote=True
-                    ),
-                    text,
-                ).encode("utf-8")
+            if item.filename.startswith("word/") and item.filename.endswith(".xml"):
+                data = _replace_tokens(data.decode("utf-8"), values).encode("utf-8")
             zout.writestr(item, data)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(source.getvalue())
@@ -294,6 +278,19 @@ def render_poam(template_path: Path, output_path: Path, snapshot: Mapping[str, A
         for r in _records(s)
         if r.get("status", r.get("determination")) == "Not Met"
     ]
+    assessment = s.get("assessment", {})
+    profile = s.get("profile", {})
+    token_values: dict[str, Any] = {
+        **report_values(s),
+        "assessment_id": assessment.get("id"),
+        "client_name": profile.get("client_name"),
+        "derived_from_assessment": assessment.get("id"),
+        "profile_id": profile.get("snapshot_id", profile.get("id")),
+        "project_name": assessment.get("project_name"),
+        "scope_summary": s.get("scope", {}).get("narrative"),
+        "source_snapshot_id": s.get("snapshot_id"),
+        "package_snapshot_id": s.get("snapshot_id"),
+    }
     source = BytesIO()
     with (
         zipfile.ZipFile(template_path, "r") as zin,
@@ -347,11 +344,13 @@ def render_poam(template_path: Path, output_path: Path, snapshot: Mapping[str, A
                         )
                         generated.append(f'<row r="{n}">{cells}</row>')
                     xml = xml.replace(template_row, "".join(generated) or template_row)
-                    data = xml.encode("utf-8")
+                data = _replace_tokens(xml, token_values).encode("utf-8")
+            elif item.filename.startswith("xl/") and item.filename.endswith(".xml"):
+                data = _replace_tokens(data.decode("utf-8"), token_values).encode("utf-8")
             zout.writestr(item, data)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(source.getvalue())
-    return s["source_sha256"]
+    return str(s["source_sha256"])
 
 
 def render_package_components(
