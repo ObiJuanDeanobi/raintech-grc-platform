@@ -105,6 +105,20 @@ export interface GeneratedPackage {
   manifest?: { components?: GeneratedPackageComponent[]; source_snapshot_sha256?: string; template_version?: string };
 }
 
+export interface PackageReview {
+  package_id: string;
+  state: string;
+  reviewer_name?: string;
+  reviewer_role?: string;
+  note?: string;
+  component_confirmations?: Record<string, boolean>;
+  source_snapshot_sha256?: string;
+  template_version?: string;
+  drift?: string[];
+  blockers?: string[];
+  updated_at?: string;
+}
+
 export interface ProfileReadiness {
   project_id: string;
   state: string;

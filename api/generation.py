@@ -250,6 +250,10 @@ def generate_package(
             "assessment_id": assessment_id,
             "source_snapshot_sha256": source_hash,
             "template_version": "hipaa-v2",
+            "template_hashes": {
+                kind: sha256((root / TEMPLATE_ROOT / filename).read_bytes()).hexdigest()
+                for kind, filename in TEMPLATES
+            },
             "components": components,
         }
         manifest_json = json.dumps(manifest, sort_keys=True, separators=(",", ":"))

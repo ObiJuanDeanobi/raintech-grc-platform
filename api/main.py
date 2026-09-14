@@ -17,6 +17,8 @@ from api.close import fieldwork_ready
 from api.database import Database, profile_snapshot_revision
 from api.framework import FRAMEWORK_ID, seed_framework
 from api.generation import generate_package, list_packages
+from api.package_review import get_review
+from api.package_review import transition as transition_package_review
 from api.risk import RiskScore, score_risk
 from api.storage import FileStorage, LocalFileStorage
 
@@ -138,6 +140,16 @@ class ProfileEvidenceMappingUpdate(BaseModel):
 
 class PromptAnswerSave(BaseModel):
     answer: str
+
+
+class PackageReviewTransition(BaseModel):
+    actor_id: str = "johnathan"
+    next_state: str
+    reviewer_name: str = Field(min_length=1, max_length=200)
+    reviewer_role: str = Field(min_length=1, max_length=200)
+    note: str = Field(min_length=1, max_length=4000)
+    approval: str = Field(default="", max_length=4000)
+    component_confirmations: dict[str, bool] = Field(default_factory=dict)
 
 
 class SRAScopeSave(BaseModel):
@@ -1138,9 +1150,7 @@ def create_app(
                     {
                         "project_id": project_id,
                         "assessment_id": assessment_id,
-                        "source_snapshot_sha256": package["manifest"][
-                            "source_snapshot_sha256"
-                        ],
+                        "source_snapshot_sha256": package["manifest"]["source_snapshot_sha256"],
                     },
                 )
                 return package
@@ -1208,6 +1218,66 @@ def create_app(
             return FileResponse(
                 path, filename=row["filename"], media_type="application/octet-stream"
             )
+
+    @app.get("/api/projects/{project_id}/packages/{package_id}/review")
+    def get_package_review(
+        project_id: str, package_id: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            try:
+                return get_review(
+                    connection, project_id, package_id, root, database.managed_storage_root
+                )
+            except LookupError as exc:
+                raise HTTPException(404, str(exc)) from exc
+            except ValueError as exc:
+                raise HTTPException(409, str(exc)) from exc
+
+    @app.post(
+        "/api/projects/{project_id}/packages/{package_id}/review/transitions", status_code=201
+    )
+    def review_package(
+        project_id: str,
+        package_id: str,
+        payload: PackageReviewTransition,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            _user_or_422(connection, payload.actor_id)
+            try:
+                result = transition_package_review(
+                    connection,
+                    project_id,
+                    package_id,
+                    payload.next_state,
+                    payload.actor_id,
+                    payload.reviewer_name,
+                    payload.reviewer_role,
+                    payload.note,
+                    payload.approval,
+                    payload.component_confirmations,
+                    root,
+                    database.managed_storage_root,
+                )
+            except LookupError as exc:
+                raise HTTPException(404, str(exc)) from exc
+            except ValueError as exc:
+                raise HTTPException(409, str(exc)) from exc
+            _audit(
+                connection,
+                "hipaa_package_review_transition",
+                "generated_package",
+                package_id,
+                {
+                    "project_id": project_id,
+                    "next_state": payload.next_state,
+                    "sequence": result["events"][-1]["sequence"],
+                },
+                payload.actor_id,
+            )
+            return result
 
     @app.get("/api/clients")
     def list_clients(database: Annotated[Database, Depends(db)]) -> list[dict[str, Any]]:

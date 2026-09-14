@@ -334,6 +334,44 @@ test("generates and exposes only the promoted two-component package", async () =
   expect(await screen.findByRole("button", { name: "Generate package" })).toBeEnabled();
 });
 
+test("reviews and explicitly signs the exact generated package", async () => {
+  const transitions: Array<Record<string, unknown>> = [];
+  let state = "Complete candidate";
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    const url = String(input);
+    if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
+    if (url.endsWith("/assessment")) return Response.json(assessment);
+    if (url.includes("close-readiness")) return Response.json({ status: "Ready", blockers: [], checks: [] });
+    if (url.endsWith("/packages")) return Response.json([{ id: "pkg-review", assessment_id: "assessment-1", state: "promoted", created_at: "2026-01-02T00:00:00Z", source_snapshot_id: "snap-review", components: [{ id: "report-review", kind: "assessment_report", filename: "report.docx", sha256: "abc123" }, { id: "poam-review", kind: "poam", filename: "poam.xlsx", sha256: "def456" }] }]);
+    if (url.endsWith("/review/transitions") && init?.method === "POST") {
+      const payload = JSON.parse(String(init.body)) as Record<string, unknown>;
+      transitions.push(payload); state = String(payload.next_state);
+      return Response.json({ package_id: "pkg-review", state, drift: [], blockers: [] });
+    }
+    if (url.endsWith("/review")) return Response.json({ package_id: "pkg-review", state, drift: [], blockers: [] });
+    if (url.includes("/records/child-1")) return Response.json(detail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({});
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  expect(await screen.findByText("Complete candidate")).toBeVisible();
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Reviewer name"), "Johnathan Dean");
+  await user.type(screen.getByLabelText("Reviewer role"), "Security Assessor");
+  await user.type(screen.getByLabelText("Review note"), "Reviewed both exact outputs.");
+  await user.click(screen.getByRole("button", { name: "Start review" }));
+  expect(await screen.findByText("In Review")).toBeVisible();
+  await user.click(screen.getByLabelText(/Confirm report\.docx/));
+  await user.click(screen.getByLabelText(/Confirm poam\.xlsx/));
+  await user.click(screen.getByLabelText("Confirm source snapshot and template version"));
+  await user.click(screen.getByRole("button", { name: "Mark reviewed" }));
+  expect(await screen.findByText("Reviewed")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Sign off: Ready to issue" }));
+  expect(await screen.findByText("Ready to issue")).toBeVisible();
+  expect(transitions.map((item) => item.next_state)).toEqual(["In Review", "Reviewed", "Ready to issue"]);
+  expect(transitions.at(-1)).toMatchObject({ actor_id: "johnathan", approval: "I approve this exact package for issuance." });
+});
+
 test("Not Met reconciliation uses project-scoped PUT and create payload", async () => {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   vi.mocked(fetch).mockImplementation(async (input, init) => {

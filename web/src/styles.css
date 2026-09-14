@@ -717,6 +717,15 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .map-form { display: grid; margin-top: 11px; padding-top: 11px; gap: 9px; border-top: 1px solid #eceff2; }
 .upload-button { display: flex; height: 34px; align-items: center; justify-content: center; gap: 6px; border: 1px dashed #abb8c5; border-radius: 7px; color: #59677a; cursor: pointer; background: #f8fafb; font-size: 10px; }
 .upload-button input { display: none; }
+.package-review { margin-top: 14px; padding: 13px; border: 1px solid #dfe5e9; border-radius: 8px; background: #fbfcfd; }
+.package-review-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 10px; }
+.package-review-fields label:last-child { grid-column: 1 / -1; }
+.package-review-confirmations { display: grid; gap: 7px; margin-top: 10px; color: #536174; font-size: 10px; }
+.package-review-confirmations label { display: flex; align-items: center; gap: 7px; }
+.package-review-confirmations input { accent-color: var(--teal); }
+.package-review-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.package-review-error { margin-top: 9px; padding: 8px; border: 1px solid #edc9c9; border-radius: 6px; color: #9b3030; background: #fff5f5; font-size: 10px; }
+@media (max-width: 700px) { .package-review-fields { grid-template-columns: 1fr; } .package-review-fields label:last-child { grid-column: auto; } }
 
 @media (max-width: 1250px) {
   .app-shell { grid-template-columns: 250px minmax(500px, 1fr) 340px; }
