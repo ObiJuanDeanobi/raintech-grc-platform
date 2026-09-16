@@ -28,6 +28,7 @@ import type {
   CloseReadiness,
   GeneratedPackage,
   PackageReview,
+  IssueReadiness,
   EvidenceMapping,
   Prompt,
   ProfileReadiness,
@@ -1156,6 +1157,44 @@ function PackageGenerationPanel({ projectId, assessmentId }: { projectId: string
     {error && <p className="error-copy" role="alert">{error}</p>}
     {readiness?.status !== "Ready" ? <p className="package-generation-blocked">Complete fieldwork close readiness before generating the report and POA&amp;M.</p> : <div className="package-generation-action"><p>Generate the combined assessment report and separate POA&amp;M from one immutable source snapshot.</p><button className="small-button" disabled={generating} onClick={() => void generate()}>{generating ? "Generating both components…" : "Generate package"}</button></div>}
     {packages.length > 0 && <div className="generated-package-list"><strong>Generated packages</strong>{packages.map((pkg) => { const review = reviews[pkg.id] ?? { package_id: pkg.id, state: "Complete candidate" }; const form = formFor(pkg); return <article key={pkg.id} className="generated-package"><div><strong>Complete package</strong><small>{new Date(pkg.created_at).toLocaleString()} · Source {pkg.source_snapshot_id ?? "snapshot recorded"}</small></div><div className="generated-components">{pkg.components.map((component) => <a key={component.id} className="text-button" href={component.download_url ?? `/api/projects/${projectId}/packages/${pkg.id}/components/${component.id}/download`}>{component.filename || component.kind}</a>)}</div>{pkg.source_sha256 && <small>Source SHA-256: {pkg.source_sha256}</small>}<div className="package-review" aria-label={`Review ${pkg.id}`} aria-busy={reviewWorking === pkg.id}><div className="section-title"><strong>Package review</strong><span className={`readiness-state ${review.state === "Ready to issue" ? "ready" : "blocked"}`}>{review.state}</span></div>{(review.drift?.length ?? 0) > 0 && <div className="package-review-error" role="alert">Source or template drift detected: {review.drift!.join("; ")}</div>}{(review.blockers?.length ?? 0) > 0 && <div className="package-review-error" role="alert">Review blockers: {review.blockers!.join("; ")}</div>}<div className="package-review-fields"><label>Reviewer name<input value={form.reviewer_name} onChange={(event) => setReviewForms((all) => ({ ...all, [pkg.id]: { ...form, reviewer_name: event.target.value } }))} /></label><label>Reviewer role<input value={form.reviewer_role} onChange={(event) => setReviewForms((all) => ({ ...all, [pkg.id]: { ...form, reviewer_role: event.target.value } }))} /></label><label>Review note<textarea rows={2} value={form.note} onChange={(event) => setReviewForms((all) => ({ ...all, [pkg.id]: { ...form, note: event.target.value } }))} /></label></div><div className="package-review-confirmations">{pkg.components.map((component) => <label key={component.id}><input type="checkbox" checked={Boolean(form.confirmations[component.kind])} onChange={(event) => setReviewForms((all) => ({ ...all, [pkg.id]: { ...form, confirmations: { ...form.confirmations, [component.kind]: event.target.checked } } }))} /> Confirm {component.filename || component.kind}{component.sha256 ? ` (${component.sha256.slice(0, 12)}…)` : ""}</label>)}<label><input type="checkbox" checked={Boolean(form.confirmations.__source)} onChange={(event) => setReviewForms((all) => ({ ...all, [pkg.id]: { ...form, confirmations: { ...form.confirmations, __source: event.target.checked } } }))} /> Confirm source snapshot and template version</label></div><div className="package-review-actions"><button className="secondary-button" disabled={reviewWorking === pkg.id || review.state !== "Complete candidate"} onClick={() => void transition(pkg, "In Review")}>Start review</button><button className="small-button" disabled={reviewWorking === pkg.id || review.state !== "In Review"} onClick={() => void transition(pkg, "Reviewed")}>Mark reviewed</button><button className="primary-button" disabled={reviewWorking === pkg.id || review.state !== "Reviewed"} onClick={() => void transition(pkg, "Ready to issue")}>Sign off: Ready to issue</button></div></div></article>; })}</div>}
+    {packages[0] && <IssueFinalDeliverablesPanel projectId={projectId} pkg={packages[0]} />}
+  </section>;
+}
+
+function IssueFinalDeliverablesPanel({ projectId, pkg }: { projectId: string; pkg: GeneratedPackage }) {
+  const [readiness, setReadiness] = useState<IssueReadiness | null>(null);
+  const [working, setWorking] = useState<"backup" | "issue" | null>(null);
+  const [error, setError] = useState("");
+  const sequence = useRef(0);
+  const load = useCallback(async (signal?: AbortSignal) => {
+    const current = ++sequence.current;
+    try {
+      const next = await request<IssueReadiness>(`/api/projects/${projectId}/packages/${pkg.id}/issue-readiness`, { signal });
+      if (!signal?.aborted && current === sequence.current) { setReadiness(next); setError(""); }
+    } catch (caught) {
+      if (!signal?.aborted && current === sequence.current) setError(caught instanceof Error ? caught.message : "Could not load issue readiness.");
+    }
+  }, [projectId, pkg.id]);
+  useEffect(() => { const controller = new AbortController(); void load(controller.signal); return () => { sequence.current += 1; controller.abort(); }; }, [load]);
+  async function action(kind: "backup" | "issue") {
+    const current = sequence.current; setWorking(kind); setError("");
+    try {
+      const url = `/api/projects/${projectId}/packages/${pkg.id}/${kind === "backup" ? "backups" : "issue"}`;
+      await request<IssueReadiness>(url, { method: "POST", body: JSON.stringify(kind === "backup" ? { actor_id: "johnathan" } : { actor_id: "johnathan", backup_id: readiness?.backup_id }) });
+      if (current === sequence.current) await load();
+    } catch (caught) { if (current === sequence.current) setError(caught instanceof Error ? caught.message : `${kind} failed.`); }
+    finally { if (current === sequence.current) setWorking(null); }
+  }
+  const value = (v: unknown) => typeof v === "string" ? v : JSON.stringify(v);
+  if (!readiness && !error) return <section className="issue-deliverables-panel"><p>Loading issue readiness…</p></section>;
+  return <section className="issue-deliverables-panel" aria-labelledby="issue-deliverables-title" aria-busy={working !== null}>
+    <div className="section-title"><div><p className="eyebrow">ISSUE FINAL DELIVERABLES</p><h2 id="issue-deliverables-title">Complete backup and issue</h2></div>{readiness && <span className={`readiness-state ${readiness.status === "Ready" ? "ready" : "blocked"}`}>{readiness.status}</span>}</div>
+    {error && <p className="error-copy" role="alert">{error}</p>}
+    {readiness?.blockers?.length ? <ul className="issue-blockers">{readiness.blockers.map((b, i) => <li key={i}>{typeof b === "string" ? b : value(b.detail ?? b.reason ?? b.message ?? b)}</li>)}</ul> : null}
+    {readiness?.failure && <p className="package-review-error" role="alert">Backup failed{readiness.failure.stage ? ` at ${readiness.failure.stage}` : ""}: {readiness.failure.reason ?? "unknown reason"}{readiness.failure.attempt_id ? ` (attempt ${readiness.failure.attempt_id})` : ""}</p>}
+    {readiness?.backup_id && <p className="issue-identity">Backup <code>{readiness.backup_id}</code>{readiness.backup_manifest_sha256 && <> · Manifest SHA-256 <code>{readiness.backup_manifest_sha256}</code></>}{readiness.backup_completed_at && <> · {new Date(readiness.backup_completed_at).toLocaleString()}</>}</p>}
+    {readiness?.issued_snapshot_id && <p className="readiness-ok">Issued snapshot <code>{readiness.issued_snapshot_id}</code>{readiness.issued_at && <> · {new Date(readiness.issued_at).toLocaleString()}</>}</p>}
+    {!readiness?.issued_snapshot_id && <div className="package-review-actions"><button className="secondary-button" disabled={working !== null || readiness?.status !== "Ready" || Boolean(readiness?.backup_id)} onClick={() => void action("backup")}>{working === "backup" ? "Creating and validating backup…" : "Create and validate backup"}</button><button className="primary-button" disabled={working !== null || !readiness?.backup_id || readiness.status !== "Ready"} onClick={() => void action("issue")}>{working === "issue" ? "Issuing…" : "Issue final deliverables"}</button></div>}
   </section>;
 }
 

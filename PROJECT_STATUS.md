@@ -2,27 +2,26 @@
 
 ## Current phase
 
-`BUILD/REVIEW`. GitHub issue #71 is complete and merged through PR #89. GitHub
-issue #72 is implemented on `feature/72-hipaa-package-review`: one exact
-generated package advances through append-only In Review, Reviewed, and Ready
-to issue events only while its source, templates, and component bytes remain
-current and intact. The authoritative remaining path to a usable HIPAA and CMMC
-V1 is tracked in GitHub issue #88.
+`BUILD/REVIEW`. GitHub issues #71 and #72 are complete and merged through PRs
+#89 and #90. GitHub issue #73 is active on `feature/73-backup-and-issue`: it
+creates and validates a complete local recovery set before atomically issuing
+the exact signed HIPAA package. The authoritative remaining path to a usable
+HIPAA and CMMC V1 is tracked in GitHub issue #88.
 
 ## Current mode
 
-Build and review for Issue #72. Named review and explicit sign-off bind the
-package, both component hashes, source snapshot, approved template hashes,
-reviewer identity/role, note, confirmation set, and lifecycle sequence. Source,
-template, or stored-byte drift blocks further transition and requires a new
-package.
+Build and review for Issue #73. Pre-backup readiness verifies the exact signed
+package and current source. A successful backup captures a consistent SQLite
+copy, managed files, approved templates, application/schema metadata, and a
+per-item integrity manifest. Final readiness requires that exact validated
+backup before creating an immutable issuance snapshot.
 
 ## Current objective
 
-Complete the usable-pilot critical path by merging #72, then implementing #73.
-Refresh Windows/offline packaging acceptance under #32 after the full issuance
-path exists. CMMC #30/#31 preserve the already extracted catalog and
-practitioner guidance as migration inputs rather than greenfield ingestion work.
+Complete and merge #73, then refresh Windows/offline packaging acceptance under
+#32 against the full usable-pilot flow. CMMC #30/#31 preserve the already
+extracted catalog and practitioner guidance as migration inputs rather than
+greenfield ingestion work.
 
 ## Approved specification
 
@@ -33,7 +32,25 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #72 - implemented / verification complete.**
+**GitHub issue #73 - implementation checkpoint; final verification in progress.**
+
+- Migration `0012` adds project-scoped immutable backup records/items, issuance
+  attempts, and issuance snapshots with composite ownership and binding guards.
+- Backup creation uses a SQLite online copy plus pre/post managed-file and
+  template fingerprints, rejects unsafe/secret-like paths, excludes staging and
+  prior backup archives, and publishes only after ZIP/manifest/hash validation.
+- Pre-backup and final readiness bind the package, source snapshot, Ready to
+  issue review event, templates/components, and exact successful backup.
+- Issuance reruns authoritative readiness under a SQLite write guard and freezes
+  the source snapshot, package, review event, backup manifest, issuer, and time.
+- Focused generation/review/backup verification passes `17 tests`; Mypy passes;
+  frontend typecheck, ESLint, and all `49` Vitest tests pass. Full regression,
+  clean migration-cycle rerun, production build, and browser acceptance remain
+  before merge.
+
+### Previously completed ticket detail
+
+**GitHub issue #72 - complete and merged through PR #90.**
 
 - A promoted #71 package begins as a Complete candidate and can move only
   through In Review, Reviewed, and Ready to issue; no transition issues it.
@@ -500,8 +517,9 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Commit and push the Issue #70 Edge evidence, mark PR #86 ready for review,
-re-run CI, and merge after the already-recorded user approval.
+Commit and push the current Issue #73 checkpoint, update GitHub issues #73 and
+#88 with the verified state, complete full automated and browser acceptance,
+then open the #73 PR and merge only after CI passes.
 
 ## Branch inventory
 

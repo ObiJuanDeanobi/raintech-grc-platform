@@ -725,6 +725,11 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .package-review-confirmations input { accent-color: var(--teal); }
 .package-review-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .package-review-error { margin-top: 9px; padding: 8px; border: 1px solid #edc9c9; border-radius: 6px; color: #9b3030; background: #fff5f5; font-size: 10px; }
+.issue-deliverables-panel { margin: 14px 28px 0; padding: 16px; border: 1px solid #dbe3e8; border-radius: 9px; background: #fff; }
+.issue-deliverables-panel h2 { margin: 0; font-size: 15px; }
+.issue-deliverables-panel code { font-size: 10px; overflow-wrap: anywhere; }
+.issue-blockers { margin: 12px 0; padding-left: 20px; color: #76501e; font-size: 11px; }
+.issue-identity { color: #536174; font-size: 11px; }
 @media (max-width: 700px) { .package-review-fields { grid-template-columns: 1fr; } .package-review-fields label:last-child { grid-column: auto; } }
 
 @media (max-width: 1250px) {

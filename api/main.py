@@ -17,6 +17,7 @@ from api.close import fieldwork_ready
 from api.database import Database, profile_snapshot_revision
 from api.framework import FRAMEWORK_ID, seed_framework
 from api.generation import generate_package, list_packages
+from api.issuance import BackupFailure, create_backup, issue_package, issue_readiness
 from api.package_review import get_review
 from api.package_review import transition as transition_package_review
 from api.risk import RiskScore, score_risk
@@ -150,6 +151,15 @@ class PackageReviewTransition(BaseModel):
     note: str = Field(min_length=1, max_length=4000)
     approval: str = Field(default="", max_length=4000)
     component_confirmations: dict[str, bool] = Field(default_factory=dict)
+
+
+class BackupCreate(BaseModel):
+    actor_id: str = "johnathan"
+
+
+class PackageIssueCreate(BaseModel):
+    actor_id: str = "johnathan"
+    backup_id: str = Field(min_length=1, max_length=200)
 
 
 class SRAScopeSave(BaseModel):
@@ -1067,16 +1077,19 @@ def create_app(
     database_path: Path | None = None,
     storage_path: Path | None = None,
     repository_root: Path | None = None,
+    backup_path: Path | None = None,
 ) -> FastAPI:
     root = repository_root or Path(__file__).resolve().parents[1]
     managed_storage = storage_path or root / "data" / "files"
     database = Database(database_path or root / "data" / "workspace.db", managed_storage)
     storage: FileStorage = LocalFileStorage(managed_storage)
+    backup_root = backup_path or managed_storage / "backups"
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         database.migrate()
         managed_storage.mkdir(parents=True, exist_ok=True)
+        backup_root.mkdir(parents=True, exist_ok=True)
         seed_framework(database, root)
         app.state.database = database
         app.state.file_storage = storage
@@ -1274,6 +1287,126 @@ def create_app(
                     "project_id": project_id,
                     "next_state": payload.next_state,
                     "sequence": result["events"][-1]["sequence"],
+                },
+                payload.actor_id,
+            )
+            return result
+
+    @app.get("/api/projects/{project_id}/packages/{package_id}/issue-readiness")
+    def get_issue_readiness(
+        project_id: str,
+        package_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            try:
+                return issue_readiness(
+                    connection,
+                    project_id,
+                    package_id,
+                    root,
+                    database.managed_storage_root,
+                    backup_root,
+                )
+            except LookupError as exc:
+                raise HTTPException(404, str(exc)) from exc
+
+    @app.post("/api/projects/{project_id}/packages/{package_id}/backups", status_code=201)
+    def backup_before_issue(
+        project_id: str,
+        package_id: str,
+        payload: BackupCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            _user_or_422(connection, payload.actor_id)
+            try:
+                result = create_backup(
+                    connection,
+                    database.path,
+                    database.managed_storage_root,
+                    root,
+                    backup_root,
+                    project_id,
+                    package_id,
+                    payload.actor_id,
+                )
+            except LookupError as exc:
+                raise HTTPException(404, str(exc)) from exc
+            except BackupFailure as exc:
+                _audit(
+                    connection,
+                    "hipaa_preissuance_backup_failed",
+                    "backup_record",
+                    exc.record["id"],
+                    {
+                        "project_id": project_id,
+                        "package_id": package_id,
+                        "failed_stage": exc.record["failed_stage"],
+                    },
+                    payload.actor_id,
+                )
+                connection.commit()
+                raise HTTPException(409, str(exc)) from exc
+            _audit(
+                connection,
+                "hipaa_preissuance_backup_completed",
+                "backup_record",
+                result["id"],
+                {
+                    "project_id": project_id,
+                    "package_id": package_id,
+                    "manifest_sha256": result["manifest_sha256"],
+                },
+                payload.actor_id,
+            )
+            return result
+
+    @app.post("/api/projects/{project_id}/packages/{package_id}/issue", status_code=201)
+    def issue_final_package(
+        project_id: str,
+        package_id: str,
+        payload: PackageIssueCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            _user_or_422(connection, payload.actor_id)
+            try:
+                result = issue_package(
+                    connection,
+                    project_id,
+                    package_id,
+                    payload.backup_id,
+                    payload.actor_id,
+                    root,
+                    database.managed_storage_root,
+                    backup_root,
+                )
+            except LookupError as exc:
+                raise HTTPException(404, str(exc)) from exc
+            except ValueError as exc:
+                _audit(
+                    connection,
+                    "hipaa_package_issue_failed",
+                    "generated_package",
+                    package_id,
+                    {"project_id": project_id, "backup_id": payload.backup_id},
+                    payload.actor_id,
+                )
+                connection.commit()
+                raise HTTPException(409, str(exc)) from exc
+            _audit(
+                connection,
+                "hipaa_package_issued",
+                "issuance_snapshot",
+                result["issued_snapshot_id"],
+                {
+                    "project_id": project_id,
+                    "package_id": package_id,
+                    "backup_id": payload.backup_id,
                 },
                 payload.actor_id,
             )
