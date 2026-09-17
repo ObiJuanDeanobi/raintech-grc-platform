@@ -1205,6 +1205,9 @@ def create_app(
             return packages
 
     @app.get("/api/projects/{project_id}/packages/{package_id}/components/{component_id}")
+    @app.get(
+        "/api/projects/{project_id}/packages/{package_id}/components/{component_id}/download"
+    )
     def download_package_component(
         project_id: str,
         package_id: str,

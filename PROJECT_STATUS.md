@@ -32,7 +32,7 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #73 - implementation checkpoint; final verification in progress.**
+**GitHub issue #73 - implementation complete; browser acceptance in progress.**
 
 - Migration `0012` adds project-scoped immutable backup records/items, issuance
   attempts, and issuance snapshots with composite ownership and binding guards.
@@ -43,10 +43,12 @@ CI passed.
   issue review event, templates/components, and exact successful backup.
 - Issuance reruns authoritative readiness under a SQLite write guard and freezes
   the source snapshot, package, review event, backup manifest, issuer, and time.
-- Focused generation/review/backup verification passes `17 tests`; Mypy passes;
-  frontend typecheck, ESLint, and all `49` Vitest tests pass. Full regression,
-  clean migration-cycle rerun, production build, and browser acceptance remain
-  before merge.
+- Issue-specific backup/issuance verification passes `6 tests`; the full API
+  suite passes `136 tests`; catalog verification passes `74 tests` with 15
+  optional PyMuPDF tests skipped. Ruff, Mypy, frontend typecheck, ESLint, all
+  `50` Vitest tests, the production build, and a clean migration
+  upgrade/downgrade/re-upgrade cycle pass. Browser acceptance remains before
+  merge.
 
 ### Previously completed ticket detail
 

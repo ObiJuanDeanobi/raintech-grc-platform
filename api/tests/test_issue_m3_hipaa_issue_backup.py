@@ -130,6 +130,24 @@ def test_failed_backup_is_attributed_and_cannot_issue(
         )
 
 
+def test_unsigned_package_backup_failure_is_durable(tmp_path: Path) -> None:
+    client, db, _ = _app(tmp_path)
+    with client:
+        project, assessment = _ready(client, db, "backup-precondition")
+        package = _package(client, project, assessment)
+        response = _backup(client, project, package["id"])
+        assert response.status_code == 409
+    with sqlite3.connect(db) as connection:
+        failure = connection.execute(
+            "SELECT status, review_event_id, failed_stage, error FROM backup_records"
+        ).fetchone()
+        assert failure is not None
+        assert failure[0] == "failed"
+        assert failure[1] is None
+        assert failure[2] == "preconditions"
+        assert "reviewed and signed" in failure[3]
+
+
 def test_backup_and_issue_are_project_scoped_and_restart_safe(tmp_path: Path) -> None:
     client, db, files = _app(tmp_path)
     with client:

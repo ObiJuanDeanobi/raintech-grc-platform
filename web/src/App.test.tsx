@@ -372,6 +372,52 @@ test("reviews and explicitly signs the exact generated package", async () => {
   expect(transitions.at(-1)).toMatchObject({ actor_id: "johnathan", approval: "I approve this exact package for issuance." });
 });
 
+test("creates the exact recovery set before issuing final deliverables", async () => {
+  const calls: Array<{ url: string; body?: Record<string, unknown> }> = [];
+  let backupId: string | undefined;
+  let issued = false;
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    const url = String(input);
+    if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
+    if (url.endsWith("/assessment")) return Response.json(assessment);
+    if (url.includes("close-readiness")) return Response.json({ status: "Ready", blockers: [], checks: [] });
+    if (url.endsWith("/packages")) return Response.json([{ id: "pkg-issue", assessment_id: "assessment-1", state: "promoted", created_at: "2026-01-02T00:00:00Z", source_snapshot_id: "snap-issue", components: [{ id: "report-issue", kind: "assessment_report", filename: "report.docx" }, { id: "poam-issue", kind: "poam", filename: "poam.xlsx" }] }]);
+    if (url.endsWith("/review")) return Response.json({ package_id: "pkg-issue", state: "Ready to issue", drift: [], blockers: [] });
+    if (url.endsWith("/issue-readiness")) return Response.json({
+      target: backupId ? "final_issue_ready" : "pre_backup_issue_ready",
+      status: issued ? "Issued" : "Ready",
+      checks: [], blockers: [], backup_id: backupId,
+      backup_manifest_sha256: backupId ? "manifest-123" : undefined,
+      backup_completed_at: backupId ? "2026-01-03T00:00:00Z" : undefined,
+      issued_snapshot_id: issued ? "issued-123" : undefined,
+      issued_at: issued ? "2026-01-03T00:01:00Z" : undefined,
+    });
+    if (url.endsWith("/backups") && init?.method === "POST") {
+      calls.push({ url, body: JSON.parse(String(init.body)) as Record<string, unknown> });
+      backupId = "backup-123";
+      return Response.json({ id: backupId }, { status: 201 });
+    }
+    if (url.endsWith("/issue") && init?.method === "POST") {
+      calls.push({ url, body: JSON.parse(String(init.body)) as Record<string, unknown> });
+      issued = true;
+      return Response.json({ issued_snapshot_id: "issued-123" }, { status: 201 });
+    }
+    if (url.includes("/records/child-1")) return Response.json(detail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({});
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "Create and validate backup" }));
+  expect(await screen.findByText("backup-123")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Issue final deliverables" }));
+  expect(await screen.findByText("issued-123")).toBeVisible();
+  expect(calls).toEqual([
+    { url: "/api/projects/project-1/packages/pkg-issue/backups", body: { actor_id: "johnathan" } },
+    { url: "/api/projects/project-1/packages/pkg-issue/issue", body: { actor_id: "johnathan", backup_id: "backup-123" } },
+  ]);
+});
+
 test("Not Met reconciliation uses project-scoped PUT and create payload", async () => {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   vi.mocked(fetch).mockImplementation(async (input, init) => {

@@ -1166,8 +1166,8 @@ function IssueFinalDeliverablesPanel({ projectId, pkg }: { projectId: string; pk
   const [working, setWorking] = useState<"backup" | "issue" | null>(null);
   const [error, setError] = useState("");
   const sequence = useRef(0);
-  const load = useCallback(async (signal?: AbortSignal) => {
-    const current = ++sequence.current;
+  const load = useCallback(async (signal?: AbortSignal, operationSequence?: number) => {
+    const current = operationSequence ?? ++sequence.current;
     try {
       const next = await request<IssueReadiness>(`/api/projects/${projectId}/packages/${pkg.id}/issue-readiness`, { signal });
       if (!signal?.aborted && current === sequence.current) { setReadiness(next); setError(""); }
@@ -1181,7 +1181,7 @@ function IssueFinalDeliverablesPanel({ projectId, pkg }: { projectId: string; pk
     try {
       const url = `/api/projects/${projectId}/packages/${pkg.id}/${kind === "backup" ? "backups" : "issue"}`;
       await request<IssueReadiness>(url, { method: "POST", body: JSON.stringify(kind === "backup" ? { actor_id: "johnathan" } : { actor_id: "johnathan", backup_id: readiness?.backup_id }) });
-      if (current === sequence.current) await load();
+      if (current === sequence.current) await load(undefined, current);
     } catch (caught) { if (current === sequence.current) setError(caught instanceof Error ? caught.message : `${kind} failed.`); }
     finally { if (current === sequence.current) setWorking(null); }
   }
