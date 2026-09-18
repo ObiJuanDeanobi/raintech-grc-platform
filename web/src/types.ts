@@ -105,6 +105,23 @@ export interface GeneratedPackage {
   manifest?: { components?: GeneratedPackageComponent[]; source_snapshot_sha256?: string; template_version?: string };
 }
 
+export interface IssueReadiness {
+  target: string;
+  status: string;
+  checks: Array<Record<string, unknown>>;
+  blockers: Array<Record<string, unknown> | string>;
+  package_id?: string;
+  source_snapshot_id?: string;
+  source_sha256?: string;
+  manifest_sha256?: string;
+  backup_id?: string;
+  backup_manifest_sha256?: string;
+  backup_completed_at?: string;
+  issued_snapshot_id?: string;
+  issued_at?: string;
+  failure?: { stage?: string; component?: string; reason?: string; attempt_id?: string };
+}
+
 export interface PackageReview {
   package_id: string;
   state: string;
