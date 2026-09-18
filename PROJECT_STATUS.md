@@ -42,6 +42,13 @@ CI passed.
   verdict.
 - Browser acceptance that could not be completed through the disconnected
   browser extension is included in this local-machine acceptance pass.
+- Native ARM64 packaging is now implemented and verified: the 22.1 MiB package
+  serves the compiled UI, persists a synthetic write across restart, and opens
+  no non-loopback connection. Evidence is recorded under
+  `docs/evidence/issue-32/ARM64_VERIFICATION.md`.
+- Remaining gates are the full visible browser flow, adapter-disabled run,
+  isolated recovery rehearsal, Defender/SmartScreen observations, and a native
+  x64 build and verification.
 
 ### Previously completed ticket detail
 

@@ -71,9 +71,13 @@ In a second terminal, start the UI:
 pnpm dev
 ```
 
-Open http://127.0.0.1:5173. The first launch creates `data/workspace.db` and
-`data/files/`; both are intentionally ignored because they hold local
-engagement data. Launcher, packaging, and backup/restore remain Issue #32.
+Open http://127.0.0.1:5173. The first development launch creates
+`data/workspace.db` and `data/files/`; both are intentionally ignored because
+they hold local engagement data.
+
+The maintained production Windows build and isolated verifier are documented in
+[`packaging/windows/README.md`](packaging/windows/README.md). Packaged mutable
+data is stored beneath `%LOCALAPPDATA%\RainTech\GRC Platform`.
 
 ## Verify
 

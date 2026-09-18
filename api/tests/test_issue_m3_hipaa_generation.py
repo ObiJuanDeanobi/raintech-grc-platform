@@ -92,6 +92,7 @@ def test_generation_promotes_two_parseable_components_from_one_snapshot(tmp_path
         assert response.status_code == 201, response.text
         package = response.json()
         assert package["state"] == "promoted"
+        assert (tmp_path / "generation-staging").is_dir()
         assert {item["kind"] for item in package["manifest"]["components"]} == {
             "assessment_report",
             "poam",

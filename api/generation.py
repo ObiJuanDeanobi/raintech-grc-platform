@@ -163,6 +163,7 @@ def generate_package(
     root: Path,
     project_id: str,
     assessment_id: str,
+    staging_root: Path | None = None,
 ) -> dict[str, Any]:
     assessment = connection.execute(
         """
@@ -219,17 +220,19 @@ def generate_package(
     promoted = []
     try:
         components = []
+        render_staging = staging_root or root / "data" / "generation-staging"
+        render_staging.mkdir(parents=True, exist_ok=True)
         for kind, filename in TEMPLATES:
             template = root / TEMPLATE_ROOT / filename
             component_id = str(uuid4())
             content = template.read_bytes()
             if kind == "assessment_report":
-                out = root / "data" / "generation-staging" / f"{component_id}-{filename}"
+                out = render_staging / f"{component_id}-{filename}"
                 render_report(template, out, source)
                 content = out.read_bytes()
                 out.unlink(missing_ok=True)
             elif kind == "poam":
-                out = root / "data" / "generation-staging" / f"{component_id}-{filename}"
+                out = render_staging / f"{component_id}-{filename}"
                 render_poam(template, out, source)
                 content = out.read_bytes()
                 out.unlink(missing_ok=True)

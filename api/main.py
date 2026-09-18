@@ -1154,7 +1154,14 @@ def create_app(
     ) -> dict[str, Any]:
         with database.connect() as connection:
             try:
-                package = generate_package(connection, files, root, project_id, assessment_id)
+                package = generate_package(
+                    connection,
+                    files,
+                    root,
+                    project_id,
+                    assessment_id,
+                    managed_storage.parent / "generation-staging",
+                )
                 _audit(
                     connection,
                     "hipaa_package_generated",
