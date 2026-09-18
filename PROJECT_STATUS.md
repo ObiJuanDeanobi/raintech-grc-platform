@@ -2,26 +2,24 @@
 
 ## Current phase
 
-`BUILD/REVIEW`. GitHub issues #71 and #72 are complete and merged through PRs
-#89 and #90. GitHub issue #73 is active on `feature/73-backup-and-issue`: it
-creates and validates a complete local recovery set before atomically issuing
-the exact signed HIPAA package. The authoritative remaining path to a usable
-HIPAA and CMMC V1 is tracked in GitHub issue #88.
+`BUILD/REVIEW`. GitHub issues #71, #72, and #73 are complete and merged through
+PRs #89, #90, and #91. The governed HIPAA flow now generates, reviews, backs up,
+and atomically issues the exact signed package. The authoritative remaining
+path to a usable HIPAA and CMMC V1 is tracked in GitHub issue #88.
 
 ## Current mode
 
-Build and review for Issue #73. Pre-backup readiness verifies the exact signed
-package and current source. A successful backup captures a consistent SQLite
-copy, managed files, approved templates, application/schema metadata, and a
-per-item integrity manifest. Final readiness requires that exact validated
-backup before creating an immutable issuance snapshot.
+Windows/offline acceptance for Issue #32 against the complete HIPAA pilot flow.
+This phase must prove supported Windows launch, offline operation, restart,
+persistent retrieval, and recovery behavior rather than repeating the original
+throwaway stack spike.
 
 ## Current objective
 
-Complete and merge #73, then refresh Windows/offline packaging acceptance under
-#32 against the full usable-pilot flow. CMMC #30/#31 preserve the already
-extracted catalog and practitioner guidance as migration inputs rather than
-greenfield ingestion work.
+Complete #32 Windows/offline packaging and recovery acceptance against the full
+usable-pilot flow. CMMC #30/#31 preserve the already extracted catalog and
+practitioner guidance as migration inputs rather than greenfield ingestion
+work.
 
 ## Approved specification
 
@@ -32,7 +30,22 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #73 - implementation complete; browser acceptance in progress.**
+**GitHub issue #32 - Windows/offline pilot acceptance is next.**
+
+- Refresh the historical packaging spike against the production application;
+  the old throwaway-spike wording is no longer the operative acceptance scope.
+- Prove Windows ARM64 and x64 launch, offline operation, writable persistent
+  storage, clean restart, immutable issued-package retrieval, and recovery-set
+  validation.
+- Record Defender/SmartScreen behavior, unsigned-binary friction, dependency
+  compatibility, package size, cold-launch time, and the final architecture
+  verdict.
+- Browser acceptance that could not be completed through the disconnected
+  browser extension is included in this local-machine acceptance pass.
+
+### Previously completed ticket detail
+
+**GitHub issue #73 - complete and merged through PR #91.**
 
 - Migration `0012` adds project-scoped immutable backup records/items, issuance
   attempts, and issuance snapshots with composite ownership and binding guards.
@@ -47,10 +60,7 @@ CI passed.
   suite passes `136 tests`; catalog verification passes `74 tests` with 15
   optional PyMuPDF tests skipped. Ruff, Mypy, frontend typecheck, ESLint, all
   `50` Vitest tests, the production build, and a clean migration
-  upgrade/downgrade/re-upgrade cycle pass. Browser acceptance remains before
-  merge.
-
-### Previously completed ticket detail
+  upgrade/downgrade/re-upgrade cycle pass. GitHub CI passed before merge.
 
 **GitHub issue #72 - complete and merged through PR #90.**
 
