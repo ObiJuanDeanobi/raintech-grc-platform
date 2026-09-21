@@ -13,17 +13,18 @@ maintained isolated verifier under Windows x64-on-ARM64 emulation.
 | Check | Result |
 | --- | --- |
 | Package | `RainTechGRC-windows-x64.zip` |
-| SHA-256 | `9C40D92CA8A6114C1276233E7EB3FCE22A76DC1CF106221F95ACFBDDAF7D7F06` |
+| SHA-256 | `ED41267A45D824D5818253CFEA61B3FF57EBD186C82C44DDFE4CC69733BBD736` |
 | PE architecture | x64 (`0x8664`) |
-| ZIP size | 20.2 MiB |
-| Cold health readiness | 5,290 ms |
-| Restart health readiness | 2,047 ms |
+| ZIP size | 28.9 MiB |
+| Cold health readiness | 4,323 ms |
+| Restart health readiness | 2,087 ms |
 | Compiled browser UI | HTTP 200 with application root |
 | Isolated writable database | Pass |
 | Synthetic client write | Pass |
 | Persistence after graceful restart | Pass |
 | Non-loopback connections | 0 |
 | Authenticode status | NotSigned |
+| Packaged recovery executable | Pass under emulation |
 
 PyInstaller reported unresolved Windows system-DLL warnings while analyzing the
 x64 runtime on an ARM64 host. The completed x64 package nevertheless launched

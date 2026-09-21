@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from api.main import create_app
+from api.recovery import recover
 from api.tests.test_issue_m3_hipaa_generation import _ready
 from api.tests.test_issue_m3_hipaa_review import _package, _transition
 
@@ -97,6 +98,14 @@ def test_full_backup_contains_db_managed_files_and_hash_manifest(tmp_path: Path)
                 payload = ZipFile(path).read(name)
                 assert hashlib.sha256(payload).hexdigest() == digest
                 assert len(payload) == size
+        restored = recover(path, tmp_path / "restored-workspace")
+        with sqlite3.connect(restored / "workspace.db") as connection:
+            assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+            assert connection.execute(
+                "SELECT COUNT(*) FROM generated_packages WHERE id=?", (package["id"],)
+            ).fetchone()[0] == 1
+        assert (restored / "recovery-metadata" / "manifest.json").is_file()
+        assert any((restored / "files").rglob("*"))
 
 
 def test_failed_backup_is_attributed_and_cannot_issue(

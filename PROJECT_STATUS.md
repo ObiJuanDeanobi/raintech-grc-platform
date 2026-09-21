@@ -42,17 +42,22 @@ CI passed.
   verdict.
 - Browser acceptance that could not be completed through the disconnected
   browser extension is included in this local-machine acceptance pass.
-- Native ARM64 packaging is now implemented and verified: the 22.1 MiB package
+- Native ARM64 packaging is now implemented and verified: the 29.2 MiB package
   serves the compiled UI, persists a synthetic write across restart, and opens
   no non-loopback connection. Evidence is recorded under
   `docs/evidence/issue-32/ARM64_VERIFICATION.md`.
-- The 20.2 MiB x64 package also builds and passes the same checks under Windows
+- The 28.9 MiB x64 package also builds and passes the same checks under Windows
   x64-on-ARM64 emulation. This is useful compatibility evidence but does not
   replace the required native x64 hardware run. Evidence is recorded under
   `docs/evidence/issue-32/X64_EMULATION_VERIFICATION.md`.
+- Targeted Microsoft Defender scans completed with real-time protection enabled
+  and no detection for either package. Both executables remain unsigned.
+- Recovery validation and atomic isolated restore are implemented and exercised
+  against a real application backup. Both Windows packages include a standalone
+  recovery executable, and both packaged recovery tools passed isolated restore.
 - Remaining gates are the full visible browser flow, adapter-disabled run,
-  isolated recovery rehearsal, Defender/SmartScreen observations, and a native
-  x64 build and verification.
+  downloaded-file SmartScreen observation, and a native x64 build and
+  verification.
 
 ### Previously completed ticket detail
 

@@ -13,17 +13,18 @@ and passed the maintained isolated verifier.
 | Check | Result |
 | --- | --- |
 | Package | `RainTechGRC-windows-arm64.zip` |
-| SHA-256 | `7F6B61762A0D857BFCF218C5BA464B1208AD38D068D48B6DF3FA1576B37E1FBE` |
+| SHA-256 | `4CA3FCEF9A4AD265473C33A9B4E6574CD700B8F43E0835E746575D4A82C6108C` |
 | PE architecture | ARM64 (`0xAA64`) |
-| ZIP size | 22.1 MiB |
-| Cold health readiness | 2,658 ms |
-| Restart health readiness | 2,048 ms |
+| ZIP size | 29.2 MiB |
+| Cold health readiness | 2,767 ms |
+| Restart health readiness | 2,041 ms |
 | Compiled browser UI | HTTP 200 with application root |
 | Isolated writable database | Pass |
 | Synthetic client write | Pass |
 | Persistence after graceful restart | Pass |
 | Non-loopback connections | 0 |
 | Authenticode status | NotSigned |
+| Packaged recovery executable | Pass |
 
 The verifier extracted the package to a disposable directory, set an isolated
 `RAINTECH_DATA_DIR`, launched `RainTechGRC.exe` directly, created a synthetic

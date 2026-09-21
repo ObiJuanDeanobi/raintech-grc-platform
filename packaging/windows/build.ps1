@@ -51,6 +51,19 @@ try {
     if (-not (Test-Path -LiteralPath (Join-Path $stage 'RainTechGRC.exe'))) {
         throw 'RainTechGRC.exe was not produced'
     }
+    $recoveryArguments = @(
+        '--noconfirm', '--clean', '--onefile', '--console',
+        '--name', 'RainTechGRCRecovery',
+        '--distpath', $stage,
+        '--workpath', (Join-Path $localBuild 'recovery-work'),
+        '--specpath', (Join-Path $localBuild 'recovery-spec'),
+        (Join-Path $repo 'api\recovery.py')
+    )
+    & $Python -m PyInstaller @recoveryArguments
+    if ($LASTEXITCODE) { throw 'Recovery-tool packaging failed' }
+    if (-not (Test-Path -LiteralPath (Join-Path $stage 'RainTechGRCRecovery.exe'))) {
+        throw 'RainTechGRCRecovery.exe was not produced'
+    }
 }
 finally {
     Pop-Location

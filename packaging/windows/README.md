@@ -18,6 +18,14 @@ target computer does not need Python or Node. Mutable data defaults to
 `%LOCALAPPDATA%\RainTech\GRC Platform`; `RAINTECH_DATA_DIR` overrides that path
 for isolated verification.
 
+Each package also includes a standalone recovery command. Restore only into a
+new or empty isolated directory, inspect the result, and never point it at the
+live data directory:
+
+```powershell
+.\RainTechGRCRecovery.exe .\BACKUP.zip C:\RainTech-Recovery-Test
+```
+
 The verifier checks health, a persisted synthetic write across restart,
 executable architecture, signature state, package size, and loopback-only
 connections. Native ARM64 and x64 packages must each be built with a matching
