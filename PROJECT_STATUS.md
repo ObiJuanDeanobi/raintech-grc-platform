@@ -30,7 +30,7 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #32 - Windows/offline pilot acceptance is next.**
+**GitHub issue #32 - Windows/offline pilot acceptance is active.**
 
 - Refresh the historical packaging spike against the production application;
   the old throwaway-spike wording is no longer the operative acceptance scope.
@@ -40,9 +40,12 @@ CI passed.
 - Record Defender/SmartScreen behavior, unsigned-binary friction, dependency
   compatibility, package size, cold-launch time, and the final architecture
   verdict.
-- Browser acceptance that could not be completed through the disconnected
-  browser extension is included in this local-machine acceptance pass.
-- Native ARM64 packaging is now implemented and verified: the 29.2 MiB package
+- Visible Edge acceptance now covers synthetic workspace creation, intake and
+  profile gates, entry into the complete 194-record HIPAA assessment, and
+  question-answer persistence after reload. It exposed and drove a fix for a
+  misleading non-persistent question checkbox; that control is now a durable
+  answer-derived completion indicator with regression coverage.
+- Native ARM64 packaging is now implemented and verified: the 24.9 MiB package
   serves the compiled UI, persists a synthetic write across restart, and opens
   no non-loopback connection. Evidence is recorded under
   `docs/evidence/issue-32/ARM64_VERIFICATION.md`.
@@ -55,9 +58,11 @@ CI passed.
 - Recovery validation and atomic isolated restore are implemented and exercised
   against a real application backup. Both Windows packages include a standalone
   recovery executable, and both packaged recovery tools passed isolated restore.
-- Remaining gates are the full visible browser flow, adapter-disabled run,
-  downloaded-file SmartScreen observation, and a native x64 build and
-  verification.
+- Sequential architecture builds now retain both ZIPs and checksum files; the
+  frontend build no longer erases the first package while building the second.
+- Remaining gates are the late-stage visible package-review/issuance states,
+  adapter-disabled run, downloaded-file SmartScreen observation, and native x64
+  hardware verification.
 
 ### Previously completed ticket detail
 
