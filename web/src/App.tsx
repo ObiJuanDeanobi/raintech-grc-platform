@@ -635,7 +635,14 @@ function PromptCard({
     <article className={`prompt-card role-${prompt.role}`}>
       <div className="prompt-heading">
         {prompt.render_checkbox ? (
-          <input aria-label={prompt.text} type="checkbox" tabIndex={-1} />
+          <input
+            aria-label={prompt.text}
+            type="checkbox"
+            checked={answer.trim().length > 0}
+            disabled
+            tabIndex={-1}
+            readOnly
+          />
         ) : (
           <span className="context-dot" aria-hidden="true" />
         )}

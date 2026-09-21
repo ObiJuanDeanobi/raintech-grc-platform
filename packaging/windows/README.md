@@ -12,6 +12,11 @@ ZIP in an isolated workspace:
 .\packaging\windows\verify.ps1 -Package .\dist\windows\RainTechGRC-windows-arm64.zip
 ```
 
+The build preserves existing architecture ZIPs and checksum files in
+`dist\windows` while the frontend is rebuilt. This means you can run the ARM64
+and x64 builds sequentially without losing the first package; each build still
+compiles a fresh UI before PyInstaller stages the executable.
+
 The package includes its Python runtime, API, compiled browser UI, catalog and
 version data, HIPAA v2 templates, migrations, and Alembic configuration. The
 target computer does not need Python or Node. Mutable data defaults to

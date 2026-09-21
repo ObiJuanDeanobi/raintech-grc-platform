@@ -10,6 +10,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 if (-not $OutputRoot) { $OutputRoot = Join-Path $repo 'dist\windows' }
+$outputRootAbsolute = [System.IO.Path]::GetFullPath($OutputRoot)
 $machine = (& $Python -c "import sysconfig; print(sysconfig.get_platform().lower())").Trim()
 $expected = @{ x64 = @('win-amd64'); arm64 = @('win-arm64') }[$Architecture]
 if ($machine -notin $expected) {
@@ -20,7 +21,18 @@ if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
 }
 
 Push-Location $repo
+$preservedOutput = Join-Path ([System.IO.Path]::GetTempPath()) "RainTechGRC-packaging-$([guid]::NewGuid())"
 try {
+    # The frontend build recreates the repository's dist directory. Preserve
+    # package artifacts first so an ARM64 build followed by an x64 build does
+    # not erase the first architecture's ZIP and checksum.
+    if (Test-Path -LiteralPath $outputRootAbsolute) {
+        $packageArtifacts = Get-ChildItem -LiteralPath $outputRootAbsolute -File -Filter 'RainTechGRC-windows-*' -ErrorAction SilentlyContinue
+        if ($packageArtifacts) {
+            New-Item -ItemType Directory -Force -Path $preservedOutput | Out-Null
+            $packageArtifacts | Copy-Item -Destination $preservedOutput -Force
+        }
+    }
     & pnpm build
     if ($LASTEXITCODE) { throw 'Frontend build failed' }
     & $Python -m pip install --upgrade ".[windows-package]"
@@ -66,11 +78,16 @@ try {
     }
 }
 finally {
+    if (Test-Path -LiteralPath $preservedOutput) {
+        New-Item -ItemType Directory -Force -Path $outputRootAbsolute | Out-Null
+        Get-ChildItem -LiteralPath $preservedOutput -File | Copy-Item -Destination $outputRootAbsolute -Force
+        Remove-Item -LiteralPath $preservedOutput -Recurse -Force
+    }
     Pop-Location
 }
 
-New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
-$output = (Resolve-Path -LiteralPath $OutputRoot).Path
+New-Item -ItemType Directory -Force -Path $outputRootAbsolute | Out-Null
+$output = (Resolve-Path -LiteralPath $outputRootAbsolute).Path
 $zip = Join-Path $output "RainTechGRC-windows-$Architecture.zip"
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
 Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -CompressionLevel Optimal

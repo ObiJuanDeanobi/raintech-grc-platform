@@ -884,6 +884,9 @@ test("switching projects never displays another project's prompt answer", async 
   expect(
     await screen.findByRole("textbox", { name: "Answer: Has all ePHI been identified?" }),
   ).toHaveValue("Project A answer");
+  const answeredIndicator = screen.getByRole("checkbox", { name: "Has all ePHI been identified?" });
+  expect(answeredIndicator).toBeChecked();
+  expect(answeredIndicator).toBeDisabled();
   await user.selectOptions(screen.getAllByRole("combobox")[0], "project-2");
   await waitFor(() =>
     expect(
