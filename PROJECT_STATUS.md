@@ -46,6 +46,10 @@ CI passed.
   serves the compiled UI, persists a synthetic write across restart, and opens
   no non-loopback connection. Evidence is recorded under
   `docs/evidence/issue-32/ARM64_VERIFICATION.md`.
+- The 20.2 MiB x64 package also builds and passes the same checks under Windows
+  x64-on-ARM64 emulation. This is useful compatibility evidence but does not
+  replace the required native x64 hardware run. Evidence is recorded under
+  `docs/evidence/issue-32/X64_EMULATION_VERIFICATION.md`.
 - Remaining gates are the full visible browser flow, adapter-disabled run,
   isolated recovery rehearsal, Defender/SmartScreen observations, and a native
   x64 build and verification.

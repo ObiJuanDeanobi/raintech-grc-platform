@@ -10,8 +10,8 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 if (-not $OutputRoot) { $OutputRoot = Join-Path $repo 'dist\windows' }
-$machine = (& $Python -c "import platform; print(platform.machine().lower())").Trim()
-$expected = @{ x64 = @('amd64', 'x86_64'); arm64 = @('arm64', 'aarch64') }[$Architecture]
+$machine = (& $Python -c "import sysconfig; print(sysconfig.get_platform().lower())").Trim()
+$expected = @{ x64 = @('win-amd64'); arm64 = @('win-arm64') }[$Architecture]
 if ($machine -notin $expected) {
     throw "Python architecture '$machine' does not match requested $Architecture"
 }
