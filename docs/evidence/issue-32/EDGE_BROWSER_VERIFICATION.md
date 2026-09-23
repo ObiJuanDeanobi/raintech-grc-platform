@@ -175,6 +175,12 @@ The final ARM64 extraction is
 
 ## Remaining physical acceptance
 
+On September 23, Edge created a second synthetic project, `Synthetic Isolation
+Check - Unissued`, under the same synthetic client. Its fresh Intake state had
+no issued-package panel. Switching back to `HIPAA Browser Pilot` restored the
+same issued snapshot and backup IDs. This verifies project switching does not
+expose the issued package in the new project's view.
+
 - Repeat the package run with the host network adapter disabled. This is not
   safe to perform in the active remote development session.
 - Observe downloaded-file SmartScreen behavior from the intended distribution

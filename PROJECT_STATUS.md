@@ -88,11 +88,12 @@ CI passed.
   x64-on-ARM64 emulation. This is useful compatibility evidence but does not
   replace the required native x64 hardware run. Evidence is recorded under
   `docs/evidence/issue-32/X64_EMULATION_VERIFICATION.md`.
-- The current corrected ZIPs also pass isolated verification: ARM64 is 29.2 MiB
+- An earlier September 22-23 corrected checkpoint also passed isolated verification: ARM64 was 29.2 MiB
   (`BE34C11F7283844E7F08BAFD972AA41DAD78162CEE0906050977B56E02F2B3B6`);
   x64 under ARM64 emulation is 28.9 MiB
   (`055F4D869D57C06A19C49FF79A7AE22612BF1F59B1EF455BACFCE0FC7612FF68`).
-  Earlier package measurements above are retained as dated history.
+  These measurements are retained as dated history; the final ZIP hashes are
+  listed above.
 - Targeted Microsoft Defender scans completed with real-time protection enabled
   and no detection for either package. Both executables remain unsigned.
 - Recovery validation and atomic isolated restore are implemented and exercised
