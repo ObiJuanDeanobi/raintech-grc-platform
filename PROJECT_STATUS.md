@@ -55,6 +55,14 @@ CI passed.
   Full API verification passes 145 tests. The corrected package awaits the
   visible generation-through-retrieval pass; see
   `docs/evidence/issue-32/EDGE_BROWSER_VERIFICATION.md`.
+- The next Edge pass generated a candidate, but content inspection found the
+  POA&M header replaced by data and missing project/client report names. That
+  candidate remains unsigned. Snapshot projection, workbook row placement,
+  and readable validation errors are corrected with regression coverage.
+  Rebuilt ARM64 (`7FBEE0978DF48D1125CE80A1EB5FD794E8A6D1D327BFE27906D518DD6233A949`)
+  and x64 (`96EF987CBF78938507793385A72F40555E8BB8D418015ABDE7236D82A5321D10`)
+  ZIPs pass isolated package verification. The corrected ARM64 package awaits
+  visible review, sign-off, backup, issuance, restart, and retrieval.
 - Native ARM64 packaging is now implemented and verified: the 24.9 MiB package
   serves the compiled UI, persists a synthetic write across restart, and opens
   no non-loopback connection. Evidence is recorded under

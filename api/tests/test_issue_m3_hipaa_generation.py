@@ -2,6 +2,7 @@
 
 import json
 import sqlite3
+import xml.etree.ElementTree as ET
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
@@ -162,6 +163,30 @@ def test_reconciled_not_met_keeps_final_determination_in_generated_package(
         values = report_values(source)
         assert values["not_met_count"] == "1"
         assert "Not Met" in values["final_determination"]
+        assert values["project_name"].endswith(" Profile")
+        assert values["client_name"].startswith("Synthetic Client")
+        assert "Synthetic finding" in values["findings_grouped_by_source"]
+
+        listed = client.get(f"/api/projects/{project}/packages").json()[0]
+        report = next(c for c in listed["components"] if c["kind"] == "assessment_report")
+        poam = next(c for c in listed["components"] if c["kind"] == "poam")
+        base = f"/api/projects/{project}/packages/{listed['id']}/components"
+        with ZipFile(BytesIO(client.get(f"{base}/{report['id']}").content)) as archive:
+            document = archive.read("word/document.xml")
+            assert b"Synthetic finding" in document
+            assert values["project_name"].encode() in document
+        with ZipFile(BytesIO(client.get(f"{base}/{poam['id']}").content)) as archive:
+            namespace = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+            sheet = ET.fromstring(archive.read("xl/worksheets/sheet2.xml"))
+            header = next(r for r in sheet.iter(namespace + "row") if r.get("r") == "3")
+            data = next(r for r in sheet.iter(namespace + "row") if r.get("r") == "4")
+            header_values = ["".join(c.itertext()) for c in header.findall(namespace + "c")]
+            data_values = ["".join(c.itertext()) for c in data.findall(namespace + "c")]
+            assert header_values == list(POAM_COLUMNS)
+            assert len(data_values) == 29
+            assert record_id in data_values
+            assert "Synthetic finding" in data_values
+            assert "Open" in data_values
 
 
 def test_rendered_outputs_contain_required_sections_and_exact_poam_columns(tmp_path: Path) -> None:

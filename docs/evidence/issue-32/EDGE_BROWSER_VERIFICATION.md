@@ -75,6 +75,35 @@ relaunch against the same synthetic data root. Package generation, exact review
 and sign-off, complete backup, issuance, restart, and immutable retrieval still
 require the corrected visible Edge pass.
 
+## Generated candidate inspection and corrected render build
+
+The visible Edge flow generated package
+`72a30390-a9b1-48cc-8896-6ae144d11a70` from synthetic source snapshot
+`c6e4fa23-7a05-401a-84bb-35cd708a65cd`. Both component links returned
+hash-matching, parseable ZIP files. Content inspection found that the POA&M
+renderer replaced the 29-column header instead of populating data row 4, and
+the report omitted project and client names. The candidate was moved only to
+`In Review`; it was not marked Reviewed, signed, backed up, or issued.
+
+![Generated package before content correction](EDGE_PACKAGE_GENERATED.png)
+
+The source snapshot now includes project/client names and the linked finding
+and corrective-action text. The renderer preserves the POA&M header and writes
+the reconciled Not Met item to the correct 29-column data row. A frontend
+validation error that displayed `[object Object]` now names the invalid fields.
+The backend suite passed 145 tests after updating the row-placement contract;
+52 frontend tests, typecheck, lint, and production build passed. The corrected
+packages passed isolated launch, restart, persistence, and loopback-only checks:
+
+| Build | Size | SHA-256 | Verification host |
+| --- | ---: | --- | --- |
+| ARM64 | 29.2 MiB | `7FBEE0978DF48D1125CE80A1EB5FD794E8A6D1D327BFE27906D518DD6233A949` | Native ARM64 |
+| x64 | 29.0 MiB | `96EF987CBF78938507793385A72F40555E8BB8D418015ABDE7236D82A5321D10` | ARM64 emulation |
+
+The corrected ARM64 build is extracted at
+`C:\Users\johnathan\RainTechAcceptance\package-arm64-renderer-fix` for the
+remaining visible package review, backup, issuance, restart, and retrieval.
+
 ## Remaining physical acceptance
 
 - Repeat the package run with the host network adapter disabled. This is not

@@ -1,4 +1,4 @@
-import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 from zipfile import ZipFile
@@ -113,8 +113,8 @@ def test_poam_render_is_parseable_and_populates_exact_row(tmp_path: Path) -> Non
     assert "action-1" in workbook
     assert "decl-test-1" not in workbook
     assert 'r="AC3"' in workbook
-    match = re.search(r'<(?:[A-Za-z0-9_]+:)?row r="3".*?</(?:[A-Za-z0-9_]+:)?row>', workbook)
-    assert match is not None
-    row = match.group(0)
-    assert row.count('<c r="') == 29
+    namespace = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+    sheet = ET.fromstring(workbook)
+    data_row = next(row for row in sheet.iter(namespace + "row") if row.get("r") == "4")
+    assert len(data_row.findall(namespace + "c")) == 29
     assert unresolved == {}
