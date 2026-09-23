@@ -122,9 +122,11 @@ def _snapshot(
             None,
         )
         if f:
-            row.update({"finding_id": f.get("id"), **f})
+            row["finding_id"] = f["id"]
         if a:
-            row.update({"action_id": a.get("id"), "corrective_action_id": a.get("id"), **a})
+            row["action_id"] = a["id"]
+            row["corrective_action_id"] = a["id"]
+            row["poam_status"] = a["status"]
     source = {
         "snapshot_id": str(uuid4()),
         "template_version": "hipaa-v2",

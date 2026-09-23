@@ -45,6 +45,16 @@ CI passed.
   question-answer persistence after reload. It exposed and drove a fix for a
   misleading non-persistent question checkbox; that control is now a durable
   answer-derived completion indicator with regression coverage.
+- The September 22-23 continuation reached visible fieldwork-close readiness
+  with all 149 determination-bearing records final, approved synthetic Profile
+  version 2, four reviewed SRA scope targets, one risk, and a reconciled Not Met
+  action. The first Generate package action exposed a snapshot join defect:
+  an Open action overwrote its Not Met determination. Generation and renderer
+  joins now preserve the determination, with regression coverage. A separate
+  Windows long-path recovery failure found by the full suite was also fixed.
+  Full API verification passes 145 tests. The corrected package awaits the
+  visible generation-through-retrieval pass; see
+  `docs/evidence/issue-32/EDGE_BROWSER_VERIFICATION.md`.
 - Native ARM64 packaging is now implemented and verified: the 24.9 MiB package
   serves the compiled UI, persists a synthetic write across restart, and opens
   no non-loopback connection. Evidence is recorded under
@@ -53,6 +63,11 @@ CI passed.
   x64-on-ARM64 emulation. This is useful compatibility evidence but does not
   replace the required native x64 hardware run. Evidence is recorded under
   `docs/evidence/issue-32/X64_EMULATION_VERIFICATION.md`.
+- The current corrected ZIPs also pass isolated verification: ARM64 is 29.2 MiB
+  (`BE34C11F7283844E7F08BAFD972AA41DAD78162CEE0906050977B56E02F2B3B6`);
+  x64 under ARM64 emulation is 28.9 MiB
+  (`055F4D869D57C06A19C49FF79A7AE22612BF1F59B1EF455BACFCE0FC7612FF68`).
+  Earlier package measurements above are retained as dated history.
 - Targeted Microsoft Defender scans completed with real-time protection enabled
   and no detection for either package. Both executables remain unsigned.
 - Recovery validation and atomic isolated restore are implemented and exercised
@@ -232,9 +247,14 @@ GitHub issue #49 remains an isolated practitioner test. Its result must not
 change ADR 0012 or the approved baseline unless Johnathan separately accepts the
 test and approves the resulting decision and specification revision.
 
-GitHub issue #44 is complete and merged in PR #46. GitHub issue #32 remains the
-Windows launcher and offline-package spike; backup and restore implementation
-will be scoped in a separate future ticket after this reconciliation.
+GitHub issue #44 is complete and merged in PR #46. GitHub issue #32 is the
+active Windows/offline acceptance for the production HIPAA pilot flow. ARM64
+package verification, x64-on-ARM64 emulation, recovery-tool verification, and
+the initial visible assessment workflow are recorded under
+`docs/evidence/issue-32/`. The visible fieldwork-close, package review, backup,
+issuance, restart, and immutable retrieval workflow remains outstanding, along
+with physical-environment acceptance for adapter-disabled operation,
+downloaded-file SmartScreen behavior, and native x64 hardware.
 
 GitHub issue #29 is closed. The prompt layer is ingested, practitioner-reviewed
 on a clickable walkthrough, and merged.
@@ -448,10 +468,12 @@ on a clickable walkthrough, and merged.
   revision foundation is present on `main` and is the base used by Issue #69.
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
-- **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
-  labeled `ready-for-human`, needs Johnathan's machine, and now owns the launcher
-  and packaging work that was explicitly excluded from the merged Issue #44
-  scope.
+- **GitHub issue #32**: Windows/offline acceptance for the production HIPAA
+  pilot flow. Packaging and initial assessment acceptance are recorded; the
+  late-stage visible workflow and physical-environment gates remain open. The
+  adapter-disabled run must not interrupt the active remote session. Native x64
+  hardware and downloaded-file SmartScreen observations require their respective
+  physical environment and distribution channel.
 - **GitHub issue #21**: practitioner review of the exported 194-record catalog.
   It stays open and `ready-for-human`. Record boundaries are settled and
   citation-stable, and the catalog was read in its working shape through the
@@ -479,11 +501,13 @@ and operations model, not a claimed segregation of duties.
   merge review. Required desktop and 1280x720 browser regression evidence is
   retained in `docs/screenshots/issue-74/`. The frontend itself is unchanged
   and its delayed-response regression suite passes.
-- GitHub issue #32 and every claim about the launcher and offline package are
-  blocked on Johnathan's Windows machine. A cloud session cannot verify them.
-  Backup and restore are approved requirements but are not part of #32; their
-  future implementation and ARM64/x64 recovery verification require a separate
-  ticket and representative Windows hardware.
+- GitHub issue #32's remaining acceptance is not complete. The visible
+  fieldwork-close through issuance and retrieval flow is outstanding. The
+  adapter-disabled check is deferred while it could disconnect the active
+  session; downloaded-file SmartScreen behavior needs a downloaded artifact;
+  native x64 hardware verification remains outstanding. Current x64 evidence is
+  from ARM64 emulation. Do not treat any of these checks as passed until evidence
+  is recorded.
 
 ## Open questions
 
@@ -550,9 +574,14 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Commit and push the current Issue #73 checkpoint, update GitHub issues #73 and
-#88 with the verified state, complete full automated and browser acceptance,
-then open the #73 PR and merge only after CI passes.
+Complete the remaining visible synthetic Issue #32 workflow through signed
+package issuance, restart, and immutable retrieval; capture concise evidence
+including the core success flow at 1280px. Record adapter-disabled,
+downloaded-file SmartScreen, and native x64 hardware outcomes or explicit
+physical-environment deferrals. Then update Issue #32, roadmap issue #88,
+draft PR #92, and this status file. Keep PR #92 unmerged until the visible
+workflow is complete and the hardware-dependent checks are completed or
+explicitly accepted as deferrals.
 
 ## Branch inventory
 

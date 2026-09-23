@@ -266,7 +266,12 @@ def _joined_record(snapshot: Mapping[str, Any], row: Mapping[str, Any]) -> dict[
                 None,
             )
             if match:
-                result.update(match)
+                # Finding and action rows have their own status, title, and id.
+                # Keep the framework determination authoritative in the report.
+                for field, value in match.items():
+                    result.setdefault(field, value)
+                if collection == "actions":
+                    result["poam_status"] = match.get("status")
     return result
 
 

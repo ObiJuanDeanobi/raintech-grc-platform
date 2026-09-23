@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sqlite3
 import tempfile
@@ -18,6 +19,16 @@ APPLICATION = "raintech-grc-platform"
 
 def _digest(data: bytes) -> str:
     return sha256(data).hexdigest()
+
+
+def _writable_path(path: Path) -> Path:
+    """Use the extended Windows path form for deeply nested managed files."""
+    if os.name != "nt" or len(str(path)) < 240:
+        return path
+    value = str(path)
+    if value.startswith("\\\\"):
+        return Path("\\\\?\\UNC\\" + value.lstrip("\\"))
+    return Path("\\\\?\\" + value)
 
 
 def _safe(name: str) -> bool:
@@ -107,8 +118,9 @@ def recover(archive_path: Path, target: Path) -> Path:
                 destination = staging / "recovery-templates" / name.removeprefix("template/")
             else:
                 raise ValueError(f"Unsupported recovery item: {name}")
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(data)
+            writable = _writable_path(destination)
+            writable.parent.mkdir(parents=True, exist_ok=True)
+            writable.write_bytes(data)
         # Manifest is retained exactly as supplied for auditability.
         with zipfile.ZipFile(archive_path) as archive:
             manifest_bytes = archive.read("manifest.json")

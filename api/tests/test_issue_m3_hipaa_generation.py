@@ -1,5 +1,6 @@
 """End-to-end contract tests for governed HIPAA package generation."""
 
+import json
 import sqlite3
 from io import BytesIO
 from pathlib import Path
@@ -9,7 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.main import create_app
-from api.renderers.hipaa import POAM_COLUMNS
+from api.renderers.hipaa import POAM_COLUMNS, report_values
 from api.tests.test_issue_m3_hipaa_sra import _risk, _setup
 
 
@@ -120,6 +121,47 @@ def test_generation_promotes_two_parseable_components_from_one_snapshot(tmp_path
                 "SELECT action, entity_id FROM audit_events WHERE action='hipaa_package_generated'"
             ).fetchone()
             assert event == ("hipaa_package_generated", package["id"])
+
+
+def test_reconciled_not_met_keeps_final_determination_in_generated_package(
+    tmp_path: Path,
+) -> None:
+    client, db = _app(tmp_path)
+    with client:
+        project, assessment = _ready(client, db, "not-met-generation")
+        record_id = "164.308(a)(1)(ii)(B)"
+        changed = client.put(
+            f"/api/assessments/{assessment}/determinations/{record_id}",
+            json={"status": "Not Met"},
+        )
+        assert changed.status_code == 200, changed.text
+        reconciled = client.put(
+            f"/api/projects/{project}/assessments/{assessment}/records/{record_id}/reconciliation",
+            json={
+                "outcome": "create",
+                "title": "Synthetic finding",
+                "action_title": "Synthetic open action",
+            },
+        )
+        assert reconciled.status_code == 200, reconciled.text
+        assert client.get(
+            f"/api/projects/{project}/assessments/{assessment}/close-readiness"
+        ).json()["ready"]
+
+        generated = client.post(f"/api/projects/{project}/assessments/{assessment}/packages")
+        assert generated.status_code == 201, generated.text
+        with sqlite3.connect(db) as connection:
+            source = json.loads(
+                connection.execute("SELECT source_json FROM source_snapshots").fetchone()[0]
+            )
+        row = next(item for item in source["records"] if item["record_id"] == record_id)
+        assert row["status"] == "Not Met"
+        assert row["title"] != "Synthetic open action"
+        assert row["poam_status"] == "Open"
+        assert row["finding_id"] and row["corrective_action_id"]
+        values = report_values(source)
+        assert values["not_met_count"] == "1"
+        assert "Not Met" in values["final_determination"]
 
 
 def test_rendered_outputs_contain_required_sections_and_exact_poam_columns(tmp_path: Path) -> None:
