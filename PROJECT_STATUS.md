@@ -52,8 +52,8 @@ CI passed.
   an Open action overwrote its Not Met determination. Generation and renderer
   joins now preserve the determination, with regression coverage. A separate
   Windows long-path recovery failure found by the full suite was also fixed.
-  Full API verification passes 145 tests. The corrected package awaits the
-  visible generation-through-retrieval pass; see
+  Full API verification passes 145 tests. The later visible
+  generation-through-retrieval pass is recorded in
   `docs/evidence/issue-32/EDGE_BROWSER_VERIFICATION.md`.
 - The next Edge pass generated a candidate, but content inspection found the
   POA&M header replaced by data and missing project/client report names. That
@@ -61,8 +61,25 @@ CI passed.
   and readable validation errors are corrected with regression coverage.
   Rebuilt ARM64 (`7FBEE0978DF48D1125CE80A1EB5FD794E8A6D1D327BFE27906D518DD6233A949`)
   and x64 (`96EF987CBF78938507793385A72F40555E8BB8D418015ABDE7236D82A5321D10`)
-  ZIPs pass isolated package verification. The corrected ARM64 package awaits
-  visible review, sign-off, backup, issuance, restart, and retrieval.
+  ZIPs pass isolated package verification. The corrected ARM64 package then
+  passed visible review, sign-off, backup, issuance, restart, and retrieval.
+- The September 23 visible Edge pass generated and inspected exact synthetic
+  DOCX/XLSX bytes, reviewed and signed package `04129ae8-784f-461f-af72-fab394823eed`,
+  validated full backup `7364a8df-aede-4a0b-b185-e12f3719ff08` with the
+  standalone recovery executable, and issued snapshot
+  `198f1d0e-f149-4b97-b357-c8e57a8ea66a`. Both component links retained
+  their hashes after packaged-app restart. A stale unsigned candidate was
+  visibly blocked; an attempted backup against it recorded an attributed
+  precondition failure. The issued screen had no horizontal overflow at
+  1280px. Evidence and screenshots are in
+  `docs/evidence/issue-32/EDGE_BROWSER_VERIFICATION.md`.
+- A sign-off-to-backup panel refresh gap found in that pass is fixed with a
+  frontend regression. The final ARM64 ZIP is 29.2 MiB
+  (`0A0030640906E3683D29642B7761310509FCABC4FEADBC92F9430CF9D69C8913`),
+  and the final x64 ZIP is 29.0 MiB
+  (`48F82492C4642AE2BCB11B34D94D8449DC0A2F0FA85D0B3AC8EAD2FF4444EDC0`).
+  Both passed isolated verification; the final native ARM64 build also reopened
+  the issued dataset in Edge and served both hash-matching component links.
 - Native ARM64 packaging is now implemented and verified: the 24.9 MiB package
   serves the compiled UI, persists a synthetic write across restart, and opens
   no non-loopback connection. Evidence is recorded under
@@ -83,9 +100,8 @@ CI passed.
   recovery executable, and both packaged recovery tools passed isolated restore.
 - Sequential architecture builds now retain both ZIPs and checksum files; the
   frontend build no longer erases the first package while building the second.
-- Remaining gates are the late-stage visible package-review/issuance states,
-  adapter-disabled run, downloaded-file SmartScreen observation, and native x64
-  hardware verification.
+- Physical-environment deferrals remain: adapter-disabled operation,
+  downloaded-file SmartScreen observation, and native x64 hardware verification.
 
 ### Previously completed ticket detail
 
@@ -260,9 +276,9 @@ active Windows/offline acceptance for the production HIPAA pilot flow. ARM64
 package verification, x64-on-ARM64 emulation, recovery-tool verification, and
 the initial visible assessment workflow are recorded under
 `docs/evidence/issue-32/`. The visible fieldwork-close, package review, backup,
-issuance, restart, and immutable retrieval workflow remains outstanding, along
-with physical-environment acceptance for adapter-disabled operation,
-downloaded-file SmartScreen behavior, and native x64 hardware.
+issuance, restart, and immutable retrieval workflow now passes with synthetic
+data. Physical-environment acceptance remains deferred for adapter-disabled
+operation, downloaded-file SmartScreen behavior, and native x64 hardware.
 
 GitHub issue #29 is closed. The prompt layer is ingested, practitioner-reviewed
 on a clickable walkthrough, and merged.
@@ -477,8 +493,8 @@ on a clickable walkthrough, and merged.
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
 - **GitHub issue #32**: Windows/offline acceptance for the production HIPAA
-  pilot flow. Packaging and initial assessment acceptance are recorded; the
-  late-stage visible workflow and physical-environment gates remain open. The
+  pilot flow. Packaging and the full visible synthetic workflow are recorded;
+  the physical-environment gates remain open. The
   adapter-disabled run must not interrupt the active remote session. Native x64
   hardware and downloaded-file SmartScreen observations require their respective
   physical environment and distribution channel.
@@ -509,8 +525,7 @@ and operations model, not a claimed segregation of duties.
   merge review. Required desktop and 1280x720 browser regression evidence is
   retained in `docs/screenshots/issue-74/`. The frontend itself is unchanged
   and its delayed-response regression suite passes.
-- GitHub issue #32's remaining acceptance is not complete. The visible
-  fieldwork-close through issuance and retrieval flow is outstanding. The
+- GitHub issue #32's visible synthetic flow is complete. The
   adapter-disabled check is deferred while it could disconnect the active
   session; downloaded-file SmartScreen behavior needs a downloaded artifact;
   native x64 hardware verification remains outstanding. Current x64 evidence is
@@ -582,14 +597,11 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Complete the remaining visible synthetic Issue #32 workflow through signed
-package issuance, restart, and immutable retrieval; capture concise evidence
-including the core success flow at 1280px. Record adapter-disabled,
-downloaded-file SmartScreen, and native x64 hardware outcomes or explicit
-physical-environment deferrals. Then update Issue #32, roadmap issue #88,
-draft PR #92, and this status file. Keep PR #92 unmerged until the visible
-workflow is complete and the hardware-dependent checks are completed or
-explicitly accepted as deferrals.
+Review the complete Issue #32 evidence and decide whether the three recorded
+physical-environment deferrals are acceptable for PR #92. Run the native x64,
+downloaded-file SmartScreen, and adapter-disabled checks in suitable physical
+environments when available. Keep PR #92 draft and unmerged until its remaining
+hardware-dependent acceptance is completed or explicitly accepted as deferred.
 
 ## Branch inventory
 

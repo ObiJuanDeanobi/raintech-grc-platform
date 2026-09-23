@@ -69,11 +69,9 @@ September 21 package hashes above remain historical evidence.
 | ARM64 | 29.2 MiB | `BE34C11F7283844E7F08BAFD972AA41DAD78162CEE0906050977B56E02F2B3B6` | Native ARM64 |
 | x64 | 28.9 MiB | `055F4D869D57C06A19C49FF79A7AE22612BF1F59B1EF455BACFCE0FC7612FF68` | ARM64 emulation |
 
-The corrected ARM64 package is extracted at
-`C:\Users\johnathan\RainTechAcceptance\package-arm64-generation-fix` and awaits
-relaunch against the same synthetic data root. Package generation, exact review
-and sign-off, complete backup, issuance, restart, and immutable retrieval still
-require the corrected visible Edge pass.
+The ARM64 package was extracted at
+`C:\Users\johnathan\RainTechAcceptance\package-arm64-generation-fix` for the
+next browser pass.
 
 ## Generated candidate inspection and corrected render build
 
@@ -102,7 +100,78 @@ packages passed isolated launch, restart, persistence, and loopback-only checks:
 
 The corrected ARM64 build is extracted at
 `C:\Users\johnathan\RainTechAcceptance\package-arm64-renderer-fix` for the
-remaining visible package review, backup, issuance, restart, and retrieval.
+final visible browser pass described below.
+
+## September 23 signed issuance and retrieval
+
+The corrected package relaunched against the same synthetic data root. The
+older, unsigned candidate displayed **Assessment source changed after
+generation** and its backup/issue gate was blocked. This is the visible
+stale-source check; the old candidate was never signed or issued.
+
+![Stale candidate blocked in Edge](EDGE_STALE_SOURCE_BLOCKED.png)
+
+Edge generated a new candidate, package
+`04129ae8-784f-461f-af72-fab394823eed`, from source snapshot
+`b7d3bb93-af17-4788-ab0c-e6b225c958c0` (SHA-256
+`e1fdf68c9a6c7d7d30be018b626ab1ce355af102ce30ef26565b5993bd2c6826`).
+The DOCX link returned 66,565 bytes with SHA-256
+`f962858e5e3225b7b0edea1b1197ae7c32c65af0330db22f6d2ed3465f2fec07`;
+it includes the synthetic client/project names, Not Met determination, and
+finding title. The XLSX link returned 54,378 bytes with SHA-256
+`63d8ca69aaa486ba5359a70f882f92a0969cd42191bb47310bec9cbc24558e76`;
+the Open POA&M sheet has all 29 named headers at row 3 and its open synthetic
+finding in the 29-cell row 4. Both files passed ZIP integrity checks.
+
+![Corrected generated package in Edge](EDGE_CORRECTED_PACKAGE.png)
+
+The visible reviewer recorded their name, role, and exact-package note,
+confirmed both component hashes and the source/template, marked the candidate
+Reviewed, then explicitly signed it **Ready to issue**. This pass exposed a
+frontend refresh gap: the backup panel required a page reload to read the new
+signed state. The panel now refreshes on sign-off, and a focused regression
+test confirms the backup button enables without a reload. Edge then created
+and validated complete
+backup `7364a8df-aede-4a0b-b185-e12f3719ff08`, manifest SHA-256
+`d3f23fe05fda277d6301df405c6b75d4cd10c3838a3c7b439904d2a06020a2c8`.
+The backup ZIP SHA-256 is
+`62d8c740ff52f8f295c866381dac49e37ded8102ea8450a0bc27287bb4557bbf`.
+The packaged standalone recovery executable restored this exact ZIP into the
+separate `RainTechAcceptance\issue32-backup-7364-validation` directory; it
+contains `workspace.db`, managed files, recovery metadata, and templates.
+
+Edge atomically issued snapshot `198f1d0e-f149-4b97-b357-c8e57a8ea66a`,
+bound to the signed package, source snapshot, and backup. After packaged-app
+shutdown and restart, Edge still displayed the same issued and backup IDs.
+Both visible component download URLs returned the original SHA-256 hashes
+after restart. The issued package stayed **Issued** after an independent
+failed-backup exercise on the older stale candidate: its backup POST returned
+HTTP 409, and readiness retained attributed attempt
+`7cade97e-5b64-4247-9516-d006c915b3d2` at `preconditions` with the
+stale-source/sign-off reasons.
+
+At an explicit 1280 x 800 Edge viewport, `innerWidth` and document
+`scrollWidth` were both 1280, with no horizontal overflow. The issued panel,
+assessment, and saved question answer remained visible and usable. The Edge
+console reported no warnings or errors during this late-stage pass.
+
+![Issued package after restart at 1280px](EDGE_ISSUED_1280.png)
+
+The signed-state refresh fix was then packaged in final ZIPs. All 52 frontend
+tests, ESLint, typecheck, and production build passed. Both
+final ZIPs again passed isolated launch, restart, persistence, and
+loopback-only verification. The final ARM64 build was launched against the
+issued synthetic data root, and Edge again showed the same issued snapshot
+without console warnings or errors. Both component URLs again returned their
+recorded hashes.
+
+| Final build | Size | SHA-256 | Verification host |
+| --- | ---: | --- | --- |
+| ARM64 | 29.2 MiB | `0A0030640906E3683D29642B7761310509FCABC4FEADBC92F9430CF9D69C8913` | Native ARM64 |
+| x64 | 29.0 MiB | `48F82492C4642AE2BCB11B34D94D8449DC0A2F0FA85D0B3AC8EAD2FF4444EDC0` | ARM64 emulation |
+
+The final ARM64 extraction is
+`C:\Users\johnathan\RainTechAcceptance\package-arm64-final-issue32`.
 
 ## Remaining physical acceptance
 

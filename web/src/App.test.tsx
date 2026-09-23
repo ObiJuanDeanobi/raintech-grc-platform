@@ -349,6 +349,10 @@ test("reviews and explicitly signs the exact generated package", async () => {
       return Response.json({ package_id: "pkg-review", state, drift: [], blockers: [] });
     }
     if (url.endsWith("/review")) return Response.json({ package_id: "pkg-review", state, drift: [], blockers: [] });
+    if (url.endsWith("/issue-readiness")) return Response.json({
+      status: state === "Ready to issue" ? "Ready" : "Blocked",
+      blockers: state === "Ready to issue" ? [] : ["The exact package has not been reviewed and signed off"],
+    });
     if (url.includes("/records/child-1")) return Response.json(detail);
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
@@ -368,6 +372,7 @@ test("reviews and explicitly signs the exact generated package", async () => {
   expect(await screen.findByText("Reviewed")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Sign off: Ready to issue" }));
   expect(await screen.findByText("Ready to issue")).toBeVisible();
+  await waitFor(() => expect(screen.getByRole("button", { name: "Create and validate backup" })).toBeEnabled());
   expect(transitions.map((item) => item.next_state)).toEqual(["In Review", "Reviewed", "Ready to issue"]);
   expect(transitions.at(-1)).toMatchObject({ actor_id: "johnathan", approval: "I approve this exact package for issuance." });
 });
