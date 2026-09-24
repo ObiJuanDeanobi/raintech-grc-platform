@@ -41,8 +41,10 @@ evidence below is retained as the completed Surface pilot history.
 - Local verification: full API suite 151 passed, catalog suite 74 passed with
   15 optional skips, frontend 52 passed, Ruff, Mypy, TypeScript typecheck,
   ESLint, and production build passed. The focused #75 and compatibility
-  rerun after review changes passed 23 tests. GitHub CI and browser regression
-  evidence remain to be confirmed before #75 is complete.
+  rerun after review changes passed 23 tests. Edge synthetic same-client and
+  cross-client assessment switching retained Project A's note without leaking
+  it into Projects B/C; see `docs/evidence/issue-75/BROWSER_BACKEND_VERIFICATION.md`.
+  GitHub CI remains to be confirmed before #75 is complete.
 
 - Refresh the historical packaging spike against the production application;
   the old throwaway-spike wording is no longer the operative acceptance scope.
@@ -621,9 +623,9 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Complete Issue #75 on `feature/75-active-assessment-backend`: finish GitHub CI
-and representative same-client/cross-client browser regression, then review
-draft PR #93 before merge. The Surface pilot is merged via PR #92. Run native
+Complete Issue #75 on `feature/75-active-assessment-backend`: finish GitHub CI,
+then review draft PR #93 before merge. The Surface pilot is merged via PR #92.
+Run native
 x64, downloaded-file SmartScreen, and
 adapter-disabled checks in suitable physical environments before claiming
 broader Windows distribution acceptance under Issue #32.
