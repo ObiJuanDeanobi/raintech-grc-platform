@@ -35,6 +35,15 @@ CI passed.
 remains open only for broader Windows distribution checks. The Issue #32
 evidence below is retained as the completed Surface pilot history.
 
+- Draft PR #93 on `feature/75-active-assessment-backend` implements the narrow
+  backend resolver and assessment-route migration. The one-assessment
+  constraint remains and no successor creation is enabled.
+- Local verification: full API suite 151 passed, catalog suite 74 passed with
+  15 optional skips, frontend 52 passed, Ruff, Mypy, TypeScript typecheck,
+  ESLint, and production build passed. The focused #75 and compatibility
+  rerun after review changes passed 23 tests. GitHub CI and browser regression
+  evidence remain to be confirmed before #75 is complete.
+
 - Refresh the historical packaging spike against the production application;
   the old throwaway-spike wording is no longer the operative acceptance scope.
 - Prove Windows ARM64 and x64 launch, offline operation, writable persistent
@@ -612,9 +621,10 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Complete Issue #75 on `feature/75-active-assessment-backend`, verify its focused
-API seam and repository gates, then hand it off for review. The Surface pilot is
-merged via PR #92. Run native x64, downloaded-file SmartScreen, and
+Complete Issue #75 on `feature/75-active-assessment-backend`: finish GitHub CI
+and representative same-client/cross-client browser regression, then review
+draft PR #93 before merge. The Surface pilot is merged via PR #92. Run native
+x64, downloaded-file SmartScreen, and
 adapter-disabled checks in suitable physical environments before claiming
 broader Windows distribution acceptance under Issue #32.
 

@@ -2593,25 +2593,20 @@ def create_app(
         database: Annotated[Database, Depends(db)],
     ) -> dict[str, Any]:
         with database.connect() as connection:
-            assessment = connection.execute(
+            assessment = active_assessment_for_project(connection, project_id)
+            if assessment is None:
+                raise HTTPException(status_code=404, detail="Assessment not found")
+            project = connection.execute(
                 """
-                SELECT assessments.*, projects.name AS project_name,
+                SELECT projects.name AS project_name,
                        clients.id AS client_id, clients.name AS client_name
-                FROM project_active_assessments active
-                JOIN assessments
-                  ON assessments.id = active.assessment_id
-                 AND assessments.project_id = active.project_id
-                JOIN projects ON projects.id = assessments.project_id
+                FROM projects
                 JOIN clients ON clients.id = projects.client_id
-                JOIN assessment_revisions revisions
-                  ON revisions.assessment_id = assessments.id
-                 AND revisions.project_id = assessments.project_id
-                WHERE active.project_id = ?
+                WHERE projects.id = ?
                 """,
                 (project_id,),
             ).fetchone()
-            if assessment is None:
-                raise HTTPException(status_code=404, detail="Assessment not found")
+            assert project is not None
             framework = connection.execute(
                 "SELECT * FROM framework_versions WHERE id = ?",
                 (assessment["framework_version_id"],),
@@ -2664,9 +2659,9 @@ def create_app(
                 "id": assessment["id"],
                 "project": {
                     "id": assessment["project_id"],
-                    "name": assessment["project_name"],
-                    "client_id": assessment["client_id"],
-                    "client_name": assessment["client_name"],
+                    "name": project["project_name"],
+                    "client_id": project["client_id"],
+                    "client_name": project["client_name"],
                 },
                 "framework": {
                     "id": framework["id"],
@@ -3988,7 +3983,6 @@ def create_app(
             raise HTTPException(
                 status_code=422, detail="Risk must use the approved Profile version"
             )
-        _assessment_for_project_or_404(connection, project_id, payload.assessment_id)
         active = active_assessment_for_project(connection, project_id)
         if active is None or payload.assessment_id != active["id"]:
             raise HTTPException(
