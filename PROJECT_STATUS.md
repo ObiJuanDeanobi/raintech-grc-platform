@@ -103,10 +103,13 @@ CI passed.
   frontend build no longer erases the first package while building the second.
 - Physical-environment deferrals remain: adapter-disabled operation,
   downloaded-file SmartScreen observation, and native x64 hardware verification.
-- The September 24 provisional architecture verdict is **proceed with named
-  changes for pilot preparation**. The remaining physical checks and the
-  conditional code-signing decision are listed in
-  `docs/evidence/issue-32/RELEASE_GATE.md`. Issue #32 and draft PR #92 stay open.
+- On September 24 Johnathan accepted native x64 hardware, adapter-disabled
+  operation, and downloaded-file SmartScreen as explicit deferrals for the
+  current Surface Pro 11 ARM64 pilot. Its final verdict is **proceed with named
+  changes**; the broader Windows distribution verdict remains open. The final
+  packaged ARM64 executable was confirmed healthy on this Surface that day.
+  See `docs/evidence/issue-32/RELEASE_GATE.md`. Issue #32 and draft PR #92
+  remain open pending handoff review; deferred checks are not marked passed.
 - Isolated source, component, and approved-template drift checks block backup
   or issuance; the focused backup/issuance module passed 8 tests. See
   `docs/evidence/issue-32/DRIFT_GATE_TESTS.md`.

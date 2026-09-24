@@ -2,15 +2,34 @@
 
 Date: September 24, 2026. Branch: `feature/32-windows-acceptance`.
 
+## Surface pilot decision
+
+Johnathan accepted the three physical checks below as explicit deferrals for
+the current Microsoft Surface Pro, 11th Edition, ARM64 pilot. The final verdict
+for **this Surface pilot** is **proceed with named changes**: retain the
+portable local package, complete the deferred checks before claiming broader
+Windows distribution acceptance, and decide signing after a real downloaded
+file SmartScreen observation. This decision does not mark those checks passed.
+
+On September 24, the final ARM64 ZIP hash remained
+`0A0030640906E3683D29642B7761310509FCABC4FEADBC92F9430CF9D69C8913`.
+The native `RainTechGRC.exe` process ran from the final extraction on the
+Surface Pro 11 (Windows 11 Business 10.0.26200, ARM64), served only on
+`127.0.0.1:18433`, and returned `status: ready` from `/api/app/status` and
+`status: ok` from `/api/health`. The visible synthetic HIPAA workflow,
+restart, immutable retrieval, recovery, and 1280px evidence remain in the
+adjacent Issue #32 records.
+
 ## Current packaging verdict
 
-**Proceed with named changes for pilot preparation.** The packaged synthetic
+**Proceed with named changes for the Surface pilot.** The packaged synthetic
 HIPAA flow, immutable retrieval, and isolated recovery passed on native ARM64.
 The x64 package passed launch, restart, persistence, recovery, and loopback
-checks under Windows-on-ARM emulation. This is a provisional architecture
-verdict; Issue #32 and draft PR #92 remain open.
+checks under Windows-on-ARM emulation. The broader Windows distribution verdict
+remains open; Issue #32 and draft PR #92 remain open pending handoff review.
 
-Before declaring Windows offline acceptance complete:
+The following checks are **accepted deferrals for the Surface pilot**, and are
+still required before claiming broader Windows offline/distribution acceptance:
 
 1. Run the x64 ZIP on native x64 Windows hardware, including the packaged
    entry point, recovery tool, restart, and issued-package retrieval.
