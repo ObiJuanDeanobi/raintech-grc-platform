@@ -3,23 +3,24 @@
 ## Current phase
 
 `BUILD/REVIEW`. GitHub issues #71, #72, and #73 are complete and merged through
-PRs #89, #90, and #91. The governed HIPAA flow now generates, reviews, backs up,
-and atomically issues the exact signed package. The authoritative remaining
-path to a usable HIPAA and CMMC V1 is tracked in GitHub issue #88.
+PRs #89, #90, and #91. The Surface ARM64 offline pilot was accepted with named
+physical deferrals and merged through PR #92 at `16b1475`. The governed HIPAA
+flow generates, reviews, backs up, and atomically issues the exact signed
+package. The authoritative remaining path is tracked in GitHub issue #88.
 
 ## Current mode
 
-Windows/offline acceptance for Issue #32 against the complete HIPAA pilot flow.
-This phase must prove supported Windows launch, offline operation, restart,
-persistent retrieval, and recovery behavior rather than repeating the original
-throwaway stack spike.
+Issue #75 backend active-assessment identity migration, the first ticket in
+roadmap #88's safe revision sequence. Issue #32 remains open for native x64,
+adapter-disabled, and downloaded-file SmartScreen checks before broader Windows
+distribution; all three were accepted as deferrals for this Surface pilot.
 
 ## Current objective
 
-Complete #32 Windows/offline packaging and recovery acceptance against the full
-usable-pilot flow. CMMC #30/#31 preserve the already extracted catalog and
-practitioner guidance as migration inputs rather than greenfield ingestion
-work.
+Complete #75's narrow active-assessment resolver and backend route migration
+without enabling successor creation or removing the one-assessment constraint.
+CMMC #30/#31 preserve the already extracted catalog and practitioner guidance
+as migration inputs rather than greenfield ingestion work.
 
 ## Approved specification
 
@@ -30,7 +31,20 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #32 - Windows/offline pilot acceptance is active.**
+**GitHub issue #75 - backend active-assessment migration is active.** Issue #32
+remains open only for broader Windows distribution checks. The Issue #32
+evidence below is retained as the completed Surface pilot history.
+
+- Draft PR #93 on `feature/75-active-assessment-backend` implements the narrow
+  backend resolver and assessment-route migration. The one-assessment
+  constraint remains and no successor creation is enabled.
+- Local verification: full API suite 151 passed, catalog suite 74 passed with
+  15 optional skips, frontend 52 passed, Ruff, Mypy, TypeScript typecheck,
+  ESLint, and production build passed. The focused #75 and compatibility
+  rerun after review changes passed 23 tests. Edge synthetic same-client and
+  cross-client assessment switching retained Project A's note without leaking
+  it into Projects B/C; see `docs/evidence/issue-75/BROWSER_BACKEND_VERIFICATION.md`.
+  GitHub CI remains to be confirmed before #75 is complete.
 
 - Refresh the historical packaging spike against the production application;
   the old throwaway-spike wording is no longer the operative acceptance scope.
@@ -108,8 +122,9 @@ CI passed.
   current Surface Pro 11 ARM64 pilot. Its final verdict is **proceed with named
   changes**; the broader Windows distribution verdict remains open. The final
   packaged ARM64 executable was confirmed healthy on this Surface that day.
-  See `docs/evidence/issue-32/RELEASE_GATE.md`. Issue #32 and draft PR #92
-  remain open pending handoff review; deferred checks are not marked passed.
+  See `docs/evidence/issue-32/RELEASE_GATE.md`. PR #92 merged at `16b1475`;
+  Issue #32 remains open for broader Windows checks. Deferred checks are not
+  marked passed.
 - Isolated source, component, and approved-template drift checks block backup
   or issuance; the focused backup/issuance module passed 8 tests. See
   `docs/evidence/issue-32/DRIFT_GATE_TESTS.md`.
@@ -608,11 +623,12 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Review the complete Issue #32 evidence and decide whether the three recorded
-physical-environment deferrals are acceptable for PR #92. Run the native x64,
-downloaded-file SmartScreen, and adapter-disabled checks in suitable physical
-environments when available. Keep PR #92 draft and unmerged until its remaining
-hardware-dependent acceptance is completed or explicitly accepted as deferred.
+Complete Issue #75 on `feature/75-active-assessment-backend`: finish GitHub CI,
+then review draft PR #93 before merge. The Surface pilot is merged via PR #92.
+Run native
+x64, downloaded-file SmartScreen, and
+adapter-disabled checks in suitable physical environments before claiming
+broader Windows distribution acceptance under Issue #32.
 
 ## Branch inventory
 
