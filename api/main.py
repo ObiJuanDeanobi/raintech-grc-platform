@@ -14,7 +14,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
 from api.close import fieldwork_ready
-from api.database import Database, profile_snapshot_revision
+from api.database import (
+    Database,
+    active_assessment_by_id,
+    active_assessment_for_project,
+    profile_snapshot_revision,
+)
 from api.framework import FRAMEWORK_ID, seed_framework
 from api.generation import generate_package, list_packages
 from api.issuance import BackupFailure, create_backup, issue_package, issue_readiness
@@ -725,13 +730,7 @@ def _profile_readiness(connection: Any, project_id: str) -> dict[str, Any]:
     state = cast(str, latest["next_state"])
     assessment_entry = cast(dict[str, Any], declaration["assessment_entry"])
     follow_up_rule = cast(dict[str, Any], declaration["follow_up_work"])
-    assessment_exists = (
-        connection.execute(
-            "SELECT 1 FROM assessments WHERE project_id = ? LIMIT 1",
-            (project_id,),
-        ).fetchone()
-        is not None
-    )
+    assessment_exists = active_assessment_for_project(connection, project_id) is not None
     acknowledgement_result = None
     if acknowledgement is not None:
         acknowledgement_result = {
@@ -779,10 +778,14 @@ def _profile_readiness(connection: Any, project_id: str) -> dict[str, Any]:
 
 
 def _assessment_for_project_or_404(connection: Any, project_id: str, assessment_id: str) -> Any:
-    assessment = connection.execute(
-        "SELECT * FROM assessments WHERE id = ? AND project_id = ?",
-        (assessment_id, project_id),
-    ).fetchone()
+    assessment = active_assessment_for_project(connection, project_id)
+    if assessment is None or assessment["id"] != assessment_id:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    return assessment
+
+
+def _active_assessment_or_404(connection: Any, assessment_id: str) -> Any:
+    assessment = active_assessment_by_id(connection, assessment_id)
     if assessment is None:
         raise HTTPException(status_code=404, detail="Assessment not found")
     return assessment
@@ -2556,10 +2559,7 @@ def create_app(
                     status_code=409,
                     detail=readiness["assessment_entry_blocking_reasons"],
                 )
-            existing = connection.execute(
-                "SELECT id FROM assessments WHERE project_id = ?",
-                (project_id,),
-            ).fetchone()
+            existing = active_assessment_for_project(connection, project_id)
             if existing is not None:
                 raise HTTPException(status_code=409, detail="Project already has an assessment")
             assessment = {
@@ -2597,10 +2597,16 @@ def create_app(
                 """
                 SELECT assessments.*, projects.name AS project_name,
                        clients.id AS client_id, clients.name AS client_name
-                FROM assessments
+                FROM project_active_assessments active
+                JOIN assessments
+                  ON assessments.id = active.assessment_id
+                 AND assessments.project_id = active.project_id
                 JOIN projects ON projects.id = assessments.project_id
                 JOIN clients ON clients.id = projects.client_id
-                WHERE projects.id = ?
+                JOIN assessment_revisions revisions
+                  ON revisions.assessment_id = assessments.id
+                 AND revisions.project_id = assessments.project_id
+                WHERE active.project_id = ?
                 """,
                 (project_id,),
             ).fetchone()
@@ -2698,6 +2704,7 @@ def create_app(
         database: Annotated[Database, Depends(db)],
     ) -> dict[str, Any]:
         with database.connect() as connection:
+            _active_assessment_or_404(connection, assessment_id)
             record = _record_or_404(connection, assessment_id, record_id)
             declarations = _framework_declarations(connection, assessment_id)
             if payload.status not in set(declarations["status_set"]):
@@ -3471,6 +3478,7 @@ def create_app(
         database: Annotated[Database, Depends(db)],
     ) -> dict[str, str]:
         with database.connect() as connection:
+            _active_assessment_or_404(connection, assessment_id)
             _record_or_404(connection, assessment_id, record_id)
             saved_at = now()
             connection.execute(
@@ -3751,6 +3759,7 @@ def create_app(
         database: Annotated[Database, Depends(db)],
     ) -> dict[str, str]:
         with database.connect() as connection:
+            _active_assessment_or_404(connection, assessment_id)
             prompt = connection.execute(
                 """
                 SELECT fp.prompt_id
@@ -3789,6 +3798,7 @@ def create_app(
         database: Annotated[Database, Depends(db)],
     ) -> list[dict[str, Any]]:
         with database.connect() as connection:
+            _active_assessment_or_404(connection, assessment_id)
             return [
                 _row(row)
                 for row in connection.execute(
@@ -3979,11 +3989,8 @@ def create_app(
                 status_code=422, detail="Risk must use the approved Profile version"
             )
         _assessment_for_project_or_404(connection, project_id, payload.assessment_id)
-        active = connection.execute(
-            "SELECT assessment_id FROM project_active_assessments WHERE project_id = ?",
-            (project_id,),
-        ).fetchone()
-        if active is None or payload.assessment_id != active["assessment_id"]:
+        active = active_assessment_for_project(connection, project_id)
+        if active is None or payload.assessment_id != active["id"]:
             raise HTTPException(
                 status_code=422, detail="Risk must use the project's active assessment"
             )
@@ -4073,13 +4080,7 @@ def create_app(
         complete_count = sum(item["included"] is not None for item in scope) + len(risks)
         total_count = len(scope) + max(1, len(risks))
         percentage = round(100 * complete_count / total_count) if total_count else 0
-        active_assessment = connection.execute(
-            """
-            SELECT assessment_id AS id
-            FROM project_active_assessments WHERE project_id = ?
-            """,
-            (project_id,),
-        ).fetchone()
+        active_assessment = active_assessment_for_project(connection, project_id)
         return {
             "project_id": project_id,
             "assessment_id": active_assessment["id"] if active_assessment else None,
