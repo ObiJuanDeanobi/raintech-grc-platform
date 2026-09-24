@@ -75,6 +75,14 @@ def _snapshot(
         )
     if profile is None:
         raise ValueError("An approved Profile lifecycle snapshot is required")
+    names = c.execute(
+        """SELECT p.name AS project_name, clients.name AS client_name
+           FROM projects p JOIN clients ON clients.id = p.client_id
+           WHERE p.id = ?""",
+        (project_id,),
+    ).fetchone()
+    if names is None:
+        raise ValueError("Project and client are required for generation")
     framework = c.execute(
         "SELECT * FROM framework_versions WHERE id=?", (assessment["framework_version_id"],)
     ).fetchone()
@@ -122,9 +130,15 @@ def _snapshot(
             None,
         )
         if f:
-            row.update({"finding_id": f.get("id"), **f})
+            row["finding_id"] = f["id"]
+            row["finding_title"] = f["title"]
+            row["finding_description"] = f["description"]
         if a:
-            row.update({"action_id": a.get("id"), "corrective_action_id": a.get("id"), **a})
+            row["action_id"] = a["id"]
+            row["corrective_action_id"] = a["id"]
+            row["action_title"] = a["title"]
+            row["action_description"] = a["description"]
+            row["poam_status"] = a["status"]
     source = {
         "snapshot_id": str(uuid4()),
         "template_version": "hipaa-v2",
@@ -134,8 +148,12 @@ def _snapshot(
             "version": assessment["framework_version_id"],
             "declarations": declarations,
         },
-        "assessment": dict(assessment),
-        "profile": {**dict(profile), "snapshot_id": profile["id"]},
+        "assessment": {**dict(assessment), "project_name": names["project_name"]},
+        "profile": {
+            **dict(profile),
+            "snapshot_id": profile["id"],
+            "client_name": names["client_name"],
+        },
         "records": records,
         "risks": _rows(c, "risks", "project_id=?", (project_id,)),
         "profile_values": _rows(
@@ -163,6 +181,7 @@ def generate_package(
     root: Path,
     project_id: str,
     assessment_id: str,
+    staging_root: Path | None = None,
 ) -> dict[str, Any]:
     assessment = connection.execute(
         """
@@ -219,17 +238,19 @@ def generate_package(
     promoted = []
     try:
         components = []
+        render_staging = staging_root or root / "data" / "generation-staging"
+        render_staging.mkdir(parents=True, exist_ok=True)
         for kind, filename in TEMPLATES:
             template = root / TEMPLATE_ROOT / filename
             component_id = str(uuid4())
             content = template.read_bytes()
             if kind == "assessment_report":
-                out = root / "data" / "generation-staging" / f"{component_id}-{filename}"
+                out = render_staging / f"{component_id}-{filename}"
                 render_report(template, out, source)
                 content = out.read_bytes()
                 out.unlink(missing_ok=True)
             elif kind == "poam":
-                out = root / "data" / "generation-staging" / f"{component_id}-{filename}"
+                out = render_staging / f"{component_id}-{filename}"
                 render_poam(template, out, source)
                 content = out.read_bytes()
                 out.unlink(missing_ok=True)

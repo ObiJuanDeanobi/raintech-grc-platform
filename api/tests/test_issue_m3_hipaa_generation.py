@@ -1,6 +1,8 @@
 """End-to-end contract tests for governed HIPAA package generation."""
 
+import json
 import sqlite3
+import xml.etree.ElementTree as ET
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
@@ -9,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.main import create_app
-from api.renderers.hipaa import POAM_COLUMNS
+from api.renderers.hipaa import POAM_COLUMNS, report_values
 from api.tests.test_issue_m3_hipaa_sra import _risk, _setup
 
 
@@ -92,6 +94,7 @@ def test_generation_promotes_two_parseable_components_from_one_snapshot(tmp_path
         assert response.status_code == 201, response.text
         package = response.json()
         assert package["state"] == "promoted"
+        assert (tmp_path / "generation-staging").is_dir()
         assert {item["kind"] for item in package["manifest"]["components"]} == {
             "assessment_report",
             "poam",
@@ -119,6 +122,71 @@ def test_generation_promotes_two_parseable_components_from_one_snapshot(tmp_path
                 "SELECT action, entity_id FROM audit_events WHERE action='hipaa_package_generated'"
             ).fetchone()
             assert event == ("hipaa_package_generated", package["id"])
+
+
+def test_reconciled_not_met_keeps_final_determination_in_generated_package(
+    tmp_path: Path,
+) -> None:
+    client, db = _app(tmp_path)
+    with client:
+        project, assessment = _ready(client, db, "not-met-generation")
+        record_id = "164.308(a)(1)(ii)(B)"
+        changed = client.put(
+            f"/api/assessments/{assessment}/determinations/{record_id}",
+            json={"status": "Not Met"},
+        )
+        assert changed.status_code == 200, changed.text
+        reconciled = client.put(
+            f"/api/projects/{project}/assessments/{assessment}/records/{record_id}/reconciliation",
+            json={
+                "outcome": "create",
+                "title": "Synthetic finding",
+                "action_title": "Synthetic open action",
+            },
+        )
+        assert reconciled.status_code == 200, reconciled.text
+        assert client.get(
+            f"/api/projects/{project}/assessments/{assessment}/close-readiness"
+        ).json()["ready"]
+
+        generated = client.post(f"/api/projects/{project}/assessments/{assessment}/packages")
+        assert generated.status_code == 201, generated.text
+        with sqlite3.connect(db) as connection:
+            source = json.loads(
+                connection.execute("SELECT source_json FROM source_snapshots").fetchone()[0]
+            )
+        row = next(item for item in source["records"] if item["record_id"] == record_id)
+        assert row["status"] == "Not Met"
+        assert row["title"] != "Synthetic open action"
+        assert row["poam_status"] == "Open"
+        assert row["finding_id"] and row["corrective_action_id"]
+        values = report_values(source)
+        assert values["not_met_count"] == "1"
+        assert "Not Met" in values["final_determination"]
+        assert values["project_name"].endswith(" Profile")
+        assert values["client_name"].startswith("Synthetic Client")
+        assert "Synthetic finding" in values["findings_grouped_by_source"]
+
+        listed = client.get(f"/api/projects/{project}/packages").json()[0]
+        report = next(c for c in listed["components"] if c["kind"] == "assessment_report")
+        poam = next(c for c in listed["components"] if c["kind"] == "poam")
+        base = f"/api/projects/{project}/packages/{listed['id']}/components"
+        with ZipFile(BytesIO(client.get(f"{base}/{report['id']}").content)) as archive:
+            document = archive.read("word/document.xml")
+            assert b"Synthetic finding" in document
+            assert values["project_name"].encode() in document
+        with ZipFile(BytesIO(client.get(f"{base}/{poam['id']}").content)) as archive:
+            namespace = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+            sheet = ET.fromstring(archive.read("xl/worksheets/sheet2.xml"))
+            header = next(r for r in sheet.iter(namespace + "row") if r.get("r") == "3")
+            data = next(r for r in sheet.iter(namespace + "row") if r.get("r") == "4")
+            header_values = ["".join(c.itertext()) for c in header.findall(namespace + "c")]
+            data_values = ["".join(c.itertext()) for c in data.findall(namespace + "c")]
+            assert header_values == list(POAM_COLUMNS)
+            assert len(data_values) == 29
+            assert record_id in data_values
+            assert "Synthetic finding" in data_values
+            assert "Open" in data_values
 
 
 def test_rendered_outputs_contain_required_sections_and_exact_poam_columns(tmp_path: Path) -> None:

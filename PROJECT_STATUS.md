@@ -2,26 +2,24 @@
 
 ## Current phase
 
-`BUILD/REVIEW`. GitHub issues #71 and #72 are complete and merged through PRs
-#89 and #90. GitHub issue #73 is active on `feature/73-backup-and-issue`: it
-creates and validates a complete local recovery set before atomically issuing
-the exact signed HIPAA package. The authoritative remaining path to a usable
-HIPAA and CMMC V1 is tracked in GitHub issue #88.
+`BUILD/REVIEW`. GitHub issues #71, #72, and #73 are complete and merged through
+PRs #89, #90, and #91. The governed HIPAA flow now generates, reviews, backs up,
+and atomically issues the exact signed package. The authoritative remaining
+path to a usable HIPAA and CMMC V1 is tracked in GitHub issue #88.
 
 ## Current mode
 
-Build and review for Issue #73. Pre-backup readiness verifies the exact signed
-package and current source. A successful backup captures a consistent SQLite
-copy, managed files, approved templates, application/schema metadata, and a
-per-item integrity manifest. Final readiness requires that exact validated
-backup before creating an immutable issuance snapshot.
+Windows/offline acceptance for Issue #32 against the complete HIPAA pilot flow.
+This phase must prove supported Windows launch, offline operation, restart,
+persistent retrieval, and recovery behavior rather than repeating the original
+throwaway stack spike.
 
 ## Current objective
 
-Complete and merge #73, then refresh Windows/offline packaging acceptance under
-#32 against the full usable-pilot flow. CMMC #30/#31 preserve the already
-extracted catalog and practitioner guidance as migration inputs rather than
-greenfield ingestion work.
+Complete #32 Windows/offline packaging and recovery acceptance against the full
+usable-pilot flow. CMMC #30/#31 preserve the already extracted catalog and
+practitioner guidance as migration inputs rather than greenfield ingestion
+work.
 
 ## Approved specification
 
@@ -32,7 +30,93 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #73 - implementation complete; browser acceptance in progress.**
+**GitHub issue #32 - Windows/offline pilot acceptance is active.**
+
+- Refresh the historical packaging spike against the production application;
+  the old throwaway-spike wording is no longer the operative acceptance scope.
+- Prove Windows ARM64 and x64 launch, offline operation, writable persistent
+  storage, clean restart, immutable issued-package retrieval, and recovery-set
+  validation.
+- Record Defender/SmartScreen behavior, unsigned-binary friction, dependency
+  compatibility, package size, cold-launch time, and the final architecture
+  verdict.
+- Visible Edge acceptance now covers synthetic workspace creation, intake and
+  profile gates, entry into the complete 194-record HIPAA assessment, and
+  question-answer persistence after reload. It exposed and drove a fix for a
+  misleading non-persistent question checkbox; that control is now a durable
+  answer-derived completion indicator with regression coverage.
+- The September 22-23 continuation reached visible fieldwork-close readiness
+  with all 149 determination-bearing records final, approved synthetic Profile
+  version 2, four reviewed SRA scope targets, one risk, and a reconciled Not Met
+  action. The first Generate package action exposed a snapshot join defect:
+  an Open action overwrote its Not Met determination. Generation and renderer
+  joins now preserve the determination, with regression coverage. A separate
+  Windows long-path recovery failure found by the full suite was also fixed.
+  Full API verification passes 145 tests. The later visible
+  generation-through-retrieval pass is recorded in
+  `docs/evidence/issue-32/EDGE_BROWSER_VERIFICATION.md`.
+- The next Edge pass generated a candidate, but content inspection found the
+  POA&M header replaced by data and missing project/client report names. That
+  candidate remains unsigned. Snapshot projection, workbook row placement,
+  and readable validation errors are corrected with regression coverage.
+  Rebuilt ARM64 (`7FBEE0978DF48D1125CE80A1EB5FD794E8A6D1D327BFE27906D518DD6233A949`)
+  and x64 (`96EF987CBF78938507793385A72F40555E8BB8D418015ABDE7236D82A5321D10`)
+  ZIPs pass isolated package verification. The corrected ARM64 package then
+  passed visible review, sign-off, backup, issuance, restart, and retrieval.
+- The September 23 visible Edge pass generated and inspected exact synthetic
+  DOCX/XLSX bytes, reviewed and signed package `04129ae8-784f-461f-af72-fab394823eed`,
+  validated full backup `7364a8df-aede-4a0b-b185-e12f3719ff08` with the
+  standalone recovery executable, and issued snapshot
+  `198f1d0e-f149-4b97-b357-c8e57a8ea66a`. Both component links retained
+  their hashes after packaged-app restart. A stale unsigned candidate was
+  visibly blocked; an attempted backup against it recorded an attributed
+  precondition failure. The issued screen had no horizontal overflow at
+  1280px. Evidence and screenshots are in
+  `docs/evidence/issue-32/EDGE_BROWSER_VERIFICATION.md`.
+- A sign-off-to-backup panel refresh gap found in that pass is fixed with a
+  frontend regression. The final ARM64 ZIP is 29.2 MiB
+  (`0A0030640906E3683D29642B7761310509FCABC4FEADBC92F9430CF9D69C8913`),
+  and the final x64 ZIP is 29.0 MiB
+  (`48F82492C4642AE2BCB11B34D94D8449DC0A2F0FA85D0B3AC8EAD2FF4444EDC0`).
+  Both passed isolated verification; the final native ARM64 build also reopened
+  the issued dataset in Edge and served both hash-matching component links.
+- Native ARM64 packaging is now implemented and verified: the 24.9 MiB package
+  serves the compiled UI, persists a synthetic write across restart, and opens
+  no non-loopback connection. Evidence is recorded under
+  `docs/evidence/issue-32/ARM64_VERIFICATION.md`.
+- The 28.9 MiB x64 package also builds and passes the same checks under Windows
+  x64-on-ARM64 emulation. This is useful compatibility evidence but does not
+  replace the required native x64 hardware run. Evidence is recorded under
+  `docs/evidence/issue-32/X64_EMULATION_VERIFICATION.md`.
+- An earlier September 22-23 corrected checkpoint also passed isolated verification: ARM64 was 29.2 MiB
+  (`BE34C11F7283844E7F08BAFD972AA41DAD78162CEE0906050977B56E02F2B3B6`);
+  x64 under ARM64 emulation is 28.9 MiB
+  (`055F4D869D57C06A19C49FF79A7AE22612BF1F59B1EF455BACFCE0FC7612FF68`).
+  These measurements are retained as dated history; the final ZIP hashes are
+  listed above.
+- Targeted Microsoft Defender scans completed with real-time protection enabled
+  and no detection for either package. Both executables remain unsigned.
+- Recovery validation and atomic isolated restore are implemented and exercised
+  against a real application backup. Both Windows packages include a standalone
+  recovery executable, and both packaged recovery tools passed isolated restore.
+- Sequential architecture builds now retain both ZIPs and checksum files; the
+  frontend build no longer erases the first package while building the second.
+- Physical-environment deferrals remain: adapter-disabled operation,
+  downloaded-file SmartScreen observation, and native x64 hardware verification.
+- On September 24 Johnathan accepted native x64 hardware, adapter-disabled
+  operation, and downloaded-file SmartScreen as explicit deferrals for the
+  current Surface Pro 11 ARM64 pilot. Its final verdict is **proceed with named
+  changes**; the broader Windows distribution verdict remains open. The final
+  packaged ARM64 executable was confirmed healthy on this Surface that day.
+  See `docs/evidence/issue-32/RELEASE_GATE.md`. Issue #32 and draft PR #92
+  remain open pending handoff review; deferred checks are not marked passed.
+- Isolated source, component, and approved-template drift checks block backup
+  or issuance; the focused backup/issuance module passed 8 tests. See
+  `docs/evidence/issue-32/DRIFT_GATE_TESTS.md`.
+
+### Previously completed ticket detail
+
+**GitHub issue #73 - complete and merged through PR #91.**
 
 - Migration `0012` adds project-scoped immutable backup records/items, issuance
   attempts, and issuance snapshots with composite ownership and binding guards.
@@ -47,10 +131,7 @@ CI passed.
   suite passes `136 tests`; catalog verification passes `74 tests` with 15
   optional PyMuPDF tests skipped. Ruff, Mypy, frontend typecheck, ESLint, all
   `50` Vitest tests, the production build, and a clean migration
-  upgrade/downgrade/re-upgrade cycle pass. Browser acceptance remains before
-  merge.
-
-### Previously completed ticket detail
+  upgrade/downgrade/re-upgrade cycle pass. GitHub CI passed before merge.
 
 **GitHub issue #72 - complete and merged through PR #90.**
 
@@ -201,9 +282,14 @@ GitHub issue #49 remains an isolated practitioner test. Its result must not
 change ADR 0012 or the approved baseline unless Johnathan separately accepts the
 test and approves the resulting decision and specification revision.
 
-GitHub issue #44 is complete and merged in PR #46. GitHub issue #32 remains the
-Windows launcher and offline-package spike; backup and restore implementation
-will be scoped in a separate future ticket after this reconciliation.
+GitHub issue #44 is complete and merged in PR #46. GitHub issue #32 is the
+active Windows/offline acceptance for the production HIPAA pilot flow. ARM64
+package verification, x64-on-ARM64 emulation, recovery-tool verification, and
+the initial visible assessment workflow are recorded under
+`docs/evidence/issue-32/`. The visible fieldwork-close, package review, backup,
+issuance, restart, and immutable retrieval workflow now passes with synthetic
+data. Physical-environment acceptance remains deferred for adapter-disabled
+operation, downloaded-file SmartScreen behavior, and native x64 hardware.
 
 GitHub issue #29 is closed. The prompt layer is ingested, practitioner-reviewed
 on a clickable walkthrough, and merged.
@@ -417,10 +503,12 @@ on a clickable walkthrough, and merged.
   revision foundation is present on `main` and is the base used by Issue #69.
 - **GitHub issue #49**: isolated practitioner test of the question-level working
   record. It does not alter ADR 0012 or authorize production changes.
-- **GitHub issue #32**: the Windows package and launch spike. Open, assigned,
-  labeled `ready-for-human`, needs Johnathan's machine, and now owns the launcher
-  and packaging work that was explicitly excluded from the merged Issue #44
-  scope.
+- **GitHub issue #32**: Windows/offline acceptance for the production HIPAA
+  pilot flow. Packaging and the full visible synthetic workflow are recorded;
+  the physical-environment gates remain open. The
+  adapter-disabled run must not interrupt the active remote session. Native x64
+  hardware and downloaded-file SmartScreen observations require their respective
+  physical environment and distribution channel.
 - **GitHub issue #21**: practitioner review of the exported 194-record catalog.
   It stays open and `ready-for-human`. Record boundaries are settled and
   citation-stable, and the catalog was read in its working shape through the
@@ -448,11 +536,12 @@ and operations model, not a claimed segregation of duties.
   merge review. Required desktop and 1280x720 browser regression evidence is
   retained in `docs/screenshots/issue-74/`. The frontend itself is unchanged
   and its delayed-response regression suite passes.
-- GitHub issue #32 and every claim about the launcher and offline package are
-  blocked on Johnathan's Windows machine. A cloud session cannot verify them.
-  Backup and restore are approved requirements but are not part of #32; their
-  future implementation and ARM64/x64 recovery verification require a separate
-  ticket and representative Windows hardware.
+- GitHub issue #32's visible synthetic flow is complete. The
+  adapter-disabled check is deferred while it could disconnect the active
+  session; downloaded-file SmartScreen behavior needs a downloaded artifact;
+  native x64 hardware verification remains outstanding. Current x64 evidence is
+  from ARM64 emulation. Do not treat any of these checks as passed until evidence
+  is recorded.
 
 ## Open questions
 
@@ -519,9 +608,11 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Commit and push the current Issue #73 checkpoint, update GitHub issues #73 and
-#88 with the verified state, complete full automated and browser acceptance,
-then open the #73 PR and merge only after CI passes.
+Review the complete Issue #32 evidence and decide whether the three recorded
+physical-environment deferrals are acceptable for PR #92. Run the native x64,
+downloaded-file SmartScreen, and adapter-disabled checks in suitable physical
+environments when available. Keep PR #92 draft and unmerged until its remaining
+hardware-dependent acceptance is completed or explicitly accepted as deferred.
 
 ## Branch inventory
 

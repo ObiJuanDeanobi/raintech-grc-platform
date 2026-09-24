@@ -1,6 +1,7 @@
 """Contract tests for the full-backup and HIPAA issue gate (Issue #73)."""
 
 import hashlib
+import shutil
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,7 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from api.main import create_app
+from api.recovery import recover
 from api.tests.test_issue_m3_hipaa_generation import _ready
 from api.tests.test_issue_m3_hipaa_review import _package, _transition
 
@@ -97,6 +99,14 @@ def test_full_backup_contains_db_managed_files_and_hash_manifest(tmp_path: Path)
                 payload = ZipFile(path).read(name)
                 assert hashlib.sha256(payload).hexdigest() == digest
                 assert len(payload) == size
+        restored = recover(path, tmp_path / "restored-workspace")
+        with sqlite3.connect(restored / "workspace.db") as connection:
+            assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+            assert connection.execute(
+                "SELECT COUNT(*) FROM generated_packages WHERE id=?", (package["id"],)
+            ).fetchone()[0] == 1
+        assert (restored / "recovery-metadata" / "manifest.json").is_file()
+        assert any((restored / "files").rglob("*"))
 
 
 def test_failed_backup_is_attributed_and_cannot_issue(
@@ -225,3 +235,61 @@ def test_backup_binding_drift_and_direct_sql_records_are_immutable(tmp_path: Pat
             ).fetchone()[0]
             == 0
         )
+
+
+@pytest.mark.parametrize("drift_kind", ["component", "template"])
+def test_component_and_template_drift_block_backup(
+    tmp_path: Path, drift_kind: str
+) -> None:
+    repository = Path(__file__).resolve().parents[2]
+    isolated_repository = tmp_path / "repository"
+    for relative in (
+        Path("catalog/versions/hipaa-45cfr164-2026-07-01.json"),
+        Path("catalog/versions/hipaa-45cfr164-2026-07-01-prompts.json"),
+        Path("docs/templates/hipaa/v2"),
+    ):
+        source = repository / relative
+        target = isolated_repository / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if source.is_dir():
+            shutil.copytree(source, target)
+        else:
+            shutil.copy2(source, target)
+
+    db = tmp_path / "db.sqlite"
+    files = tmp_path / "files"
+    client = TestClient(
+        create_app(
+            database_path=db,
+            storage_path=files,
+            backup_path=files / "backups",
+            repository_root=isolated_repository,
+        )
+    )
+    with client:
+        project, _, package = _issued_candidate(client, db, f"{drift_kind}-drift")
+        if drift_kind == "component":
+            with sqlite3.connect(db) as connection:
+                relative_path = connection.execute(
+                    "SELECT relative_path FROM generated_components WHERE package_id=? LIMIT 1",
+                    (package["id"],),
+                ).fetchone()[0]
+            component = files / relative_path
+            component.write_bytes(component.read_bytes() + b"\nchanged after sign-off")
+        else:
+            template = next((isolated_repository / "docs/templates/hipaa/v2").glob("*.docx"))
+            template.write_bytes(template.read_bytes() + b"\nchanged after sign-off")
+
+        readiness = client.get(
+            f"/api/projects/{project}/packages/{package['id']}/issue-readiness"
+        )
+        assert readiness.status_code == 200
+        assert readiness.json()["pre_backup_issue_ready"] is False
+        expected = "Package component hash mismatch" if drift_kind == "component" else (
+            "Approved template bytes changed"
+        )
+        assert any(expected in blocker for blocker in readiness.json()["blockers"])
+
+        response = _backup(client, project, package["id"])
+        assert response.status_code == 409
+        assert expected in response.json()["detail"]

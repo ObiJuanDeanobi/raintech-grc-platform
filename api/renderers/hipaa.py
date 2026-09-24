@@ -192,7 +192,8 @@ def report_values(snapshot: Mapping[str, Any]) -> dict[str, str]:
             "action_owner": joined("action_owner", "owner"),
             "validation_evidence": joined("validation_evidence"),
             "findings_grouped_by_source": "\n".join(
-                f"{_none(r.get('work_area'))}: {_none(r.get('finding_id'))}" for r in rows
+                f"{_none(r.get('work_area'))}: {_none(r.get('finding_title', r.get('finding_id')))}"
+                for r in rows
             )
             or "None recorded",
             "assessment_scope_narrative": _none(s.get("scope", {}).get("narrative")),
@@ -232,9 +233,13 @@ def render_report(template_path: Path, output_path: Path, snapshot: Mapping[str,
     return snapshot_sha256(snapshot)
 
 
-def _xlsx_cell(reference: str, value: Any) -> str:
+def _xlsx_cell(reference: str, value: Any, prefix: str = "") -> str:
     escaped = html.escape(_none(value), quote=True)
-    return f'<c r="{reference}" t="inlineStr"><is><t xml:space="preserve">{escaped}</t></is></c>'
+    return (
+        f'<{prefix}c r="{reference}" t="inlineStr"><{prefix}is>'
+        f'<{prefix}t xml:space="preserve">{escaped}</{prefix}t>'
+        f"</{prefix}is></{prefix}c>"
+    )
 
 
 def _excel_column(index: int) -> str:
@@ -266,7 +271,12 @@ def _joined_record(snapshot: Mapping[str, Any], row: Mapping[str, Any]) -> dict[
                 None,
             )
             if match:
-                result.update(match)
+                # Finding and action rows have their own status, title, and id.
+                # Keep the framework determination authoritative in the report.
+                for field, value in match.items():
+                    result.setdefault(field, value)
+                if collection == "actions":
+                    result["poam_status"] = match.get("status")
     return result
 
 
@@ -300,50 +310,71 @@ def render_poam(template_path: Path, output_path: Path, snapshot: Mapping[str, A
             data = zin.read(item.filename)
             if item.filename in {"xl/worksheets/sheet2.xml", "xl/worksheets/sheet4.xml"}:
                 xml = data.decode("utf-8")
-                match = re.search(
-                    r"(<(?:[A-Za-z0-9_]+:)?row r=\"3\".*?</(?:[A-Za-z0-9_]+:)?row>)", xml
+                prefix = "x:" if "<x:worksheet" in xml else ""
+                row_pattern = re.compile(
+                    rf'<{re.escape(prefix)}row r="(\d+)"[^>]*>.*?</{re.escape(prefix)}row>'
                 )
-                if match:
-                    template_row = match.group(1)
-                    generated = []
-                    for n, row in enumerate(rows, 3):
-                        values = [
-                            s.get("snapshot_id"),
-                            s.get("assessment", {}).get("id"),
-                            row.get("record_id"),
-                            row.get("citation", row.get("record_id")),
-                            row.get("work_area"),
-                            row.get("record_id"),
-                            row.get("title"),
-                            row.get("text"),
-                            row.get("control_group", row.get("work_area")),
-                            row.get("control_description", row.get("text")),
-                            row.get("finding_id"),
-                            row.get("risk_rating", row.get("risk")),
-                            row.get("recommendation"),
-                            row.get("status", "Not Met"),
-                            row.get("finding_date"),
-                            row.get("scheduled_completion_date"),
-                            row.get("actual_completion_date"),
-                            row.get("action_owner", row.get("owner")),
-                            row.get("milestones"),
-                            row.get("status_summary"),
-                            row.get("resources"),
-                            row.get("comments"),
-                            row.get("evidence_link"),
-                            row.get("validation_owner"),
-                            row.get("validation_date"),
-                            row.get("closure_basis"),
-                            row.get("action_id"),
-                            row.get("risk_id"),
-                            s.get("snapshot_id"),
-                        ]
-                        cells = "".join(
-                            _xlsx_cell(f"{_excel_column(i + 1)}{n}", value)
-                            for i, value in enumerate(values)
-                        )
-                        generated.append(f'<row r="{n}">{cells}</row>')
-                    xml = xml.replace(template_row, "".join(generated) or template_row)
+                sheet_rows = [
+                    row
+                    for row in rows
+                    if (row.get("poam_status") == "Closed")
+                    == (item.filename == "xl/worksheets/sheet4.xml")
+                ]
+                generated: dict[int, str] = {}
+                for n, row in enumerate(sheet_rows, 4):
+                    values = [
+                        s.get("snapshot_id"),
+                        s.get("assessment", {}).get("id"),
+                        row.get("record_id"),
+                        row.get("citation", row.get("record_id")),
+                        row.get("work_area"),
+                        row.get("record_id"),
+                        row.get("title"),
+                        row.get("text"),
+                        row.get("control_group", row.get("work_area")),
+                        row.get("control_description", row.get("text")),
+                        row.get("finding_title", row.get("finding_id")),
+                        row.get("risk_rating", row.get("risk")),
+                        row.get("recommendation", row.get("action_description")),
+                        row.get("poam_status", "Open"),
+                        row.get("finding_date"),
+                        row.get("scheduled_completion_date"),
+                        row.get("actual_completion_date"),
+                        row.get("action_owner", row.get("owner")),
+                        row.get("milestones"),
+                        row.get("status_summary"),
+                        row.get("resources"),
+                        row.get("comments"),
+                        row.get("evidence_link"),
+                        row.get("validation_owner"),
+                        row.get("validation_date"),
+                        row.get("closure_basis"),
+                        row.get("action_id"),
+                        row.get("risk_id"),
+                        s.get("snapshot_id"),
+                    ]
+                    cells = "".join(
+                        _xlsx_cell(f"{_excel_column(i + 1)}{n}", value, prefix)
+                        for i, value in enumerate(values)
+                    )
+                    generated[n] = f'<{prefix}row r="{n}">{cells}</{prefix}row>'
+                template_rows = {int(match.group(1)) for match in row_pattern.finditer(xml)}
+                if 4 not in template_rows or not set(generated).issubset(template_rows):
+                    raise ValueError("Approved POA&M template has insufficient data rows")
+
+                def replace_row(
+                    match: re.Match[str],
+                    generated_rows: dict[int, str] = generated,
+                    row_prefix: str = prefix,
+                ) -> str:
+                    number = int(match.group(1))
+                    if number in generated_rows:
+                        return generated_rows[number]
+                    if number == 4:
+                        return f'<{row_prefix}row r="4"/>'
+                    return match.group(0)
+
+                xml = row_pattern.sub(replace_row, xml)
                 data = _replace_tokens(xml, token_values).encode("utf-8")
             elif item.filename.startswith("xl/") and item.filename.endswith(".xml"):
                 data = _replace_tokens(data.decode("utf-8"), token_values).encode("utf-8")

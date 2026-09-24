@@ -1,0 +1,38 @@
+# Windows packaging
+
+This is the maintained packaging path for the **Windows Offline Pilot
+Acceptance** work tracked in GitHub issue #32. It creates separate native x64
+and ARM64 portable executable packages without touching live user data.
+
+Run the build with a matching Python architecture, then validate the resulting
+ZIP in an isolated workspace:
+
+```powershell
+.\packaging\windows\build.ps1 -Architecture arm64 -Python python -Clean
+.\packaging\windows\verify.ps1 -Package .\dist\windows\RainTechGRC-windows-arm64.zip
+```
+
+The build preserves existing architecture ZIPs and checksum files in
+`dist\windows` while the frontend is rebuilt. This means you can run the ARM64
+and x64 builds sequentially without losing the first package; each build still
+compiles a fresh UI before PyInstaller stages the executable.
+
+The package includes its Python runtime, API, compiled browser UI, catalog and
+version data, HIPAA v2 templates, migrations, and Alembic configuration. The
+target computer does not need Python or Node. Mutable data defaults to
+`%LOCALAPPDATA%\RainTech\GRC Platform`; `RAINTECH_DATA_DIR` overrides that path
+for isolated verification.
+
+Each package also includes a standalone recovery command. Restore only into a
+new or empty isolated directory, inspect the result, and never point it at the
+live data directory:
+
+```powershell
+.\RainTechGRCRecovery.exe .\BACKUP.zip C:\RainTech-Recovery-Test
+```
+
+The verifier checks health, a persisted synthetic write across restart,
+executable architecture, signature state, package size, and loopback-only
+connections. Native ARM64 and x64 packages must each be built with a matching
+Python runtime because PyInstaller does not cross-compile. Production release
+signing remains a separate release-control decision.
