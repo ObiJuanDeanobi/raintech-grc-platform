@@ -10,17 +10,17 @@ package. The authoritative remaining path is tracked in GitHub issue #88.
 
 ## Current mode
 
-Issue #76 active-assessment identity migration through close, package, review,
-backup, and issuance services. Issue #75's backend route migration merged as
-PR #93 at `79c0114`. Issue #32 remains open for native x64,
+Issue #77 frontend active-assessment identity migration. Issue #75's backend
+route migration merged as PR #93 at `79c0114`; Issue #76's service migration
+merged as PR #94 at `4ccac5e`. Issue #32 remains open for native x64,
 adapter-disabled, and downloaded-file SmartScreen checks before broader Windows
 distribution; all three were accepted as deferrals for this Surface pilot.
 
 ## Current objective
 
-Complete #76's consequence-bearing service migration through the #75 active
-assessment resolver without enabling successor creation or removing the
-one-assessment constraint.
+Complete #77's frontend workspace and request-guard migration through the
+active assessment revision identity without enabling successor creation or
+removing the one-assessment constraint.
 CMMC #30/#31 preserve the already extracted catalog and practitioner guidance
 as migration inputs rather than greenfield ingestion work.
 
@@ -33,7 +33,7 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #76 - active-assessment service migration is active.** Issue #32
+**GitHub issue #77 - frontend active-assessment migration is active.** Issue #32
 remains open only for broader Windows distribution checks. The Issue #32
 evidence below is retained as the completed Surface pilot history.
 
@@ -61,7 +61,18 @@ evidence below is retained as the completed Surface pilot history.
   and current active-package behavior remain intact. Final local gates:
   159 API tests, 74 catalog tests (15 optional skips), 52 frontend tests,
   Ruff, Mypy, TypeScript typecheck, ESLint, and production build passed.
-  GitHub CI is pending.
+  All six GitHub CI checks passed on PR #94; it merged to `main` at `4ccac5e`
+  and Issue #76 is closed.
+
+- Issue #77 frontend migration now carries the active assessment ID through
+  workspace rendering, detail, SRA, Profile, evidence, close, and package
+  views. Project/revision changes hide stale content immediately; delayed
+  responses cannot enter the newly selected workspace. Synthetic Edge
+  same-client/cross-client switching and desktop/1280px views passed with no
+  horizontal overflow or console warnings/errors. See
+  `docs/evidence/issue-77/EDGE_FRONTEND_VERIFICATION.md`. Local gates:
+  159 API, 74 catalog (15 optional skips), and 56 frontend tests passed,
+  plus Ruff, Mypy, typecheck, ESLint, and production build. GitHub CI pending.
 
 - Refresh the historical packaging spike against the production application;
   the old throwaway-spike wording is no longer the operative acceptance scope.
@@ -640,9 +651,9 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Implement Issue #76 on `feature/76-active-assessment-services`, verify active
-assessment pinning and project isolation through close, package, backup, and
-issuance, and keep the old uniqueness constraint. The Surface pilot is merged
+Implement Issue #77 on `feature/77-active-assessment-frontend`, verify active
+revision selection and stale-response isolation across assessment, Profile,
+evidence, SRA, and package views, and keep the old uniqueness constraint. The Surface pilot is merged
 via PR #92. Run native
 x64, downloaded-file SmartScreen, and
 adapter-disabled checks in suitable physical environments before claiming

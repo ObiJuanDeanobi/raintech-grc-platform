@@ -49,7 +49,8 @@ export interface RecordIndex {
 }
 
 export interface Assessment {
-  id: string;
+  /** The active revision identity. The legacy project route resolves this ID. */
+  id: ActiveAssessmentId;
   project: {
     id: string;
     name: string;
@@ -72,6 +73,8 @@ export interface Assessment {
   work_list: RecordIndex[];
   record_index: RecordIndex[];
 }
+
+export type ActiveAssessmentId = string;
 
 export interface CloseReadiness {
   target: string;

@@ -947,8 +947,22 @@ function EvidencePanel({
   const [artifactId, setArtifactId] = useState("");
   const [rationale, setRationale] = useState("");
   const [uploading, setUploading] = useState(false);
+  const targetRef = useRef({ assessmentId: assessment.id, projectId: assessment.project.id, recordId: detail.record.record_id });
+  const mountedRef = useRef(true);
+  targetRef.current = { assessmentId: assessment.id, projectId: assessment.project.id, recordId: detail.record.record_id };
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  function isCurrent(target: typeof targetRef.current, includeRecord = false) {
+    return mountedRef.current && targetRef.current.projectId === target.projectId
+      && targetRef.current.assessmentId === target.assessmentId
+      && (!includeRecord || targetRef.current.recordId === target.recordId);
+  }
 
   async function upload(file: File) {
+    const target = targetRef.current;
     setUploading(true);
     onSaveState("saving");
     const data = new FormData();
@@ -958,18 +972,20 @@ function EvidencePanel({
         method: "POST",
         body: data,
       });
+      if (!isCurrent(target)) return;
       setArtifactId(artifact.id);
       onArtifactsChanged();
       onSaveState("saved");
     } catch (caught) {
-      onSaveState("error", caught instanceof Error ? caught.message : undefined);
+      if (isCurrent(target)) onSaveState("error", caught instanceof Error ? caught.message : undefined);
     } finally {
-      setUploading(false);
+      if (isCurrent(target)) setUploading(false);
     }
   }
 
   async function mapEvidence(event: FormEvent) {
     event.preventDefault();
+    const target = targetRef.current;
     onSaveState("saving");
     try {
       await request(
@@ -983,28 +999,31 @@ function EvidencePanel({
         }),
         },
       );
+      if (!isCurrent(target, true)) return;
       setRationale("");
       onSaveState("saved");
       onChanged();
       onArtifactsChanged();
     } catch (caught) {
-      onSaveState("error", caught instanceof Error ? caught.message : undefined);
+      if (isCurrent(target, true)) onSaveState("error", caught instanceof Error ? caught.message : undefined);
     }
   }
 
   async function unmap(mapping: EvidenceMapping) {
     if (!window.confirm(`Remove the mapping to “${mapping.name}”? The evidence file is retained.`)) return;
+    const target = targetRef.current;
     onSaveState("saving");
     try {
       await request(
         `/api/projects/${assessment.project.id}/assessments/${assessment.id}/evidence-mappings/${mapping.mapping_id}`,
         { method: "DELETE" },
       );
+      if (!isCurrent(target, true)) return;
       onSaveState("saved");
       onChanged();
       onArtifactsChanged();
     } catch (caught) {
-      onSaveState("error", caught instanceof Error ? caught.message : undefined);
+      if (isCurrent(target, true)) onSaveState("error", caught instanceof Error ? caught.message : undefined);
     }
   }
 
@@ -1217,11 +1236,13 @@ export function Workspace({
   onWorkspaceCreated: (id: string) => void;
 }) {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [loadedProjectId, setLoadedProjectId] = useState("");
   const [readiness, setReadiness] = useState<ProfileReadiness | null>(null);
   const [progress, setProgress] = useState<Assessment["progress"] | null>(null);
   const [recordId, setRecordId] = useState("");
   const [returnRecordId, setReturnRecordId] = useState("");
   const [detail, setDetail] = useState<RecordDetail | null>(null);
+  const detailLoadedTargetRef = useRef({ assessmentId: "", recordId: "" });
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [search, setSearch] = useState("");
   const [area, setArea] = useState("all");
@@ -1261,6 +1282,7 @@ export function Workspace({
       || projectTargetRef.current !== targetProjectId
     ) return;
     setAssessment(next);
+    setLoadedProjectId(targetProjectId);
     setProgress(next?.progress ?? null);
     setRecordId(next?.work_list[0]?.record_id || "");
   }, [projectId]);
@@ -1273,6 +1295,7 @@ export function Workspace({
     );
     if (signal?.aborted || projectTargetRef.current !== targetProjectId) return undefined;
     setReadiness(next);
+    setLoadedProjectId(targetProjectId);
     return next;
   }, [projectId]);
 
@@ -1293,11 +1316,17 @@ export function Workspace({
     const targetAssessmentId = assessment.id;
     const requestSequence = ++assessmentRequestSequenceRef.current;
     const next = await request<Assessment>(`/api/projects/${targetProjectId}/assessment`);
-    if (
-      assessmentRequestSequenceRef.current !== requestSequence
-      || projectTargetRef.current !== targetProjectId
-    ) return;
-    if (detailTargetRef.current.assessmentId === targetAssessmentId) {
+    if (assessmentRequestSequenceRef.current !== requestSequence || projectTargetRef.current !== targetProjectId) return;
+    if (next.id !== targetAssessmentId) {
+      setDetail(null);
+      detailLoadedTargetRef.current = { assessmentId: "", recordId: "" };
+      setRecordId(next.work_list[0]?.record_id || "");
+      setReturnRecordId("");
+      setRoutineSaves(new Map());
+      setSaveState("saved");
+      setAssessment(next);
+      setProgress(next.progress);
+    } else {
       setProgress(next.progress);
     }
   }, [assessment]);
@@ -1315,6 +1344,7 @@ export function Workspace({
       && detailTargetRef.current.recordId === target.recordId
     ) {
       setDetail(next);
+      detailLoadedTargetRef.current = target;
     }
   }, [assessment, recordId]);
 
@@ -1343,12 +1373,18 @@ export function Workspace({
   useEffect(() => {
     const controller = new AbortController();
     setAssessment(null);
+    setLoadedProjectId("");
     setReadiness(null);
     setProgress(null);
     setRecordId("");
+    setReturnRecordId("");
     setLoading(true);
     setDetail(null);
+    detailLoadedTargetRef.current = { assessmentId: "", recordId: "" };
     setArtifacts([]);
+    setSaveState("saved");
+    setSaveMessage("");
+    setRoutineSaves(new Map());
     void (async () => {
       try {
         const nextReadiness = await loadReadiness(controller.signal);
@@ -1453,11 +1489,12 @@ export function Workspace({
 
   const selectedProject = projects.find((project) => project.id === projectId);
 
-  if (loading || !readiness) {
+  const assessmentMatchesSelectedProject = assessment?.project.id === projectId && loadedProjectId === projectId;
+  if (loading || !readiness || loadedProjectId !== projectId || (assessment && !assessmentMatchesSelectedProject)) {
     return <div className="loading-screen"><LoaderCircle className="spin" /><span>Opening assessment workspace…</span></div>;
   }
 
-  if (!assessment || !progress || !detail) {
+  if (!assessment || !progress || !detail || !assessmentMatchesSelectedProject || detailLoadedTargetRef.current.assessmentId !== assessment.id || detailLoadedTargetRef.current.recordId !== recordId) {
     return (
       <div className="readiness-shell">
         <header className="topbar">
@@ -1486,9 +1523,9 @@ export function Workspace({
             <span>{selectedProject?.framework_version_id}</span>
           </div>
           {view === "profile" ? (
-            <ProfilePanel projectId={projectId} onDirtyChange={setProfileDirty} />
+            <ProfilePanel key={projectId} projectId={projectId} onDirtyChange={setProfileDirty} />
           ) : view === "sra" ? (
-            <SraPanel projectId={projectId} onDirtyChange={setProfileDirty} />
+            <SraPanel key={`${projectId}:${assessment?.id ?? "none"}`} projectId={projectId} assessmentId={assessment?.id} onDirtyChange={setProfileDirty} />
           ) : (
             <ReadinessPanel
               readiness={readiness}
@@ -1587,7 +1624,7 @@ export function Workspace({
         </div>
       </aside>
 
-      {view === "sra" && <SraPanel projectId={projectId} onDirtyChange={setProfileDirty} />}
+      {view === "sra" && <SraPanel key={`${projectId}:${assessment.id}`} projectId={projectId} assessmentId={assessment.id} onDirtyChange={setProfileDirty} />}
       <main className={`assessment-main ${view !== "assessment" ? "workspace-hidden" : ""}`}>
         <div className="record-toolbar">
           <div>
@@ -1623,12 +1660,12 @@ export function Workspace({
             ))}
           </div>
         )}
-        <CloseReadinessPanel projectId={assessment.project.id} assessmentId={assessment.id} onNavigate={(link) => {
+        <CloseReadinessPanel key={`close:${assessment.project.id}:${assessment.id}`} projectId={assessment.project.id} assessmentId={assessment.id} onNavigate={(link) => {
           const target = String(link.target ?? link.view ?? "");
           if (target === "profile" || target === "sra" || target === "overview") changeView(target as "profile" | "sra" | "overview");
           else if (link.record_id || link.recordId) changeRecord(String(link.record_id ?? link.recordId));
         }} />
-        <PackageGenerationPanel projectId={assessment.project.id} assessmentId={assessment.id} />
+        <PackageGenerationPanel key={`package:${assessment.project.id}:${assessment.id}`} projectId={assessment.project.id} assessmentId={assessment.id} />
 
         {detail.parent && (
           <section className="parent-context">
@@ -1786,7 +1823,7 @@ export function Workspace({
       )}
       {view === "profile" && (
         <main className="overview-panel">
-          <ProfilePanel projectId={projectId} onDirtyChange={setProfileDirty} />
+          <ProfilePanel key={projectId} projectId={projectId} onDirtyChange={setProfileDirty} />
           <ReadinessPanel
             readiness={readiness}
             hasAssessment

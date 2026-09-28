@@ -901,6 +901,100 @@ test("switching projects never displays another project's prompt answer", async 
   expect(screen.queryByDisplayValue("Project A answer")).not.toBeInTheDocument();
 });
 
+test("a cross-client project switch clears the prior client's assessment while the new revision loads", async () => {
+  const crossClientProjects = [
+    { ...clients[0], projects: [clients[0].projects[0]] },
+    {
+      id: "client-2",
+      name: "Fabrikam Medical",
+      projects: [{ id: "project-2", name: "HIPAA B", framework_version_id: "framework-version" }],
+    },
+  ];
+  mockApi(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/clients") return Response.json(crossClientProjects);
+    if (url.endsWith("/project-1/assessment")) return Response.json(assessment);
+    if (url.endsWith("/project-2/assessment")) return Response.json({
+      ...assessment,
+      id: "assessment-2",
+      project: { ...assessment.project, id: "project-2", client_id: "client-2", client_name: "Fabrikam Medical", name: "HIPAA B" },
+    });
+    if (url.includes("/project-1/") && url.includes("records/child-1")) return Response.json({
+      ...detail,
+      prompts: detail.prompts.map((prompt) => ({ ...prompt, answer: prompt.id === "prompt-check" ? "Prior client answer" : "" })),
+    });
+    if (url.includes("/project-2/") && url.includes("records/child-1")) return Response.json({
+      ...detail,
+      prompts: detail.prompts.map((prompt) => ({ ...prompt, answer: prompt.id === "prompt-check" ? "New client answer" : "" })),
+    });
+    if (url.endsWith("/evidence")) return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  const { rerender } = render(
+    <Workspace clients={crossClientProjects} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />,
+  );
+  expect(await screen.findByDisplayValue("Prior client answer")).toBeVisible();
+  rerender(
+    <Workspace clients={crossClientProjects} projectId="project-2" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />,
+  );
+  expect(screen.queryByDisplayValue("Prior client answer")).not.toBeInTheDocument();
+  expect(await screen.findByDisplayValue("New client answer")).toBeVisible();
+  expect(screen.queryByText("Northwind Health · HIPAA 2026")).not.toBeInTheDocument();
+});
+
+test("switching between projects without assessments hides the prior readiness immediately", async () => {
+  let releaseNext!: (value: Response) => void;
+  const nextReadiness = new Promise<Response>((resolve) => { releaseNext = resolve; });
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/projects/project-1/profile-readiness") {
+      return Response.json({ ...readiness, state: "Intake started", assessment_exists: false,
+        assessment_entry_allowed: false, assessment_entry_blocking_reasons: ["Project A intake is incomplete."], });
+    }
+    if (url === "/api/projects/project-2/profile-readiness") return nextReadiness;
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  const { rerender } = render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  expect(await screen.findByText("Project A intake is incomplete.")).toBeVisible();
+  rerender(<Workspace clients={clients} projectId="project-2" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  expect(screen.queryByText("Project A intake is incomplete.")).not.toBeInTheDocument();
+  expect(screen.getByText("Opening assessment workspace…")).toBeVisible();
+  releaseNext(Response.json({ ...readiness, project_id: "project-2", state: "Needs follow-up",
+    assessment_exists: false, assessment_entry_allowed: false,
+    assessment_entry_blocking_reasons: ["Project B needs follow-up."], }));
+  expect(await screen.findByText("Project B needs follow-up.")).toBeVisible();
+});
+
+test("an active revision change reloads record detail before showing it", async () => {
+  let assessmentReads = 0;
+  mockApi(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url === "/api/clients") return Response.json([{ ...clients[0], projects: [clients[0].projects[0]] }]);
+    if (url === "/api/projects/project-1/assessment") {
+      assessmentReads += 1;
+      return Response.json({ ...assessment, id: assessmentReads === 1 ? "assessment-1" : "assessment-2" });
+    }
+    if (url.includes("/assessments/assessment-1/records/child-1")) return Response.json({
+      ...detail,
+      prompts: detail.prompts.map((prompt) => ({ ...prompt, answer: prompt.id === "prompt-check" ? "Old revision answer" : "" })),
+    });
+    if (url.includes("/assessments/assessment-2/records/child-1")) return Response.json({
+      ...detail,
+      prompts: detail.prompts.map((prompt) => ({ ...prompt, answer: prompt.id === "prompt-check" ? "Active revision answer" : "" })),
+    });
+    if (url.includes("/determinations/child-1") && init?.method === "PUT") return Response.json(refreshedDeterminationDetail.determination);
+    if (url.endsWith("/evidence")) return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  const user = userEvent.setup();
+  render(<App />);
+  expect(await screen.findByDisplayValue("Old revision answer")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Pending" }));
+  expect(await screen.findByDisplayValue("Active revision answer")).toBeVisible();
+  expect(screen.queryByDisplayValue("Old revision answer")).not.toBeInTheDocument();
+  expect(assessmentReads).toBe(2);
+});
+
 test("a late assessment response cannot overwrite the selected project", async () => {
   const projectA = deferredResponse();
   const projectBAssessment = {

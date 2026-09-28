@@ -11,10 +11,10 @@ function response(body: unknown, status = 200): Response {
   });
 }
 
-function workspace(projectId = "project-1") {
+function workspace(projectId = "project-1", assessmentId = `assessment-${projectId}`) {
   return {
     project_id: projectId,
-    assessment_id: `assessment-${projectId}`,
+    assessment_id: assessmentId,
     profile_version_id: `profile-${projectId}`,
     work_area: "Security Risk Analysis",
     status: "Incomplete",
@@ -30,7 +30,7 @@ function workspace(projectId = "project-1") {
         id: null,
         scope_type: "system",
         target_key: "item:workstation",
-        name: `Workstation ${projectId}`,
+        name: `Workstation ${assessmentId.includes("revision") ? assessmentId : projectId}`,
         included: null,
         exclusion_rationale: "",
         reviewed_by: "",
@@ -120,4 +120,20 @@ test("ignores a delayed response from the previously selected project", async ()
   expect(await screen.findByText("Workstation project-2")).toBeVisible();
   releaseFirst(response(workspace("project-1")));
   await waitFor(() => expect(screen.queryByText("Workstation project-1")).not.toBeInTheDocument());
+});
+
+test("ignores a delayed SRA response from a superseded active revision", async () => {
+  let releaseFirst!: (value: Response) => void;
+  const first = new Promise<Response>((resolve) => { releaseFirst = resolve; });
+  const fetchMock = vi.fn()
+    .mockReturnValueOnce(first)
+    .mockResolvedValueOnce(response(workspace("project-1", "assessment-project-1-revision-2")));
+  vi.stubGlobal("fetch", fetchMock);
+  const dirty = vi.fn();
+  const view = render(<SraPanel projectId="project-1" assessmentId="assessment-project-1" onDirtyChange={dirty} />);
+  view.rerender(<SraPanel projectId="project-1" assessmentId="assessment-project-1-revision-2" onDirtyChange={dirty} />);
+  expect(await screen.findByText("Workstation assessment-project-1-revision-2")).toBeVisible();
+  releaseFirst(response(workspace("project-1", "assessment-project-1")));
+  await waitFor(() => expect(screen.queryByText("Workstation project-1")).not.toBeInTheDocument());
+  expect(fetchMock).toHaveBeenCalledTimes(2);
 });

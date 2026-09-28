@@ -67,9 +67,11 @@ function toRiskDraft(item: SraRisk): RiskDraft {
 
 export function SraPanel({
   projectId,
+  assessmentId,
   onDirtyChange,
 }: {
   projectId: string;
+  assessmentId?: string;
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const [data, setData] = useState<SraWorkspace | null>(null);
@@ -80,6 +82,8 @@ export function SraPanel({
   const [exclusions, setExclusions] = useState<Record<string, string>>({});
   const projectRef = useRef(projectId);
   projectRef.current = projectId;
+  const assessmentRef = useRef(assessmentId);
+  assessmentRef.current = assessmentId;
 
   function markDirty(value: boolean) {
     onDirtyChange(value);
@@ -96,6 +100,7 @@ export function SraPanel({
       signal: controller.signal,
     })
       .then((next) => {
+        if (controller.signal.aborted || projectRef.current !== projectId || (assessmentRef.current && next.assessment_id !== assessmentRef.current)) return;
         setData(next);
         setExclusions(
           Object.fromEntries(
@@ -109,17 +114,21 @@ export function SraPanel({
         }
       });
     return () => controller.abort();
-  }, [onDirtyChange, projectId]);
+  }, [assessmentId, onDirtyChange, projectId]);
 
-  async function refresh(expectedProjectId: string) {
+  async function refresh(expectedProjectId: string, expectedAssessmentId: string | null) {
     const next = await request<SraWorkspace>(
       `/api/projects/${expectedProjectId}/sra`,
     );
-    if (projectRef.current === expectedProjectId) setData(next);
+    if (projectRef.current === expectedProjectId
+      && (!assessmentRef.current || assessmentRef.current === expectedAssessmentId)
+      && next.assessment_id === expectedAssessmentId) setData(next);
   }
 
   async function saveScope(item: SraScopeItem, included: boolean) {
     if (!data) return;
+    if (assessmentRef.current && data.assessment_id !== assessmentRef.current) return;
+    const targetAssessmentId = data.assessment_id;
     const rationale = included ? "" : (exclusions[item.target_key] ?? "").trim();
     if (!included && !rationale) {
       setError("Exclusion requires a rationale.");
@@ -139,21 +148,26 @@ export function SraPanel({
           reviewed_by: "Johnathan",
         }),
       });
-      await refresh(projectId);
-      if (projectRef.current === projectId) markDirty(false);
+      if (projectRef.current !== projectId || (assessmentRef.current && assessmentRef.current !== targetAssessmentId)) return;
+      await refresh(projectId, targetAssessmentId);
+      if (projectRef.current === projectId && (!assessmentRef.current || assessmentRef.current === targetAssessmentId)) markDirty(false);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Scope update failed.");
+      if (projectRef.current === projectId && (!assessmentRef.current || assessmentRef.current === targetAssessmentId)) {
+        setError(reason instanceof Error ? reason.message : "Scope update failed.");
+      }
     } finally {
-      setSaving(false);
+      if (projectRef.current === projectId && (!assessmentRef.current || assessmentRef.current === targetAssessmentId)) setSaving(false);
     }
   }
 
   async function submitRisk(event: FormEvent) {
     event.preventDefault();
+    if (assessmentRef.current && data?.assessment_id !== assessmentRef.current) return;
     if (!data?.assessment_id) {
       setError("Start an assessment before recording SRA risks.");
       return;
     }
+    const targetAssessmentId = data.assessment_id;
     setSaving(true);
     setError("");
     try {
@@ -169,16 +183,19 @@ export function SraPanel({
           reviewed_at: new Date().toISOString(),
         }),
       });
-      await refresh(projectId);
-      if (projectRef.current === projectId) {
+      if (projectRef.current !== projectId || (assessmentRef.current && assessmentRef.current !== targetAssessmentId)) return;
+      await refresh(projectId, targetAssessmentId);
+      if (projectRef.current === projectId && (!assessmentRef.current || assessmentRef.current === targetAssessmentId)) {
         setRisk(newRisk());
         setEditing(null);
         markDirty(false);
       }
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Risk could not be saved.");
+      if (projectRef.current === projectId && (!assessmentRef.current || assessmentRef.current === targetAssessmentId)) {
+        setError(reason instanceof Error ? reason.message : "Risk could not be saved.");
+      }
     } finally {
-      setSaving(false);
+      if (projectRef.current === projectId && (!assessmentRef.current || assessmentRef.current === targetAssessmentId)) setSaving(false);
     }
   }
 
@@ -191,6 +208,9 @@ export function SraPanel({
     [risk.residual_impact, risk.residual_likelihood],
   );
 
+  if (data && (data.project_id !== projectId || (assessmentId !== undefined && data.assessment_id !== assessmentId))) {
+    return <div className="loading-screen"><LoaderCircle className="spin" /> Loading SRA…</div>;
+  }
   if (error && !data) {
     return <p className="error-copy"><CircleAlert size={14} /> {error}</p>;
   }
