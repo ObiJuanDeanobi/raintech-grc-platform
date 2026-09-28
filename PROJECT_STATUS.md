@@ -10,15 +10,17 @@ package. The authoritative remaining path is tracked in GitHub issue #88.
 
 ## Current mode
 
-Issue #75 backend active-assessment identity migration, the first ticket in
-roadmap #88's safe revision sequence. Issue #32 remains open for native x64,
+Issue #76 active-assessment identity migration through close, package, review,
+backup, and issuance services. Issue #75's backend route migration merged as
+PR #93 at `79c0114`. Issue #32 remains open for native x64,
 adapter-disabled, and downloaded-file SmartScreen checks before broader Windows
 distribution; all three were accepted as deferrals for this Surface pilot.
 
 ## Current objective
 
-Complete #75's narrow active-assessment resolver and backend route migration
-without enabling successor creation or removing the one-assessment constraint.
+Complete #76's consequence-bearing service migration through the #75 active
+assessment resolver without enabling successor creation or removing the
+one-assessment constraint.
 CMMC #30/#31 preserve the already extracted catalog and practitioner guidance
 as migration inputs rather than greenfield ingestion work.
 
@@ -31,13 +33,13 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #75 - backend active-assessment migration is active.** Issue #32
+**GitHub issue #76 - active-assessment service migration is active.** Issue #32
 remains open only for broader Windows distribution checks. The Issue #32
 evidence below is retained as the completed Surface pilot history.
 
-- Draft PR #93 on `feature/75-active-assessment-backend` implements the narrow
-  backend resolver and assessment-route migration. The one-assessment
-  constraint remains and no successor creation is enabled.
+- PR #93 merged to `main` at `79c0114` and Issue #75 closed. Its narrow backend
+  resolver and assessment-route migration retain the one-assessment constraint
+  and do not enable successor creation.
 - Local verification: full API suite 151 passed, catalog suite 74 passed with
   15 optional skips, frontend 52 passed, Ruff, Mypy, TypeScript typecheck,
   ESLint, and production build passed. The focused #75 and compatibility
@@ -48,7 +50,18 @@ evidence below is retained as the completed Surface pilot history.
   a guessed assessment returned 422 instead of 404. The duplicate risk check
   was replaced with the active project guard; affected tests (22), the full
   API suite (151), Ruff, and Mypy pass locally. All six GitHub CI checks passed
-  on `09c1a93`; draft PR #93 is mergeable and awaits the final merge decision.
+  on the final PR head before merge.
+
+- Issue #76 service migration now resolves the active assessment before close,
+  generation, review, backup, and issuance. Package listing and component
+  download also exclude inactive packages. Isolated synthetic regressions
+  cover same-client and cross-client IDs, inactive pointer state, and the
+  absence of snapshot, backup, and issuance writes after rejection. See
+  `docs/evidence/issue-76/API_VERIFICATION.md`. The one-assessment constraint
+  and current active-package behavior remain intact. Final local gates:
+  159 API tests, 74 catalog tests (15 optional skips), 52 frontend tests,
+  Ruff, Mypy, TypeScript typecheck, ESLint, and production build passed.
+  GitHub CI is pending.
 
 - Refresh the historical packaging spike against the production application;
   the old throwaway-spike wording is no longer the operative acceptance scope.
@@ -627,9 +640,10 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Review the green draft PR #93 for Issue #75 and decide whether to merge it.
-Then start Issue #76's consequence-bearing service migration on a branch from
-the new `main`. The Surface pilot is merged via PR #92. Run native
+Implement Issue #76 on `feature/76-active-assessment-services`, verify active
+assessment pinning and project isolation through close, package, backup, and
+issuance, and keep the old uniqueness constraint. The Surface pilot is merged
+via PR #92. Run native
 x64, downloaded-file SmartScreen, and
 adapter-disabled checks in suitable physical environments before claiming
 broader Windows distribution acceptance under Issue #32.

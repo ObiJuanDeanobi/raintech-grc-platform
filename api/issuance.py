@@ -13,6 +13,7 @@ from typing import Any, Never, cast
 from uuid import uuid4
 
 from api.close import fieldwork_ready
+from api.database import active_assessment_by_id
 from api.package_review import get_review
 
 _operation_lock = threading.RLock()
@@ -45,6 +46,9 @@ def _package(connection: sqlite3.Connection, project_id: str, package_id: str) -
         "SELECT * FROM generated_packages WHERE id=? AND project_id=?", (package_id, project_id)
     ).fetchone()
     if row is None:
+        raise LookupError("Package not found")
+    active = active_assessment_by_id(connection, row["assessment_id"])
+    if active is None or active["project_id"] != project_id:
         raise LookupError("Package not found")
     return cast(sqlite3.Row, row)
 
@@ -134,11 +138,12 @@ def _valid_backup(
         "SELECT sha256 FROM source_snapshots WHERE id=? AND project_id=?",
         (package["source_snapshot_id"], project_id),
     ).fetchone()[0]
-    query = """SELECT * FROM backup_records WHERE project_id=? AND package_id=?
+    query = """SELECT * FROM backup_records WHERE project_id=? AND assessment_id=? AND package_id=?
                AND status='complete' AND source_snapshot_id=? AND source_snapshot_sha256=?
                AND package_sha256=? AND review_event_id=?"""
     args: list[Any] = [
         project_id,
+        package["assessment_id"],
         package["id"],
         package["source_snapshot_id"],
         source_hash,

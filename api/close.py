@@ -5,6 +5,8 @@ from typing import Any
 
 from fastapi import HTTPException
 
+from api.database import active_assessment_by_id, active_assessment_for_project
+
 TARGET = "fieldwork_ready_for_generation"
 _CHECKS = {
     "approved_profile_complete": "profile",
@@ -95,6 +97,13 @@ def fieldwork_ready(
     project = connection.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
+    if assessment_id is None:
+        assessment = active_assessment_for_project(connection, project_id)
+        assessment_id = assessment["id"] if assessment is not None else None
+    else:
+        assessment = active_assessment_by_id(connection, assessment_id)
+        if assessment is None or assessment["project_id"] != project_id:
+            raise HTTPException(status_code=404, detail="Assessment not found for project")
     framework = connection.execute(
         "SELECT * FROM framework_versions WHERE id = ?", (project["framework_version_id"],)
     ).fetchone()
@@ -168,31 +177,6 @@ def fieldwork_ready(
                 f"Resolve Profile value: {row['field_key']}",
                 "profile",
                 f"/projects/{project_id}/profile",
-            )
-    if assessment_id is None:
-        active = connection.execute(
-            "SELECT assessment_id FROM project_active_assessments WHERE project_id = ?",
-            (project_id,),
-        ).fetchone()
-        assessment_id = active["assessment_id"] if active else None
-    assessment = None
-    if assessment_id is not None:
-        assessment = connection.execute(
-            "SELECT * FROM assessments WHERE id = ? AND project_id = ?", (assessment_id, project_id)
-        ).fetchone()
-        if assessment is None:
-            raise HTTPException(status_code=404, detail="Assessment not found for project")
-        active = connection.execute(
-            "SELECT assessment_id FROM project_active_assessments WHERE project_id = ?",
-            (project_id,),
-        ).fetchone()
-        if active is None or active["assessment_id"] != assessment_id:
-            _block(
-                blockers,
-                "assessment_not_active",
-                "Close checks require the active assessment",
-                "determinations",
-                f"/projects/{project_id}/assessments/{assessment_id}",
             )
     if assessment is None:
         _block(

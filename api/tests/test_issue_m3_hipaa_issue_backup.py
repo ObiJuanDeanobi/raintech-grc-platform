@@ -158,6 +158,46 @@ def test_unsigned_package_backup_failure_is_durable(tmp_path: Path) -> None:
         assert "reviewed and signed" in failure[3]
 
 
+def test_inactive_and_guessed_packages_are_rejected_without_backup_or_issuance_writes(
+    tmp_path: Path,
+) -> None:
+    client, db, _ = _app(tmp_path)
+    with client:
+        project, _, package = _issued_candidate(client, db, "inactive-package")
+        package_id = package["id"]
+        with sqlite3.connect(db) as connection:
+            # Simulate legacy/corrupt state that the active-pointer schema rejects.
+            connection.execute("DROP TRIGGER project_active_assessments_cannot_delete")
+            connection.execute(
+                "DELETE FROM project_active_assessments WHERE project_id=?", (project,)
+            )
+            connection.commit()
+
+        assert client.get(
+            f"/api/projects/{project}/packages/{package_id}/review"
+        ).status_code == 404
+        assert client.get(
+            f"/api/projects/{project}/packages/{package_id}/issue-readiness"
+        ).status_code == 404
+        assert _backup(client, project, package_id).status_code == 404
+        assert client.post(
+            f"/api/projects/{project}/packages/{package_id}/issue",
+            json={"actor_id": "johnathan", "backup_id": "guessed-backup"},
+        ).status_code == 404
+        assert _transition(client, project, package_id, "In Review").status_code == 404
+
+        for guessed in ("guessed-package", package_id):
+            assert client.get(
+                f"/api/projects/{project}/packages/{guessed}/review"
+            ).status_code == 404
+
+    with sqlite3.connect(db) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM backup_records").fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM issuance_attempts").fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM issuance_snapshots").fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM package_review_events").fetchone()[0] == 3
+
+
 def test_backup_and_issue_are_project_scoped_and_restart_safe(tmp_path: Path) -> None:
     client, db, files = _app(tmp_path)
     with client:

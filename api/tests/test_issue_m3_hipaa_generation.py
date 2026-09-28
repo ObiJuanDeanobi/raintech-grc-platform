@@ -5,6 +5,7 @@ import sqlite3
 import xml.etree.ElementTree as ET
 from io import BytesIO
 from pathlib import Path
+from typing import cast
 from zipfile import ZipFile
 
 import pytest
@@ -77,6 +78,18 @@ def _app(tmp_path: Path) -> tuple[TestClient, Path]:
     return TestClient(create_app(database_path=db, storage_path=tmp_path / "files")), db
 
 
+def _create_assessment(client: TestClient, project: str) -> str:
+    acknowledgement = client.post(f"/api/projects/{project}/profile-readiness/acknowledgement")
+    assert acknowledgement.status_code == 201
+    assert client.post(
+        f"/api/projects/{project}/profile-readiness/transitions",
+        json={"next_state": "Intake complete", "decision_note": "Synthetic intake."},
+    ).status_code == 201
+    response = client.post(f"/api/projects/{project}/assessments")
+    assert response.status_code == 201, response.text
+    return cast(str, response.json()["id"])
+
+
 def test_generation_requires_ready_assessment(tmp_path: Path) -> None:
     client, _ = _app(tmp_path)
     with client:
@@ -84,6 +97,56 @@ def test_generation_requires_ready_assessment(tmp_path: Path) -> None:
         response = client.post(f"/api/projects/{project}/assessments/{assessment}/packages")
         assert response.status_code == 409
         assert "not ready" in response.json()["detail"]
+
+
+@pytest.mark.parametrize("same_client", [True, False])
+def test_generation_rejects_assessment_from_another_project_before_snapshot(
+    tmp_path: Path, same_client: bool
+) -> None:
+    client, db = _app(tmp_path)
+    with client:
+        client_one = client.post("/api/clients", json={"name": "Client One"}).json()["id"]
+        client_two = (
+            client_one
+            if same_client
+            else client.post("/api/clients", json={"name": "Client Two"}).json()["id"]
+        )
+        one = client.post(
+            f"/api/clients/{client_one}/projects", json={"name": "Project One"}
+        ).json()["id"]
+        two = client.post(
+            f"/api/clients/{client_two}/projects", json={"name": "Project Two"}
+        ).json()["id"]
+        assessment = _create_assessment(client, one)
+
+        response = client.post(f"/api/projects/{two}/assessments/{assessment}/packages")
+        assert response.status_code == 409
+        assert "active assessment for this project" in response.json()["detail"]
+        with sqlite3.connect(db) as connection:
+            assert connection.execute("SELECT COUNT(*) FROM source_snapshots").fetchone()[0] == 0
+            assert connection.execute("SELECT COUNT(*) FROM generation_attempts").fetchone()[0] == 0
+            assert connection.execute("SELECT COUNT(*) FROM generated_packages").fetchone()[0] == 0
+        assert not (tmp_path / "generation-staging").exists()
+
+
+def test_generation_rejects_inactive_assessment_before_snapshot_or_staging(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import api.generation as generation_module
+
+    client, db = _app(tmp_path)
+    with client:
+        project, assessment, _ = _setup(client, "inactive-generation")
+        monkeypatch.setattr(generation_module, "active_assessment_by_id", lambda *_: None)
+
+        response = client.post(f"/api/projects/{project}/assessments/{assessment}/packages")
+        assert response.status_code == 409
+        assert "active assessment for this project" in response.json()["detail"]
+        with sqlite3.connect(db) as connection:
+            assert connection.execute("SELECT COUNT(*) FROM source_snapshots").fetchone()[0] == 0
+            assert connection.execute("SELECT COUNT(*) FROM generation_attempts").fetchone()[0] == 0
+            assert connection.execute("SELECT COUNT(*) FROM generated_packages").fetchone()[0] == 0
+        assert not (tmp_path / "generation-staging").exists()
 
 
 def test_generation_promotes_two_parseable_components_from_one_snapshot(tmp_path: Path) -> None:
@@ -258,6 +321,30 @@ def test_generation_is_project_isolated_and_path_safe(tmp_path: Path) -> None:
             ).status_code
             == 200
         )
+
+
+def test_inactive_package_is_hidden_and_cannot_download_components(tmp_path: Path) -> None:
+    client, db = _app(tmp_path)
+    with client:
+        project, assessment = _ready(client, db, "inactive-package-read")
+        package_response = client.post(
+            f"/api/projects/{project}/assessments/{assessment}/packages"
+        )
+        assert package_response.status_code == 201, package_response.text
+        package = package_response.json()
+        component = package["manifest"]["components"][0]
+
+        with sqlite3.connect(db) as connection:
+            # Exercise legacy/corrupt state that normal active-pointer constraints reject.
+            connection.execute("DROP TRIGGER project_active_assessments_cannot_delete")
+            connection.execute(
+                "DELETE FROM project_active_assessments WHERE project_id=?", (project,)
+            )
+
+        assert client.get(f"/api/projects/{project}/packages").json() == []
+        assert client.get(
+            f"/api/projects/{project}/packages/{package['id']}/components/{component['id']}"
+        ).status_code == 404
 
 
 def test_failed_attempt_is_invisible_and_retry_preserves_prior_promoted_package(
