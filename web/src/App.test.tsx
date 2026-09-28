@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import App, { Workspace } from "./App";
+import { activeRevisionFixture, clientAssessmentProjectsFixture, clientProjectsFixture, delayedResponse as deferredResponse } from "./activeAssessmentFixtures";
 
 const assessment = {
   id: "assessment-1",
@@ -183,24 +184,7 @@ const secondRecordDetail = {
   prompts: detail.prompts.map((prompt) => ({ ...prompt, id: `${prompt.id}-child-2` })),
 };
 
-const clients = [
-  {
-    id: "client-1",
-    name: "Northwind Health",
-    projects: [
-      {
-        id: "project-1",
-        name: "HIPAA A",
-        framework_version_id: "framework-version",
-      },
-      {
-        id: "project-2",
-        name: "HIPAA B",
-        framework_version_id: "framework-version",
-      },
-    ],
-  },
-];
+const clients = clientProjectsFixture();
 
 const readiness = {
   project_id: "project-1",
@@ -902,23 +886,12 @@ test("switching projects never displays another project's prompt answer", async 
 });
 
 test("a cross-client project switch clears the prior client's assessment while the new revision loads", async () => {
-  const crossClientProjects = [
-    { ...clients[0], projects: [clients[0].projects[0]] },
-    {
-      id: "client-2",
-      name: "Fabrikam Medical",
-      projects: [{ id: "project-2", name: "HIPAA B", framework_version_id: "framework-version" }],
-    },
-  ];
+  const crossClientFixtures = clientAssessmentProjectsFixture(assessment, { crossClient: true });
   mockApi(async (input: RequestInfo | URL) => {
     const url = String(input);
-    if (url === "/api/clients") return Response.json(crossClientProjects);
-    if (url.endsWith("/project-1/assessment")) return Response.json(assessment);
-    if (url.endsWith("/project-2/assessment")) return Response.json({
-      ...assessment,
-      id: "assessment-2",
-      project: { ...assessment.project, id: "project-2", client_id: "client-2", client_name: "Fabrikam Medical", name: "HIPAA B" },
-    });
+    if (url === "/api/clients") return Response.json(crossClientFixtures.clients);
+    if (url.endsWith("/project-1/assessment")) return Response.json(crossClientFixtures.projects["project-1"]!.activeAssessment);
+    if (url.endsWith("/project-2/assessment")) return Response.json(crossClientFixtures.projects["project-2"]!.activeAssessment);
     if (url.includes("/project-1/") && url.includes("records/child-1")) return Response.json({
       ...detail,
       prompts: detail.prompts.map((prompt) => ({ ...prompt, answer: prompt.id === "prompt-check" ? "Prior client answer" : "" })),
@@ -931,11 +904,11 @@ test("a cross-client project switch clears the prior client's assessment while t
     return Response.json({ detail: "not found" }, { status: 404 });
   });
   const { rerender } = render(
-    <Workspace clients={crossClientProjects} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />,
+    <Workspace clients={crossClientFixtures.clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />,
   );
   expect(await screen.findByDisplayValue("Prior client answer")).toBeVisible();
   rerender(
-    <Workspace clients={crossClientProjects} projectId="project-2" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />,
+    <Workspace clients={crossClientFixtures.clients} projectId="project-2" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />,
   );
   expect(screen.queryByDisplayValue("Prior client answer")).not.toBeInTheDocument();
   expect(await screen.findByDisplayValue("New client answer")).toBeVisible();
@@ -966,13 +939,17 @@ test("switching between projects without assessments hides the prior readiness i
 });
 
 test("an active revision change reloads record detail before showing it", async () => {
+  const revisions = activeRevisionFixture(assessment, {
+    projectId: "project-1", projectName: "HIPAA 2026", clientId: "client-1", clientName: "Northwind Health",
+  }, ["assessment-1", "assessment-2"]);
+  expect(revisions.activeAssessment.id).toBe("assessment-2");
   let assessmentReads = 0;
   mockApi(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url === "/api/clients") return Response.json([{ ...clients[0], projects: [clients[0].projects[0]] }]);
     if (url === "/api/projects/project-1/assessment") {
       assessmentReads += 1;
-      return Response.json({ ...assessment, id: assessmentReads === 1 ? "assessment-1" : "assessment-2" });
+      return Response.json(revisions.revisions[assessmentReads - 1]);
     }
     if (url.includes("/assessments/assessment-1/records/child-1")) return Response.json({
       ...detail,
@@ -1237,14 +1214,6 @@ test("keeps direct file selection and shows the initial evidence version, hash, 
   expect(screen.queryByText(/attest/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/reference-only/i)).not.toBeInTheDocument();
 });
-
-function deferredResponse() {
-  let resolve: (response: Response) => void;
-  const promise = new Promise<Response>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve: resolve! };
-}
 
 test("serializes prompt autosaves without acknowledging a newer draft early", async () => {
   const first = deferredResponse();

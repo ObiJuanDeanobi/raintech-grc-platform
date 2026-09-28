@@ -98,6 +98,46 @@ def test_client_project_and_hipaa_assessment_are_created_and_retrievable(
         assert len(payload["work_list"]) == 194
 
 
+def test_create_workspace_helper_keeps_default_fixture_and_return_shape(tmp_path: Path) -> None:
+    app = create_app(database_path=tmp_path / "workspace.db", storage_path=tmp_path / "files")
+    with TestClient(app) as client:
+        workspace = create_workspace(client)
+
+        assert isinstance(workspace, tuple)
+        assert len(workspace) == 2
+        project_id, assessment_id = workspace
+        assessment = client.get(f"/api/projects/{project_id}/assessment")
+        assert assessment.status_code == 200
+        assert assessment.json()["id"] == assessment_id
+        assert assessment.json()["project"]["name"] == "HIPAA 2026"
+
+
+def test_production_workspace_restart_retains_single_active_assessment(tmp_path: Path) -> None:
+    database_path = tmp_path / "workspace.db"
+    storage_path = tmp_path / "files"
+    app = create_app(database_path=database_path, storage_path=storage_path)
+    with TestClient(app) as client:
+        project_id, assessment_id = create_workspace(client)
+
+    restarted = create_app(database_path=database_path, storage_path=storage_path)
+    with TestClient(restarted) as client:
+        assessment = client.get(f"/api/projects/{project_id}/assessment")
+        assert assessment.status_code == 200
+        assert assessment.json()["id"] == assessment_id
+        assert client.post(f"/api/projects/{project_id}/assessments").status_code == 409
+
+    with sqlite3.connect(database_path) as connection:
+        assert connection.execute(
+            "SELECT project_id, assessment_id FROM project_active_assessments WHERE project_id = ?",
+            (project_id,),
+        ).fetchone() == (project_id, assessment_id)
+        assert connection.execute(
+            "SELECT assessment_id, revision_number, predecessor_assessment_id "
+            "FROM assessment_revisions WHERE project_id = ?",
+            (project_id,),
+        ).fetchone() == (assessment_id, 1, None)
+
+
 def test_record_contract_preserves_parent_context_and_prompt_presentation_roles(
     tmp_path: Path,
 ) -> None:

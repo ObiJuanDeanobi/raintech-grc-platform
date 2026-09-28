@@ -10,17 +10,18 @@ package. The authoritative remaining path is tracked in GitHub issue #88.
 
 ## Current mode
 
-Issue #77 frontend active-assessment identity migration. Issue #75's backend
-route migration merged as PR #93 at `79c0114`; Issue #76's service migration
-merged as PR #94 at `4ccac5e`. Issue #32 remains open for native x64,
+Issue #78 shared fixture active-assessment identity migration. Issue #75's
+backend route migration merged as PR #93 at `79c0114`; Issue #76's service
+migration merged as PR #94 at `4ccac5e`; Issue #77's frontend migration merged
+as PR #95 at `a305bf9`. Issue #32 remains open for native x64,
 adapter-disabled, and downloaded-file SmartScreen checks before broader Windows
 distribution; all three were accepted as deferrals for this Surface pilot.
 
 ## Current objective
 
-Complete #77's frontend workspace and request-guard migration through the
-active assessment revision identity without enabling successor creation or
-removing the one-assessment constraint.
+Complete #78's shared backend/frontend fixture migration through explicit
+active assessment identity without changing production behavior, enabling
+successor creation, or removing the one-assessment constraint.
 CMMC #30/#31 preserve the already extracted catalog and practitioner guidance
 as migration inputs rather than greenfield ingestion work.
 
@@ -33,7 +34,7 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #77 - frontend active-assessment migration is active.** Issue #32
+**GitHub issue #78 - shared active-assessment fixtures are active.** Issue #32
 remains open only for broader Windows distribution checks. The Issue #32
 evidence below is retained as the completed Surface pilot history.
 
@@ -72,7 +73,20 @@ evidence below is retained as the completed Surface pilot history.
   horizontal overflow or console warnings/errors. See
   `docs/evidence/issue-77/EDGE_FRONTEND_VERIFICATION.md`. Local gates:
   159 API, 74 catalog (15 optional skips), and 56 frontend tests passed,
-  plus Ruff, Mypy, typecheck, ESLint, and production build. GitHub CI pending.
+  plus Ruff, Mypy, typecheck, ESLint, and production build. All six GitHub CI
+  checks passed on PR #95; it merged at `a305bf9` and Issue #77 is closed.
+
+- Issue #78 fixture migration adds isolated one/multiple revision selectors with
+  exactly one active pointer per project, same-client/cross-client fixture
+  identities, shared delayed-response builders, a recursive implicit-lookup
+  guard, and a real one-revision restart check. Existing populated migration
+  tests already assert active-pointer preservation across upgrade/reupgrade.
+  The reusable synthetic browser setup opened and switched three projects in
+  Edge without stale content or console warnings/errors; see
+  `docs/evidence/issue-78/BROWSER_FIXTURE_VERIFICATION.md`. Production schema
+  and behavior are unchanged. Local gates: 167 API, 74 catalog (15 optional
+  skips), 58 frontend tests, Ruff, Mypy, typecheck, ESLint, and production
+  build passed. GitHub CI is pending.
 
 - Refresh the historical packaging spike against the production application;
   the old throwaway-spike wording is no longer the operative acceptance scope.
@@ -651,9 +665,9 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Implement Issue #77 on `feature/77-active-assessment-frontend`, verify active
-revision selection and stale-response isolation across assessment, Profile,
-evidence, SRA, and package views, and keep the old uniqueness constraint. The Surface pilot is merged
+Implement Issue #78 on `feature/78-active-assessment-fixtures`, verify shared
+test builders and restart/browser fixtures use explicit active identity, and
+keep the old production uniqueness constraint. The Surface pilot is merged
 via PR #92. Run native
 x64, downloaded-file SmartScreen, and
 adapter-disabled checks in suitable physical environments before claiming
