@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { SraPanel } from "./SraPanel";
+import { delayedResponse } from "./activeAssessmentFixtures";
 
 function response(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -108,32 +109,30 @@ test("submits a complete threat-vulnerability risk against pinned identities", a
 });
 
 test("ignores a delayed response from the previously selected project", async () => {
-  let releaseFirst!: (value: Response) => void;
-  const first = new Promise<Response>((resolve) => { releaseFirst = resolve; });
+  const first = delayedResponse<Response>();
   const fetchMock = vi.fn()
-    .mockReturnValueOnce(first)
+    .mockReturnValueOnce(first.promise)
     .mockResolvedValueOnce(response(workspace("project-2")));
   vi.stubGlobal("fetch", fetchMock);
   const dirty = vi.fn();
   const view = render(<SraPanel projectId="project-1" onDirtyChange={dirty} />);
   view.rerender(<SraPanel projectId="project-2" onDirtyChange={dirty} />);
   expect(await screen.findByText("Workstation project-2")).toBeVisible();
-  releaseFirst(response(workspace("project-1")));
+  first.resolve(response(workspace("project-1")));
   await waitFor(() => expect(screen.queryByText("Workstation project-1")).not.toBeInTheDocument());
 });
 
 test("ignores a delayed SRA response from a superseded active revision", async () => {
-  let releaseFirst!: (value: Response) => void;
-  const first = new Promise<Response>((resolve) => { releaseFirst = resolve; });
+  const first = delayedResponse<Response>();
   const fetchMock = vi.fn()
-    .mockReturnValueOnce(first)
+    .mockReturnValueOnce(first.promise)
     .mockResolvedValueOnce(response(workspace("project-1", "assessment-project-1-revision-2")));
   vi.stubGlobal("fetch", fetchMock);
   const dirty = vi.fn();
   const view = render(<SraPanel projectId="project-1" assessmentId="assessment-project-1" onDirtyChange={dirty} />);
   view.rerender(<SraPanel projectId="project-1" assessmentId="assessment-project-1-revision-2" onDirtyChange={dirty} />);
   expect(await screen.findByText("Workstation assessment-project-1-revision-2")).toBeVisible();
-  releaseFirst(response(workspace("project-1", "assessment-project-1")));
+  first.resolve(response(workspace("project-1", "assessment-project-1")));
   await waitFor(() => expect(screen.queryByText("Workstation project-1")).not.toBeInTheDocument());
   expect(fetchMock).toHaveBeenCalledTimes(2);
 });
