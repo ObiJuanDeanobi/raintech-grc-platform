@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, cast
 from uuid import uuid4
 
+from api.database import active_assessment_by_id
 from api.generation import TEMPLATES, _snapshot
 
 STATES = ("Complete candidate", "In Review", "Reviewed", "Ready to issue")
@@ -31,6 +32,9 @@ def _package(connection: sqlite3.Connection, project_id: str, package_id: str) -
         "SELECT * FROM generated_packages WHERE id=? AND project_id=?", (package_id, project_id)
     ).fetchone()
     if row is None:
+        raise LookupError("Package not found")
+    active = active_assessment_by_id(connection, row["assessment_id"])
+    if active is None or active["project_id"] != project_id:
         raise LookupError("Package not found")
     return cast(sqlite3.Row, row)
 

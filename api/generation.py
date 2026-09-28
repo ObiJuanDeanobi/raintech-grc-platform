@@ -9,6 +9,7 @@ from typing import Any
 from uuid import uuid4
 
 from api.close import fieldwork_ready
+from api.database import active_assessment_by_id
 from api.renderers.hipaa import render_poam, render_report, validate_snapshot
 from api.storage import FileStorage
 
@@ -44,6 +45,11 @@ def _snapshot(
     assessment_id: str,
     assessment: sqlite3.Row,
 ) -> tuple[dict[str, Any], str, sqlite3.Row]:
+    active_assessment = active_assessment_by_id(c, assessment_id)
+    if active_assessment is None or active_assessment["project_id"] != project_id:
+        raise ValueError("Assessment is not the active assessment for this project")
+    if assessment["id"] != active_assessment["id"] or assessment["project_id"] != project_id:
+        raise ValueError("Assessment is not the active assessment for this project")
     active = c.execute(
         "SELECT active_profile_version_id FROM projects WHERE id=?", (project_id,)
     ).fetchone()
@@ -183,6 +189,9 @@ def generate_package(
     assessment_id: str,
     staging_root: Path | None = None,
 ) -> dict[str, Any]:
+    active_assessment = active_assessment_by_id(connection, assessment_id)
+    if active_assessment is None or active_assessment["project_id"] != project_id:
+        raise ValueError("Assessment is not the active assessment for this project")
     assessment = connection.execute(
         """
         SELECT assessments.*, assessment_revisions.revision_number

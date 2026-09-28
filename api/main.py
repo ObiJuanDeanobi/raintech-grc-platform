@@ -1202,7 +1202,13 @@ def create_app(
                 is None
             ):
                 raise HTTPException(404, "Project not found")
-            packages = list_packages(connection, project_id)
+            active_assessment = active_assessment_for_project(connection, project_id)
+            packages = [
+                package
+                for package in list_packages(connection, project_id)
+                if active_assessment is not None
+                and package["assessment_id"] == active_assessment["id"]
+            ]
             for package in packages:
                 package["manifest"] = json.loads(package["manifest_json"])
                 package["components"] = [
@@ -1227,7 +1233,7 @@ def create_app(
         with database.connect() as connection:
             row = connection.execute(
                 """
-                SELECT c.*
+                SELECT c.*, p.assessment_id AS assessment_id
                 FROM generated_components c
                 JOIN generated_packages p
                   ON p.id = c.package_id AND p.project_id = c.project_id
@@ -1236,6 +1242,9 @@ def create_app(
                 (component_id, package_id, project_id),
             ).fetchone()
             if row is None:
+                raise HTTPException(404, "Package component not found")
+            active_assessment = active_assessment_by_id(connection, row["assessment_id"])
+            if active_assessment is None or active_assessment["project_id"] != project_id:
                 raise HTTPException(404, "Package component not found")
             path = (database.managed_storage_root / row["relative_path"]).resolve()
             root_path = database.managed_storage_root.resolve()

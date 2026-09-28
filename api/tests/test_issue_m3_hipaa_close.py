@@ -3,6 +3,7 @@ import sqlite3
 from pathlib import Path
 from typing import cast
 
+import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
 
@@ -129,6 +130,67 @@ def test_assessment_id_is_scoped_to_project_and_response_has_actionable_shape(
             "informational",
         } <= body.keys()
         assert isinstance(body["links"], list)
+
+
+@pytest.mark.parametrize("same_client", [True, False])
+def test_close_rejects_assessment_from_another_project(
+    tmp_path: Path, same_client: bool
+) -> None:
+    with TestClient(
+        create_app(database_path=tmp_path / "db.sqlite", storage_path=tmp_path / "files")
+    ) as client:
+        client_one = client.post("/api/clients", json={"name": "Client One"}).json()["id"]
+        client_two = (
+            client_one
+            if same_client
+            else client.post("/api/clients", json={"name": "Client Two"}).json()["id"]
+        )
+        one = cast(
+            str,
+            client.post(
+                f"/api/clients/{client_one}/projects", json={"name": "Project One"}
+            ).json()["id"],
+        )
+        two = cast(
+            str,
+            client.post(
+                f"/api/clients/{client_two}/projects", json={"name": "Project Two"}
+            ).json()["id"],
+        )
+        client.post(f"/api/projects/{one}/profile-readiness/acknowledgement")
+        client.post(
+            f"/api/projects/{one}/profile-readiness/transitions",
+            json={"next_state": "Intake complete", "decision_note": "test"},
+        )
+        assessment = client.post(f"/api/projects/{one}/assessments").json()["id"]
+
+        wrong_project = client.get(
+            f"/api/projects/{two}/assessments/{assessment}/close-readiness"
+        )
+        assert wrong_project.status_code == 404
+
+
+def test_close_rejects_inactive_assessment_before_assessment_source_reads(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import api.close as close_module
+
+    with TestClient(
+        create_app(database_path=tmp_path / "db.sqlite", storage_path=tmp_path / "files")
+    ) as client:
+        pid = project(client, "inactive")
+        client.post(f"/api/projects/{pid}/profile-readiness/acknowledgement")
+        client.post(
+            f"/api/projects/{pid}/profile-readiness/transitions",
+            json={"next_state": "Intake complete", "decision_note": "test"},
+        )
+        assessment = client.post(f"/api/projects/{pid}/assessments").json()["id"]
+        monkeypatch.setattr(close_module, "active_assessment_by_id", lambda *_: None)
+
+        response = client.get(
+            f"/api/projects/{pid}/assessments/{assessment}/close-readiness"
+        )
+        assert response.status_code == 404
 
 
 def test_na_without_rationale_blocks_but_justified_na_is_not_a_na_blocker(tmp_path: Path) -> None:
