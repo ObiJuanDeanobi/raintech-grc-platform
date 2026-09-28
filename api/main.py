@@ -3983,11 +3983,7 @@ def create_app(
             raise HTTPException(
                 status_code=422, detail="Risk must use the approved Profile version"
             )
-        active = active_assessment_for_project(connection, project_id)
-        if active is None or payload.assessment_id != active["id"]:
-            raise HTTPException(
-                status_code=422, detail="Risk must use the project's active assessment"
-            )
+        _assessment_for_project_or_404(connection, project_id, payload.assessment_id)
         if payload.treatment not in {"corrective_action", "acceptance"}:
             raise HTTPException(status_code=422, detail="Unknown risk treatment")
         for value, label in (

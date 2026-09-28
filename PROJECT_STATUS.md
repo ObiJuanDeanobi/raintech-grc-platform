@@ -44,7 +44,11 @@ evidence below is retained as the completed Surface pilot history.
   rerun after review changes passed 23 tests. Edge synthetic same-client and
   cross-client assessment switching retained Project A's note without leaking
   it into Projects B/C; see `docs/evidence/issue-75/BROWSER_BACKEND_VERIFICATION.md`.
-  GitHub CI remains to be confirmed before #75 is complete.
+  The September 24 CI run exposed a cross-project SRA HTTP contract regression:
+  a guessed assessment returned 422 instead of 404. The duplicate risk check
+  was replaced with the active project guard; affected tests (22), the full
+  API suite (151), Ruff, and Mypy now pass locally. CI for this fix remains to
+  be confirmed before #75 is complete.
 
 - Refresh the historical packaging spike against the production application;
   the old throwaway-spike wording is no longer the operative acceptance scope.
