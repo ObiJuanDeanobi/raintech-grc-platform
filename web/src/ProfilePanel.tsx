@@ -208,6 +208,8 @@ export function ProfilePanel({
   const [uploadRationale, setUploadRationale] = useState("");
   const [dirty, setDirty] = useState(false);
   const requestSequence = useRef(0);
+  const projectTargetRef = useRef(projectId);
+  projectTargetRef.current = projectId;
   const localEditRevision = useRef(0);
 
   useEffect(() => {
@@ -314,6 +316,7 @@ export function ProfilePanel({
     );
     if (
       requestSequence.current !== generation
+      || projectTargetRef.current !== targetProjectId
       || targetProjectId !== projectId
       || selectedVersion?.id !== targetVersionId
     ) return;
@@ -403,6 +406,7 @@ export function ProfilePanel({
       );
       if (
         requestSequence.current !== generation
+        || projectTargetRef.current !== targetProjectId
         || targetProjectId !== projectId
         || targetVersionId !== selectedVersion.id
       ) return;
@@ -432,7 +436,7 @@ export function ProfilePanel({
         setMessage("Earlier edits saved; newer Profile edits remain unsaved.");
       }
     } catch (caught) {
-      if (requestSequence.current === generation && targetProjectId === projectId) {
+      if (requestSequence.current === generation && projectTargetRef.current === targetProjectId) {
         if (caught instanceof ApiError && caught.status === 409) {
           try {
             await reloadVersionAfterConflict(targetProjectId, targetVersionId, generation);
@@ -445,7 +449,7 @@ export function ProfilePanel({
         }
       }
     } finally {
-      if (requestSequence.current === generation && targetProjectId === projectId) setWorking(false);
+      if (requestSequence.current === generation && projectTargetRef.current === targetProjectId) setWorking(false);
     }
   }
 
@@ -479,6 +483,7 @@ export function ProfilePanel({
       );
       if (
         requestSequence.current !== generation
+        || projectTargetRef.current !== targetProjectId
         || targetProjectId !== projectId
         || targetVersionId !== selectedVersion.id
       ) return;
@@ -496,7 +501,7 @@ export function ProfilePanel({
       );
       setMessage(status === "Reviewed" ? `Reviewed by ${reviewer}` : "Version approved.");
     } catch (caught) {
-      if (requestSequence.current === generation && targetProjectId === projectId) {
+      if (requestSequence.current === generation && projectTargetRef.current === targetProjectId) {
         if (caught instanceof ApiError && caught.status === 409) {
           try {
             await reloadVersionAfterConflict(targetProjectId, targetVersionId, generation);
@@ -509,7 +514,7 @@ export function ProfilePanel({
         }
       }
     } finally {
-      if (requestSequence.current === generation && targetProjectId === projectId) {
+      if (requestSequence.current === generation && projectTargetRef.current === targetProjectId) {
         setWorking(false);
         setLifecycleWorking(false);
       }
@@ -533,17 +538,18 @@ export function ProfilePanel({
       );
       if (
         requestSequence.current !== generation
+        || projectTargetRef.current !== targetProjectId
         || targetProjectId !== projectId
         || targetVersionId !== selectedVersion.id
       ) return;
       replaceVersion(next);
       setMessage(`Version ${next.version_number} created as a new draft.`);
     } catch (caught) {
-      if (requestSequence.current === generation && targetProjectId === projectId) {
+      if (requestSequence.current === generation && projectTargetRef.current === targetProjectId) {
         setError(caught instanceof Error ? caught.message : "New version could not be created.");
       }
     } finally {
-      if (requestSequence.current === generation && targetProjectId === projectId) setWorking(false);
+      if (requestSequence.current === generation && projectTargetRef.current === targetProjectId) setWorking(false);
     }
   }
 
@@ -574,6 +580,7 @@ export function ProfilePanel({
       );
       if (
         requestSequence.current !== generation
+        || projectTargetRef.current !== targetProjectId
         || targetProjectId !== projectId
         || targetVersionId !== selectedVersion.id
       ) return;
@@ -590,7 +597,7 @@ export function ProfilePanel({
       setReuseRationale("");
       setMessage("Existing immutable evidence version mapped.");
     } catch (caught) {
-      if (requestSequence.current === generation && targetProjectId === projectId) {
+      if (requestSequence.current === generation && projectTargetRef.current === targetProjectId) {
         if (caught instanceof ApiError && caught.status === 409) {
           try {
             await reloadVersionAfterConflict(targetProjectId, targetVersionId, generation);
@@ -603,7 +610,7 @@ export function ProfilePanel({
         }
       }
     } finally {
-      if (requestSequence.current === generation && targetProjectId === projectId) setWorking(false);
+      if (requestSequence.current === generation && projectTargetRef.current === targetProjectId) setWorking(false);
     }
   }
 
@@ -632,6 +639,7 @@ export function ProfilePanel({
       });
       if (
         requestSequence.current !== generation
+        || projectTargetRef.current !== targetProjectId
         || targetProjectId !== projectId
         || targetVersionId !== selectedVersion.id
       ) return;
@@ -654,7 +662,7 @@ export function ProfilePanel({
       setUploadRationale("");
       setMessage("Sanitized file stored, hashed, and mapped.");
     } catch (caught) {
-      if (requestSequence.current === generation && targetProjectId === projectId) {
+      if (requestSequence.current === generation && projectTargetRef.current === targetProjectId) {
         if (caught instanceof ApiError && caught.status === 409) {
           try {
             await reloadVersionAfterConflict(targetProjectId, targetVersionId, generation);
@@ -667,11 +675,11 @@ export function ProfilePanel({
         }
       }
     } finally {
-      if (requestSequence.current === generation && targetProjectId === projectId) setWorking(false);
+      if (requestSequence.current === generation && projectTargetRef.current === targetProjectId) setWorking(false);
     }
   }
 
-  if (loading) return <div className="profile-loading">Opening project Profile…</div>;
+  if (loading || (profile && profile.project_id !== projectId)) return <div className="profile-loading">Opening project Profile…</div>;
   if (error && !profile) return <p className="form-error" role="alert">{error}</p>;
   if (!profile || !selectedVersion) return <p className="form-error">No Profile version exists.</p>;
 
