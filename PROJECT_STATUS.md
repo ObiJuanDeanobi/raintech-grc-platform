@@ -47,8 +47,8 @@ evidence below is retained as the completed Surface pilot history.
   The September 24 CI run exposed a cross-project SRA HTTP contract regression:
   a guessed assessment returned 422 instead of 404. The duplicate risk check
   was replaced with the active project guard; affected tests (22), the full
-  API suite (151), Ruff, and Mypy now pass locally. CI for this fix remains to
-  be confirmed before #75 is complete.
+  API suite (151), Ruff, and Mypy pass locally. All six GitHub CI checks passed
+  on `09c1a93`; draft PR #93 is mergeable and awaits the final merge decision.
 
 - Refresh the historical packaging spike against the production application;
   the old throwaway-spike wording is no longer the operative acceptance scope.
@@ -627,9 +627,9 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Complete Issue #75 on `feature/75-active-assessment-backend`: finish GitHub CI,
-then review draft PR #93 before merge. The Surface pilot is merged via PR #92.
-Run native
+Review the green draft PR #93 for Issue #75 and decide whether to merge it.
+Then start Issue #76's consequence-bearing service migration on a branch from
+the new `main`. The Surface pilot is merged via PR #92. Run native
 x64, downloaded-file SmartScreen, and
 adapter-disabled checks in suitable physical environments before claiming
 broader Windows distribution acceptance under Issue #32.
