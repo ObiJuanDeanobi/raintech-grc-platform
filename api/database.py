@@ -4,9 +4,56 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from hashlib import sha256
 from pathlib import Path
+from typing import cast
 
 from alembic import command
 from alembic.config import Config
+
+
+def active_assessment_for_project(
+    connection: sqlite3.Connection, project_id: str
+) -> sqlite3.Row | None:
+    """Resolve a project's assessment through its authoritative active pointer."""
+    return cast(
+        sqlite3.Row | None,
+        connection.execute(
+            """
+            SELECT assessments.*
+            FROM project_active_assessments active
+            JOIN assessments
+              ON assessments.id = active.assessment_id
+             AND assessments.project_id = active.project_id
+            JOIN assessment_revisions revisions
+              ON revisions.assessment_id = assessments.id
+             AND revisions.project_id = assessments.project_id
+            WHERE active.project_id = ?
+            """,
+            (project_id,),
+        ).fetchone(),
+    )
+
+
+def active_assessment_by_id(
+    connection: sqlite3.Connection, assessment_id: str
+) -> sqlite3.Row | None:
+    """Resolve an assessment only when it is the project's current active revision."""
+    return cast(
+        sqlite3.Row | None,
+        connection.execute(
+            """
+            SELECT assessments.*
+            FROM project_active_assessments active
+            JOIN assessments
+              ON assessments.id = active.assessment_id
+             AND assessments.project_id = active.project_id
+            JOIN assessment_revisions revisions
+              ON revisions.assessment_id = assessments.id
+             AND revisions.project_id = assessments.project_id
+            WHERE active.assessment_id = ?
+            """,
+            (assessment_id,),
+        ).fetchone(),
+    )
 
 
 def profile_snapshot_revision(
