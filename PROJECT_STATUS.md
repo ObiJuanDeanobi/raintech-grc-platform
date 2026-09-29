@@ -43,7 +43,10 @@ Migration `0014` adds append-only corrections/supersessions and a
 one-current-issue guard; the correction reissues from the prior stored
 snapshot through the full review/backup/issue gates. Local gates: 188 API,
 74 catalog (15 skips), 59 frontend, Ruff, Mypy, typecheck, ESLint, build.
-Browser evidence is headless Chromium in the cloud, not Edge on the Surface. Issue #32
+Browser evidence is headless Chromium in the cloud, not Edge on the Surface.
+September 29 Surface check: the pilot database
+(`RainTechAcceptance\edge-20260921\workspace.db`) holds one issuance row, so
+migration `0014`'s duplicate-issue refusal will not trigger there. Issue #32
 remains open only for broader Windows distribution checks. The Issue #32
 evidence below is retained as the completed Surface pilot history.
 
@@ -650,10 +653,6 @@ for an issue. Each names who has to answer it.
   through the addressable "equivalent alternative measure". Nothing is built and
   nothing should be; ADR 0012 preserved the architecture that would allow it.
   Live only because Johnathan showed interest in the shape of it.
-- **Legacy double issues and migration 0014 — Johnathan.** Before #80 nothing
-  stopped a second package in one project being issued. Migration `0014`
-  refuses to upgrade such a database rather than invent a supersession. The
-  Surface pilot database should be checked before it takes this build.
 - **What a presentation correction changes — Johnathan.** The correction
   reissues from the same snapshot with the current templates/renderer, still
   labelled `hipaa-v2`. ADR 0014 says template versions are immutable after use,
