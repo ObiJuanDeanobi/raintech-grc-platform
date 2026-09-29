@@ -10,19 +10,20 @@ package. The authoritative remaining path is tracked in GitHub issue #88.
 
 ## Current mode
 
-Issue #79 assessment revision contract and guarded successor creation. Issue #75's
+Issue #80 presentation-only correction and reissue is next. Issue #75's
 backend route migration merged as PR #93 at `79c0114`; Issue #76's service
 migration merged as PR #94 at `4ccac5e`; Issue #77's frontend migration merged
 as PR #95 at `a305bf9`; Issue #78's shared fixtures merged as PR #96 at
-`a55bd39`. Issue #32 remains open for native x64,
+`a55bd39`; Issue #79's revision contract merged as PR #97 at `feaa96d`.
+Issue #32 remains open for native x64,
 adapter-disabled, and downloaded-file SmartScreen checks before broader Windows
 distribution; all three were accepted as deferrals for this Surface pilot.
 
 ## Current objective
 
-Complete #79's assessment constraint migration and guarded, append-only
-successor creation. Preserve older revisions and issued artifacts while
-advancing the active pointer transactionally; correction policy is deferred.
+Begin #80's explicit presentation-only correction and governed reissue from
+the merged, immutable assessment revision foundation. Preserve the source
+assessment and prior issued package through correction and supersession.
 CMMC #30/#31 preserve the already extracted catalog and practitioner guidance
 as migration inputs rather than greenfield ingestion work.
 
@@ -35,7 +36,7 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #79 - assessment revision contract is active.** Issue #32
+**GitHub issue #80 - presentation-only correction is next.** Issue #32
 remains open only for broader Windows distribution checks. The Issue #32
 evidence below is retained as the completed Surface pilot history.
 
@@ -90,7 +91,7 @@ evidence below is retained as the completed Surface pilot history.
   build passed. All six GitHub CI checks passed on PR #96; it merged at
   `a55bd39` and Issue #78 is closed.
 
-- Issue #79 is in progress on `feature/79-assessment-revision-contract` from
+- Issue #79 was implemented on `feature/79-assessment-revision-contract` from
   `a55bd39`. Migration `0013` contracts the one-assessment project constraint,
   guards revision chains and active pointers in SQLite, and retains historical
   downgrade compatibility. The project-scoped successor service locks,
@@ -104,8 +105,9 @@ evidence below is retained as the completed Surface pilot history.
   CI checks passed on draft PR #97. Edge opened the active successor, switched
   same-client and cross-client projects, and returned to revision 2. The
   desktop and 1280x720 screenshots show no stale workspace content or horizontal
-  overflow; no console warnings or errors were recorded. Final PR review
-  remains before merge.
+  overflow; no console warnings or errors were recorded. All six CI checks
+  passed on the final head. PR #97 merged to `main` at `feaa96d` and Issue #79
+  is closed. The next implementation ticket is #80.
 
 - Refresh the historical packaging spike against the production application;
   the old throwaway-spike wording is no longer the operative acceptance scope.
