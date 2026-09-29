@@ -100,9 +100,9 @@ evidence below is retained as the completed Surface pilot history.
   populated migration cycles, restart, direct-SQL probes, and guessed-ID
   rejection passed; see `docs/evidence/issue-79/CONTRACT_VERIFICATION.md`.
   Local gates: 176 API, 74 catalog (15 optional skips), 58 frontend tests,
-  Ruff, Mypy, typecheck, ESLint, and production build passed. Desktop Edge
-  opened the active successor; project-switch and 1280px evidence, GitHub CI,
-  and PR review remain before merge.
+  Ruff, Mypy, typecheck, ESLint, and production build passed. All six GitHub
+  CI checks passed on draft PR #97. Desktop Edge opened the active successor;
+  project-switch and 1280px evidence plus final PR review remain before merge.
 
 - Refresh the historical packaging spike against the production application;
   the old throwaway-spike wording is no longer the operative acceptance scope.
