@@ -13,7 +13,13 @@ from api.database import active_assessment_by_id
 from api.renderers.hipaa import render_poam, render_report, validate_snapshot
 from api.storage import FileStorage
 
-__all__ = ["generate_package", "list_packages", "render_poam", "render_report"]
+__all__ = [
+    "generate_package",
+    "list_packages",
+    "render_package",
+    "render_poam",
+    "render_report",
+]
 
 TEMPLATE_ROOT = "docs/templates/hipaa/v2"
 TEMPLATES: tuple[tuple[str, str], ...] = (
@@ -208,13 +214,7 @@ def generate_package(
     if not _decision_is_ready(fieldwork_ready(connection, project_id, assessment_id)):
         raise ValueError("Assessment is not ready for generation")
     source, source_hash, profile = _snapshot(connection, project_id, assessment_id, assessment)
-    snapshot_id, attempt_id, package_id, created = (
-        source["snapshot_id"],
-        str(uuid4()),
-        str(uuid4()),
-        _now(),
-    )
-    source_json = json.dumps(source, sort_keys=True, separators=(",", ":"))
+    snapshot_id = source["snapshot_id"]
     connection.execute(
         "INSERT INTO source_snapshots VALUES (?,?,?,?,?,?,?,?,?)",
         (
@@ -224,10 +224,41 @@ def generate_package(
             assessment["revision_number"],
             profile["id"],
             profile["revision_token"],
-            source_json,
+            json.dumps(source, sort_keys=True, separators=(",", ":")),
             source_hash,
-            created,
+            _now(),
         ),
+    )
+    return render_package(
+        connection,
+        storage,
+        root,
+        project_id,
+        assessment_id,
+        source,
+        source_hash,
+        "fieldwork_ready_for_generation",
+        staging_root,
+    )
+
+
+def render_package(
+    connection: sqlite3.Connection,
+    storage: FileStorage,
+    root: Path,
+    project_id: str,
+    assessment_id: str,
+    source: dict[str, Any],
+    source_hash: str,
+    target: str,
+    staging_root: Path | None = None,
+) -> dict[str, Any]:
+    """Render and promote a complete package from an already stored source snapshot."""
+    snapshot_id, attempt_id, package_id, created = (
+        source["snapshot_id"],
+        str(uuid4()),
+        str(uuid4()),
+        _now(),
     )
     connection.execute(
         "INSERT INTO generation_attempts VALUES (?,?,?,?,?,?,?,?,?)",
@@ -235,7 +266,7 @@ def generate_package(
             attempt_id,
             project_id,
             assessment_id,
-            "fieldwork_ready_for_generation",
+            target,
             "staged",
             snapshot_id,
             None,

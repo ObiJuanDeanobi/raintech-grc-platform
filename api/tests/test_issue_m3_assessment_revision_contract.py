@@ -82,7 +82,7 @@ def test_populated_upgrade_rebuilds_parent_preserves_dependents_and_can_round_tr
     with connection(database_path) as db:
         dependent_foreign_keys = foreign_key_targets(db)
 
-    command.upgrade(config, "head")
+    command.upgrade(config, "0013")
     with connection(database_path) as db:
         assert foreign_key_targets(db) == dependent_foreign_keys
         assert db.execute("SELECT id, project_id FROM assessments ORDER BY id").fetchall() == [

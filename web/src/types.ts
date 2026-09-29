@@ -106,6 +106,21 @@ export interface GeneratedPackage {
   template_version?: string;
   components: GeneratedPackageComponent[];
   manifest?: { components?: GeneratedPackageComponent[]; source_snapshot_sha256?: string; template_version?: string };
+  issuance_status?: "Current" | "Superseded" | null;
+  issued_snapshot_id?: string | null;
+  superseded_by_package_id?: string | null;
+  correction?: PackageCorrection | null;
+}
+
+export interface PackageCorrection {
+  id: string;
+  classification: "presentation_only";
+  reason: string;
+  actor_id: string;
+  prior_package_id: string;
+  prior_issuance_id: string;
+  result_package_id: string;
+  created_at: string;
 }
 
 export interface IssueReadiness {
@@ -122,6 +137,9 @@ export interface IssueReadiness {
   backup_completed_at?: string;
   issued_snapshot_id?: string;
   issued_at?: string;
+  issuance_status?: "Current" | "Superseded" | null;
+  superseded_by_package_id?: string | null;
+  correction?: PackageCorrection | null;
   failure?: { stage?: string; component?: string; reason?: string; attempt_id?: string };
 }
 

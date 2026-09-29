@@ -13,6 +13,7 @@ from typing import Any, Never, cast
 from uuid import uuid4
 
 from api.close import fieldwork_ready
+from api.correction import correction_for, issuance_blockers, package_issuance, record_supersession
 from api.database import active_assessment_by_id
 from api.package_review import get_review
 
@@ -185,6 +186,7 @@ def issue_readiness(
         blockers.append("The exact package has not been reviewed and signed off")
     if fieldwork_ready(connection, project_id, package["assessment_id"]).get("status") != "Ready":
         blockers.append("Assessment source is no longer ready")
+    blockers.extend(issuance_blockers(connection, project_id, package_id))
     backup = _valid_backup(connection, project_id, package, event, backup_root, backup_id)
     issued = connection.execute(
         "SELECT * FROM issuance_snapshots WHERE project_id=? AND package_id=?",
@@ -217,8 +219,7 @@ def issue_readiness(
         "backup_id": backup["id"] if backup else None,
         "backup_manifest_sha256": backup["manifest_sha256"] if backup else None,
         "backup_completed_at": backup["completed_at"] if backup else None,
-        "issued_snapshot_id": issued["id"] if issued else None,
-        "issued_at": issued["issued_at"] if issued else None,
+        **package_issuance(connection, project_id, package_id),
         "failure": (
             {
                 "attempt_id": failure["id"],
@@ -512,6 +513,9 @@ def issue_package(
             "issued_at": issued_at,
             "issuer_id": actor_id,
         }
+        correction = correction_for(connection, project_id, package_id)
+        if correction is not None:
+            manifest["correction"] = dict(correction)
         manifest_json = _canonical(manifest)
         connection.execute(
             "INSERT INTO issuance_attempts VALUES (?,?,?,?,?,?,'issued',?,?,?)",
@@ -527,6 +531,7 @@ def issue_package(
                 "",
             ),
         )
+        record_supersession(connection, project_id, package_id, actor_id)
         connection.execute(
             "INSERT INTO issuance_snapshots VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (

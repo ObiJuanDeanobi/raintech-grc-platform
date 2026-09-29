@@ -407,6 +407,48 @@ test("creates the exact recovery set before issuing final deliverables", async (
   ]);
 });
 
+test("presentation-only correction is explicit and keeps the superseded issue visible", async () => {
+  const posts: Array<{ url: string; body: Record<string, unknown> }> = [];
+  let corrected = false;
+  const component = (id: string) => [{ id: `report-${id}`, kind: "assessment_report", filename: "report.docx" }, { id: `poam-${id}`, kind: "poam", filename: "poam.xlsx" }];
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    const url = String(input);
+    if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
+    if (url.endsWith("/assessment")) return Response.json(assessment);
+    if (url.includes("close-readiness")) return Response.json({ status: "Ready", blockers: [], checks: [] });
+    if (url.endsWith("/corrections") && init?.method === "POST") {
+      posts.push({ url, body: JSON.parse(String(init.body)) as Record<string, unknown> });
+      corrected = true;
+      return Response.json({ correction: { id: "corr-1" }, package: { id: "pkg-new" } }, { status: 201 });
+    }
+    if (url.endsWith("/packages")) return Response.json([
+      ...(corrected ? [{ id: "pkg-new", assessment_id: "assessment-1", state: "promoted", created_at: "2026-01-04T00:00:00Z", source_snapshot_id: "snap-1", components: component("new"), issuance_status: null, correction: { id: "corr-1", classification: "presentation_only", reason: "Fix cover date format.", actor_id: "johnathan", prior_package_id: "pkg-old", prior_issuance_id: "iss-1", result_package_id: "pkg-new", created_at: "2026-01-04T00:00:00Z" } }] : []),
+      { id: "pkg-old", assessment_id: "assessment-1", state: "promoted", created_at: "2026-01-02T00:00:00Z", source_snapshot_id: "snap-1", components: component("old"), issuance_status: "Current", issued_snapshot_id: "iss-1" },
+    ]);
+    if (url.endsWith("/review")) return Response.json({ package_id: "x", state: url.includes("pkg-old") ? "Ready to issue" : "Complete candidate", drift: [], blockers: [] });
+    if (url.includes("pkg-old/issue-readiness")) return Response.json({ status: "Issued", checks: [], blockers: [], issued_snapshot_id: "iss-1", issuance_status: "Current" });
+    if (url.includes("pkg-new/issue-readiness")) return Response.json({ status: "Blocked", checks: [], blockers: ["The exact package has not been reviewed and signed off"], issuance_status: null });
+    if (url.includes("/records/child-1")) return Response.json(detail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({});
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  const user = userEvent.setup();
+  const create = await screen.findByRole("button", { name: "Create corrected package" });
+  expect(create).toBeDisabled();
+  await user.type(screen.getByLabelText("Correction reason"), "Fix cover date format.");
+  expect(create).toBeDisabled();
+  await user.click(screen.getByLabelText("This correction changes presentation only"));
+  expect(create).toBeDisabled();
+  await user.click(screen.getByLabelText(/assessment, Profile, evidence, determinations, risks, and remediation are unchanged/));
+  await user.click(create);
+  expect(await screen.findByText(/Corrects issued package pkg-old/)).toBeVisible();
+  expect(screen.getByText("Issued · Current")).toBeVisible();
+  expect(await screen.findByText("The exact package has not been reviewed and signed off")).toBeVisible();
+  expect(screen.getByLabelText("Correction reason")).toHaveValue("");
+  expect(posts).toEqual([{ url: "/api/projects/project-1/packages/pkg-old/corrections", body: { actor_id: "johnathan", classification: "presentation_only", unchanged_source_attested: true, reason: "Fix cover date format." } }]);
+});
+
 test("Not Met reconciliation uses project-scoped PUT and create payload", async () => {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   vi.mocked(fetch).mockImplementation(async (input, init) => {

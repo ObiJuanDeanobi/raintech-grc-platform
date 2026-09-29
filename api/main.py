@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
 from api.close import fieldwork_ready
+from api.correction import create_correction, package_issuance
 from api.database import (
     Database,
     active_assessment_by_id,
@@ -177,6 +178,13 @@ class BackupCreate(BaseModel):
 class PackageIssueCreate(BaseModel):
     actor_id: str = "johnathan"
     backup_id: str = Field(min_length=1, max_length=200)
+
+
+class PackageCorrectionCreate(BaseModel):
+    actor_id: str = "johnathan"
+    classification: str = Field(min_length=1, max_length=100)
+    unchanged_source_attested: bool
+    reason: str = Field(min_length=1, max_length=4000)
 
 
 class SRAScopeSave(BaseModel):
@@ -1230,7 +1238,51 @@ def create_app(
                         (package["id"], project_id),
                     )
                 ]
+                package.update(package_issuance(connection, project_id, package["id"]))
             return packages
+
+    @app.post("/api/projects/{project_id}/packages/{package_id}/corrections", status_code=201)
+    def correct_issued_package(
+        project_id: str,
+        package_id: str,
+        payload: PackageCorrectionCreate,
+        database: Annotated[Database, Depends(db)],
+        files: Annotated[FileStorage, Depends(files)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            _user_or_422(connection, payload.actor_id)
+            try:
+                result = create_correction(
+                    connection,
+                    files,
+                    root,
+                    project_id,
+                    package_id,
+                    payload.classification,
+                    payload.unchanged_source_attested,
+                    payload.reason,
+                    payload.actor_id,
+                    managed_storage.parent / "generation-staging",
+                )
+            except LookupError as exc:
+                raise HTTPException(404, str(exc)) from exc
+            except ValueError as exc:
+                raise HTTPException(409, str(exc)) from exc
+            _audit(
+                connection,
+                "hipaa_presentation_correction_created",
+                "package_correction",
+                result["correction"]["id"],
+                {
+                    "project_id": project_id,
+                    "prior_package_id": package_id,
+                    "result_package_id": result["package"]["id"],
+                    "classification": payload.classification,
+                },
+                payload.actor_id,
+            )
+            return result
 
     @app.get("/api/projects/{project_id}/packages/{package_id}/components/{component_id}")
     @app.get(
@@ -1441,6 +1493,9 @@ def create_app(
                     "project_id": project_id,
                     "package_id": package_id,
                     "backup_id": payload.backup_id,
+                    "superseded_package_id": result["correction"]["prior_package_id"]
+                    if result["correction"]
+                    else None,
                 },
                 payload.actor_id,
             )
