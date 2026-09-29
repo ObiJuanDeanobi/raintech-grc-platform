@@ -48,6 +48,17 @@ def issuance_blockers(
     current = current_issuance(connection, project_id)
     if current is None or current["package_id"] == package_id:
         return []
+    reopened = connection.execute(
+        """SELECT o.prior_issuance_id FROM assessment_reopenings o
+           JOIN generated_packages p
+             ON p.assessment_id = o.successor_assessment_id AND p.project_id = o.project_id
+           WHERE o.project_id=? AND p.id=?""",
+        (project_id, package_id),
+    ).fetchone()
+    if reopened is not None:
+        if reopened["prior_issuance_id"] != current["id"]:
+            return ["The reopened assessment's prior issue is no longer the current issue"]
+        return []
     correction = correction_for(connection, project_id, package_id)
     if correction is None:
         return [
@@ -179,13 +190,22 @@ def package_issuance(
         (project_id, package_id),
     ).fetchone()
     superseded = connection.execute(
-        """SELECT s.result_package_id, r.issued_at FROM issuance_supersessions s
+        """SELECT r.package_id AS result_package_id, r.issued_at FROM issuance_supersessions s
            JOIN issuance_snapshots r
              ON r.package_id=s.result_package_id AND r.project_id=s.project_id
-           WHERE s.project_id=? AND s.prior_package_id=?""",
-        (project_id, package_id),
+           WHERE s.project_id=? AND s.prior_package_id=?
+           UNION ALL
+           SELECT r.package_id, r.issued_at FROM assessment_reopenings o
+           JOIN issuance_snapshots r
+             ON r.assessment_id=o.successor_assessment_id AND r.project_id=o.project_id
+           WHERE o.project_id=? AND o.prior_package_id=?""",
+        (project_id, package_id, project_id, package_id),
     ).fetchone()
     correction = correction_for(connection, project_id, package_id)
+    reopened = connection.execute(
+        "SELECT * FROM assessment_reopenings WHERE project_id=? AND prior_package_id=?",
+        (project_id, package_id),
+    ).fetchone()
     return {
         "issuance_status": (
             None if issued is None else ("Superseded" if superseded else "Current")
@@ -195,4 +215,5 @@ def package_issuance(
         "superseded_by_package_id": superseded["result_package_id"] if superseded else None,
         "superseded_at": superseded["issued_at"] if superseded else None,
         "correction": dict(correction) if correction else None,
+        "reopening": dict(reopened) if reopened else None,
     }
