@@ -10,18 +10,19 @@ package. The authoritative remaining path is tracked in GitHub issue #88.
 
 ## Current mode
 
-Issue #78 shared fixture active-assessment identity migration. Issue #75's
+Issue #79 assessment revision contract and guarded successor creation. Issue #75's
 backend route migration merged as PR #93 at `79c0114`; Issue #76's service
 migration merged as PR #94 at `4ccac5e`; Issue #77's frontend migration merged
-as PR #95 at `a305bf9`. Issue #32 remains open for native x64,
+as PR #95 at `a305bf9`; Issue #78's shared fixtures merged as PR #96 at
+`a55bd39`. Issue #32 remains open for native x64,
 adapter-disabled, and downloaded-file SmartScreen checks before broader Windows
 distribution; all three were accepted as deferrals for this Surface pilot.
 
 ## Current objective
 
-Complete #78's shared backend/frontend fixture migration through explicit
-active assessment identity without changing production behavior, enabling
-successor creation, or removing the one-assessment constraint.
+Complete #79's assessment constraint migration and guarded, append-only
+successor creation. Preserve older revisions and issued artifacts while
+advancing the active pointer transactionally; correction policy is deferred.
 CMMC #30/#31 preserve the already extracted catalog and practitioner guidance
 as migration inputs rather than greenfield ingestion work.
 
@@ -34,7 +35,7 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #78 - shared active-assessment fixtures are active.** Issue #32
+**GitHub issue #79 - assessment revision contract is active.** Issue #32
 remains open only for broader Windows distribution checks. The Issue #32
 evidence below is retained as the completed Surface pilot history.
 
@@ -86,7 +87,22 @@ evidence below is retained as the completed Surface pilot history.
   `docs/evidence/issue-78/BROWSER_FIXTURE_VERIFICATION.md`. Production schema
   and behavior are unchanged. Local gates: 167 API, 74 catalog (15 optional
   skips), 58 frontend tests, Ruff, Mypy, typecheck, ESLint, and production
-  build passed. GitHub CI is pending.
+  build passed. All six GitHub CI checks passed on PR #96; it merged at
+  `a55bd39` and Issue #78 is closed.
+
+- Issue #79 is in progress on `feature/79-assessment-revision-contract` from
+  `a55bd39`. Migration `0013` contracts the one-assessment project constraint,
+  guards revision chains and active pointers in SQLite, and retains historical
+  downgrade compatibility. The project-scoped successor service locks,
+  validates the exact active predecessor, and audits actor/reason. A synthetic
+  issued-package regression confirms predecessor evidence, snapshots, package
+  components, sign-offs, backup, and issuance rows remain unchanged. Clean and
+  populated migration cycles, restart, direct-SQL probes, and guessed-ID
+  rejection passed; see `docs/evidence/issue-79/CONTRACT_VERIFICATION.md`.
+  Local gates: 176 API, 74 catalog (15 optional skips), 58 frontend tests,
+  Ruff, Mypy, typecheck, ESLint, and production build passed. Desktop Edge
+  opened the active successor; project-switch and 1280px evidence, GitHub CI,
+  and PR review remain before merge.
 
 - Refresh the historical packaging spike against the production application;
   the old throwaway-spike wording is no longer the operative acceptance scope.

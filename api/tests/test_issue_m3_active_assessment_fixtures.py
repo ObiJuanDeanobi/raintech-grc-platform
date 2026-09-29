@@ -17,9 +17,8 @@ def multi_revision_fixture(
 ) -> Iterator[tuple[sqlite3.Connection, dict[str, tuple[str, ...]]]]:
     """Build an isolated schema for revision-selection tests.
 
-    Production intentionally keeps assessments.project_id UNIQUE until the
-    revision expansion is enabled. This test-only schema models the target
-    revision and active-pointer constraints without changing production DDL.
+    This small test-only schema permits direct active-revision selection for
+    resolver and stale-response tests without altering a production database.
     """
     if revision_count < 1:
         raise ValueError("revision_count must be at least one")

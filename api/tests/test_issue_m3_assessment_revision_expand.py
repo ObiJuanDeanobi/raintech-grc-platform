@@ -114,18 +114,6 @@ def test_clean_database_keeps_one_assessment_api_and_adds_one_active_revision(
             "SELECT COUNT(*) FROM project_active_assessments WHERE project_id = ?",
             (project_id,),
         ).fetchone() == (1,)
-        with pytest.raises(sqlite3.IntegrityError, match="assessments.project_id"):
-            connection.execute(
-                """
-                INSERT INTO assessments(id, project_id, framework_version_id, created_at)
-                VALUES ('forbidden-successor', ?, 'hipaa-45cfr164-2026-07-01',
-                        '2026-08-27T00:00:00+00:00')
-                """,
-                (project_id,),
-            )
-        connection.rollback()
-        assert active_pointer(connection, project_id) == (project_id, assessment_id)
-
     config = migration_config(database_path, storage_path)
     command.downgrade(config, "0005")
     with foreign_key_connection(database_path) as connection:
@@ -150,6 +138,19 @@ def test_clean_database_keeps_one_assessment_api_and_adds_one_active_revision(
             """,
             (assessment_id,),
         ).fetchone() == (1, None)
+        connection.execute(
+            """
+            INSERT INTO assessments(id, project_id, framework_version_id, created_at)
+            VALUES ('successor-assessment', ?, 'hipaa-45cfr164-2026-07-01',
+                    '2026-08-28T00:00:00+00:00')
+            """,
+            (project_id,),
+        )
+        assert connection.execute(
+            """SELECT assessment_id, project_id, revision_number, predecessor_assessment_id
+            FROM assessment_revisions WHERE assessment_id = 'successor-assessment'"""
+        ).fetchone() == ("successor-assessment", project_id, 2, assessment_id)
+        assert active_pointer(connection, project_id) == (project_id, "successor-assessment")
 
 
 def test_populated_upgrade_downgrade_reupgrade_preserves_ids_data_and_pointer(
@@ -187,9 +188,9 @@ def test_populated_upgrade_downgrade_reupgrade_preserves_ids_data_and_pointer(
 
     command.upgrade(config, "head")
     with foreign_key_connection(database_path) as connection:
-        assert connection.execute(
-            "SELECT id, project_id FROM assessments"
-        ).fetchall() == [("assessment-existing", "project-existing")]
+        assert connection.execute("SELECT id, project_id FROM assessments").fetchall() == [
+            ("assessment-existing", "project-existing")
+        ]
         assert connection.execute(
             "SELECT status FROM determinations WHERE assessment_id = 'assessment-existing'"
         ).fetchone() == ("Pending",)
@@ -204,9 +205,9 @@ def test_populated_upgrade_downgrade_reupgrade_preserves_ids_data_and_pointer(
 
     command.downgrade(config, "0005")
     with foreign_key_connection(database_path) as connection:
-        assert connection.execute(
-            "SELECT id, project_id FROM assessments"
-        ).fetchall() == [("assessment-existing", "project-existing")]
+        assert connection.execute("SELECT id, project_id FROM assessments").fetchall() == [
+            ("assessment-existing", "project-existing")
+        ]
         assert connection.execute(
             "SELECT status FROM determinations WHERE assessment_id = 'assessment-existing'"
         ).fetchone() == ("Pending",)
@@ -217,9 +218,7 @@ def test_populated_upgrade_downgrade_reupgrade_preserves_ids_data_and_pointer(
             "project-existing",
             "assessment-existing",
         )
-        assert connection.execute(
-            "SELECT COUNT(*) FROM assessment_revisions"
-        ).fetchone() == (1,)
+        assert connection.execute("SELECT COUNT(*) FROM assessment_revisions").fetchone() == (1,)
 
 
 def test_composite_constraints_reject_cross_project_pointer_and_chain_without_mutation(
@@ -240,7 +239,7 @@ def test_composite_constraints_reject_cross_project_pointer_and_chain_without_mu
             project_a: active_pointer(connection, project_a),
             project_b: active_pointer(connection, project_b),
         }
-        with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY"):
+        with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY|successor"):
             connection.execute(
                 """
                 UPDATE project_active_assessments
@@ -250,7 +249,7 @@ def test_composite_constraints_reject_cross_project_pointer_and_chain_without_mu
                 (assessment_b, project_a),
             )
         connection.rollback()
-        with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY"):
+        with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY|immutable"):
             connection.execute(
                 """
                 UPDATE assessment_revisions
@@ -263,8 +262,7 @@ def test_composite_constraints_reject_cross_project_pointer_and_chain_without_mu
         assert active_pointer(connection, project_a) == before[project_a]
         assert active_pointer(connection, project_b) == before[project_b]
         assert connection.execute(
-            "SELECT predecessor_assessment_id FROM assessment_revisions "
-            "WHERE assessment_id = ?",
+            "SELECT predecessor_assessment_id FROM assessment_revisions WHERE assessment_id = ?",
             (assessment_a,),
         ).fetchone() == (None,)
         with pytest.raises(sqlite3.IntegrityError, match="cannot be deleted"):
@@ -297,8 +295,7 @@ def test_guessed_assessment_ids_are_rejected_without_changing_active_pointer(
 
         assert (
             client.get(
-                f"/api/projects/{project_b}/assessments/{assessment_a}"
-                "/records/164.308(a)(1)(ii)(A)"
+                f"/api/projects/{project_b}/assessments/{assessment_a}/records/164.308(a)(1)(ii)(A)"
             ).status_code
             == 404
         )
@@ -315,6 +312,4 @@ def test_guessed_assessment_ids_are_rejected_without_changing_active_pointer(
     with foreign_key_connection(database_path) as connection:
         assert active_pointer(connection, project_a) == (project_a, assessment_a)
         assert active_pointer(connection, project_b) == (project_b, assessment_b)
-        assert connection.execute(
-            "SELECT COUNT(*) FROM evidence_mappings"
-        ).fetchone() == (0,)
+        assert connection.execute("SELECT COUNT(*) FROM evidence_mappings").fetchone() == (0,)

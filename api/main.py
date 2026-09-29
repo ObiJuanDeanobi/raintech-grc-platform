@@ -42,6 +42,18 @@ class ProjectCreate(BaseModel):
     framework_version_id: str = FRAMEWORK_ID
 
 
+class AssessmentSuccessorCreate(BaseModel):
+    actor_id: str = Field(min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("actor_id", "reason")
+    @classmethod
+    def required_text_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("required text cannot be blank")
+        return value.strip()
+
+
 class ProfileReadinessTransitionCreate(BaseModel):
     next_state: str
     decision_note: str = Field(min_length=1, max_length=1000)
@@ -2595,6 +2607,94 @@ def create_app(
                 },
             )
             return assessment
+
+    @app.post(
+        "/api/projects/{project_id}/assessments/{predecessor_id}/successor",
+        status_code=201,
+    )
+    def create_assessment_successor(
+        project_id: str,
+        predecessor_id: str,
+        payload: AssessmentSuccessorCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            # Serialize successor creation with other writers before checking the
+            # active pointer. This makes predecessor validation and insertion one
+            # atomic decision, even when two requests race.
+            connection.execute("BEGIN IMMEDIATE")
+            project = _project_or_404(connection, project_id)
+            _user_or_422(connection, payload.actor_id)
+            active = active_assessment_for_project(connection, project_id)
+            if active is None:
+                raise HTTPException(status_code=404, detail="Assessment not found")
+            if active["id"] != predecessor_id:
+                predecessor_in_project = connection.execute(
+                    "SELECT 1 FROM assessments WHERE id = ? AND project_id = ?",
+                    (predecessor_id, project_id),
+                ).fetchone()
+                if predecessor_in_project is not None:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Predecessor assessment is no longer active",
+                    )
+                raise HTTPException(status_code=404, detail="Assessment not found")
+
+            assessment = {
+                "id": str(uuid4()),
+                "project_id": project_id,
+                "framework_version_id": project["framework_version_id"],
+                "created_at": now(),
+            }
+            connection.execute(
+                """
+                INSERT INTO assessments(id, project_id, framework_version_id, created_at)
+                VALUES (:id, :project_id, :framework_version_id, :created_at)
+                """,
+                assessment,
+            )
+
+            # Migration 0013's AFTER INSERT trigger records revision lineage and
+            # advances the pointer in the same transaction as the new assessment.
+            revision = connection.execute(
+                """
+                SELECT revision_number, predecessor_assessment_id
+                FROM assessment_revisions
+                WHERE assessment_id = ? AND project_id = ?
+                """,
+                (assessment["id"], project_id),
+            ).fetchone()
+            pointer = connection.execute(
+                "SELECT assessment_id FROM project_active_assessments WHERE project_id = ?",
+                (project_id,),
+            ).fetchone()
+            if (
+                revision is None
+                or revision["predecessor_assessment_id"] != predecessor_id
+                or pointer is None
+                or pointer["assessment_id"] != assessment["id"]
+            ):
+                raise RuntimeError("Assessment successor revision trigger did not advance lineage")
+
+            _audit(
+                connection,
+                "assessment.successor_created",
+                "assessment",
+                assessment["id"],
+                {
+                    "project_id": project_id,
+                    "framework_version_id": assessment["framework_version_id"],
+                    "predecessor_assessment_id": predecessor_id,
+                    "revision_number": revision["revision_number"],
+                    "reason": payload.reason,
+                },
+                actor_id=payload.actor_id,
+            )
+            return {
+                **assessment,
+                "revision_number": revision["revision_number"],
+                "predecessor_assessment_id": revision["predecessor_assessment_id"],
+            }
 
     @app.get("/api/projects/{project_id}/assessment")
     def get_assessment(
