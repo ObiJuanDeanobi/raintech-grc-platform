@@ -10,7 +10,8 @@ package. The authoritative remaining path is tracked in GitHub issue #88.
 
 ## Current mode
 
-Issue #80 presentation-only correction and reissue is next. Issue #75's
+Issue #80 presentation-only correction and reissue is implemented on
+`claude/issue-80-presentation-lpt8ng` (not yet merged; PR and CI pending). Issue #75's
 backend route migration merged as PR #93 at `79c0114`; Issue #76's service
 migration merged as PR #94 at `4ccac5e`; Issue #77's frontend migration merged
 as PR #95 at `a305bf9`; Issue #78's shared fixtures merged as PR #96 at
@@ -36,7 +37,16 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #80 - presentation-only correction is next.** Issue #32
+**GitHub issue #80 - presentation-only correction is implemented, awaiting
+PR/CI and review.** See `docs/evidence/issue-80/CORRECTION_VERIFICATION.md`.
+Migration `0014` adds append-only corrections/supersessions and a
+one-current-issue guard; the correction reissues from the prior stored
+snapshot through the full review/backup/issue gates. Local gates: 188 API,
+74 catalog (15 skips), 59 frontend, Ruff, Mypy, typecheck, ESLint, build.
+Browser evidence is headless Chromium in the cloud, not Edge on the Surface.
+September 29 Surface check: the pilot database
+(`RainTechAcceptance\edge-20260921\workspace.db`) holds one issuance row, so
+migration `0014`'s duplicate-issue refusal will not trigger there. Issue #32
 remains open only for broader Windows distribution checks. The Issue #32
 evidence below is retained as the completed Surface pilot history.
 
@@ -643,6 +653,11 @@ for an issue. Each names who has to answer it.
   through the addressable "equivalent alternative measure". Nothing is built and
   nothing should be; ADR 0012 preserved the architecture that would allow it.
   Live only because Johnathan showed interest in the shape of it.
+- **What a presentation correction changes — Johnathan.** The correction
+  reissues from the same snapshot with the current templates/renderer, still
+  labelled `hipaa-v2`. ADR 0014 says template versions are immutable after use,
+  so a real presentation fix probably needs a new template version; that
+  versioning is not built.
 
 
 ## Known risks
@@ -686,13 +701,11 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Implement Issue #78 on `feature/78-active-assessment-fixtures`, verify shared
-test builders and restart/browser fixtures use explicit active identity, and
-keep the old production uniqueness constraint. The Surface pilot is merged
-via PR #92. Run native
-x64, downloaded-file SmartScreen, and
-adapter-disabled checks in suitable physical environments before claiming
-broader Windows distribution acceptance under Issue #32.
+Open the #80 PR from `claude/issue-80-presentation-lpt8ng`, confirm the six CI
+checks, and have Johnathan review and merge. Optionally repeat the correction
+browser check in Edge on the Surface. Then #81 (substantive reopening). Issue
+#32 stays open for native x64, adapter-disabled, and downloaded-file
+SmartScreen checks.
 
 ## Branch inventory
 
