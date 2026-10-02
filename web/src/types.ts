@@ -72,6 +72,29 @@ export interface Assessment {
   };
   work_list: RecordIndex[];
   record_index: RecordIndex[];
+  reopening?: AssessmentReopening | null;
+  revalidation_items?: RevalidationItem[];
+}
+
+export interface AssessmentReopening {
+  id: string;
+  classification: "substantive";
+  rationale: string;
+  affected_record_ids_json: string;
+  predecessor_assessment_id: string;
+  successor_assessment_id: string;
+  prior_package_id: string;
+  prior_issuance_id: string;
+  actor_id: string;
+  created_at: string;
+}
+
+export interface RevalidationItem {
+  id: string;
+  record_id: string;
+  revalidated_by: string | null;
+  revalidated_at: string | null;
+  note: string;
 }
 
 export type ActiveAssessmentId = string;
@@ -110,6 +133,7 @@ export interface GeneratedPackage {
   issued_snapshot_id?: string | null;
   superseded_by_package_id?: string | null;
   correction?: PackageCorrection | null;
+  reopening?: AssessmentReopening | null;
 }
 
 export interface PackageCorrection {

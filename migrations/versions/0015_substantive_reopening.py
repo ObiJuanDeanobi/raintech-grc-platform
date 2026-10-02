@@ -149,11 +149,37 @@ def upgrade() -> None:
       BEFORE DELETE ON assessment_reopenings
       BEGIN SELECT RAISE(ABORT, 'assessment_reopenings are immutable'); END""")
     _swap_current(_CURRENT_0015, _ONE_CURRENT_0015)
+    # A reopened assessment references the same corrective action as its predecessor,
+    # so the one-record-per-action rule becomes per assessment, and a trigger keeps an
+    # action tied to one record across every revision.
+    op.execute("DROP INDEX idx_reconciliation_action_single_record")
+    op.execute(
+        """CREATE UNIQUE INDEX idx_reconciliation_action_single_record
+        ON not_met_reconciliations(project_id, assessment_id, corrective_action_id)
+        WHERE corrective_action_id IS NOT NULL"""
+    )
+    for event, column in (("insert", ""), ("update", "OF corrective_action_id, record_id")):
+        op.execute(f"""CREATE TRIGGER reconciliation_action_single_record_{event}
+          BEFORE {event.upper()} {column} ON not_met_reconciliations
+          WHEN NEW.corrective_action_id IS NOT NULL AND EXISTS (
+            SELECT 1 FROM not_met_reconciliations r
+            WHERE r.project_id = NEW.project_id
+              AND r.corrective_action_id = NEW.corrective_action_id
+              AND r.record_id != NEW.record_id)
+          BEGIN SELECT RAISE(ABORT, 'a corrective action belongs to one record'); END""")
 
 
 def downgrade() -> None:
     if op.get_bind().execute(text("SELECT 1 FROM assessment_reopenings LIMIT 1")).fetchone():
         raise RuntimeError("Substantive reopenings exist; downgrade would lose issued history.")
+    op.execute("DROP TRIGGER reconciliation_action_single_record_update")
+    op.execute("DROP TRIGGER reconciliation_action_single_record_insert")
+    op.execute("DROP INDEX idx_reconciliation_action_single_record")
+    op.execute(
+        """CREATE UNIQUE INDEX idx_reconciliation_action_single_record
+        ON not_met_reconciliations(project_id, corrective_action_id)
+        WHERE corrective_action_id IS NOT NULL"""
+    )
     _swap_current(_CURRENT_0014, _ONE_CURRENT_0014)
     for name in (
         "assessment_reopenings_immutable_delete",

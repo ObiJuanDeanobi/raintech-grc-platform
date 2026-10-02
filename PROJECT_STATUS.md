@@ -10,8 +10,9 @@ package. The authoritative remaining path is tracked in GitHub issue #88.
 
 ## Current mode
 
-Issue #80 presentation-only correction and reissue is implemented on
-`claude/issue-80-presentation-lpt8ng` (not yet merged; PR and CI pending). Issue #75's
+Issue #80 presentation-only correction merged through PR #99 at `9cc66eb`.
+Issue #81 substantive reopening is implemented on
+`claude/issue-81-substantive-reopening` (pushed, PR and CI pending). Issue #75's
 backend route migration merged as PR #93 at `79c0114`; Issue #76's service
 migration merged as PR #94 at `4ccac5e`; Issue #77's frontend migration merged
 as PR #95 at `a305bf9`; Issue #78's shared fixtures merged as PR #96 at
@@ -701,29 +702,14 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Issue #81 (substantive reopening) is **paused mid-build** on
-`claude/issue-81-substantive-reopening`, branched from #80's branch (PR #99 is
-unmerged). Work in progress, not passing yet:
-
-- Done: migration `0015` (append-only `assessment_reopenings`,
-  `revalidation_items`, current-issue rules extended to reopenings), service
-  `api/reopening.py`, routes (`POST .../packages/{id}/reopen`,
-  `POST .../records/{id}/revalidate`), close-readiness revalidation blocker,
-  risks read project-wide in close readiness, issued prior-revision packages kept
-  listed and downloadable, and draft tests in
-  `api/tests/test_issue_m3_substantive_reopening.py`.
-- Blocker found: copying `not_met_reconciliations` into the successor fails on
-  an existing unique index on `(project_id, corrective_action_id)`. It allows
-  one reconciliation per corrective action project-wide, so a successor cannot
-  reference the same action. Next: find where that index comes from (0007 or
-  0009), and decide whether it becomes unique per assessment in 0015. That
-  matches "reference project work without duplication".
-- Not started: frontend (affected-record selection, revalidation banner,
-  prior-revision history), browser evidence, full gate run.
-
-Johnathan's decisions for #81, September 29: only the records selected as
-affected require revalidation; SRA risks are shared project-level records, not
-copied. Merge PR #99 before #81 continues, or keep #81 stacked on #80.
+Open the #81 PR from `claude/issue-81-substantive-reopening` (pushed; no PR yet),
+confirm the six CI checks, and have Johnathan review and merge. Evidence is in
+`docs/evidence/issue-81/REOPENING_VERIFICATION.md`; the decisions are ADR 0018.
+Optionally repeat the reopening browser check in Edge on the Surface. Issue #80
+merged through PR #99 at `9cc66eb` and can be closed. Issue #100 (template
+versioning for corrected packages) awaits triage and must be settled before the
+first real presentation correction. Issue #32 stays open for native x64,
+adapter-disabled, and downloaded-file SmartScreen checks.
 
 ## Branch inventory
 

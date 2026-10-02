@@ -12,8 +12,8 @@ from httpx import Response
 
 from api.main import create_app
 from api.tests.test_issue_m3_assessment_revision_contract import migration_config
-from api.tests.test_issue_m3_hipaa_issue_backup import _app, _backup
 from api.tests.test_issue_m3_hipaa_generation import _ready
+from api.tests.test_issue_m3_hipaa_issue_backup import _app, _backup
 from api.tests.test_issue_m3_hipaa_review import _package
 from api.tests.test_issue_m3_presentation_correction import (
     IMMUTABLE_TABLES,
@@ -33,10 +33,13 @@ def _issued_with_not_met(client: TestClient, db: Path, suffix: str) -> tuple[str
             "SELECT record_id FROM determinations WHERE assessment_id=? ORDER BY record_id",
             (assessment,),
         ).fetchone()[0]
-    assert client.put(
-        f"/api/assessments/{assessment}/determinations/{record}",
-        json={"status": "Not Met", "interview_observation": "Synthetic gap."},
-    ).status_code == 200
+    assert (
+        client.put(
+            f"/api/assessments/{assessment}/determinations/{record}",
+            json={"status": "Not Met", "interview_observation": "Synthetic gap."},
+        ).status_code
+        == 200
+    )
     reconciled = client.put(
         f"/api/projects/{project}/assessments/{assessment}/records/{record}/reconciliation",
         json={
@@ -202,22 +205,30 @@ def test_retry_and_cross_project_reopen_create_nothing(tmp_path: Path) -> None:
         successor = first.json()["successor_assessment_id"]
         counts = _dump(db, ("assessments", "determinations", "findings", "corrective_actions"))
         assert _reopen(client, project, prior, affected=[record]).status_code in (404, 409)
-        assert _dump(db, ("assessments", "determinations", "findings", "corrective_actions")) == counts
-        assert client.post(
-            f"/api/projects/{other}/assessments/{successor}/records/{record}/revalidate",
-            json={"actor_id": "johnathan", "note": "Cross project."},
-        ).status_code == 404
+        assert (
+            _dump(db, ("assessments", "determinations", "findings", "corrective_actions")) == counts
+        )
+        assert (
+            client.post(
+                f"/api/projects/{other}/assessments/{successor}/records/{record}/revalidate",
+                json={"actor_id": "johnathan", "note": "Cross project."},
+            ).status_code
+            == 404
+        )
         assert client.get(f"/api/projects/{other}/assessment").json()["id"] == other_assessment
         assert _current(db, other) == [other_prior]
         # The pre-reopening package can no longer be presentation-corrected.
-        assert client.post(
-            f"/api/projects/{project}/packages/{prior}/corrections",
-            json={
-                "classification": "presentation_only",
-                "unchanged_source_attested": True,
-                "reason": "Stale.",
-            },
-        ).status_code == 404
+        assert (
+            client.post(
+                f"/api/projects/{project}/packages/{prior}/corrections",
+                json={
+                    "classification": "presentation_only",
+                    "unchanged_source_attested": True,
+                    "reason": "Stale.",
+                },
+            ).status_code
+            == 404
+        )
 
 
 def test_direct_sql_cannot_rewrite_reopening_or_revalidation(tmp_path: Path) -> None:
@@ -268,3 +279,24 @@ def test_migration_cycle_refuses_downgrade_with_reopenings(tmp_path: Path) -> No
         assert _reopen(client, project, prior, affected=[record]).status_code == 201
     with pytest.raises(RuntimeError, match="downgrade would lose issued history"):
         command.downgrade(config, "-1")
+
+
+def test_corrective_action_stays_tied_to_one_record_across_revisions(tmp_path: Path) -> None:
+    client, db, _ = _app(tmp_path)
+    with client:
+        project, _, prior, record = _issued_with_not_met(client, db, "one-record")
+        assert _reopen(client, project, prior, affected=[record]).status_code == 201
+    with sqlite3.connect(db) as connection:
+        connection.execute("PRAGMA foreign_keys = ON")
+        rows = connection.execute(
+            "SELECT * FROM not_met_reconciliations WHERE record_id=? ORDER BY assessment_id",
+            (record,),
+        ).fetchall()
+        assert len(rows) == 2 and rows[0][6] == rows[1][6]
+        other = connection.execute(
+            "SELECT record_id FROM determinations WHERE record_id != ? LIMIT 1", (record,)
+        ).fetchone()[0]
+        with pytest.raises(sqlite3.IntegrityError, match="belongs to one record"):
+            connection.execute(
+                "UPDATE not_met_reconciliations SET record_id=? WHERE id=?", (other, rows[1][0])
+            )

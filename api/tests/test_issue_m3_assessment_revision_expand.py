@@ -90,6 +90,8 @@ def test_clean_database_keeps_one_assessment_api_and_adds_one_active_revision(
         read = client.get(f"/api/projects/{project_id}/assessment")
         assert read.status_code == 200
         assert set(read.json()) == {
+            "reopening",
+            "revalidation_items",
             "id",
             "project",
             "framework",
