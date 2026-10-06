@@ -19,8 +19,9 @@ issue #104. Check open PRs and issue comments before starting a ticket.
 
 CMMC Level 2 delivery. The catalog (#30, PR #110, plus page-header reporting
 in PR #112) and practitioner guidance (#31, PR #111) are merged as versioned
-catalog files; `seed_cmmc_catalog` exists but is not wired to startup until the
-CMMC workspace lands. Execution tickets #104–#109 were filed on October 6.
+catalog files. #104 wires the CMMC catalog to startup and builds the
+objective-level workspace. #105–#108 follow it; #109 needs Johnathan on the
+Surface.
 
 ## Approved specification
 
@@ -31,18 +32,17 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #80 - presentation-only correction is implemented, awaiting
-PR/CI and review.** See `docs/evidence/issue-80/CORRECTION_VERIFICATION.md`.
-Migration `0014` adds append-only corrections/supersessions and a
-one-current-issue guard; the correction reissues from the prior stored
-snapshot through the full review/backup/issue gates. Local gates: 188 API,
-74 catalog (15 skips), 59 frontend, Ruff, Mypy, typecheck, ESLint, build.
-Browser evidence is headless Chromium in the cloud, not Edge on the Surface.
-September 29 Surface check: the pilot database
-(`RainTechAcceptance\edge-20260921\workspace.db`) holds one issuance row, so
-migration `0014`'s duplicate-issue refusal will not trigger there. Issue #32
-remains open only for broader Windows distribution checks. The Issue #32
-evidence below is retained as the completed Surface pilot history.
+**GitHub issue #104 - CMMC objective-level workspace, PR pending.** See
+`docs/evidence/issue-104/CMMC_WORKSPACE_VERIFICATION.md`. CMMC is seeded at
+startup beside HIPAA and selectable at project creation. Objectives carry the
+determinations, requirements derive status, and Met needs evidence or an
+interview/observation. RainTech guidance shows read-only, labelled as not
+DoD/NIST text. Close, packages, SRA, and Not Met reconciliation stay
+HIPAA-only until #105–#108. No migration. Local gates: 208 API, 87 catalog,
+62 frontend, Ruff, Mypy, typecheck, ESLint, build. Browser evidence is headless
+Chromium in the cloud, not Edge on the Surface.
+
+Earlier tickets' notes follow as history.
 
 - PR #93 merged to `main` at `79c0114` and Issue #75 closed. Its narrow backend
   resolver and assessment-route migration retain the one-assessment constraint

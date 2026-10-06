@@ -28,6 +28,75 @@ def _determination_record_ids(
     raise ValueError(f"Unsupported determination rule: {rule}")
 
 
+# The Project Profile and its readiness gate are shared engines, not framework
+# workflow, so every framework declares the same rule.
+PROFILE_READINESS: dict[str, Any] = {
+    "initial_state": "Intake started",
+    "states": [
+        "Intake started",
+        "Intake complete",
+        "Needs follow-up",
+        "Profile complete",
+    ],
+    "transitions": {
+        "Intake started": ["Intake complete", "Needs follow-up"],
+        "Intake complete": ["Needs follow-up", "Profile complete"],
+        "Needs follow-up": ["Intake complete", "Profile complete"],
+        "Profile complete": ["Needs follow-up"],
+    },
+    "assessment_entry": {
+        "allowed_states": ["Intake complete", "Profile complete"],
+        "blocking_reasons": {
+            "Intake started": (
+                "Complete the initial intake before starting a new assessment."
+            ),
+            "Needs follow-up": (
+                "Resolve the recorded follow-up before starting a new assessment."
+            ),
+        },
+    },
+    "profile_completion": {
+        "state": "Profile complete",
+        "requires_boundary_acknowledgement": True,
+        "boundary_acknowledgement_blocking_reason": (
+            "Acknowledge the local evidence operating boundary."
+        ),
+        "requires_no_unresolved_required_fields": True,
+        "unresolved_required_field_blocking_reason": "Resolve required field: {field}.",
+        "unresolved_required_fields_validation_message": (
+            "Profile complete cannot have unresolved required fields"
+        ),
+        "required_fields": {
+            "reviewed_by": {
+                "validation_message": "Profile complete requires a named reviewer",
+                "blocking_reason": "Record a named reviewer.",
+            },
+            "approval_evidence": {
+                "validation_message": (
+                    "Profile complete requires review or approval evidence"
+                ),
+                "blocking_reason": "Record review or approval evidence.",
+            },
+        },
+    },
+    "follow_up_work": {
+        "required_states": ["Needs follow-up"],
+        "required_when_unresolved_required_fields": True,
+        "required_state_validation_messages": {
+            "Needs follow-up": "Needs follow-up requires explicit follow-up work"
+        },
+        "unresolved_required_fields_validation_message": (
+            "Unknown required fields require explicit follow-up work"
+        ),
+    },
+    "requires_boundary_acknowledgement_before_transition": True,
+    "boundary_acknowledgement_validation_message": (
+        "Acknowledge the local evidence operating boundary first"
+    ),
+    "boundary_document": "docs/local-evidence-operating-boundary.md",
+}
+
+
 def seed_framework(database: Database, repository_root: Path) -> None:
     catalog_path = repository_root / "catalog" / "versions" / f"{FRAMEWORK_ID}.json"
     prompts_path = repository_root / "catalog" / "versions" / f"{FRAMEWORK_ID}-prompts.json"
@@ -98,71 +167,7 @@ def seed_framework(database: Database, repository_root: Path) -> None:
             "approval_required_bands": ["High", "Critical"],
             "approval_required_fields": ["approver", "approved_at"],
         },
-        "profile_readiness": {
-            "initial_state": "Intake started",
-            "states": [
-                "Intake started",
-                "Intake complete",
-                "Needs follow-up",
-                "Profile complete",
-            ],
-            "transitions": {
-                "Intake started": ["Intake complete", "Needs follow-up"],
-                "Intake complete": ["Needs follow-up", "Profile complete"],
-                "Needs follow-up": ["Intake complete", "Profile complete"],
-                "Profile complete": ["Needs follow-up"],
-            },
-            "assessment_entry": {
-                "allowed_states": ["Intake complete", "Profile complete"],
-                "blocking_reasons": {
-                    "Intake started": (
-                        "Complete the initial intake before starting a new assessment."
-                    ),
-                    "Needs follow-up": (
-                        "Resolve the recorded follow-up before starting a new assessment."
-                    ),
-                },
-            },
-            "profile_completion": {
-                "state": "Profile complete",
-                "requires_boundary_acknowledgement": True,
-                "boundary_acknowledgement_blocking_reason": (
-                    "Acknowledge the local evidence operating boundary."
-                ),
-                "requires_no_unresolved_required_fields": True,
-                "unresolved_required_field_blocking_reason": "Resolve required field: {field}.",
-                "unresolved_required_fields_validation_message": (
-                    "Profile complete cannot have unresolved required fields"
-                ),
-                "required_fields": {
-                    "reviewed_by": {
-                        "validation_message": "Profile complete requires a named reviewer",
-                        "blocking_reason": "Record a named reviewer.",
-                    },
-                    "approval_evidence": {
-                        "validation_message": (
-                            "Profile complete requires review or approval evidence"
-                        ),
-                        "blocking_reason": "Record review or approval evidence.",
-                    },
-                },
-            },
-            "follow_up_work": {
-                "required_states": ["Needs follow-up"],
-                "required_when_unresolved_required_fields": True,
-                "required_state_validation_messages": {
-                    "Needs follow-up": "Needs follow-up requires explicit follow-up work"
-                },
-                "unresolved_required_fields_validation_message": (
-                    "Unknown required fields require explicit follow-up work"
-                ),
-            },
-            "requires_boundary_acknowledgement_before_transition": True,
-            "boundary_acknowledgement_validation_message": (
-                "Acknowledge the local evidence operating boundary first"
-            ),
-            "boundary_document": "docs/local-evidence-operating-boundary.md",
-        },
+        "profile_readiness": PROFILE_READINESS,
         "close_readiness": {
             "fieldwork_ready_for_generation": {
                 "final_statuses": ["Met", "Not Met", "N/A"],
@@ -293,9 +298,9 @@ CMMC_FRAMEWORK_ID = "cmmc-l2-ag-v2.13"
 def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
     """Load the CMMC Level 2 catalog alongside HIPAA.
 
-    Not called at startup yet: project creation accepts any seeded framework, and
-    the CMMC workflow (GitHub issue #104) is not built. Determinations attach to
-    objectives; requirement status derives from them.
+    Determinations attach to objectives; requirement status derives from them
+    (GitHub issue #104). Close, scoring, and packages are not declared yet, so
+    those surfaces refuse CMMC projects.
     """
     catalog_path = repository_root / "catalog" / "versions" / f"{CMMC_FRAMEWORK_ID}.json"
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
@@ -315,6 +320,7 @@ def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
         "status_set": ["", "Met", "Not Met", "Pending"],
         "presentation_mode": "requirement_with_objectives",
         "walkthrough_membership": "all_records",
+        "profile_readiness": PROFILE_READINESS,
         "content_sha256": catalog["content_sha256"],
     }
     determination_record_ids = _determination_record_ids(records, declarations)
@@ -324,6 +330,10 @@ def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
                 id, name, record_count, prompt_count, declarations_json
             ) VALUES (?, ?, ?, ?, ?)""",
             (CMMC_FRAMEWORK_ID, "CMMC Level 2", len(records), 0, json.dumps(declarations)),
+        )
+        connection.execute(
+            "UPDATE framework_versions SET declarations_json = ? WHERE id = ?",
+            (json.dumps(declarations), CMMC_FRAMEWORK_ID),
         )
         for order, record in enumerate(records):
             connection.execute(
@@ -346,3 +356,23 @@ def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
                     int(record["id"] in determination_record_ids),
                 ),
             )
+
+
+def load_practitioner_guidance(repository_root: Path) -> dict[str, dict[str, Any]]:
+    """Read RainTech practitioner guidance, keyed by framework version.
+
+    Guidance is a read-only display layer (GitHub issue #31). It is never written
+    to determinations, and it must be pinned to the exact catalog content it
+    annotates, so a mismatched pair fails at startup rather than misattributing.
+    """
+    versions = repository_root / "catalog" / "versions"
+    guidance = json.loads((versions / f"{CMMC_FRAMEWORK_ID}-guidance.json").read_text("utf-8"))
+    catalog = json.loads((versions / f"{CMMC_FRAMEWORK_ID}.json").read_text("utf-8"))
+    if guidance["catalog_content_sha256"] != catalog["content_sha256"]:
+        raise ValueError("CMMC practitioner guidance is pinned to a different catalog")
+    return {
+        CMMC_FRAMEWORK_ID: {
+            "provenance": guidance["provenance"],
+            "records": {**guidance["requirements"], **guidance["objectives"]},
+        }
+    }

@@ -286,6 +286,8 @@ def test_component_and_template_drift_block_backup(
     for relative in (
         Path("catalog/versions/hipaa-45cfr164-2026-07-01.json"),
         Path("catalog/versions/hipaa-45cfr164-2026-07-01-prompts.json"),
+        Path("catalog/versions/cmmc-l2-ag-v2.13.json"),
+        Path("catalog/versions/cmmc-l2-ag-v2.13-guidance.json"),
         Path("docs/templates/hipaa/v2"),
     ):
         source = repository / relative

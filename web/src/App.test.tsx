@@ -34,6 +34,7 @@ const assessment = {
       },
       status_set: ["", "Met", "Not Met", "Pending", "N/A"],
       presentation_mode: "one_record_with_parent_context",
+      close_readiness: { fieldwork_ready_for_generation: {} },
     },
   },
   progress: {
@@ -1643,4 +1644,108 @@ test("warns before record navigation and before unload until the latest save suc
     window.dispatchEvent(afterSave);
     expect(afterSave.defaultPrevented).toBe(false);
   });
+});
+
+test("CMMC shows each requirement with its objectives and nests only the active requirement's objectives", async () => {
+  const requirement = (id: string, title: string, sort: number) => ({
+    record_id: id, citation: id, title, work_area: "Access Control", record_type: "requirement",
+    parent_id: null, designation: null, sort_order: sort, editable_determination: false,
+  });
+  const objective = (parent: string, letter: string, sort: number) => ({
+    record_id: `${parent}${letter}`, citation: `${parent}[${letter}]`, title: `Objective [${letter}]`,
+    work_area: "Access Control", record_type: "objective", parent_id: parent, designation: null,
+    sort_order: sort, editable_determination: true,
+  });
+  const workList = [
+    requirement("AC.L2-3.1.1", "Authorized Access Control", 0),
+    objective("AC.L2-3.1.1", "a", 1),
+    objective("AC.L2-3.1.1", "b", 2),
+    requirement("AC.L2-3.1.2", "Transaction & Function Control", 3),
+    objective("AC.L2-3.1.2", "a", 4),
+  ];
+  const cmmc = {
+    ...assessment,
+    framework: {
+      ...assessment.framework,
+      id: "cmmc-l2-ag-v2.13",
+      name: "CMMC Level 2",
+      declarations: {
+        ...assessment.framework.declarations,
+        record_shape: { hierarchy: ["requirement", "objective"], determination_rule: "records_without_children" },
+        status_set: ["", "Met", "Not Met", "Pending"],
+        presentation_mode: "requirement_with_objectives",
+        close_readiness: undefined,
+      },
+    },
+    work_list: workList,
+  };
+  const requirementDetail = {
+    ...detail,
+    record: { ...workList[0], regulation_text: "Limit system access to authorized users." },
+    determination: { ...detail.determination, status: "Not Met", derived: true },
+    parent: null,
+    parent_prompts: [],
+    prompts: [],
+    practitioner_guidance: {
+      provenance: "RainTech CMMC assessment worksheet - practitioner guidance. Not DoD or NIST authority.",
+      fields: { c3pao_guidance: "Access control lists and RBAC exports.", worksheet_level: "L1" },
+    },
+    children: [
+      { ...workList[1], regulation_text: "authorized users are identified;", determination: { status: "Not Met" } },
+      { ...workList[2], regulation_text: "processes acting on behalf of authorized users are identified;", determination: { status: "Met" } },
+    ],
+  };
+  mockApi(async (input) => {
+    const url = String(input);
+    if (url.endsWith("/assessment")) return Response.json(cmmc);
+    if (url.includes("/records/AC.L2-3.1.1")) return Response.json(requirementDetail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({});
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  const objectives = await screen.findByRole("region", { name: "Assessment objectives" });
+  expect(objectives).toHaveTextContent("authorized users are identified;");
+  expect(objectives).toHaveTextContent("processes acting on behalf of authorized users are identified;");
+  expect(objectives).toHaveTextContent("Derived · Not Met");
+  // The rail lists both requirements but only the open requirement's objectives.
+  expect(screen.getByRole("button", { name: /Transaction & Function Control/ })).toBeVisible();
+  expect(screen.getAllByRole("button", { name: /Objective \[a\]/ })).toHaveLength(1);
+  expect(screen.getByRole("option", { name: "Access Control" })).toBeInTheDocument();
+  expect(screen.queryByRole("option", { name: "Breach notification" })).not.toBeInTheDocument();
+  // Close, packages, and HIPAA-shaped Not Met reconciliation are not offered for CMMC yet.
+  expect(screen.queryByText("HIPAA assessment package")).not.toBeInTheDocument();
+  expect(screen.queryByText("Not Met corrective work")).not.toBeInTheDocument();
+  expect(screen.getByText("Derived requirement status")).toBeVisible();
+  const guidance = screen.getByRole("region", { name: "RainTech practitioner guidance" });
+  expect(guidance).toHaveTextContent("NOT DOD OR NIST TEXT");
+  expect(guidance).toHaveTextContent("Access control lists and RBAC exports.");
+  expect(guidance).not.toHaveTextContent("worksheet_level");
+  expect(screen.getByRole("heading", { level: 1 }).closest("section")).not.toHaveTextContent("RBAC");
+});
+
+test("project creation sends the chosen framework version", async () => {
+  const posted: string[] = [];
+  mockApi(async (input, init) => {
+    const url = String(input);
+    if (url === "/api/frameworks") {
+      return Response.json([
+        { id: "cmmc-l2-ag-v2.13", name: "CMMC Level 2", record_count: 430 },
+        { id: "hipaa-45cfr164-2026-07-01", name: "HIPAA 45 CFR Part 164", record_count: 194 },
+      ]);
+    }
+    if (url === "/api/clients" && init?.method === "POST") return Response.json({ id: "client-new" });
+    if (url === "/api/clients") return Response.json([]);
+    if (url.endsWith("/projects") && init?.method === "POST") {
+      posted.push(String(init.body));
+      return Response.json({ id: "project-new" });
+    }
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  render(<App />);
+  const user = userEvent.setup();
+  await user.type(await screen.findByPlaceholderText("e.g. Northwind Health"), "Contoso Defense");
+  await user.selectOptions(await screen.findByLabelText("Framework"), "cmmc-l2-ag-v2.13");
+  await user.click(screen.getByRole("button", { name: /Create workspace/ }));
+  await waitFor(() => expect(posted).toHaveLength(1));
+  expect(JSON.parse(posted[0])).toMatchObject({ framework_version_id: "cmmc-l2-ag-v2.13" });
 });

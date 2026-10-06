@@ -21,7 +21,12 @@ from api.database import (
     active_assessment_for_project,
     profile_snapshot_revision,
 )
-from api.framework import FRAMEWORK_ID, seed_framework
+from api.framework import (
+    FRAMEWORK_ID,
+    load_practitioner_guidance,
+    seed_cmmc_catalog,
+    seed_framework,
+)
 from api.generation import generate_package, list_packages
 from api.issuance import BackupFailure, create_backup, issue_package, issue_readiness
 from api.package_review import get_review
@@ -1125,6 +1130,7 @@ def create_app(
     database = Database(database_path or root / "data" / "workspace.db", managed_storage)
     storage: FileStorage = LocalFileStorage(managed_storage)
     backup_root = backup_path or managed_storage / "backups"
+    practitioner_guidance = load_practitioner_guidance(root)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -1132,6 +1138,7 @@ def create_app(
         managed_storage.mkdir(parents=True, exist_ok=True)
         backup_root.mkdir(parents=True, exist_ok=True)
         seed_framework(database, root)
+        seed_cmmc_catalog(database, root)
         app.state.database = database
         app.state.file_storage = storage
         yield
@@ -1605,6 +1612,16 @@ def create_app(
                 payload.actor_id,
             )
             return result
+
+    @app.get("/api/frameworks")
+    def list_frameworks(database: Annotated[Database, Depends(db)]) -> list[dict[str, Any]]:
+        with database.connect() as connection:
+            return [
+                _row(row)
+                for row in connection.execute(
+                    "SELECT id, name, record_count FROM framework_versions ORDER BY name"
+                )
+            ]
 
     @app.get("/api/clients")
     def list_clients(database: Annotated[Database, Depends(db)]) -> list[dict[str, Any]]:
@@ -2960,8 +2977,14 @@ def create_app(
         database: Annotated[Database, Depends(db)],
     ) -> dict[str, Any]:
         with database.connect() as connection:
-            _assessment_for_project_or_404(connection, project_id, assessment_id)
-            return _record_detail(connection, assessment_id, record_id)
+            assessment = _assessment_for_project_or_404(connection, project_id, assessment_id)
+            detail = _record_detail(connection, assessment_id, record_id)
+        layer = practitioner_guidance.get(assessment["framework_version_id"])
+        fields = layer["records"].get(record_id) if layer else None
+        detail["practitioner_guidance"] = (
+            {"provenance": layer["provenance"], "fields": fields} if layer and fields else None
+        )
+        return detail
 
     @app.put("/api/assessments/{assessment_id}/determinations/{record_id}")
     def save_determination(

@@ -18,10 +18,17 @@ export interface FrameworkDeclarations {
     { dispositions: string[]; reason_required_for: string[] }
   >;
   presentation_mode: string;
+  // Declared only by frameworks with a fieldwork close and package workflow.
+  close_readiness?: Record<string, unknown>;
   sra?: {
     anchor_record_id: string;
     work_area: string;
   };
+}
+
+export interface FrameworkOption {
+  id: string;
+  name: string;
 }
 
 export interface Project {
@@ -471,6 +478,8 @@ export interface RecordDetail {
   no_prompt_explanation: string | null;
   note: string;
   evidence: EvidenceMapping[];
+  // RainTech worksheet guidance. Display only; never framework authority.
+  practitioner_guidance?: { provenance: string; fields: Record<string, string> } | null;
   position: {
     current: number;
     total: number;
