@@ -296,6 +296,16 @@ CMMC_FRAMEWORK_ID = "cmmc-l2-ag-v2.13"
 CMMC_SCORING_ID = "cmmc-l2-scoring-32cfr170-2024-12-16"
 
 
+def display_title(title: str) -> str:
+    """Fix the one reported title artifact for display; the catalog stays verbatim.
+
+    The Assessment Guide prints "[CUI Data]"; the extracted seed lowercased it in
+    16 titles (reported in the #30 reconciliation). Decided October 6, 2026 under
+    Johnathan's delegation: keep catalog text verbatim, clean only for display.
+    """
+    return title.replace("[cui Data]", "[CUI Data]")
+
+
 def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
     """Load the CMMC Level 2 catalog alongside HIPAA.
 
@@ -372,7 +382,7 @@ def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
                     CMMC_FRAMEWORK_ID,
                     record["id"],
                     record["citation"],
-                    record["title"],
+                    display_title(record["title"]),
                     record["text"],
                     record["work_area"],
                     record["record_type"],
@@ -381,6 +391,11 @@ def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
                     order,
                     int(record["id"] in determination_record_ids),
                 ),
+            )
+            connection.execute(
+                "UPDATE framework_records SET title = ? WHERE framework_version_id = ? "
+                "AND record_id = ?",
+                (display_title(record["title"]), CMMC_FRAMEWORK_ID, record["id"]),
             )
 
 
