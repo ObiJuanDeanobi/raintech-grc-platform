@@ -317,7 +317,7 @@ def create_backup(
         try:
             stage = "consistency_boundary"
             connection.execute("BEGIN IMMEDIATE")
-            inventory = _inventory(managed_root, root / "docs/templates/hipaa/v2")
+            inventory = _inventory(managed_root, root / "docs/templates/hipaa")
             before = _inventory_state(inventory)
             estimate = database_path.stat().st_size + sum(
                 path.stat().st_size for _, _, path in inventory
@@ -368,7 +368,7 @@ def create_backup(
                     "bytes": len(metadata_bytes),
                 }
             )
-            after = _inventory(managed_root, root / "docs/templates/hipaa/v2")
+            after = _inventory(managed_root, root / "docs/templates/hipaa")
             if before != _inventory_state(after) or [x[1] for x in inventory] != [
                 x[1] for x in after
             ]:
