@@ -285,3 +285,64 @@ def seed_framework(database: Database, repository_root: Path) -> None:
                     ),
                 )
                 prompt_order += 1
+
+
+CMMC_FRAMEWORK_ID = "cmmc-l2-ag-v2.13"
+
+
+def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
+    """Load the CMMC Level 2 catalog alongside HIPAA.
+
+    Not called at startup yet: project creation accepts any seeded framework, and
+    the CMMC workflow (GitHub issue #104) is not built. Determinations attach to
+    objectives; requirement status derives from them.
+    """
+    catalog_path = repository_root / "catalog" / "versions" / f"{CMMC_FRAMEWORK_ID}.json"
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    records: list[dict[str, Any]] = catalog["records"]
+    declarations = {
+        "record_shape": {
+            "hierarchy": ["requirement", "objective"],
+            "determination_rule": "records_without_children",
+        },
+        "rollup_rule": {
+            "precedence": ["Not Met", "Pending"],
+            "blank_children_prevent_met": True,
+            "satisfied_child_statuses": ["Met"],
+            "satisfied_rollup_status": "Met",
+            "blank_status": "",
+        },
+        "status_set": ["", "Met", "Not Met", "Pending"],
+        "presentation_mode": "requirement_with_objectives",
+        "walkthrough_membership": "all_records",
+        "content_sha256": catalog["content_sha256"],
+    }
+    determination_record_ids = _determination_record_ids(records, declarations)
+    with database.connect() as connection:
+        connection.execute(
+            """INSERT OR IGNORE INTO framework_versions(
+                id, name, record_count, prompt_count, declarations_json
+            ) VALUES (?, ?, ?, ?, ?)""",
+            (CMMC_FRAMEWORK_ID, "CMMC Level 2", len(records), 0, json.dumps(declarations)),
+        )
+        for order, record in enumerate(records):
+            connection.execute(
+                """INSERT OR IGNORE INTO framework_records(
+                    framework_version_id, record_id, citation, title, regulation_text,
+                    work_area, record_type, parent_id, designation, sort_order,
+                    carries_determination, no_prompt_explanation
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)""",
+                (
+                    CMMC_FRAMEWORK_ID,
+                    record["id"],
+                    record["citation"],
+                    record["title"],
+                    record["text"],
+                    record["work_area"],
+                    record["record_type"],
+                    record["parent_id"],
+                    record["designation"],
+                    order,
+                    int(record["id"] in determination_record_ids),
+                ),
+            )
