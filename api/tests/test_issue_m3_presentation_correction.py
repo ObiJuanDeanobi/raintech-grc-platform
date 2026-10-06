@@ -314,7 +314,7 @@ def test_migration_cycles_on_populated_database(tmp_path: Path) -> None:
     with client:
         _issued(client, db, "migrate")
     config = migration_config(db)
-    command.downgrade(config, "-1")
+    command.downgrade(config, "0013")
     with sqlite3.connect(db) as connection:
         assert connection.execute(
             "SELECT name FROM sqlite_master WHERE name='package_corrections'"
@@ -325,7 +325,7 @@ def test_migration_cycles_on_populated_database(tmp_path: Path) -> None:
         prior = _current(db, project)[0]
         assert _correct(client, project, prior).status_code == 201
     with pytest.raises(RuntimeError, match="downgrade would lose issued history"):
-        command.downgrade(config, "-1")
+        command.downgrade(config, "0013")
 
 
 def test_upgrade_refuses_projects_with_multiple_unsuperseded_issues(tmp_path: Path) -> None:

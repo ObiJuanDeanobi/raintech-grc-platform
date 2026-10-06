@@ -516,6 +516,12 @@ def issue_package(
         correction = correction_for(connection, project_id, package_id)
         if correction is not None:
             manifest["correction"] = dict(correction)
+        reopening = connection.execute(
+            "SELECT * FROM assessment_reopenings WHERE successor_assessment_id=?",
+            (package["assessment_id"],),
+        ).fetchone()
+        if reopening is not None:
+            manifest["reopening"] = dict(reopening)
         manifest_json = _canonical(manifest)
         connection.execute(
             "INSERT INTO issuance_attempts VALUES (?,?,?,?,?,?,'issued',?,?,?)",

@@ -449,6 +449,56 @@ test("presentation-only correction is explicit and keeps the superseded issue vi
   expect(posts).toEqual([{ url: "/api/projects/project-1/packages/pkg-old/corrections", body: { actor_id: "johnathan", classification: "presentation_only", unchanged_source_attested: true, reason: "Fix cover date format." } }]);
 });
 
+test("substantive reopening requires selected records and revalidation before the next close", async () => {
+  const posts: Array<{ url: string; body: Record<string, unknown> }> = [];
+  let reopened = false;
+  let revalidated = false;
+  const index = [{ ...assessment.work_list[0], editable_determination: true }];
+  const successor = { ...assessment, id: "assessment-2", record_index: index, reopening: { id: "open-1", classification: "substantive", rationale: "Evidence was superseded.", affected_record_ids_json: '["child-1"]', predecessor_assessment_id: "assessment-1", successor_assessment_id: "assessment-2", prior_package_id: "pkg-old", prior_issuance_id: "iss-1", actor_id: "johnathan", created_at: "2026-01-04T00:00:00Z" }, revalidation_items: [{ id: "item-1", record_id: "child-1", revalidated_by: null, revalidated_at: null, note: "" }] };
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    const url = String(input);
+    if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
+    if (url.endsWith("/assessment")) return Response.json(reopened ? successor : { ...assessment, record_index: index });
+    if (url.endsWith("/reopen") && init?.method === "POST") {
+      posts.push({ url, body: JSON.parse(String(init.body)) as Record<string, unknown> });
+      reopened = true;
+      return Response.json({ successor_assessment_id: "assessment-2" }, { status: 201 });
+    }
+    if (url.endsWith("/revalidate") && init?.method === "POST") {
+      posts.push({ url, body: JSON.parse(String(init.body)) as Record<string, unknown> });
+      revalidated = true;
+      return Response.json({ id: "item-1" }, { status: 201 });
+    }
+    if (url.includes("close-readiness")) return Response.json(reopened && !revalidated ? { status: "Blocked", blockers: ["Revalidate reopened record: child-1"], checks: [] } : { status: "Ready", blockers: [], checks: [] });
+    if (url.endsWith("/packages")) return Response.json([{ id: "pkg-old", assessment_id: "assessment-1", state: "promoted", created_at: "2026-01-02T00:00:00Z", source_snapshot_id: "snap-1", components: [{ id: "report-old", kind: "assessment_report", filename: "report.docx" }], issuance_status: reopened ? "Current" : "Current", issued_snapshot_id: "iss-1" }]);
+    if (url.endsWith("/review")) return Response.json({ package_id: "pkg-old", state: "Ready to issue", drift: [], blockers: [] });
+    if (url.endsWith("/issue-readiness")) return Response.json({ status: "Issued", checks: [], blockers: [], issued_snapshot_id: "iss-1", issuance_status: "Current" });
+    if (url.includes("/records/child-1")) return Response.json(detail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({});
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "Reopen for substantive correction…" }));
+  const submit = screen.getByRole("button", { name: "Reopen assessment" });
+  expect(submit).toBeDisabled();
+  await user.click(screen.getByLabelText("This correction changes assessment content"));
+  await user.click(screen.getByLabelText(/Risk analysis/));
+  await user.type(screen.getByLabelText("Reason for reopening"), "Evidence was superseded.");
+  expect(submit).toBeEnabled();
+  await user.click(submit);
+  expect(await screen.findByText("Needs Revalidation")).toBeVisible();
+  expect(screen.getByText("1 of 1 remaining")).toBeVisible();
+  expect(await screen.findByText("Revalidate reopened record: child-1")).toBeVisible();
+  await user.type(screen.getByLabelText("Revalidation note"), "Re-examined.");
+  await user.click(screen.getByRole("button", { name: "Mark revalidated" }));
+  expect(await screen.findByText("All revalidated")).toBeVisible();
+  expect(posts).toEqual([
+    { url: "/api/projects/project-1/packages/pkg-old/reopen", body: { actor_id: "johnathan", classification: "substantive", affected_record_ids: ["child-1"], rationale: "Evidence was superseded." } },
+    { url: "/api/projects/project-1/assessments/assessment-2/records/child-1/revalidate", body: { actor_id: "johnathan", note: "Re-examined." } },
+  ]);
+});
+
 test("Not Met reconciliation uses project-scoped PUT and create payload", async () => {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   vi.mocked(fetch).mockImplementation(async (input, init) => {

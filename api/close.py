@@ -229,6 +229,19 @@ def fieldwork_ready(
                         "reconciliation",
                         f"{link}/reconciliation",
                     )
+        for item in connection.execute(
+            """SELECT record_id FROM revalidation_items
+               WHERE project_id = ? AND assessment_id = ? AND revalidated_by IS NULL
+               ORDER BY record_id""",
+            (project_id, assessment_id),
+        ):
+            _block(
+                blockers,
+                "needs_revalidation",
+                f"Revalidate reopened record: {item['record_id']}",
+                "determinations",
+                f"/projects/{project_id}/assessments/{assessment_id}/records/{item['record_id']}",
+            )
         sra = declarations.get("sra")
         if not isinstance(sra, dict):
             _block(
@@ -286,11 +299,11 @@ def fieldwork_ready(
                             "sra",
                             f"/projects/{project_id}/sra/scope",
                         )
+                # Risks are project-level work shared across assessment revisions.
                 risks = connection.execute(
                     """SELECT * FROM risks
-                       WHERE project_id = ? AND assessment_id = ?
-                         AND profile_version_id = ?""",
-                    (project_id, assessment_id, approved["id"]),
+                       WHERE project_id = ? AND profile_version_id = ?""",
+                    (project_id, approved["id"]),
                 ).fetchall()
                 required_fields = [str(value) for value in sra.get("risk_required_fields", [])]
                 if not risks:

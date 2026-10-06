@@ -26,6 +26,7 @@ from api.generation import generate_package, list_packages
 from api.issuance import BackupFailure, create_backup, issue_package, issue_readiness
 from api.package_review import get_review
 from api.package_review import transition as transition_package_review
+from api.reopening import reopen_assessment, reopening_for, revalidate, revalidation_items
 from api.risk import RiskScore, score_risk
 from api.storage import FileStorage, LocalFileStorage
 
@@ -185,6 +186,18 @@ class PackageCorrectionCreate(BaseModel):
     classification: str = Field(min_length=1, max_length=100)
     unchanged_source_attested: bool
     reason: str = Field(min_length=1, max_length=4000)
+
+
+class AssessmentReopenCreate(BaseModel):
+    actor_id: str = "johnathan"
+    classification: str = Field(min_length=1, max_length=100)
+    affected_record_ids: list[str] = Field(min_length=1, max_length=500)
+    rationale: str = Field(min_length=1, max_length=4000)
+
+
+class RevalidationCreate(BaseModel):
+    actor_id: str = "johnathan"
+    note: str = Field(min_length=1, max_length=4000)
 
 
 class SRAScopeSave(BaseModel):
@@ -1081,7 +1094,12 @@ def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[
     }
     summary = _record_summary(connection, assessment_id, record)
     determination = summary.pop("determination")
+    revalidation = connection.execute(
+        "SELECT * FROM revalidation_items WHERE assessment_id = ? AND record_id = ?",
+        (assessment_id, record_id),
+    ).fetchone()
     return {
+        "revalidation": dict(revalidation) if revalidation else None,
         "record": summary,
         "determination": determination,
         "parent": parent,
@@ -1223,11 +1241,21 @@ def create_app(
             ):
                 raise HTTPException(404, "Project not found")
             active_assessment = active_assessment_for_project(connection, project_id)
+            issued = {
+                row[0]
+                for row in connection.execute(
+                    "SELECT package_id FROM issuance_snapshots WHERE project_id=?", (project_id,)
+                )
+            }
+            # Issued packages from earlier revisions stay listed as read-only history.
             packages = [
                 package
                 for package in list_packages(connection, project_id)
-                if active_assessment is not None
-                and package["assessment_id"] == active_assessment["id"]
+                if (
+                    active_assessment is not None
+                    and package["assessment_id"] == active_assessment["id"]
+                )
+                or package["id"] in issued
             ]
             for package in packages:
                 package["manifest"] = json.loads(package["manifest_json"])
@@ -1284,6 +1312,77 @@ def create_app(
             )
             return result
 
+    @app.post("/api/projects/{project_id}/packages/{package_id}/reopen", status_code=201)
+    def reopen_issued_assessment(
+        project_id: str,
+        package_id: str,
+        payload: AssessmentReopenCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            _user_or_422(connection, payload.actor_id)
+            try:
+                result = reopen_assessment(
+                    connection,
+                    project_id,
+                    package_id,
+                    payload.classification,
+                    payload.affected_record_ids,
+                    payload.rationale,
+                    payload.actor_id,
+                )
+            except LookupError as exc:
+                raise HTTPException(404, str(exc)) from exc
+            except ValueError as exc:
+                raise HTTPException(409, str(exc)) from exc
+            _audit(
+                connection,
+                "hipaa_substantive_reopening_created",
+                "assessment_reopening",
+                result["reopening"]["id"],
+                {
+                    "project_id": project_id,
+                    "prior_package_id": package_id,
+                    "successor_assessment_id": result["successor_assessment_id"],
+                    "affected_record_ids": result["reopening"]["affected_record_ids_json"],
+                },
+                payload.actor_id,
+            )
+            return result
+
+    @app.post(
+        "/api/projects/{project_id}/assessments/{assessment_id}/records/{record_id}/revalidate",
+        status_code=201,
+    )
+    def revalidate_record(
+        project_id: str,
+        assessment_id: str,
+        record_id: str,
+        payload: RevalidationCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
+            _user_or_422(connection, payload.actor_id)
+            try:
+                item = revalidate(
+                    connection, project_id, assessment_id, record_id, payload.actor_id, payload.note
+                )
+            except LookupError as exc:
+                raise HTTPException(404, str(exc)) from exc
+            except ValueError as exc:
+                raise HTTPException(409, str(exc)) from exc
+            _audit(
+                connection,
+                "hipaa_record_revalidated",
+                "revalidation_item",
+                item["id"],
+                {"project_id": project_id, "assessment_id": assessment_id, "record_id": record_id},
+                payload.actor_id,
+            )
+            return item
+
     @app.get("/api/projects/{project_id}/packages/{package_id}/components/{component_id}")
     @app.get(
         "/api/projects/{project_id}/packages/{package_id}/components/{component_id}/download"
@@ -1308,7 +1407,13 @@ def create_app(
             if row is None:
                 raise HTTPException(404, "Package component not found")
             active_assessment = active_assessment_by_id(connection, row["assessment_id"])
-            if active_assessment is None or active_assessment["project_id"] != project_id:
+            issued = connection.execute(
+                "SELECT 1 FROM issuance_snapshots WHERE project_id=? AND package_id=?",
+                (project_id, package_id),
+            ).fetchone()
+            if issued is None and (
+                active_assessment is None or active_assessment["project_id"] != project_id
+            ):
                 raise HTTPException(404, "Package component not found")
             path = (database.managed_storage_root / row["relative_path"]).resolve()
             root_path = database.managed_storage_root.resolve()
@@ -2776,6 +2881,7 @@ def create_app(
                 (assessment["framework_version_id"],),
             ).fetchone()
             walkthrough_rows = _walkthrough_records(connection, assessment["framework_version_id"])
+            reopening = reopening_for(connection, assessment["id"])
             work_list = [
                 {
                     **_row(row),
@@ -2842,6 +2948,8 @@ def create_app(
                 },
                 "work_list": work_list,
                 "record_index": record_index,
+                "reopening": _row(reopening) if reopening else None,
+                "revalidation_items": revalidation_items(connection, assessment["id"]),
             }
 
     @app.get("/api/projects/{project_id}/assessments/{assessment_id}/records/{record_id}")

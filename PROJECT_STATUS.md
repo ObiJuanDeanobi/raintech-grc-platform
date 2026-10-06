@@ -10,8 +10,9 @@ package. The authoritative remaining path is tracked in GitHub issue #88.
 
 ## Current mode
 
-Issue #80 presentation-only correction and reissue is implemented on
-`claude/issue-80-presentation-lpt8ng` (not yet merged; PR and CI pending). Issue #75's
+Issue #80 presentation-only correction merged through PR #99 at `9cc66eb`.
+Issue #81 substantive reopening is implemented on
+`claude/issue-81-substantive-reopening` (pushed, PR and CI pending). Issue #75's
 backend route migration merged as PR #93 at `79c0114`; Issue #76's service
 migration merged as PR #94 at `4ccac5e`; Issue #77's frontend migration merged
 as PR #95 at `a305bf9`; Issue #78's shared fixtures merged as PR #96 at
@@ -618,6 +619,12 @@ execution, and operational support; repository CI remains the engineering
 verification of record. This is the approved joint Johnathan-plus-AI delivery
 and operations model, not a claimed segregation of duties.
 
+**Delegated PR handling (Johnathan, October 6, 2026):** agents open, watch, and
+merge their own PRs once all CI checks pass on the final head, without waiting
+for Johnathan's review. Agents still stop and ask before product or scope
+decisions they cannot settle from the approved ticket, specification changes,
+architecture changes, and new major dependencies.
+
 ## Blocked
 
 - Issue #74 has no implementation, review, or CI blocker. PR #82 awaits human
@@ -701,11 +708,14 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Open the #80 PR from `claude/issue-80-presentation-lpt8ng`, confirm the six CI
-checks, and have Johnathan review and merge. Optionally repeat the correction
-browser check in Edge on the Surface. Then #81 (substantive reopening). Issue
-#32 stays open for native x64, adapter-disabled, and downloaded-file
-SmartScreen checks.
+Open the #81 PR from `claude/issue-81-substantive-reopening` (pushed; no PR yet),
+confirm the six CI checks, and have Johnathan review and merge. Evidence is in
+`docs/evidence/issue-81/REOPENING_VERIFICATION.md`; the decisions are ADR 0018.
+Optionally repeat the reopening browser check in Edge on the Surface. Issue #80
+merged through PR #99 at `9cc66eb` and can be closed. Issue #100 (template
+versioning for corrected packages) awaits triage and must be settled before the
+first real presentation correction. Issue #32 stays open for native x64,
+adapter-disabled, and downloaded-file SmartScreen checks.
 
 ## Branch inventory
 
