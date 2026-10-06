@@ -15,6 +15,7 @@ from uuid import uuid4
 from api.close import fieldwork_ready
 from api.correction import correction_for, issuance_blockers, package_issuance, record_supersession
 from api.database import active_assessment_by_id
+from api.evidence_integrity import evidence_blockers, verify_assessment_evidence
 from api.package_review import get_review
 
 _operation_lock = threading.RLock()
@@ -187,6 +188,10 @@ def issue_readiness(
     if fieldwork_ready(connection, project_id, package["assessment_id"]).get("status") != "Ready":
         blockers.append("Assessment source is no longer ready")
     blockers.extend(issuance_blockers(connection, project_id, package_id))
+    evidence_index = verify_assessment_evidence(
+        connection, managed_root, project_id, package["assessment_id"]
+    )
+    blockers.extend(evidence_blockers(evidence_index))
     backup = _valid_backup(connection, project_id, package, event, backup_root, backup_id)
     issued = connection.execute(
         "SELECT * FROM issuance_snapshots WHERE project_id=? AND package_id=?",
@@ -220,6 +225,7 @@ def issue_readiness(
         "backup_manifest_sha256": backup["manifest_sha256"] if backup else None,
         "backup_completed_at": backup["completed_at"] if backup else None,
         **package_issuance(connection, project_id, package_id),
+        "evidence_index": evidence_index,
         "failure": (
             {
                 "attempt_id": failure["id"],
@@ -512,6 +518,7 @@ def issue_package(
             "backup": dict(backup),
             "issued_at": issued_at,
             "issuer_id": actor_id,
+            "evidence_index": readiness["evidence_index"],
         }
         correction = correction_for(connection, project_id, package_id)
         if correction is not None:
