@@ -358,7 +358,7 @@ def approve(connection: Any, project_id: str, ssp_id: str, actor_id: str) -> dic
     return view(connection, project_id, ssp_id)
 
 
-def _paragraph(text: str, style: str | None = None) -> str:
+def paragraph(text: str, style: str | None = None) -> str:
     props = f'<w:pPr><w:pStyle w:val="{style}"/></w:pPr>' if style else ""
     runs = "".join(
         f'<w:r><w:t xml:space="preserve">{escape(line)}</w:t></w:r>'
@@ -368,6 +368,40 @@ def _paragraph(text: str, style: str | None = None) -> str:
     return f"<w:p>{props}{runs}</w:p>"
 
 
+def snapshot_for_package(
+    connection: Any, project_id: str, assessment_id: str
+) -> dict[str, Any] | None:
+    """The approved SSP version as plain data, for an issued package's source snapshot."""
+    row = connection.execute(
+        """SELECT d.id, d.source_json, d.source_sha256, d.template_version,
+                  a.ssp_version_id, a.approved_at, a.approver_id
+           FROM ssp_documents d JOIN ssp_approvals a ON a.ssp_id = d.id
+           WHERE d.project_id = ? AND d.assessment_id = ?
+           ORDER BY a.approved_at DESC LIMIT 1""",
+        (project_id, assessment_id),
+    ).fetchone()
+    if row is None:
+        return None
+    versions = _versions(connection, row["id"])
+    chosen = next(v for v in versions if v["id"] == row["ssp_version_id"])
+    return {
+        "id": row["id"],
+        "source": json.loads(row["source_json"]),
+        "source_sha256": row["source_sha256"],
+        "template_version": row["template_version"],
+        "version_number": chosen["version_number"],
+        "content": chosen["content"],
+        "content_sha256": chosen["content_sha256"],
+        "approved_at": row["approved_at"],
+        "approver_id": row["approver_id"],
+        "changes": [
+            [v["created_at"][:10], v["version_number"], v["note"]]
+            for v in versions
+            if v["version_number"] <= chosen["version_number"]
+        ],
+    }
+
+
 def render_docx(connection: Any, project_id: str, ssp_id: str, version_number: int) -> bytes:
     """Deterministic DOCX delivery copy of one SSP version."""
     current = view(connection, project_id, ssp_id)
@@ -375,54 +409,74 @@ def render_docx(connection: Any, project_id: str, ssp_id: str, version_number: i
     chosen = next((v for v in versions if v["version_number"] == version_number), None)
     if chosen is None:
         raise HTTPException(404, "SSP version not found")
-    source, content = current["source"], chosen["content"]
     approval = current["approval"]
-    body = [
-        _paragraph("System Security Plan", "Title"),
-        _paragraph(f"{source['client_name']} · {source['project_name']}"),
-        _paragraph(
-            f"Version {version_number} · source {current['source_sha256'][:16]} · "
-            f"template {current['template_version']}"
-            + (
-                f" · approved {approval['approved_at'][:10]}"
+    return ssp_docx(
+        {
+            "source": current["source"],
+            "source_sha256": current["source_sha256"],
+            "template_version": current["template_version"],
+            "version_number": version_number,
+            "content": chosen["content"],
+            "approved_at": (
+                approval["approved_at"]
                 if approval and approval["ssp_version_id"] == chosen["id"]
-                else " · NOT APPROVED"
-            )
+                else None
+            ),
+            "changes": [
+                [v["created_at"][:10], v["version_number"], v["note"]]
+                for v in versions
+                if v["version_number"] <= version_number
+            ],
+        }
+    )
+
+
+def ssp_docx(document: dict[str, Any]) -> bytes:
+    """Render one SSP version from plain data; reads nothing live."""
+    source, content = document["source"], document["content"]
+    approved_at = document.get("approved_at")
+    body = [
+        paragraph("System Security Plan", "Title"),
+        paragraph(f"{source['client_name']} · {source['project_name']}"),
+        paragraph(
+            f"Version {document['version_number']} · source {document['source_sha256'][:16]} · "
+            f"template {document['template_version']}"
+            + (f" · approved {approved_at[:10]}" if approved_at else " · NOT APPROVED")
         ),
-        _paragraph("1. System Identification", "Heading1"),
-        _paragraph(content["system_description"] or "[Not yet written]"),
+        paragraph("1. System Identification", "Heading1"),
+        paragraph(content["system_description"] or "[Not yet written]"),
     ]
-    body += [_paragraph(f"{f['label']}: {f['value']}") for f in source["profile_fields"]]
-    body.append(_paragraph("2. System Environment", "Heading1"))
-    body.append(_paragraph(content["environment_narrative"] or "[Not yet written]"))
+    body += [paragraph(f"{f['label']}: {f['value']}") for f in source["profile_fields"]]
+    body.append(paragraph("2. System Environment", "Heading1"))
+    body.append(paragraph(content["environment_narrative"] or "[Not yet written]"))
     for item in source["environment_items"]:
         details = "; ".join(f"{f['label']}: {f['value']}" for f in item["fields"])
-        body.append(_paragraph(f"{item['item_type'].replace('_', ' ')} {item['key']}: {details}"))
-    body.append(_paragraph("3. Requirements", "Heading1"))
+        body.append(paragraph(f"{item['item_type'].replace('_', ' ')} {item['key']}: {details}"))
+    body.append(paragraph("3. Requirements", "Heading1"))
     domain = None
     for requirement in source["requirements"]:
         if requirement["domain"] != domain:
             domain = requirement["domain"]
-            body.append(_paragraph(domain, "Heading2"))
-        body.append(_paragraph(f"{requirement['citation']} {requirement['title']}", "Heading3"))
-        body.append(_paragraph(requirement["text"]))
-        body.append(_paragraph(f"Status: {requirement['status']}"))
+            body.append(paragraph(domain, "Heading2"))
+        body.append(paragraph(f"{requirement['citation']} {requirement['title']}", "Heading3"))
+        body.append(paragraph(requirement["text"]))
+        body.append(paragraph(f"Status: {requirement['status']}"))
         implementation = content["requirements"][requirement["record_id"]]["implementation"]
-        body.append(_paragraph(implementation or "[Not yet written]"))
+        body.append(paragraph(implementation or "[Not yet written]"))
         for item in requirement["poam_items"]:
-            body.append(_paragraph(f"POA&M: {item}"))
-    body.append(_paragraph("4. Record of Changes", "Heading1"))
-    for version in versions:
-        if version["version_number"] <= version_number:
-            body.append(
-                _paragraph(
-                    f"{version['created_at'][:10]} · v{version['version_number']} · {version['note']}"
-                )
-            )
+            body.append(paragraph(f"POA&M: {item}"))
+    body.append(paragraph("4. Record of Changes", "Heading1"))
+    for date, number, note in document["changes"]:
+        body.append(paragraph(f"{date} · v{number} · {note}"))
+    return docx_bytes(body)
+
+
+def docx_bytes(paragraphs: list[str]) -> bytes:
+    """Package pre-built WordprocessingML paragraphs as a deterministic DOCX."""
     document = (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-        f"<w:body>{''.join(body)}</w:body></w:document>"
+        f"<w:body>{''.join(paragraphs)}</w:body></w:document>"
     )
     files = {
         "[Content_Types].xml": (

@@ -9,7 +9,7 @@ from typing import Any, cast
 from uuid import uuid4
 
 from api.database import active_assessment_by_id
-from api.generation import TEMPLATE_VERSIONS, _snapshot
+from api.generation import TEMPLATE_VERSIONS, _snapshot, package_component_kinds
 from api.generation import template_hashes as _template_hashes
 
 STATES = ("Complete candidate", "In Review", "Reviewed", "Ready to issue")
@@ -67,9 +67,7 @@ def _binding(
     # Each package binds to its own template version, so a newer version cannot
     # disturb an older package's review.
     template_hashes = _template_hashes(root, version) if known else {}
-    expected_kinds_for_version = (
-        {kind for kind, _ in TEMPLATE_VERSIONS[version][1]} if known else set()
-    )
+    expected_kinds_for_version = package_component_kinds(version) if known else set()
     drift: list[str] = []
     if package["state"] != "promoted":
         blockers.append("Only promoted complete candidates can be reviewed")
