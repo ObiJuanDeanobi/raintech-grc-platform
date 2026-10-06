@@ -60,6 +60,10 @@ class SspEdit(BaseModel):
     note: str = ""
 
 
+class PoamClose(BaseModel):
+    rationale: str = ""
+
+
 class PoamItemCreate(BaseModel):
     title: str
     description: str = ""
@@ -1234,7 +1238,7 @@ def create_app(
         if target != "fieldwork_ready_for_generation":
             raise HTTPException(422, "Unknown close-readiness target")
         with database.connect() as connection:
-            return fieldwork_ready(connection, project_id)
+            return fieldwork_ready(connection, project_id, storage_root=managed_storage)
 
     @app.get("/api/projects/{project_id}/assessments/{assessment_id}/close-readiness")
     def get_assessment_close_readiness(
@@ -1246,7 +1250,9 @@ def create_app(
         if target != "fieldwork_ready_for_generation":
             raise HTTPException(422, "Unknown close-readiness target")
         with database.connect() as connection:
-            return fieldwork_ready(connection, project_id, assessment_id)
+            return fieldwork_ready(
+                connection, project_id, assessment_id, storage_root=managed_storage
+            )
 
     @app.post("/api/projects/{project_id}/assessments/{assessment_id}/packages", status_code=201)
     def create_package(
@@ -3202,6 +3208,69 @@ def create_app(
                 )
             saved = _record_detail(connection, assessment_id, record_id)["determination"]
             return cast(dict[str, Any], saved)
+
+    @app.post(
+        "/api/projects/{project_id}/assessments/{assessment_id}"
+        "/requirements/{record_id}/poam/{action_id}/close"
+    )
+    def close_poam_item(
+        project_id: str,
+        assessment_id: str,
+        record_id: str,
+        action_id: str,
+        payload: PoamClose,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any] | None:
+        with database.connect() as connection:
+            assessment, _ = cmmc_context(connection, project_id, assessment_id)
+            requirement_or_404(connection, assessment, record_id)
+            if not payload.rationale.strip():
+                raise HTTPException(422, "Record how the remediation was verified")
+            action = connection.execute(
+                """SELECT a.id, a.finding_id, a.status FROM corrective_actions a
+                   JOIN requirement_findings f ON f.finding_id = a.finding_id
+                   WHERE a.id = ? AND f.project_id = ? AND f.record_id = ?""",
+                (action_id, project_id, record_id),
+            ).fetchone()
+            if action is None:
+                raise HTTPException(404, "POA&M item not found")
+            if action["status"] == "Closed":
+                raise HTTPException(409, "POA&M item is already closed")
+            if _derived_status(connection, assessment_id, record_id) != "Met":
+                raise HTTPException(
+                    409, "A POA&M item closes only once its requirement derives Met"
+                )
+            closed_at = now()
+            connection.execute(
+                """INSERT INTO poam_closures(
+                       id, project_id, corrective_action_id, finding_id, assessment_id,
+                       record_id, rationale, closed_by, closed_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, 'johnathan', ?)""",
+                (
+                    str(uuid4()),
+                    project_id,
+                    action_id,
+                    action["finding_id"],
+                    assessment_id,
+                    record_id,
+                    payload.rationale.strip(),
+                    closed_at,
+                ),
+            )
+            connection.execute(
+                "UPDATE corrective_actions SET status = 'Closed', updated_at = ? WHERE id = ?",
+                (closed_at, action_id),
+            )
+            _audit(
+                connection,
+                "cmmc.poam_item_closed",
+                "corrective_action",
+                action_id,
+                {"record_id": record_id, "assessment_id": assessment_id},
+            )
+            return cmmc.requirement_finding(
+                connection, project_id, assessment, record_id, _derived_status
+            )
 
     def cmmc_context(connection: Any, project_id: str, assessment_id: str) -> tuple[Any, Any]:
         assessment = _assessment_for_project_or_404(connection, project_id, assessment_id)

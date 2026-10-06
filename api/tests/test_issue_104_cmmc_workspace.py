@@ -169,10 +169,13 @@ def test_hipaa_unchanged_and_cmmc_ids_isolated(tmp_path: Path) -> None:
         assert _save(client, cmmc_assessment, OBJECTIVES[0], status="Pending").status_code == 200
         assert _requirement_status(client, other, other_assessment) == ""
 
-        # HIPAA-only workflow surfaces refuse CMMC rather than misapplying HIPAA rules.
+        # The HIPAA-only SRA refuses CMMC. CMMC declares its own close gate (#108),
+        # which never applies HIPAA's SRA check.
         assert client.get(f"/api/projects/{cmmc}/sra").status_code == 404
         close = client.get(f"/api/projects/{cmmc}/assessments/{cmmc_assessment}/close-readiness")
-        assert close.status_code == 409
+        assert close.status_code == 200
+        assert close.json()["ready"] is False
+        assert "sra_not_declared" not in {b["code"] for b in close.json()["blockers"]}
 
 
 def test_cmmc_assessment_survives_restart(tmp_path: Path) -> None:

@@ -1,11 +1,13 @@
 """Deterministic, declaration-driven, read-only close readiness checks."""
 
 import json
+from pathlib import Path
 from typing import Any
 
 from fastapi import HTTPException
 
 from api.database import active_assessment_by_id, active_assessment_for_project
+from api.evidence_integrity import evidence_blockers, verify_assessment_evidence
 
 TARGET = "fieldwork_ready_for_generation"
 _CHECKS = {
@@ -13,6 +15,9 @@ _CHECKS = {
     "determinations_final": "determinations",
     "not_met_reconciled": "reconciliation",
     "sra_complete": "sra",
+    "poam_closed": "poam",
+    "ssp_approved": "ssp",
+    "evidence_verified": "evidence",
 }
 
 
@@ -92,7 +97,10 @@ def _scope_items(
 
 
 def fieldwork_ready(
-    connection: Any, project_id: str, assessment_id: str | None = None
+    connection: Any,
+    project_id: str,
+    assessment_id: str | None = None,
+    storage_root: Path | None = None,
 ) -> dict[str, Any]:
     project = connection.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
     if project is None:
@@ -242,8 +250,13 @@ def fieldwork_ready(
                 "determinations",
                 f"/projects/{project_id}/assessments/{assessment_id}/records/{item['record_id']}",
             )
+        _cmmc_checks(
+            connection, blockers, validator_names, project_id, assessment["id"], storage_root
+        )
         sra = declarations.get("sra")
-        if not isinstance(sra, dict):
+        if "sra_complete" not in validator_names:
+            pass
+        elif not isinstance(sra, dict):
             _block(
                 blockers,
                 "sra_not_declared",
@@ -359,6 +372,49 @@ def fieldwork_ready(
     return _result(
         blockers, validator_names, project_id, assessment_id, close_decl, framework["id"]
     )
+
+
+def _cmmc_checks(
+    connection: Any,
+    blockers: list[dict[str, Any]],
+    validator_names: list[str],
+    project_id: str,
+    assessment_id: str,
+    storage_root: Path | None,
+) -> None:
+    """Readiness-close conditions of AC-018 beyond final determinations."""
+    if "poam_closed" in validator_names:
+        for row in connection.execute(
+            """SELECT f.record_id, a.title FROM corrective_actions a
+               JOIN requirement_findings f ON f.finding_id = a.finding_id
+               WHERE f.project_id = ? AND a.status != 'Closed' ORDER BY f.record_id""",
+            (project_id,),
+        ):
+            _block(
+                blockers,
+                "poam_open",
+                f"Close POA&M item on {row['record_id']}: {row['title']}",
+                "poam",
+                f"/projects/{project_id}/assessments/{assessment_id}/records/{row['record_id']}",
+            )
+    if "ssp_approved" in validator_names:
+        approved = connection.execute(
+            """SELECT 1 FROM ssp_documents d JOIN ssp_approvals a ON a.ssp_id = d.id
+               WHERE d.project_id = ? AND d.assessment_id = ? LIMIT 1""",
+            (project_id, assessment_id),
+        ).fetchone()
+        if approved is None:
+            _block(
+                blockers,
+                "ssp_not_approved",
+                "Approve the final System Security Plan",
+                "ssp",
+                f"/projects/{project_id}/assessments/{assessment_id}/ssp",
+            )
+    if "evidence_verified" in validator_names and storage_root is not None:
+        index = verify_assessment_evidence(connection, storage_root, project_id, assessment_id)
+        for detail in evidence_blockers(index):
+            _block(blockers, "evidence_unverified", detail, "evidence")
 
 
 def _result(

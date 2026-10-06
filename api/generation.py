@@ -8,8 +8,10 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from api import cmmc, ssp
 from api.close import fieldwork_ready
 from api.database import active_assessment_by_id
+from api.renderers import cmmc as cmmc_renderer
 from api.renderers.hipaa import render_poam, render_report, validate_snapshot
 from api.storage import FileStorage
 
@@ -32,9 +34,102 @@ TEMPLATE_VERSIONS: dict[str, tuple[str, tuple[tuple[str, str], ...]]] = {
             ("poam", "RainTech_HIPAA_POAM_v2.xlsx"),
         ),
     ),
+    "cmmc-v1": (
+        "docs/templates/cmmc/ssp-v1",
+        (("ssp_structure", "structure.json"),),
+    ),
 }
 CURRENT_TEMPLATE_VERSION = "hipaa-v2"
 TEMPLATE_ROOT, TEMPLATES = TEMPLATE_VERSIONS[CURRENT_TEMPLATE_VERSION]
+
+
+# HIPAA versions render one component per template file. The CMMC structure
+# file instead drives four rendered components.
+RENDERED_COMPONENT_KINDS: dict[str, frozenset[str]] = {
+    "cmmc-v1": frozenset({"assessment_report", "ssp", "poam", "evidence_index"}),
+}
+
+
+def package_component_kinds(version: str) -> set[str]:
+    if version in RENDERED_COMPONENT_KINDS:
+        return set(RENDERED_COMPONENT_KINDS[version])
+    return {kind for kind, _ in TEMPLATE_VERSIONS[version][1]}
+
+
+def package_template_version(declarations: dict[str, Any]) -> str:
+    """The current package template for a framework; HIPAA predates the declaration."""
+    return str(declarations.get("package_template_version", CURRENT_TEMPLATE_VERSION))
+
+
+def _cmmc_source(
+    c: sqlite3.Connection, project_id: str, assessment: sqlite3.Row, declarations: dict[str, Any]
+) -> dict[str, Any]:
+    # Imported here: api.main imports this module, and owns the shared rollup.
+    from api.main import _derived_status
+
+    approved_ssp = ssp.snapshot_for_package(c, project_id, assessment["id"])
+    if approved_ssp is None:
+        raise ValueError("An approved System Security Plan is required")
+    requirements = []
+    for row in c.execute(
+        """SELECT record_id, citation, title, work_area FROM framework_records
+           WHERE framework_version_id = ? AND parent_id IS NULL ORDER BY sort_order""",
+        (assessment["framework_version_id"],),
+    ).fetchall():
+        requirements.append(
+            {
+                "record_id": row["record_id"],
+                "citation": row["citation"],
+                "title": row["title"],
+                "domain": row["work_area"],
+                "status": _derived_status(c, assessment["id"], row["record_id"]),
+                "objectives": [
+                    o["record_id"]
+                    for o in c.execute(
+                        """SELECT record_id FROM framework_records
+                           WHERE framework_version_id = ? AND parent_id = ? ORDER BY sort_order""",
+                        (assessment["framework_version_id"], row["record_id"]),
+                    )
+                ],
+            }
+        )
+    findings = []
+    for link in c.execute(
+        """SELECT rf.record_id, f.id, f.title FROM requirement_findings rf
+           JOIN findings f ON f.id = rf.finding_id
+           WHERE rf.project_id = ? ORDER BY rf.record_id""",
+        (project_id,),
+    ).fetchall():
+        detail = cmmc.requirement_finding(
+            c, project_id, assessment, link["record_id"], _derived_status
+        )
+        assert detail is not None
+        closures = {
+            row["corrective_action_id"]: dict(row)
+            for row in c.execute("SELECT * FROM poam_closures WHERE finding_id = ?", (link["id"],))
+        }
+        findings.append(
+            {
+                "record_id": link["record_id"],
+                "finding_id": link["id"],
+                "title": link["title"],
+                "poam_items": [
+                    {
+                        **item,
+                        "closed_at": closures.get(item["id"], {}).get("closed_at"),
+                        "closure_rationale": closures.get(item["id"], {}).get("rationale"),
+                    }
+                    for item in detail["poam_items"]
+                ],
+                "history": detail["history"],
+            }
+        )
+    return {
+        "score": cmmc.score(c, assessment, declarations["scoring"], _derived_status),
+        "requirements": requirements,
+        "findings": findings,
+        "ssp": approved_ssp,
+    }
 
 
 def template_files(root: Path, version: str) -> list[tuple[str, Path]]:
@@ -189,9 +284,9 @@ def _snapshot(
             row["action_title"] = a["title"]
             row["action_description"] = a["description"]
             row["poam_status"] = a["status"]
-    source = {
+    source: dict[str, Any] = {
         "snapshot_id": str(uuid4()),
-        "template_version": CURRENT_TEMPLATE_VERSION,
+        "template_version": package_template_version(declarations),
         "framework": {
             "id": assessment["framework_version_id"],
             "title": framework_row.get("name"),
@@ -218,7 +313,11 @@ def _snapshot(
         "evidence_versions": _rows(c, "evidence_versions", "project_id=?", (project_id,)),
         "readiness": fieldwork_ready(c, project_id, assessment_id),
     }
-    errors = validate_snapshot(source)
+    if declarations.get("scoring"):
+        source["cmmc"] = _cmmc_source(c, project_id, assessment, declarations)
+        errors = [] if source["cmmc"]["score"]["complete"] else ["CMMC score is not complete"]
+    else:
+        errors = validate_snapshot(source)
     if errors:
         raise ValueError("Snapshot is not renderable: " + "; ".join(errors))
     encoded = json.dumps(source, sort_keys=True, separators=(",", ":"))
@@ -312,7 +411,7 @@ def render_package(
             None,
         ),
     )
-    version = CURRENT_TEMPLATE_VERSION
+    version = package_template_version(source["framework"]["declarations"])
     assert_template_unchanged(connection, root, version)
     # The stored snapshot is immutable; render it with the version actually used.
     rendered_source = {**source, "template_version": version}
@@ -322,7 +421,10 @@ def render_package(
         components = []
         render_staging = staging_root or root / "data" / "generation-staging"
         render_staging.mkdir(parents=True, exist_ok=True)
-        for kind, template in template_files(root, version):
+        rendered: list[tuple[str, str, bytes]] = []
+        if "cmmc" in rendered_source:
+            rendered = cmmc_renderer.render_package(rendered_source)
+        for kind, template in [] if rendered else template_files(root, version):
             filename = template.name
             component_id = str(uuid4())
             content = template.read_bytes()
@@ -336,6 +438,20 @@ def render_package(
                 render_poam(template, out, rendered_source)
                 content = out.read_bytes()
                 out.unlink(missing_ok=True)
+            staged_path, final_path = storage.stage(project_id, component_id, filename, content)
+            staged.append((staged_path, final_path))
+            components.append(
+                {
+                    "id": component_id,
+                    "kind": kind,
+                    "filename": filename,
+                    "path": final_path,
+                    "sha256": sha256(content).hexdigest(),
+                    "bytes": len(content),
+                }
+            )
+        for kind, filename, content in rendered:
+            component_id = str(uuid4())
             staged_path, final_path = storage.stage(project_id, component_id, filename, content)
             staged.append((staged_path, final_path))
             components.append(

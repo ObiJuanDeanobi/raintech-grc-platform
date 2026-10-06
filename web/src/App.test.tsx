@@ -1719,7 +1719,7 @@ test("CMMC shows each requirement with its objectives and nests only the active 
   expect(screen.getByRole("option", { name: "Access Control" })).toBeInTheDocument();
   expect(screen.queryByRole("option", { name: "Breach notification" })).not.toBeInTheDocument();
   // Close, packages, and HIPAA-shaped Not Met reconciliation are not offered for CMMC yet.
-  expect(screen.queryByText("HIPAA assessment package")).not.toBeInTheDocument();
+  expect(screen.queryByText("Assessment package")).not.toBeInTheDocument();
   expect(screen.queryByText("Not Met corrective work")).not.toBeInTheDocument();
   expect(screen.getByText("Derived requirement status")).toBeVisible();
   const guidance = screen.getByRole("region", { name: "RainTech practitioner guidance" });
@@ -1912,4 +1912,33 @@ test("CMMC SSP panel edits the open requirement's statement and approves", async
   await user.click(within(panel).getByRole("button", { name: "Approve and freeze" }));
   expect(await within(panel).findByText(/approved and frozen/)).toBeVisible();
   expect(within(panel).queryByRole("button", { name: "Save new version" })).not.toBeInTheDocument();
+});
+
+test("closes a CMMC POA&M item only after the requirement derives Met", async () => {
+  const { cmmc, requirementDetail } = cmmcFixtures();
+  const scored = { ...cmmc, framework: { ...cmmc.framework, declarations: { ...cmmc.framework.declarations, scoring: { authority: "32 CFR 170.24", requirements: { "AC.L2-3.1.1": { rule: "fixed", points: 5, source: "32 CFR 170.24(c)(2)(i)(B)(1)" } } } } } };
+  const posts: string[] = [];
+  const finding = (status: string) => ({
+    finding: { id: "f1", title: "Not Met: AC.L2-3.1.1", status: "Open" },
+    requirement_id: "AC.L2-3.1.1", requirement_status: "Met", failed_objectives: [],
+    poam_items: [{ id: "act-1", title: "Rebuild the list", description: "", status, validation_state: "Not Ready" }],
+    history: [],
+  });
+  vi.spyOn(window, "prompt").mockReturnValue("List rebuilt and reviewed.");
+  mockApi(async (input, init) => {
+    const url = String(input);
+    if (init?.method === "POST") posts.push(url);
+    if (url.endsWith("/assessment")) return Response.json(scored);
+    if (url.endsWith("/poam/act-1/close")) return Response.json(finding("Closed"));
+    if (url.endsWith("/finding")) return Response.json(finding("Open"));
+    if (url.includes("/records/AC.L2-3.1.1")) return Response.json(requirementDetail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  const panel = await screen.findByRole("region", { name: "Requirement finding" });
+  await userEvent.setup().click(await within(panel).findByRole("button", { name: "Close item" }));
+  await waitFor(() => expect(posts.some((url) => url.endsWith("/requirements/AC.L2-3.1.1/poam/act-1/close"))).toBe(true));
+  expect(await within(panel).findByText(/Rebuild the list · Closed/)).toBeVisible();
+  expect(within(panel).queryByRole("button", { name: "Close item" })).not.toBeInTheDocument();
 });

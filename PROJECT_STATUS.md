@@ -32,11 +32,15 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #107 - CMMC SSP; PR pending.** See
-`docs/evidence/issue-107/SSP_VERIFICATION.md`. The template follows the public
-NIST SP 800-171 CUI SSP structure, under Johnathan's October 6 delegation. CMMC
-has no N/A (Johnathan, October 6). Migration `0019`. #108 (close gate and
-package) is next in this session.
+**GitHub issue #108 - CMMC close gate and standard package issuance; PR
+pending.** See `docs/evidence/issue-108/CLOSE_ISSUE_VERIFICATION.md`. CMMC now
+issues through the shared review, backup, issue, correction, and reopening
+chain. Migration `0020` adds CMMC POA&M closure. With this, CMMC Level 2 is
+complete in software. #109 (the Surface acceptance) is deferred by Johnathan.
+
+#107 (CMMC SSP) merged through PR #122 at `b7b249b`. Its template follows the
+public NIST SP 800-171 CUI SSP structure, approved under the October 6
+delegation. CMMC has no N/A (Johnathan, October 6).
 
 The operator runbook (`docs/OPERATOR_RUNBOOK.md`) merged through PR #121.
 

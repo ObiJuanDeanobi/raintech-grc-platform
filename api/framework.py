@@ -329,6 +329,24 @@ def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
         "content_sha256": catalog["content_sha256"],
         # Findings attach to the derived requirement, not to each objective (#105).
         "findings_rule": "requirement_level",
+        # Readiness close (AC-018): every objective Met, so every requirement Met;
+        # no open POA&M; approved SSP; verified evidence. Review, backup, and
+        # issue are the shared package gates that follow (#108).
+        "close_readiness": {
+            "fieldwork_ready_for_generation": {
+                "final_statuses": ["Met"],
+                "not_met_status": "Not Met",
+                "validators": [
+                    "approved_profile_complete",
+                    "determinations_final",
+                    "poam_closed",
+                    "ssp_approved",
+                    "evidence_verified",
+                ],
+                "informational": ["package", "review", "sign", "backup", "snapshot"],
+            }
+        },
+        "package_template_version": "cmmc-v1",
         "scoring": scoring,
     }
     determination_record_ids = _determination_record_ids(records, declarations)

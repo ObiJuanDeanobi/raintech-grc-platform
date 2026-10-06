@@ -1,8 +1,7 @@
 # RainTech GRC — V1 Operator Runbook (draft)
 
-Status: **draft, October 6, 2026.** It covers what is built on `main`. CMMC
-close and package issuance (#107/#108) and the CMMC Windows acceptance (#109)
-are not built yet. Their sections say so. This runbook does not replace
+Status: **draft, October 6, 2026.** It covers what is built on `main`. The
+CMMC Windows/offline acceptance on the Surface (#109) is still open. This runbook does not replace
 `docs/specification.md`; where the two disagree, the specification wins.
 
 ## 1. Before you start
@@ -81,8 +80,24 @@ are not built yet. Their sections say so. This runbook does not replace
 5. **Findings.** A Not Met requirement automatically gets exactly one finding,
    listing its failed objectives. Add POA&M items on the requirement page.
    Pending creates follow-up work only.
-6. **Not built yet:** the CMMC close gate, SSP, and package issuance
-   (#107/#108). Do not represent a CMMC engagement as issued.
+6. **Close POA&M items.** Once a requirement derives Met again, use **Close
+   item** on its POA&M items and record how the remediation was verified.
+7. **System Security Plan** (SSP panel). Generate it once every requirement is
+   Met or Not Met. Write the system description, the environment narrative,
+   and each implementation statement. Every save is a new version. **Approve
+   and freeze** when nothing is missing. The DOCX download is a delivery copy
+   only.
+8. **Close readiness.** All of these must hold:
+   - every objective is Met
+   - no POA&M item is open
+   - the SSP is approved
+   - every mapped evidence file passes its hash check
+   - the Profile is complete
+9. **Generate, review, back up, and issue** the standard package: assessment
+   report, SSP, POA&M history, and evidence index. This is the same review,
+   sign-off, backup, and issue flow as HIPAA. Presentation corrections and
+   substantive reopening also work as they do for HIPAA. A reopened assessment
+   needs its own SSP.
 
 ## 6. Evidence
 
@@ -137,9 +152,8 @@ are not built yet. Their sections say so. This runbook does not replace
 
 ## 9. Open items before broader V1 release
 
-- #107/#108: CMMC SSP, close gate, and package issuance.
 - #109: CMMC Windows/offline acceptance on the Surface.
 - #32: native x64, adapter-disabled, and downloaded-file SmartScreen checks.
 - Monthly restore testing on the target device.
-- One synthetic HIPAA and one synthetic CMMC engagement, end to end, once #108
-  lands.
+- One synthetic HIPAA and one synthetic CMMC engagement run end to end by the
+  operator on the Surface.
