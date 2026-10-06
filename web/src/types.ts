@@ -204,13 +204,6 @@ export interface ProfileReadiness {
   profile_completion_blocking_reasons: string[];
   follow_up_work_required_states: string[];
   follow_up_work_required_when_unresolved_required_fields: boolean;
-  boundary_document: string;
-  acknowledgement: {
-    document_path: string;
-    statement: string;
-    actor: { id: string; display_name: string };
-    timestamp: string;
-  } | null;
   current_details: {
     unresolved_required_fields: string[];
     follow_up_work: string;

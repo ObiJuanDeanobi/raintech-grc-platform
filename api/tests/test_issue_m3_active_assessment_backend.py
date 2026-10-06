@@ -19,10 +19,6 @@ def create_project(client: TestClient, client_id: str, name: str) -> str:
 
 def create_assessment(client: TestClient, project_id: str) -> str:
     assert (
-        client.post(f"/api/projects/{project_id}/profile-readiness/acknowledgement").status_code
-        == 201
-    )
-    assert (
         client.post(
             f"/api/projects/{project_id}/profile-readiness/transitions",
             json={

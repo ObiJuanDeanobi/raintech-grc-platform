@@ -88,21 +88,6 @@ function ReadinessPanel({
     setApprovalEvidence(readiness.current_details.approval_evidence);
   }, [readiness]);
 
-  async function acknowledge() {
-    setWorking(true);
-    setError("");
-    try {
-      await request(`/api/projects/${readiness.project_id}/profile-readiness/acknowledgement`, {
-        method: "POST",
-      });
-      await onChanged();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Acknowledgement failed.");
-    } finally {
-      setWorking(false);
-    }
-  }
-
   async function saveTransition(event: FormEvent) {
     event.preventDefault();
     setWorking(true);
@@ -172,23 +157,6 @@ function ReadinessPanel({
             {hasAssessment ? "Assessment already started" : "Start assessment"}
           </button>
         </article>
-        <article>
-          <h2>Operating boundary</h2>
-          <code>{readiness.boundary_document}</code>
-          <p>
-            Acknowledging this document records that it was reviewed. It is explicitly not an
-            attestation that content is free of CUI, PHI, or ePHI.
-          </p>
-          {readiness.acknowledgement ? (
-            <p className="readiness-ok">
-              Acknowledged by {readiness.acknowledgement.actor.display_name}
-            </p>
-          ) : (
-            <button className="secondary-button" disabled={working} onClick={() => void acknowledge()}>
-              Acknowledge boundary
-            </button>
-          )}
-        </article>
       </div>
       <form className="readiness-form" onSubmit={(event) => void saveTransition(event)}>
         <div className="section-title">
@@ -241,7 +209,7 @@ function ReadinessPanel({
           </div>
         )}
         {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="small-button" disabled={working || !readiness.acknowledgement} type="submit">
+        <button className="small-button" disabled={working} type="submit">
           Record transition
         </button>
       </form>

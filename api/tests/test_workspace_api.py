@@ -16,7 +16,6 @@ def create_workspace(client: TestClient) -> tuple[str, str]:
         f"/api/clients/{client_id}/projects",
         json={"name": "HIPAA 2026"},
     ).json()
-    client.post(f"/api/projects/{project['id']}/profile-readiness/acknowledgement")
     client.post(
         f"/api/projects/{project['id']}/profile-readiness/transitions",
         json={
@@ -72,11 +71,6 @@ def test_client_project_and_hipaa_assessment_are_created_and_retrievable(
         assert project["framework_version_id"] == "hipaa-45cfr164-2026-07-01"
 
         assert client.get(f"/api/projects/{project['id']}/assessment").status_code == 404
-        assert (
-            client.post(f"/api/projects/{project['id']}/profile-readiness/acknowledgement")
-            .status_code
-            == 201
-        )
         assert (
             client.post(
                 f"/api/projects/{project['id']}/profile-readiness/transitions",

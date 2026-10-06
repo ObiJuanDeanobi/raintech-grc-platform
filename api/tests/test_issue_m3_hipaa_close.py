@@ -39,7 +39,6 @@ def test_blank_pending_and_na_without_rationale_are_blockers(tmp_path: Path) -> 
         create_app(database_path=tmp_path / "db.sqlite", storage_path=tmp_path / "files")
     ) as client:
         pid = project(client, "assessment")
-        client.post(f"/api/projects/{pid}/profile-readiness/acknowledgement")
         client.post(
             f"/api/projects/{pid}/profile-readiness/transitions",
             json={"next_state": "Intake complete", "decision_note": "test"},
@@ -111,7 +110,6 @@ def test_assessment_id_is_scoped_to_project_and_response_has_actionable_shape(
         one = project(client, "one")
         two = project(client, "two")
         for pid in (one, two):
-            client.post(f"/api/projects/{pid}/profile-readiness/acknowledgement")
             client.post(
                 f"/api/projects/{pid}/profile-readiness/transitions",
                 json={"next_state": "Intake complete", "decision_note": "test"},
@@ -157,7 +155,6 @@ def test_close_rejects_assessment_from_another_project(
                 f"/api/clients/{client_two}/projects", json={"name": "Project Two"}
             ).json()["id"],
         )
-        client.post(f"/api/projects/{one}/profile-readiness/acknowledgement")
         client.post(
             f"/api/projects/{one}/profile-readiness/transitions",
             json={"next_state": "Intake complete", "decision_note": "test"},
@@ -179,7 +176,6 @@ def test_close_rejects_inactive_assessment_before_assessment_source_reads(
         create_app(database_path=tmp_path / "db.sqlite", storage_path=tmp_path / "files")
     ) as client:
         pid = project(client, "inactive")
-        client.post(f"/api/projects/{pid}/profile-readiness/acknowledgement")
         client.post(
             f"/api/projects/{pid}/profile-readiness/transitions",
             json={"next_state": "Intake complete", "decision_note": "test"},
@@ -198,7 +194,6 @@ def test_na_without_rationale_blocks_but_justified_na_is_not_a_na_blocker(tmp_pa
         create_app(database_path=tmp_path / "db.sqlite", storage_path=tmp_path / "files")
     ) as client:
         pid = project(client, "na")
-        client.post(f"/api/projects/{pid}/profile-readiness/acknowledgement")
         client.post(
             f"/api/projects/{pid}/profile-readiness/transitions",
             json={"next_state": "Intake complete", "decision_note": "test"},

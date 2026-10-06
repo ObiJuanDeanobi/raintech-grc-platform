@@ -79,8 +79,6 @@ def _app(tmp_path: Path) -> tuple[TestClient, Path]:
 
 
 def _create_assessment(client: TestClient, project: str) -> str:
-    acknowledgement = client.post(f"/api/projects/{project}/profile-readiness/acknowledgement")
-    assert acknowledgement.status_code == 201
     assert client.post(
         f"/api/projects/{project}/profile-readiness/transitions",
         json={"next_state": "Intake complete", "decision_note": "Synthetic intake."},

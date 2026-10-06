@@ -14,7 +14,6 @@ def setup_case(
 ) -> tuple[str, str, str]:
     cid = client.post("/api/clients", json={"name": name}).json()["id"]
     pid = client.post(f"/api/clients/{cid}/projects", json={"name": name}).json()["id"]
-    client.post(f"/api/projects/{pid}/profile-readiness/acknowledgement")
     client.post(
         f"/api/projects/{pid}/profile-readiness/transitions",
         json={"next_state": "Intake complete", "decision_note": "test"},
