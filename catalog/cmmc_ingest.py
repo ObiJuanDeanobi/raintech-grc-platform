@@ -25,6 +25,8 @@ AUTHORITY = "CMMC Assessment Guide Level 2 Version 2.13 (NIST SP 800-171 Rev. 2,
 REQUIREMENT_ID = re.compile(r"^[A-Z]{2}\.L2-3\.\d+\.\d+$")
 FOOTNOTE = re.compile(r"\]\s?\d{1,3}\b")
 CASE_ARTIFACT = re.compile(r"\[[a-z]{2,}\b")
+# A running page header ("AC.L2-3.1.1 – Authorized Access Control") captured mid-text.
+PAGE_HEADER = re.compile(r"\b[A-Z]{2}\.L2-3\.\d+\.\d+\s+[–-]\s+\w")
 
 
 def _canonical(value: Any) -> str:
@@ -57,6 +59,10 @@ def build(seed: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, str]]]:
             if FOOTNOTE.search(value):
                 discrepancies.append(
                     {"id": rid, "field": field, "issue": "Contains an extracted footnote marker"}
+                )
+            if field != "name" and PAGE_HEADER.search(value):
+                discrepancies.append(
+                    {"id": rid, "field": field, "issue": "Contains a leaked page header"}
                 )
             if CASE_ARTIFACT.search(value):
                 discrepancies.append(
@@ -161,7 +167,8 @@ def export(catalog: dict[str, Any], discrepancies: list[dict[str, str]]) -> str:
             "Footnote markers are the guide's footnote numbers captured after a bracketed "
             "source label (for example `[NIST SP 800-171A] 11`). Lower-case bracketed text "
             "(for example `[cui Data]`) differs from the guide's capitalization. Both are "
-            "left as-is pending Johnathan's review.",
+            "left as-is pending Johnathan's review. Leaked page headers are the guide's "
+            "running header (requirement ID and title) captured inside body text.",
         ]
     else:
         lines.append("None.")
