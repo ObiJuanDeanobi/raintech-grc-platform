@@ -32,11 +32,21 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #108 - CMMC close gate and standard package issuance; PR
-pending.** See `docs/evidence/issue-108/CLOSE_ISSUE_VERIFICATION.md`. CMMC now
-issues through the shared review, backup, issue, correction, and reopening
-chain. Migration `0020` adds CMMC POA&M closure. With this, CMMC Level 2 is
-complete in software. #109 (the Surface acceptance) is deferred by Johnathan.
+**None agent-buildable. CMMC Level 2 is complete in software.**
+
+#108 (CMMC close gate and standard package issuance) merged through PR #123
+at `4b0528b` on October 6, 2026, after all CI checks passed on head
+`98f99ae`; the issue auto-closed. See
+`docs/evidence/issue-108/CLOSE_ISSUE_VERIFICATION.md`. Migration `0020` adds
+CMMC POA&M closure; the next migration number is `0021`. PR #123 also carried
+the #30 `[CUI Data]` title display fix.
+
+Remaining work needs Johnathan or the Surface: #109 (CMMC Windows/offline
+acceptance), #32 (native x64, adapter-disabled, SmartScreen), the monthly
+restore test (AC-021), #31 (run `catalog/cmmc_guidance_reconcile.py` against
+the original workbook), #30 (review `docs/catalogs/cmmc-l2-ag-v2.13.md`),
+confirmation of the SSP template approval record, and roadmap item 10 (one
+synthetic HIPAA and one synthetic CMMC engagement end to end on the Surface).
 
 #107 (CMMC SSP) merged through PR #122 at `b7b249b`. Its template follows the
 public NIST SP 800-171 CUI SSP structure, approved under the October 6
