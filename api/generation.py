@@ -21,11 +21,49 @@ __all__ = [
     "render_report",
 ]
 
-TEMPLATE_ROOT = "docs/templates/hipaa/v2"
-TEMPLATES: tuple[tuple[str, str], ...] = (
-    ("assessment_report", "RainTech_HIPAA_Combined_Assessment_Report_v2.docx"),
-    ("poam", "RainTech_HIPAA_POAM_v2.xlsx"),
-)
+# Each template version is an immutable folder. Changing a template that an issued
+# package used means adding a new version here and making it current; the old
+# folder stays so earlier packages keep their own review binding.
+TEMPLATE_VERSIONS: dict[str, tuple[str, tuple[tuple[str, str], ...]]] = {
+    "hipaa-v2": (
+        "docs/templates/hipaa/v2",
+        (
+            ("assessment_report", "RainTech_HIPAA_Combined_Assessment_Report_v2.docx"),
+            ("poam", "RainTech_HIPAA_POAM_v2.xlsx"),
+        ),
+    ),
+}
+CURRENT_TEMPLATE_VERSION = "hipaa-v2"
+TEMPLATE_ROOT, TEMPLATES = TEMPLATE_VERSIONS[CURRENT_TEMPLATE_VERSION]
+
+
+def template_files(root: Path, version: str) -> list[tuple[str, Path]]:
+    if version not in TEMPLATE_VERSIONS:
+        raise ValueError(f"Unknown template version: {version}")
+    folder, files = TEMPLATE_VERSIONS[version]
+    return [(kind, root / folder / filename) for kind, filename in files]
+
+
+def template_hashes(root: Path, version: str) -> dict[str, str]:
+    return {
+        kind: sha256(path.read_bytes()).hexdigest() for kind, path in template_files(root, version)
+    }
+
+
+def assert_template_unchanged(connection: sqlite3.Connection, root: Path, version: str) -> None:
+    """Refuse to render with a template version whose issued bytes have changed."""
+    current = template_hashes(root, version)
+    for (manifest_json,) in connection.execute(
+        """SELECT p.manifest_json FROM generated_packages p
+           JOIN issuance_snapshots i ON i.package_id = p.id AND i.project_id = p.project_id
+           WHERE p.template_version = ?""",
+        (version,),
+    ):
+        if json.loads(manifest_json).get("template_hashes") != current:
+            raise ValueError(
+                f"Template version {version} was used by an issued package and its files "
+                "have changed; publish the change as a new template version"
+            )
 
 
 def _now() -> str:
@@ -153,7 +191,7 @@ def _snapshot(
             row["poam_status"] = a["status"]
     source = {
         "snapshot_id": str(uuid4()),
-        "template_version": "hipaa-v2",
+        "template_version": CURRENT_TEMPLATE_VERSION,
         "framework": {
             "id": assessment["framework_version_id"],
             "title": framework_row.get("name"),
@@ -274,24 +312,28 @@ def render_package(
             None,
         ),
     )
+    version = CURRENT_TEMPLATE_VERSION
+    assert_template_unchanged(connection, root, version)
+    # The stored snapshot is immutable; render it with the version actually used.
+    rendered_source = {**source, "template_version": version}
     staged = []
     promoted = []
     try:
         components = []
         render_staging = staging_root or root / "data" / "generation-staging"
         render_staging.mkdir(parents=True, exist_ok=True)
-        for kind, filename in TEMPLATES:
-            template = root / TEMPLATE_ROOT / filename
+        for kind, template in template_files(root, version):
+            filename = template.name
             component_id = str(uuid4())
             content = template.read_bytes()
             if kind == "assessment_report":
                 out = render_staging / f"{component_id}-{filename}"
-                render_report(template, out, source)
+                render_report(template, out, rendered_source)
                 content = out.read_bytes()
                 out.unlink(missing_ok=True)
             elif kind == "poam":
                 out = render_staging / f"{component_id}-{filename}"
-                render_poam(template, out, source)
+                render_poam(template, out, rendered_source)
                 content = out.read_bytes()
                 out.unlink(missing_ok=True)
             staged_path, final_path = storage.stage(project_id, component_id, filename, content)
@@ -310,11 +352,8 @@ def render_package(
             "project_id": project_id,
             "assessment_id": assessment_id,
             "source_snapshot_sha256": source_hash,
-            "template_version": "hipaa-v2",
-            "template_hashes": {
-                kind: sha256((root / TEMPLATE_ROOT / filename).read_bytes()).hexdigest()
-                for kind, filename in TEMPLATES
-            },
+            "template_version": version,
+            "template_hashes": template_hashes(root, version),
             "components": components,
         }
         manifest_json = json.dumps(manifest, sort_keys=True, separators=(",", ":"))
@@ -326,7 +365,7 @@ def render_package(
                 assessment_id,
                 attempt_id,
                 snapshot_id,
-                "hipaa-v2",
+                version,
                 "staged",
                 manifest_json,
                 sha256(manifest_json.encode()).hexdigest(),
