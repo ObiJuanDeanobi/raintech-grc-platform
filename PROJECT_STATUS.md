@@ -40,7 +40,10 @@ and Start assessment sit on the same page. Starting an assessment moves to the
 Assessments view. The "+ Client / project" button now also appears before an
 assessment exists; it used to be missing there. Reviewer and approval fields
 show only when recording *Profile complete*. The project name no longer
-defaults to "HIPAA 2026". Frontend only; no API or schema change.
+defaults to "HIPAA 2026". Close readiness and package generation, review, and issue moved from the top
+of every requirement page to Overview. The runbook now says the SSP also
+needs an approved Profile version, which the code already required.
+Frontend only; no API or schema change.
 
 Johnathan removed the operating boundary acknowledgment on October 6, 2026,
 after seeing it on the Surface: "that boundary is implied." Profile readiness no

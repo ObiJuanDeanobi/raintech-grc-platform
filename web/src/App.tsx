@@ -1711,7 +1711,7 @@ export function Workspace({
   projectId: string;
   onProjectChange: (id: string) => void;
   onWorkspaceCreated: (id: string) => void;
-  initialView?: "assessment" | "profile";
+  initialView?: "assessment" | "overview" | "profile";
 }) {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loadedProjectId, setLoadedProjectId] = useState("");
@@ -2178,12 +2178,6 @@ export function Workspace({
           </div>
         )}
         {assessment.reopening && <RevalidationPanel key={`revalidation:${assessment.id}`} projectId={assessment.project.id} assessmentId={assessment.id} reopening={assessment.reopening} items={assessment.revalidation_items ?? []} currentRecordId={recordId} onChanged={() => setRevalidationTick((tick) => tick + 1)} onOpenRecord={(next) => changeRecord(next)} />}
-        {assessment.framework.declarations.close_readiness && <CloseReadinessPanel key={`close:${assessment.project.id}:${assessment.id}:${revalidationTick}`} projectId={assessment.project.id} assessmentId={assessment.id} onNavigate={(link) => {
-          const target = String(link.target ?? link.view ?? "");
-          if (target === "profile" || target === "sra" || target === "overview") changeView(target as "profile" | "sra" | "overview");
-          else if (link.record_id || link.recordId) changeRecord(String(link.record_id ?? link.recordId));
-        }} />}
-        {assessment.framework.declarations.close_readiness && <PackageGenerationPanel key={`package:${assessment.project.id}:${assessment.id}:${revalidationTick}`} projectId={assessment.project.id} assessmentId={assessment.id} records={assessment.record_index} onReopened={refreshAssessmentProgress} />}
 
         {detail.parent && (
           <section className="parent-context">
@@ -2394,6 +2388,18 @@ export function Workspace({
             )}
             <button className="secondary-button" onClick={() => changeView("profile")}>Review profile gate</button>
           </section>
+          {assessment.framework.declarations.close_readiness && <CloseReadinessPanel key={`close:${assessment.project.id}:${assessment.id}:${revalidationTick}`} projectId={assessment.project.id} assessmentId={assessment.id} onNavigate={(link) => {
+            const target = String(link.target ?? link.view ?? "");
+            if (target === "profile" || target === "sra") changeView(target as "profile" | "sra");
+            else if (link.record_id || link.recordId) {
+              changeRecord(String(link.record_id ?? link.recordId));
+              setView("assessment");
+            }
+          }} />}
+          {assessment.framework.declarations.close_readiness && <PackageGenerationPanel key={`package:${assessment.project.id}:${assessment.id}:${revalidationTick}`} projectId={assessment.project.id} assessmentId={assessment.id} records={assessment.record_index} onReopened={async () => {
+            await refreshAssessmentProgress();
+            setView("assessment");
+          }} />}
           <div className="overview-projects">
             <div className="section-title"><h2>Client projects</h2><span>{projects.length}</span></div>
             {projects.map((project) => (

@@ -275,7 +275,7 @@ test("renders close-readiness checks, blockers, later gates, and actionable reco
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
   });
-  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="overview" />);
   expect(await screen.findByText("Fieldwork ready for generation")).toBeVisible();
   expect(screen.getByText("Resolve open findings")).toBeVisible();
   expect(screen.getByText("Determinations")).toBeVisible();
@@ -283,6 +283,9 @@ test("renders close-readiness checks, blockers, later gates, and actionable reco
   expect(screen.getByText("package · not_applicable")).toBeVisible();
   await userEvent.setup().click(screen.getByRole("button", { name: "Open risk record" }));
   expect(calls.some((url) => url.includes("close-readiness"))).toBe(true);
+  // The record link opens the assessment, where close and package panels are not repeated.
+  expect(screen.getByRole("button", { name: "Assessments" })).toHaveClass("active");
+  expect(screen.queryByText("Fieldwork ready for generation")).not.toBeInTheDocument();
 });
 
 test("generates and exposes only the promoted two-component package", async () => {
@@ -301,7 +304,7 @@ test("generates and exposes only the promoted two-component package", async () =
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
   });
-  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="overview" />);
   expect(await screen.findByText("Complete package")).toBeVisible();
   expect(screen.queryByText("Package staged")).not.toBeInTheDocument();
   expect(screen.getByText("report.docx")).toBeVisible();
@@ -334,7 +337,7 @@ test("reviews and explicitly signs the exact generated package", async () => {
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
   });
-  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="overview" />);
   expect(await screen.findByText("Complete candidate")).toBeVisible();
   const user = userEvent.setup();
   await user.type(screen.getByLabelText("Reviewer name"), "Johnathan Dean");
@@ -388,7 +391,7 @@ test("creates the exact recovery set before issuing final deliverables", async (
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
   });
-  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="overview" />);
   const user = userEvent.setup();
   await user.click(await screen.findByRole("button", { name: "Create and validate backup" }));
   expect(await screen.findByText("backup-123")).toBeVisible();
@@ -425,7 +428,7 @@ test("presentation-only correction is explicit and keeps the superseded issue vi
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
   });
-  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="overview" />);
   const user = userEvent.setup();
   const create = await screen.findByRole("button", { name: "Create corrected package" });
   expect(create).toBeDisabled();
@@ -470,7 +473,7 @@ test("substantive reopening requires selected records and revalidation before th
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
   });
-  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="overview" />);
   const user = userEvent.setup();
   await user.click(await screen.findByRole("button", { name: "Reopen for substantive correction…" }));
   const submit = screen.getByRole("button", { name: "Reopen assessment" });
@@ -482,7 +485,9 @@ test("substantive reopening requires selected records and revalidation before th
   await user.click(submit);
   expect(await screen.findByText("Needs Revalidation")).toBeVisible();
   expect(screen.getByText("1 of 1 remaining")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Overview" }));
   expect(await screen.findByText("Revalidate reopened record: child-1")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: /Continue assessment/ }));
   await user.type(screen.getByLabelText("Revalidation note"), "Re-examined.");
   await user.click(screen.getByRole("button", { name: "Mark revalidated" }));
   expect(await screen.findByText("All revalidated")).toBeVisible();
