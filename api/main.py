@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, field_validator
 
+from api import cmmc
 from api.close import fieldwork_ready
 from api.correction import create_correction, package_issuance
 from api.database import (
@@ -43,6 +44,17 @@ def now() -> str:
 
 class ClientCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
+
+
+class PartialImplementationSave(BaseModel):
+    implementation: str
+    rationale: str = ""
+    actor_id: str = "johnathan"
+
+
+class PoamItemCreate(BaseModel):
+    title: str
+    description: str = ""
 
 
 class ProjectCreate(BaseModel):
@@ -3127,8 +3139,149 @@ def create_app(
                     "status": payload.status,
                 },
             )
+            if declarations.get("findings_rule") == "requirement_level" and record["parent_id"]:
+                assessment_row = _active_assessment_or_404(connection, assessment_id)
+                cmmc.sync_requirement_finding(
+                    connection,
+                    assessment_row["project_id"],
+                    assessment_row,
+                    record["parent_id"],
+                    _derived_status,
+                )
             saved = _record_detail(connection, assessment_id, record_id)["determination"]
             return cast(dict[str, Any], saved)
+
+    def cmmc_context(connection: Any, project_id: str, assessment_id: str) -> tuple[Any, Any]:
+        assessment = _assessment_for_project_or_404(connection, project_id, assessment_id)
+        scoring = _framework_declarations(connection, assessment_id).get("scoring")
+        if not scoring:
+            raise HTTPException(404, "Official scoring is not declared for this framework")
+        return assessment, scoring
+
+    def requirement_or_404(connection: Any, assessment: Any, record_id: str) -> None:
+        row = connection.execute(
+            """SELECT 1 FROM framework_records WHERE framework_version_id = ?
+               AND record_id = ? AND parent_id IS NULL""",
+            (assessment["framework_version_id"], record_id),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(404, "Requirement not found")
+
+    @app.get("/api/projects/{project_id}/assessments/{assessment_id}/cmmc-score")
+    def get_cmmc_score(
+        project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            assessment, scoring = cmmc_context(connection, project_id, assessment_id)
+            return cmmc.score(connection, assessment, scoring, _derived_status)
+
+    @app.put(
+        "/api/projects/{project_id}/assessments/{assessment_id}"
+        "/requirements/{record_id}/partial-implementation"
+    )
+    def save_partial_implementation(
+        project_id: str,
+        assessment_id: str,
+        record_id: str,
+        payload: PartialImplementationSave,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            assessment, scoring = cmmc_context(connection, project_id, assessment_id)
+            requirement_or_404(connection, assessment, record_id)
+            if scoring["requirements"][record_id]["rule"] != "partial":
+                raise HTTPException(422, "This requirement has no partial-credit rule")
+            if payload.implementation not in {"partial", "none"}:
+                raise HTTPException(422, "Implementation must be partial or none")
+            if not payload.rationale.strip():
+                raise HTTPException(422, "Record why the implementation is partial or absent")
+            _user_or_422(connection, payload.actor_id)
+            connection.execute(
+                """INSERT INTO partial_implementations(
+                       assessment_id, project_id, record_id, implementation, rationale,
+                       actor_id, updated_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(assessment_id, record_id) DO UPDATE SET
+                       implementation = excluded.implementation,
+                       rationale = excluded.rationale,
+                       actor_id = excluded.actor_id,
+                       updated_at = excluded.updated_at""",
+                (
+                    assessment_id,
+                    project_id,
+                    record_id,
+                    payload.implementation,
+                    payload.rationale.strip(),
+                    payload.actor_id,
+                    now(),
+                ),
+            )
+            _audit(
+                connection,
+                "cmmc.partial_implementation_saved",
+                "requirement",
+                f"{assessment_id}:{record_id}",
+                {"implementation": payload.implementation},
+                actor_id=payload.actor_id,
+            )
+            return cmmc.score(connection, assessment, scoring, _derived_status)
+
+    @app.get(
+        "/api/projects/{project_id}/assessments/{assessment_id}/requirements/{record_id}/finding"
+    )
+    def get_requirement_finding(
+        project_id: str,
+        assessment_id: str,
+        record_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any] | None:
+        with database.connect() as connection:
+            assessment, _ = cmmc_context(connection, project_id, assessment_id)
+            requirement_or_404(connection, assessment, record_id)
+            return cmmc.requirement_finding(
+                connection, project_id, assessment, record_id, _derived_status
+            )
+
+    @app.post(
+        "/api/projects/{project_id}/assessments/{assessment_id}/requirements/{record_id}/poam",
+        status_code=201,
+    )
+    def add_poam_item(
+        project_id: str,
+        assessment_id: str,
+        record_id: str,
+        payload: PoamItemCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any] | None:
+        with database.connect() as connection:
+            assessment, _ = cmmc_context(connection, project_id, assessment_id)
+            requirement_or_404(connection, assessment, record_id)
+            if not payload.title.strip():
+                raise HTTPException(422, "A POA&M item needs a title")
+            finding = cmmc.requirement_finding(
+                connection, project_id, assessment, record_id, _derived_status
+            )
+            if finding is None or finding["requirement_status"] != "Not Met":
+                raise HTTPException(
+                    409, "POA&M items attach only to a requirement that is currently Not Met"
+                )
+            action_id = cmmc.add_poam_item(
+                connection,
+                project_id,
+                finding["finding"]["id"],
+                payload.title.strip(),
+                payload.description.strip(),
+            )
+            _audit(
+                connection,
+                "cmmc.poam_item_created",
+                "corrective_action",
+                action_id,
+                {"finding_id": finding["finding"]["id"], "record_id": record_id},
+            )
+            return cmmc.requirement_finding(
+                connection, project_id, assessment, record_id, _derived_status
+            )
 
     @app.get(
         "/api/projects/{project_id}/assessments/{assessment_id}/records/{record_id}/reconciliation"
@@ -3233,6 +3386,10 @@ def create_app(
         with database.connect() as connection:
             _assessment_for_project_or_404(connection, project_id, assessment_id)
             _record_or_404(connection, assessment_id, record_id)
+            if _framework_declarations(connection, assessment_id).get("findings_rule"):
+                raise HTTPException(
+                    409, "Findings for this framework are kept at requirement level"
+                )
             determination = connection.execute(
                 "SELECT status FROM determinations WHERE assessment_id=? AND record_id=?",
                 (assessment_id, record_id),

@@ -293,6 +293,7 @@ def seed_framework(database: Database, repository_root: Path) -> None:
 
 
 CMMC_FRAMEWORK_ID = "cmmc-l2-ag-v2.13"
+CMMC_SCORING_ID = "cmmc-l2-scoring-32cfr170-2024-12-16"
 
 
 def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
@@ -304,6 +305,10 @@ def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
     """
     catalog_path = repository_root / "catalog" / "versions" / f"{CMMC_FRAMEWORK_ID}.json"
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    scoring_path = repository_root / "catalog" / "versions" / f"{CMMC_SCORING_ID}.json"
+    scoring = json.loads(scoring_path.read_text(encoding="utf-8"))
+    if scoring["catalog_content_sha256"] != catalog["content_sha256"]:
+        raise ValueError("CMMC scoring data is pinned to a different catalog")
     records: list[dict[str, Any]] = catalog["records"]
     declarations = {
         "record_shape": {
@@ -322,6 +327,9 @@ def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
         "walkthrough_membership": "all_records",
         "profile_readiness": PROFILE_READINESS,
         "content_sha256": catalog["content_sha256"],
+        # Findings attach to the derived requirement, not to each objective (#105).
+        "findings_rule": "requirement_level",
+        "scoring": scoring,
     }
     determination_record_ids = _determination_record_ids(records, declarations)
     with database.connect() as connection:

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
@@ -1646,7 +1646,7 @@ test("warns before record navigation and before unload until the latest save suc
   });
 });
 
-test("CMMC shows each requirement with its objectives and nests only the active requirement's objectives", async () => {
+function cmmcFixtures() {
   const requirement = (id: string, title: string, sort: number) => ({
     record_id: id, citation: id, title, work_area: "Access Control", record_type: "requirement",
     parent_id: null, designation: null, sort_order: sort, editable_determination: false,
@@ -1695,12 +1695,18 @@ test("CMMC shows each requirement with its objectives and nests only the active 
       { ...workList[2], regulation_text: "processes acting on behalf of authorized users are identified;", determination: { status: "Met" } },
     ],
   };
+  return { workList, cmmc, requirementDetail };
+}
+
+test("CMMC shows each requirement with its objectives and nests only the active requirement's objectives", async () => {
+  const { cmmc, requirementDetail } = cmmcFixtures();
   mockApi(async (input) => {
     const url = String(input);
     if (url.endsWith("/assessment")) return Response.json(cmmc);
     if (url.includes("/records/AC.L2-3.1.1")) return Response.json(requirementDetail);
     if (url.includes("/evidence")) return Response.json([]);
-    return Response.json({});
+    if (url.endsWith("/finding")) return Response.json(null);
+    return Response.json({ detail: "not found" }, { status: 404 });
   });
   render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
   const objectives = await screen.findByRole("region", { name: "Assessment objectives" });
@@ -1748,4 +1754,58 @@ test("project creation sends the chosen framework version", async () => {
   await user.click(screen.getByRole("button", { name: /Create workspace/ }));
   await waitFor(() => expect(posted).toHaveLength(1));
   expect(JSON.parse(posted[0])).toMatchObject({ framework_version_id: "cmmc-l2-ag-v2.13" });
+});
+
+test("CMMC shows the official score and the requirement finding with POA&M items", async () => {
+  const { cmmc, requirementDetail } = cmmcFixtures();
+  const scored = {
+    ...cmmc,
+    framework: {
+      ...cmmc.framework,
+      declarations: {
+        ...cmmc.framework.declarations,
+        scoring: {
+          authority: "32 CFR 170.24 CMMC Scoring Methodology",
+          requirements: { "AC.L2-3.1.1": { rule: "fixed", points: 5, source: "32 CFR 170.24(c)(2)(i)(B)(1)" } },
+        },
+      },
+    },
+  };
+  mockApi(async (input) => {
+    const url = String(input);
+    if (url.endsWith("/assessment")) return Response.json(scored);
+    if (url.endsWith("/cmmc-score")) {
+      return Response.json({
+        authority: "32 CFR 170.24 CMMC Scoring Methodology", maximum_score: 110, minimum_score: -203, score: 105,
+        complete: false, blockers: ["108 requirement(s) are not yet Met or Not Met."],
+        deductions: [{ record_id: "AC.L2-3.1.1", citation: "AC.L2-3.1.1", title: "Authorized Access Control", points: 5, source: "32 CFR 170.24(c)(2)(i)(B)(1)", conditional_poam_allowed: false }],
+        unscored: [], partial_inputs_needed: [], partial_implementations: {}, follow_up: [{ record_id: "AC.L2-3.1.2a", requirement_id: "AC.L2-3.1.2", kind: "evidence_request" }],
+        conditional: { source: "32 CFR 170.21(a)(2)", score_ratio: 0.95, eligible: false },
+      });
+    }
+    if (url.endsWith("/finding")) {
+      return Response.json({
+        finding: { id: "finding-1", title: "Not Met: AC.L2-3.1.1 Authorized Access Control", status: "Open" },
+        requirement_id: "AC.L2-3.1.1", requirement_status: "Not Met",
+        failed_objectives: [{ record_id: "AC.L2-3.1.1a", citation: "AC.L2-3.1.1[a]", regulation_text: "authorized users are identified;", note: "List is stale.", interview_observation: "", evidence: [{ name: "users.txt", rationale: "Current list" }] }],
+        poam_items: [{ id: "action-1", title: "Rebuild the authorized user list", description: "", status: "Open", validation_state: "Not Ready" }],
+        history: [{ event: "opened", failed_objectives: ["AC.L2-3.1.1a"], created_at: "2026-10-06T18:00:00Z" }],
+      });
+    }
+    if (url.includes("/records/AC.L2-3.1.1")) return Response.json(requirementDetail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  const score = await screen.findByRole("region", { name: "Official CMMC score" });
+  expect(score).toHaveTextContent("105");
+  expect(score).toHaveTextContent("of 110 · provisional");
+  expect(score).toHaveTextContent("Not eligible");
+  const finding = await screen.findByRole("region", { name: "Requirement finding" });
+  expect(finding).toHaveTextContent("5 points if Not Met");
+  expect(finding).toHaveTextContent("32 CFR 170.24(c)(2)(i)(B)(1)");
+  expect(await within(finding).findByText(/List is stale/)).toBeVisible();
+  expect(finding).toHaveTextContent("Evidence: users.txt");
+  expect(finding).toHaveTextContent("Rebuild the authorized user list");
+  expect(within(finding).getByRole("button", { name: "Add POA&M item" })).toBeVisible();
 });

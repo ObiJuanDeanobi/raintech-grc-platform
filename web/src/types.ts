@@ -20,6 +20,11 @@ export interface FrameworkDeclarations {
   presentation_mode: string;
   // Declared only by frameworks with a fieldwork close and package workflow.
   close_readiness?: Record<string, unknown>;
+  // CMMC: official point values from 32 CFR 170.24, keyed by requirement.
+  scoring?: {
+    authority: string;
+    requirements: Record<string, { rule: string; points?: number; source: string; note?: string }>;
+  };
   sra?: {
     anchor_record_id: string;
     work_area: string;
@@ -486,4 +491,28 @@ export interface RecordDetail {
     previous_record_id: string | null;
     next_record_id: string | null;
   };
+}
+
+export interface CmmcScore {
+  authority: string;
+  maximum_score: number;
+  minimum_score: number;
+  score: number;
+  complete: boolean;
+  blockers: string[];
+  deductions: { record_id: string; citation: string; title: string; points: number | null; source: string; conditional_poam_allowed: boolean }[];
+  unscored: { record_id: string; status: string }[];
+  partial_inputs_needed: string[];
+  partial_implementations: Record<string, { implementation: "partial" | "none"; rationale: string }>;
+  follow_up: { record_id: string; requirement_id: string; kind: string }[];
+  conditional: { source: string; score_ratio: number; eligible: boolean };
+}
+
+export interface RequirementFinding {
+  finding: { id: string; title: string; status: string };
+  requirement_id: string;
+  requirement_status: string;
+  failed_objectives: { record_id: string; citation: string; regulation_text: string; note: string; interview_observation: string; evidence: { name: string; rationale: string }[] }[];
+  poam_items: { id: string; title: string; description: string; status: string; validation_state: string }[];
+  history: { event: string; failed_objectives: string[]; created_at: string }[];
 }

@@ -32,15 +32,17 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #104 - CMMC objective-level workspace, PR pending.** See
-`docs/evidence/issue-104/CMMC_WORKSPACE_VERIFICATION.md`. CMMC is seeded at
-startup beside HIPAA and selectable at project creation. Objectives carry the
-determinations, requirements derive status, and Met needs evidence or an
-interview/observation. RainTech guidance shows read-only, labelled as not
-DoD/NIST text. Close, packages, SRA, and Not Met reconciliation stay
-HIPAA-only until #105–#108. No migration. Local gates: 208 API, 87 catalog,
-62 frontend, Ruff, Mypy, typecheck, ESLint, build. Browser evidence is headless
-Chromium in the cloud, not Edge on the Surface.
+**GitHub issue #105 - CMMC official scoring, requirement findings, POA&M; PR
+pending.** See `docs/evidence/issue-105/SCORING_FINDINGS_VERIFICATION.md`.
+Scoring follows 32 CFR 170.24 Table 7 and 170.21(a)(2), pinned from eCFR as of
+2026-10-01. The point values are built from the regulation text, not typed in.
+Migration `0016` adds one project-level finding per Not Met requirement with
+append-only history, plus partial-implementation input for IA.L2-3.5.3 and
+SC.L2-3.13.11. Pending creates follow-up only. Open for Johnathan: the
+regulation allows N/A for CMMC, but the approved specification does not.
+
+#104 (CMMC objective workspace) merged through PR #115 at `bbb005d`; see
+`docs/evidence/issue-104/CMMC_WORKSPACE_VERIFICATION.md`.
 
 Earlier tickets' notes follow as history.
 
@@ -701,17 +703,19 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-- Session `013nM5in…`: finish #104 (objective-level CMMC workspace and rollup).
-- Session `01PT2ki4…`: after #104 merges, take #106 (evidence hash verification).
-- #105 (scoring) and #107 (SSP) wait on Johnathan's answers below; #108 follows
-  #105–#107; #109 needs the physical Windows device.
+- #104 and #106 are merged. Session `013nM5in…` has #105 in review. Session
+  `01PT2ki4…` is preparing #108 pieces that don't depend on #105 or #107.
+- #107 (SSP) waits on an approved, sanitized SSP template. #109 needs the
+  physical Windows device.
 
 Awaiting Johnathan:
 1. #30: normalize the reported CMMC text artifacts in the catalog, or keep them
    verbatim and clean only for display.
 2. #31: run `catalog/cmmc_guidance_reconcile.py` against the original workbook
    on the Surface, then review the count differences.
-3. #105: name the official CMMC scoring source and version.
+3. #105: the scoring source was settled under the October 6 delegation as
+   32 CFR 170.24/170.21 (eCFR, amended 2024-12-16). Confirm it, and decide
+   whether CMMC gets N/A (170.24(b)(3)), which needs a specification change.
 4. #107: supply and approve a sanitized SSP template.
 
 ## Branch inventory

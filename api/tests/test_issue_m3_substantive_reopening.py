@@ -273,12 +273,12 @@ def test_migration_cycle_refuses_downgrade_with_reopenings(tmp_path: Path) -> No
     with client:
         project, _, prior, record = _issued_with_not_met(client, db, "migrate")
     config = migration_config(db)
-    command.downgrade(config, "-1")
+    command.downgrade(config, "0014")
     command.upgrade(config, "head")
     with client:
         assert _reopen(client, project, prior, affected=[record]).status_code == 201
     with pytest.raises(RuntimeError, match="downgrade would lose issued history"):
-        command.downgrade(config, "-1")
+        command.downgrade(config, "0014")
 
 
 def test_corrective_action_stays_tied_to_one_record_across_revisions(tmp_path: Path) -> None:

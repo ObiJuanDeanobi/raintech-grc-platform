@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<DIV8 N="170.21" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-32/section-170.21&quot;,&quot;citation&quot;:&quot;32 CFR 170.21&quot;}">
+<HEAD>§ 170.21 Plan of Action and Milestones requirements.</HEAD>
+<P>(a) <I>POA&amp;M.</I> For purposes of achieving a Conditional CMMC Status, an OSA is only permitted to have a POA&amp;M for select requirements scored as NOT MET during the CMMC assessment and only under the following conditions:</P>
+<P>(1) <I>Level 1 self-assessment.</I> A POA&amp;M is not permitted at any time for Level 1 self-assessments.</P>
+<P>(2) <I>Level 2 self-assessment and Level 2 certification assessment.</I> An OSA is only permitted to achieve the CMMC Status of Conditional Level 2 (Self) or Conditional Level 2 (C3PAO), as appropriate, if all the following conditions are met:</P>
+<P>(i) The assessment score divided by the total number of CMMC Level 2 security requirements is greater than or equal to 0.8;</P>
+<P>(ii) None of the security requirements included in the POA&amp;M have a point value of greater than 1 as specified in the CMMC Scoring Methodology set forth in § 170.24, except SC.L2-3.13.11 CUI Encryption may be included on a POA&amp;M if encryption is employed but it is not FIPS-validated, which would result in a point value of 3; and</P>
+<P>(iii) None of the following security requirements are included in the POA&amp;M:</P>
+<P>(A) AC.L2-3.1.20 External Connections (CUI Data).</P>
+<P>(B) AC.L2-3.1.22 Control Public Information (CUI Data).</P>
+<P>(C) CA.L2-3.12.4 System Security Plan.</P>
+<P>(D) PE.L2-3.10.3 Escort Visitors (CUI Data).</P>
+<P>(E) PE.L2-3.10.4 Physical Access Logs (CUI Data).</P>
+<P>(F) PE.L2-3.10.5 Manage Physical Access (CUI Data).</P>
+<P>(3) <I>Level 3 certification assessment.</I> An OSC is only permitted to achieve the CMMC Status of Conditional Level 3 (DIBCAC) if all the following conditions are met:</P>
+<P>(i) The assessment score divided by the total number of CMMC Level 3 security requirements is greater than or equal to 0.8; and</P>
+<P>(ii) The POA&amp;M does not include any of following security requirements:</P>
+<P>(A) IR.L3-3.6.1e Security Operations Center.</P>
+<P>(B) IR.L3-3.6.2e Cyber Incident Response Team.</P>
+<P>(C) RA.L3-3.11.1e Threat-Informed Risk Assessment.</P>
+<P>(D) RA.L3-3.11.6e Supply Chain Risk Response.</P>
+<P>(E) RA.L3-3.11.7e Supply Chain Risk Plan.</P>
+<P>(F) RA.L3-3.11.4e Security Solution Rationale.</P>
+<P>(G) SI.L3-3.14.3e Specialized Asset Security.</P>
+<P>(b) <I>POA&amp;M closeout assessment.</I> A POA&amp;M closeout assessment is a CMMC assessment that assesses only the NOT MET requirements that were identified with POA&amp;M in the initial assessment. The closing of a POA&amp;M must be confirmed by a POA&amp;M closeout assessment within 180-days of the Conditional CMMC Status Date. If the POA&amp;M is not successfully closed out within the 180-day timeframe, the Conditional CMMC Status for the information system will expire.</P>
+<P>(1) <I>Level 2 self-assessment.</I> For a Level 2 self-assessment, the POA&amp;M closeout self-assessment shall be performed by the OSA in the same manner as the initial self-assessment.</P>
+<P>(2) <I>Level 2 certification assessment.</I> For Level 2 certification assessment, the POA&amp;M closeout certification assessment must be performed by an authorized or accredited C3PAO.</P>
+<P>(3) <I>Level 3 certification assessment.</I> For Level 3 certification assessment, DCMA DIBCAC will perform the POA&amp;M closeout certification assessment.</P>
+</DIV8>

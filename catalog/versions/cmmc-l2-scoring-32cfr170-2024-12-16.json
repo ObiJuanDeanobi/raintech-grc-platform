@@ -1,0 +1,721 @@
+{
+  "id": "cmmc-l2-scoring-32cfr170-2024-12-16",
+  "authority": "32 CFR 170.24 CMMC Scoring Methodology; 32 CFR 170.21 POA&M requirements",
+  "source": {
+    "publisher": "eCFR versioner API, Title 32 Part 170",
+    "amendment_date": "2024-12-16",
+    "snapshot_date": "2026-10-01",
+    "files": {
+      "title-32-part-170-section-170.24-2026-10-01.xml": "62475756e7dfeb72c3965d538a88a767a6aea7cc5df59dbfb10a2990d9770e52",
+      "title-32-part-170-section-170.21-2026-10-01.xml": "352282ff13456ca53c9dc97ad49c499d56494681c1f67072d96ea8190698f936"
+    }
+  },
+  "catalog_content_sha256": "2f83215faf796fbd4c32c5bfaf99d2a705c683983a6af709738fb3557f6e3f84",
+  "maximum_score": 110,
+  "minimum_score": -203,
+  "requirements": {
+    "AC.L2-3.1.1": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "AC.L2-3.1.2": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "AC.L2-3.1.3": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AC.L2-3.1.4": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AC.L2-3.1.5": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "AC.L2-3.1.6": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AC.L2-3.1.7": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AC.L2-3.1.8": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AC.L2-3.1.9": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AC.L2-3.1.10": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AC.L2-3.1.11": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AC.L2-3.1.12": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "AC.L2-3.1.13": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "AC.L2-3.1.14": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AC.L2-3.1.15": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AC.L2-3.1.16": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "AC.L2-3.1.17": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "AC.L2-3.1.18": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "AC.L2-3.1.19": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "AC.L2-3.1.20": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AC.L2-3.1.21": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AC.L2-3.1.22": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AT.L2-3.2.1": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "AT.L2-3.2.2": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "AT.L2-3.2.3": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AU.L2-3.3.1": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "AU.L2-3.3.2": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "AU.L2-3.3.3": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AU.L2-3.3.4": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AU.L2-3.3.5": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "AU.L2-3.3.6": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AU.L2-3.3.7": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AU.L2-3.3.8": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "AU.L2-3.3.9": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "CM.L2-3.4.1": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "CM.L2-3.4.2": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "CM.L2-3.4.3": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "CM.L2-3.4.4": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "CM.L2-3.4.5": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "CM.L2-3.4.6": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "CM.L2-3.4.7": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "CM.L2-3.4.8": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "CM.L2-3.4.9": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "IA.L2-3.5.1": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "IA.L2-3.5.2": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "IA.L2-3.5.3": {
+      "rule": "partial",
+      "points_by_implementation": {
+        "partial": 3,
+        "none": 5
+      },
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(4)(i)"
+    },
+    "IA.L2-3.5.4": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "IA.L2-3.5.5": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "IA.L2-3.5.6": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "IA.L2-3.5.7": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "IA.L2-3.5.8": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "IA.L2-3.5.9": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "IA.L2-3.5.10": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "IA.L2-3.5.11": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "IR.L2-3.6.1": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "IR.L2-3.6.2": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "IR.L2-3.6.3": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "MA.L2-3.7.1": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "MA.L2-3.7.2": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "MA.L2-3.7.3": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "MA.L2-3.7.4": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "MA.L2-3.7.5": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "MA.L2-3.7.6": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "MP.L2-3.8.1": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "MP.L2-3.8.2": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "MP.L2-3.8.3": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "MP.L2-3.8.4": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "MP.L2-3.8.5": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "MP.L2-3.8.6": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "MP.L2-3.8.7": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "MP.L2-3.8.8": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "MP.L2-3.8.9": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "PS.L2-3.9.1": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "PS.L2-3.9.2": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "PE.L2-3.10.1": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "PE.L2-3.10.2": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "PE.L2-3.10.3": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "PE.L2-3.10.4": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "PE.L2-3.10.5": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "PE.L2-3.10.6": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "RA.L2-3.11.1": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "RA.L2-3.11.2": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "RA.L2-3.11.3": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "CA.L2-3.12.1": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "CA.L2-3.12.2": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "CA.L2-3.12.3": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "CA.L2-3.12.4": {
+      "rule": "ssp_required",
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(5)",
+      "note": "No point value is listed. Without an up-to-date SSP the assessment cannot be completed."
+    },
+    "SC.L2-3.13.1": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "SC.L2-3.13.2": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "SC.L2-3.13.3": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "SC.L2-3.13.4": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "SC.L2-3.13.5": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "SC.L2-3.13.6": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "SC.L2-3.13.7": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "SC.L2-3.13.8": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "SC.L2-3.13.9": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "SC.L2-3.13.10": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "SC.L2-3.13.11": {
+      "rule": "partial",
+      "points_by_implementation": {
+        "partial": 3,
+        "none": 5
+      },
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(4)(ii)"
+    },
+    "SC.L2-3.13.12": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "SC.L2-3.13.13": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "SC.L2-3.13.14": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "SC.L2-3.13.15": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "SC.L2-3.13.16": {
+      "rule": "fixed",
+      "points": 1,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(3)"
+    },
+    "SI.L2-3.14.1": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "SI.L2-3.14.2": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "SI.L2-3.14.3": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "basic",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "SI.L2-3.14.4": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "SI.L2-3.14.5": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    },
+    "SI.L2-3.14.6": {
+      "rule": "fixed",
+      "points": 5,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(1)"
+    },
+    "SI.L2-3.14.7": {
+      "rule": "fixed",
+      "points": 3,
+      "designation": "derived",
+      "source": "32 CFR 170.24(c)(2)(i)(B)(2)"
+    }
+  },
+  "conditional_poam": {
+    "source": "32 CFR 170.21(a)(2)",
+    "minimum_score_ratio": 0.8,
+    "maximum_points": 1,
+    "exceptions": {
+      "SC.L2-3.13.11": {
+        "implementation": "partial",
+        "points": 3,
+        "note": "Encryption employed but not FIPS-validated."
+      }
+    },
+    "excluded": [
+      "AC.L2-3.1.20",
+      "AC.L2-3.1.22",
+      "CA.L2-3.12.4",
+      "PE.L2-3.10.3",
+      "PE.L2-3.10.4",
+      "PE.L2-3.10.5"
+    ]
+  },
+  "discrepancies": [
+    {
+      "printed": "IA-L2-3.5.1",
+      "normalized": "IA.L2-3.5.1",
+      "note": "Irregular punctuation or spacing in the published regulation text."
+    },
+    {
+      "printed": "IA-L2-3.5.2",
+      "normalized": "IA.L2-3.5.2",
+      "note": "Irregular punctuation or spacing in the published regulation text."
+    },
+    {
+      "printed": "AC.L2- 3.1.19",
+      "normalized": "AC.L2-3.1.19",
+      "note": "Irregular punctuation or spacing in the published regulation text."
+    }
+  ]
+}

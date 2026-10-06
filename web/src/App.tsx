@@ -26,7 +26,10 @@ import type {
   Assessment,
   Client,
   CloseReadiness,
+  CmmcScore,
+  FrameworkDeclarations,
   FrameworkOption,
+  RequirementFinding,
   GeneratedPackage,
   RevalidationItem,
   AssessmentReopening,
@@ -866,6 +869,135 @@ function DeterminationPanel({
   );
 }
 
+function CmmcScorePanel({ projectId, assessmentId, refreshKey }: { projectId: string; assessmentId: string; refreshKey: unknown }) {
+  const [score, setScore] = useState<CmmcScore | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    request<CmmcScore>(`/api/projects/${projectId}/assessments/${assessmentId}/cmmc-score`, { signal: controller.signal })
+      .then(setScore)
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [projectId, assessmentId, refreshKey]);
+  if (!score) return null;
+  return (
+    <section className="cmmc-score" aria-label="Official CMMC score">
+      <div>
+        <p className="eyebrow">OFFICIAL SCORE · {score.authority}</p>
+        <h3>
+          {score.score} <small>of {score.maximum_score}{score.complete ? "" : " · provisional"}</small>
+        </h3>
+      </div>
+      <dl>
+        <div><dt>Not Met</dt><dd>{score.deductions.length}</dd></div>
+        <div><dt>Unscored</dt><dd>{score.unscored.length}</dd></div>
+        <div><dt>Follow-up</dt><dd>{score.follow_up.length}</dd></div>
+        <div><dt>Conditional status</dt><dd>{score.conditional.eligible ? "Eligible" : "Not eligible"}</dd></div>
+      </dl>
+      {score.blockers.length > 0 && <ul className="cmmc-score-blockers">{score.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul>}
+    </section>
+  );
+}
+
+function RequirementFindingPanel({
+  projectId,
+  assessmentId,
+  requirementId,
+  status,
+  scoring,
+  onChanged,
+}: {
+  projectId: string;
+  assessmentId: string;
+  requirementId: string;
+  status: string;
+  scoring: NonNullable<FrameworkDeclarations["scoring"]>["requirements"][string] | undefined;
+  onChanged: () => void;
+}) {
+  const base = `/api/projects/${projectId}/assessments/${assessmentId}/requirements/${encodeURIComponent(requirementId)}`;
+  const [finding, setFinding] = useState<RequirementFinding | null>(null);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [implementation, setImplementation] = useState<"partial" | "none">("partial");
+  const [rationale, setRationale] = useState("");
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    request<RequirementFinding | null>(`${base}/finding`, { signal: controller.signal })
+      .then(setFinding)
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [base, status]);
+
+  async function addPoam(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    try {
+      setFinding(await request<RequirementFinding>(`${base}/poam`, { method: "POST", body: JSON.stringify({ title, description }) }));
+      setTitle("");
+      setDescription("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not add the POA&M item.");
+    }
+  }
+
+  async function savePartial(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    try {
+      await request(`${base}/partial-implementation`, { method: "PUT", body: JSON.stringify({ implementation, rationale }) });
+      onChanged();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save the implementation level.");
+    }
+  }
+
+  const points = scoring?.rule === "fixed" ? `${scoring.points} point${scoring.points === 1 ? "" : "s"}` : scoring?.rule === "partial" ? "3 or 5 points" : "No point value";
+  return (
+    <section className="working-section requirement-finding" aria-label="Requirement finding">
+      <div className="section-title">
+        <div><p className="eyebrow">SCORING AND FINDING</p><h3>{points} if Not Met</h3></div>
+        {finding && <span className="status-pill status-not-met">{finding.requirement_status === "Not Met" ? "Finding open" : "Finding history"}</span>}
+      </div>
+      {scoring && <p className="muted">{scoring.source}{scoring.note ? ` · ${scoring.note}` : ""}</p>}
+      {status === "Not Met" && scoring?.rule === "partial" && (
+        <form className="reconciliation-form" onSubmit={savePartial}>
+          <label>Implementation<select value={implementation} onChange={(e) => setImplementation(e.target.value as "partial" | "none")}><option value="partial">Partial (3 points)</option><option value="none">None (5 points)</option></select></label>
+          <label>Rationale <span className="required">required</span><textarea rows={2} value={rationale} onChange={(e) => setRationale(e.target.value)} required /></label>
+          <button className="small-button" type="submit">Save implementation level</button>
+        </form>
+      )}
+      {!finding && <p className="muted">{status === "Pending" ? "Pending objectives create follow-up work, never a finding." : "No finding. One is opened when this requirement derives Not Met."}</p>}
+      {finding && (
+        <>
+          <strong>{finding.finding.title}</strong>
+          <ul className="finding-objectives">
+            {finding.failed_objectives.map((objective) => (
+              <li key={objective.record_id}>
+                <span>{objective.citation}</span> {objective.regulation_text}
+                {objective.note && <small>Note: {objective.note}</small>}
+                {objective.evidence.map((item) => <small key={item.name}>Evidence: {item.name} · {item.rationale}</small>)}
+              </li>
+            ))}
+          </ul>
+          <strong>POA&amp;M items</strong>
+          {finding.poam_items.length === 0 ? <p className="muted">None yet.</p> : (
+            <ul className="finding-objectives">{finding.poam_items.map((item) => <li key={item.id}>{item.title} · {item.status}</li>)}</ul>
+          )}
+          {finding.requirement_status === "Not Met" && (
+            <form className="reconciliation-form" onSubmit={addPoam}>
+              <label>POA&amp;M item title<input value={title} onChange={(e) => setTitle(e.target.value)} required /></label>
+              <label>Description<textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} /></label>
+              <button className="small-button" type="submit">Add POA&amp;M item</button>
+            </form>
+          )}
+          <details className="reconciliation-history"><summary>Finding history</summary><ul>{finding.history.map((entry) => <li key={`${entry.event}:${entry.created_at}`}>{entry.event.replaceAll("_", " ")} · {entry.failed_objectives.join(", ") || "none"} · {new Date(entry.created_at).toLocaleString()}</li>)}</ul></details>
+        </>
+      )}
+      {error && <p className="form-error"><CircleAlert size={16} /> {error}</p>}
+    </section>
+  );
+}
+
 function NotMetReconciliation({ projectId, assessmentId, recordId, status }: { projectId: string; assessmentId: string; recordId: string; status: string }) {
   const [data, setData] = useState<ReconciliationRecord | null>(null);
   const [choice, setChoice] = useState<ReconciliationDisposition>("create");
@@ -1385,6 +1517,7 @@ export function Workspace({
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loadedProjectId, setLoadedProjectId] = useState("");
   const [revalidationTick, setRevalidationTick] = useState(0);
+  const [scoreTick, setScoreTick] = useState(0);
   const [readiness, setReadiness] = useState<ProfileReadiness | null>(null);
   const [progress, setProgress] = useState<Assessment["progress"] | null>(null);
   const [recordId, setRecordId] = useState("");
@@ -1891,6 +2024,10 @@ export function Workspace({
           </section>
         )}
 
+        {objectiveMode && assessment.framework.declarations.scoring && (
+          <CmmcScorePanel projectId={assessment.project.id} assessmentId={assessment.id} refreshKey={`${scoreTick}:${progress.resolved_determination_count}:${detail.record.record_id}:${detail.determination.status}`} />
+        )}
+
         {objectiveMode && detail.children.length > 0 && (
           <section className="objective-panel" aria-label="Assessment objectives">
             <div className="section-title">
@@ -1961,7 +2098,18 @@ export function Workspace({
             void refreshAssessmentProgress();
           }}
         />
-        {/* CMMC requirement findings and POA&M arrive with official scoring (#105). */}
+        {objectiveMode && !detail.record.editable_determination && (
+          <RequirementFindingPanel
+            key={`${assessment.id}:${detail.record.record_id}:finding`}
+            projectId={assessment.project.id}
+            assessmentId={assessment.id}
+            requirementId={detail.record.record_id}
+            status={detail.determination.status}
+            scoring={assessment.framework.declarations.scoring?.requirements[detail.record.record_id]}
+            onChanged={() => setScoreTick((tick) => tick + 1)}
+          />
+        )}
+        {/* Objective-level reconciliation is HIPAA's; CMMC findings are requirement-level. */}
         {!objectiveMode && (
           <NotMetReconciliation
             key={`${assessment.id}:${detail.record.record_id}:reconciliation`}
