@@ -30,10 +30,14 @@ CMMC Windows/offline acceptance on the Surface (#109) is still open. This runboo
 1. **+ Client / project.** Choose the client, the project name, and the
    **framework**: HIPAA 45 CFR Part 164 or CMMC Level 2. The framework version
    is pinned for the life of the project.
-2. **Profile.** Complete intake and
-   move readiness to *Intake complete*. An assessment cannot start before that.
-   *Profile complete* needs a named reviewer and approval evidence.
-3. Create the assessment from the Assessments view.
+2. **Profile.** A new project opens on its Profile. Fill in the scope facts,
+   then use **Assessment readiness** at the bottom of the same page: record
+   *Intake complete* with a decision note. An assessment cannot start before
+   that.
+3. **Start assessment**, from the same panel. The app moves to the
+   Assessments view.
+4. **Profile complete** is recorded later, from the Profile page, with a named
+   reviewer and approval evidence. Close readiness requires it.
 
 ## 4. HIPAA workflow
 
@@ -49,7 +53,8 @@ CMMC Windows/offline acceptance on the Surface (#109) is still open. This runboo
    Critical risks need approval.
 3. **Not Met.** Reconcile each Not Met to a finding and a corrective action.
    Validate corrective work before changing to Met.
-4. **Close readiness.** Clear every blocker shown in the close panel.
+4. **Close readiness.** On the **Overview** page, clear every blocker in the
+   close panel. Generation, review, backup, and issue are there too.
 5. **Generate** the report (DOCX) and the POA&M (XLSX).
 6. **Review and sign off:** In Review → Reviewed → Ready to issue.
 7. **Back up.** The pre-issuance backup is required, and a failure blocks
@@ -83,17 +88,18 @@ CMMC Windows/offline acceptance on the Surface (#109) is still open. This runboo
 6. **Close POA&M items.** Once a requirement derives Met again, use **Close
    item** on its POA&M items and record how the remediation was verified.
 7. **System Security Plan** (SSP panel). Generate it once every requirement is
-   Met or Not Met. Write the system description, the environment narrative,
+   Met or Not Met and the Profile version is approved (Profile page). Write the system description, the environment narrative,
    and each implementation statement. Every save is a new version. **Approve
    and freeze** when nothing is missing. The DOCX download is a delivery copy
    only.
-8. **Close readiness.** All of these must hold:
+8. **Close readiness** is on the **Overview** page. All of these must hold:
    - every objective is Met
    - no POA&M item is open
    - the SSP is approved
    - every mapped evidence file passes its hash check
    - the Profile is complete
-9. **Generate, review, back up, and issue** the standard package: assessment
+9. **Generate, review, back up, and issue** the standard package, also on
+   **Overview**: assessment
    report, SSP, POA&M history, and evidence index. This is the same review,
    sign-off, backup, and issue flow as HIPAA. Presentation corrections and
    substantive reopening also work as they do for HIPAA. A reopened assessment
