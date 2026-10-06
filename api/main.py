@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, field_validator
 
 from api.close import fieldwork_ready
@@ -21,6 +21,7 @@ from api.database import (
     active_assessment_for_project,
     profile_snapshot_revision,
 )
+from api.evidence_integrity import export_selected_evidence
 from api.framework import FRAMEWORK_ID, seed_framework
 from api.generation import generate_package, list_packages
 from api.issuance import BackupFailure, create_backup, issue_package, issue_readiness
@@ -198,6 +199,11 @@ class AssessmentReopenCreate(BaseModel):
 class RevalidationCreate(BaseModel):
     actor_id: str = "johnathan"
     note: str = Field(min_length=1, max_length=4000)
+
+
+class EvidenceExportCreate(BaseModel):
+    actor_id: str = "johnathan"
+    evidence_version_ids: list[str] = Field(min_length=1, max_length=1000)
 
 
 class SRAScopeSave(BaseModel):
@@ -1382,6 +1388,40 @@ def create_app(
                 payload.actor_id,
             )
             return item
+
+    @app.post("/api/projects/{project_id}/evidence-exports")
+    def export_evidence(
+        project_id: str,
+        payload: EvidenceExportCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> Response:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            _user_or_422(connection, payload.actor_id)
+            try:
+                archive = export_selected_evidence(
+                    connection,
+                    database.managed_storage_root,
+                    project_id,
+                    payload.evidence_version_ids,
+                )
+            except LookupError as exc:
+                raise HTTPException(404, str(exc)) from exc
+            except ValueError as exc:
+                raise HTTPException(409, str(exc)) from exc
+            _audit(
+                connection,
+                "evidence_export_created",
+                "project",
+                project_id,
+                {"evidence_version_ids": sorted(set(payload.evidence_version_ids))},
+                payload.actor_id,
+            )
+            return Response(
+                archive,
+                media_type="application/zip",
+                headers={"Content-Disposition": 'attachment; filename="evidence-export.zip"'},
+            )
 
     @app.get("/api/projects/{project_id}/packages/{package_id}/components/{component_id}")
     @app.get(
