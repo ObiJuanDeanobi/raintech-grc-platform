@@ -1238,6 +1238,39 @@ function EvidencePanel({
     }
   }
 
+  async function evidenceAction(path: string, init: RequestInit, refreshArtifacts = true) {
+    const target = targetRef.current;
+    onSaveState("saving");
+    try {
+      await request(path, init);
+      if (!isCurrent(target)) return;
+      onSaveState("saved");
+      onChanged();
+      if (refreshArtifacts) onArtifactsChanged();
+      setBinTick((tick) => tick + 1);
+    } catch (caught) {
+      if (isCurrent(target)) onSaveState("error", caught instanceof Error ? caught.message : undefined);
+    }
+  }
+
+  function replaceFile(mapping: EvidenceMapping, file: File) {
+    const data = new FormData();
+    data.append("file", file);
+    void evidenceAction(`/api/projects/${assessment.project.id}/evidence/${mapping.artifact_id}/versions`, { method: "POST", body: data });
+  }
+
+  const [binned, setBinned] = useState<Artifact[]>([]);
+  const [binTick, setBinTick] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    request<Artifact[]>(`/api/projects/${assessment.project.id}/evidence?binned=true`, { signal: controller.signal })
+      .then((rows) => setBinned(Array.isArray(rows) ? rows : []))
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [assessment.project.id, binTick]);
+  const evidenceBase = `/api/projects/${assessment.project.id}/evidence`;
+  const today = new Date().toISOString().slice(0, 10);
+
   async function unmap(mapping: EvidenceMapping) {
     if (!window.confirm(`Remove the mapping to “${mapping.name}”? The evidence file is retained.`)) return;
     const target = targetRef.current;
@@ -1273,7 +1306,15 @@ function EvidencePanel({
               <strong>{mapping.name}</strong>
               <p>{mapping.rationale}</p>
               <span>Version {mapping.version_number}</span>
+              {mapping.latest_version_number && mapping.latest_version_number > mapping.version_number && (
+                <span className="evidence-newer">
+                  Version {mapping.latest_version_number} is available.{" "}
+                  <button type="button" className="text-button" onClick={() => void evidenceAction(`/api/projects/${assessment.project.id}/assessments/${assessment.id}/evidence-mappings/${mapping.mapping_id}/version`, { method: "PUT" }, false)}>Use latest version</button>
+                </span>
+              )}
+              {mapping.review_date && mapping.review_date < today && <span className="evidence-overdue">Review overdue since {mapping.review_date}</span>}
               <span>SHA-256: {mapping.sha256}</span>
+              <label className="text-button evidence-replace">Replace file<input type="file" aria-label={`Replace ${mapping.name}`} onChange={(event) => event.target.files?.[0] && replaceFile(mapping, event.target.files[0])} /></label>
               <span>{mapping.review_state}</span>
               <span>Shared across {mapping.shared_record_count} record{mapping.shared_record_count === 1 ? "" : "s"}</span>
             </div>
@@ -1316,6 +1357,38 @@ function EvidencePanel({
         </label>
         <button className="small-button" type="submit">Map to this record</button>
       </form>
+      <details className="evidence-library">
+        <summary>Evidence library and recycle bin</summary>
+        <ul>
+          {artifacts.filter((artifact) => artifact.shared_record_count === 0).map((artifact) => (
+            <li key={artifact.id}>
+              {artifact.name} · v{artifact.version_number}{artifact.overdue ? " · review overdue" : ""}
+              <button type="button" className="text-button" onClick={() => void evidenceAction(`${evidenceBase}/${artifact.id}/recycle`, { method: "POST" })}>Move to bin</button>
+            </li>
+          ))}
+        </ul>
+        <p className="muted">Mapped evidence must be detached before it can be binned.</p>
+        <strong>Recycle bin</strong>
+        {binned.length === 0 ? <p className="muted">Empty.</p> : (
+          <ul aria-label="Recycle bin">
+            {binned.map((artifact) => (
+              <li key={artifact.id}>
+                {artifact.name}{artifact.purged_at ? " · file purged" : ""}
+                {!artifact.purged_at && (
+                  <>
+                    <button type="button" className="text-button" onClick={() => void evidenceAction(`${evidenceBase}/${artifact.id}/restore`, { method: "POST" })}>Restore</button>
+                    <button type="button" className="text-button" onClick={() => {
+                      if (window.confirm(`Permanently delete the stored file for “${artifact.name}”? Its hash history is kept.`)) {
+                        void evidenceAction(`${evidenceBase}/${artifact.id}`, { method: "DELETE" });
+                      }
+                    }}>Delete permanently</button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </details>
     </section>
   );
 }

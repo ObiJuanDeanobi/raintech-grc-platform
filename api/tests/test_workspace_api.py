@@ -460,6 +460,8 @@ def test_0001_evidence_artifact_upgrade_backfills_stored_bytes_without_hiding_ma
                 "version_id": f"{artifact_id}:1",
                 "version_number": 1,
                 "sha256": sha256(stored_bytes).hexdigest(),
+                "review_date": None,
+                "latest_version_number": 1,
                 "shared_record_count": 1,
             }
         ]

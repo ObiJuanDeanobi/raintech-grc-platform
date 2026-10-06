@@ -1840,3 +1840,37 @@ test("shows a persistent backup warning and backs up on request", async () => {
     expect(screen.queryByTitle("The last automatic daily backup failed: disk full")).not.toBeInTheDocument(),
   );
 });
+
+test("offers the latest evidence version explicitly and manages the recycle bin", async () => {
+  const calls: string[] = [];
+  const withEvidence = {
+    ...detail,
+    evidence: [{
+      mapping_id: "map-1", artifact_id: "art-1", name: "policy.txt", relative_path: "p/policy.txt",
+      rationale: "Policy.", review_state: "Not reviewed", shared_record_count: 1, version_id: "v1",
+      version_project_id: "project-1", version_number: 1, sha256: "abc", latest_version_number: 2,
+      review_date: "2020-01-01",
+    }],
+  };
+  mockApi(async (input, init) => {
+    const url = String(input);
+    if (init?.method && init.method !== "GET") calls.push(`${init.method} ${url}`);
+    if (url.endsWith("/assessment")) return Response.json(assessment);
+    if (url.includes("/records/child-1")) return Response.json(withEvidence);
+    if (url.endsWith("/evidence?binned=true")) {
+      return Response.json([{ id: "art-9", name: "old.txt", shared_record_count: 0, version_number: 1, sha256: "x", deleted_at: "2026-10-06" }]);
+    }
+    if (url.endsWith("/evidence")) return Response.json([]);
+    if (init?.method === "PUT" || init?.method === "POST") return Response.json({});
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  expect(await screen.findByText(/Version 2 is available/)).toBeVisible();
+  expect(screen.getByText("Review overdue since 2020-01-01")).toBeVisible();
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Use latest version" }));
+  await waitFor(() => expect(calls).toContain("PUT /api/projects/project-1/assessments/assessment-1/evidence-mappings/map-1/version"));
+  await user.click(screen.getByText("Evidence library and recycle bin"));
+  await user.click(await screen.findByRole("button", { name: "Restore" }));
+  await waitFor(() => expect(calls).toContain("POST /api/projects/project-1/evidence/art-9/restore"));
+});
