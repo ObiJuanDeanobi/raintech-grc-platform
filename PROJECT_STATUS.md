@@ -619,6 +619,12 @@ execution, and operational support; repository CI remains the engineering
 verification of record. This is the approved joint Johnathan-plus-AI delivery
 and operations model, not a claimed segregation of duties.
 
+**Delegated PR handling (Johnathan, October 6, 2026):** agents open, watch, and
+merge their own PRs once all CI checks pass on the final head, without waiting
+for Johnathan's review. Agents still stop and ask before product or scope
+decisions they cannot settle from the approved ticket, specification changes,
+architecture changes, and new major dependencies.
+
 ## Blocked
 
 - Issue #74 has no implementation, review, or CI blocker. PR #82 awaits human
