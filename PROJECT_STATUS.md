@@ -32,7 +32,23 @@ CI passed.
 
 ## Active ticket
 
-**None agent-buildable. CMMC Level 2 is complete in software.**
+**Usability overhaul, #127.** Johnathan used the Surface build on October 6,
+2026 and called the tool "really not usable". A competitor review (HHS SRA
+Tool, Kaseya Compliance Manager GRC, ControlMap, Cynomi, Secureframe,
+Accountable) produced this plan:
+
+- #128: requirement-centered CMMC workspace (agent-buildable; matches the
+  spec, the build drifted from it)
+- #129: Overview dashboard (agent-buildable)
+- #130: decision, answer now and prove at close (needs Johnathan)
+- #131: decision, one Profile sign-off and one review-and-issue step (needs
+  Johnathan; spec change)
+- #132: skip logic in guidance questions
+- #133: shared HIPAA/CMMC answers
+
+Next action: #128.
+
+CMMC Level 2 is complete in software.
 
 Intake flow (Johnathan, October 6, 2026: "go with b, but look at it
 overall"). A new project now opens on its Profile, and the readiness decision
