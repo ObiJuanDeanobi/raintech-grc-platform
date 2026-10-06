@@ -22,6 +22,7 @@ def _isolated(tmp_path: Path) -> tuple[TestClient, Path, Path, Path]:
         Path("catalog/versions/hipaa-45cfr164-2026-07-01-prompts.json"),
         Path("catalog/versions/cmmc-l2-ag-v2.13.json"),
         Path("catalog/versions/cmmc-l2-ag-v2.13-guidance.json"),
+        Path("catalog/versions/cmmc-l2-scoring-32cfr170-2024-12-16.json"),
         Path("docs/templates/hipaa/v2"),
     ):
         source, target = repository / relative, isolated / relative
