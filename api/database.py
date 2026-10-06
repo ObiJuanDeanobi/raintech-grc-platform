@@ -2,12 +2,14 @@ import json
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path
 from typing import cast
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 
 
 def active_assessment_for_project(
@@ -145,7 +147,37 @@ class Database:
         config.set_main_option("script_location", str(migrations))
         config.set_main_option("sqlalchemy.url", f"sqlite:///{self.path.as_posix()}")
         config.set_main_option("raintech.managed_storage_root", str(self.managed_storage_root))
+        self._backup_before_upgrade(ScriptDirectory.from_config(config).get_current_head())
         command.upgrade(config, "head")
+
+    def _backup_before_upgrade(self, head: str | None) -> Path | None:
+        """Copy an existing database before a pending migration; failure blocks it."""
+        if not self.path.exists():
+            return None
+        with sqlite3.connect(self.path) as source:
+            has_version = source.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='alembic_version'"
+            ).fetchone()
+            current = (
+                source.execute("SELECT version_num FROM alembic_version").fetchone()
+                if has_version
+                else None
+            )
+            if current is None or current[0] == head:
+                return None
+            stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+            target = (
+                self.managed_storage_root
+                / "backups"
+                / "pre-migration"
+                / f"workspace-{current[0]}-to-{head}-{stamp}.db"
+            )
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with sqlite3.connect(target) as copy:
+                source.backup(copy)
+                if copy.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                    raise RuntimeError("Pre-migration backup failed its integrity check")
+        return target
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:

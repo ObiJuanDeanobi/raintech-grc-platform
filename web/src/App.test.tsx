@@ -1809,3 +1809,34 @@ test("CMMC shows the official score and the requirement finding with POA&M items
   expect(finding).toHaveTextContent("Rebuild the authorized user list");
   expect(within(finding).getByRole("button", { name: "Add POA&M item" })).toBeVisible();
 });
+
+test("shows a persistent backup warning and backs up on request", async () => {
+  const posts: string[] = [];
+  let failing = true;
+  mockApi(async (input, init) => {
+    const url = String(input);
+    if (url === "/api/backups" && init?.method === "POST") {
+      posts.push(url);
+      failing = false;
+      return Response.json({ id: "b1", kind: "manual", status: "complete" }, { status: 201 });
+    }
+    if (url === "/api/backups") {
+      return Response.json({
+        warning: failing ? "The last automatic daily backup failed: disk full" : null,
+        backups: [{ status: failing ? "failed" : "complete", completed_at: "2026-10-06T18:00:00Z" }],
+      });
+    }
+    if (url.endsWith("/assessment")) return Response.json(assessment);
+    if (url.includes("/records/child-1")) return Response.json(detail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  const warning = await screen.findByTitle("The last automatic daily backup failed: disk full");
+  expect(warning).toHaveTextContent("Backup failed");
+  await userEvent.setup().click(screen.getByRole("button", { name: "Back up now" }));
+  await waitFor(() => expect(posts).toHaveLength(1));
+  await waitFor(() =>
+    expect(screen.queryByTitle("The last automatic daily backup failed: disk full")).not.toBeInTheDocument(),
+  );
+});
