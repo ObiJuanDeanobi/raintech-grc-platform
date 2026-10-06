@@ -312,6 +312,8 @@ export interface EvidenceMapping {
   version_project_id: string;
   version_number: number;
   sha256: string;
+  latest_version_number?: number;
+  review_date?: string | null;
 }
 
 export interface Artifact {
@@ -324,6 +326,10 @@ export interface Artifact {
   sha256: string;
   version_relative_path: string;
   version_created_at: string;
+  review_date?: string | null;
+  overdue?: boolean;
+  deleted_at?: string | null;
+  purged_at?: string | null;
 }
 
 export type ProfileItemType =

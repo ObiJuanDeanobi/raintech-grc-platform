@@ -32,12 +32,12 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #117 - workspace backups and retention; PR pending.** See
-`docs/evidence/issue-117/WORKSPACE_BACKUP_VERIFICATION.md`. It adds Back Up Now,
-automatic daily and weekly sets taken only after a change, 14/2 retention, a
-persistent failure warning, and a database copy before any pending migration.
-Migration `0017`. Phase 4 roadmap item 8; drafted under the October 6
+**GitHub issue #119 - evidence replace, recycle bin, overdue review; PR
+pending.** See `docs/evidence/issue-119/EVIDENCE_LIFECYCLE_VERIFICATION.md`.
+Migration `0018`. Phase 4 roadmap item 9; drafted under the October 6
 delegation.
+
+#117 (workspace backups and retention) merged through PR #118 at `8da9cb1`.
 
 #105 (CMMC scoring, findings, POA&M) merged through PR #116 at `6f230f8`; see
 `docs/evidence/issue-105/SCORING_FINDINGS_VERIFICATION.md`. Open for Johnathan:

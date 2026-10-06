@@ -800,3 +800,10 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .backup-control { display: inline-flex; align-items: center; gap: 8px; }
 .backup-control .text-button { color: #c9d4e3; font-size: 12px; }
 .backup-warning { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; color: #9b3030; background: var(--red-soft); font-size: 11px; font-weight: 700; }
+.evidence-newer { color: #325d95; }
+.evidence-overdue { color: #8d5818; font-weight: 700; }
+.evidence-replace input { display: none; }
+.evidence-library { margin-top: 12px; font-size: 12px; }
+.evidence-library ul { padding-left: 16px; }
+.evidence-library li { margin: 4px 0; }
+.evidence-library .text-button { margin-left: 8px; }

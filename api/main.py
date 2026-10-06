@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, field_validator
 
-from api import cmmc, workspace_backup
+from api import cmmc, evidence_lifecycle, workspace_backup
 from api.close import fieldwork_ready
 from api.correction import create_correction, package_issuance
 from api.database import (
@@ -56,6 +56,10 @@ class PartialImplementationSave(BaseModel):
 class PoamItemCreate(BaseModel):
     title: str
     description: str = ""
+
+
+class EvidenceReviewDate(BaseModel):
+    review_date: date | None = None
 
 
 class ProjectCreate(BaseModel):
@@ -1094,7 +1098,9 @@ def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[
             """
             SELECT em.id AS mapping_id, em.artifact_id, ea.name, ea.relative_path,
                    em.rationale, em.review_state, ev.id AS version_id,
-                   ev.version_number, ev.sha256
+                   ev.version_number, ev.sha256, ea.review_date,
+                   (SELECT MAX(version_number) FROM evidence_versions
+                    WHERE artifact_id = em.artifact_id) AS latest_version_number
             FROM evidence_mappings em
             JOIN evidence_artifacts ea ON ea.id = em.artifact_id
             JOIN evidence_versions ev ON ev.id = em.evidence_version_id
@@ -4101,12 +4107,14 @@ def create_app(
     def list_evidence(
         project_id: str,
         database: Annotated[Database, Depends(db)],
+        binned: bool = False,
     ) -> list[dict[str, Any]]:
         with database.connect() as connection:
             _project_or_404(connection, project_id)
             return [
                 {
                     **_row(row),
+                    "overdue": evidence_lifecycle.overdue(row["review_date"]),
                     "shared_record_count": connection.execute(
                         "SELECT COUNT(*) AS count FROM evidence_mappings "
                         "WHERE artifact_id = ? AND target_type = 'assessment_record'",
@@ -4121,13 +4129,158 @@ def create_app(
                            ev.created_at AS version_created_at
                     FROM evidence_artifacts ea
                     JOIN evidence_versions ev
-                      ON ev.artifact_id = ea.id AND ev.version_number = 1
-                    WHERE ea.project_id = ?
+                      ON ev.artifact_id = ea.id
+                     AND ev.version_number = (
+                         SELECT MAX(version_number) FROM evidence_versions
+                         WHERE artifact_id = ea.id)
+                    WHERE ea.project_id = ? AND (ea.deleted_at IS NOT NULL) = ?
                     ORDER BY ea.created_at
                     """,
-                    (project_id,),
+                    (project_id, int(binned)),
                 )
             ]
+
+    @app.post("/api/projects/{project_id}/evidence/{artifact_id}/versions", status_code=201)
+    async def replace_evidence(
+        project_id: str,
+        artifact_id: str,
+        file: Annotated[UploadFile, File()],
+        database: Annotated[Database, Depends(db)],
+        file_storage: Annotated[FileStorage, Depends(files)],
+    ) -> dict[str, Any]:
+        content = await file.read()
+        if not file.filename:
+            raise HTTPException(status_code=422, detail="Evidence filename is required")
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            artifact = evidence_lifecycle.artifact_or_404(connection, project_id, artifact_id)
+            version = evidence_lifecycle.replace(
+                connection, file_storage, project_id, artifact, file.filename, content
+            )
+            _audit(
+                connection,
+                "evidence.replaced",
+                "evidence_artifact",
+                artifact_id,
+                {"version_number": version["version_number"], "sha256": version["sha256"]},
+            )
+            return {"artifact_id": artifact_id, "version": version}
+
+    @app.put("/api/projects/{project_id}/evidence/{artifact_id}/review-date")
+    def set_evidence_review_date(
+        project_id: str,
+        artifact_id: str,
+        payload: EvidenceReviewDate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            evidence_lifecycle.artifact_or_404(connection, project_id, artifact_id)
+            connection.execute(
+                "UPDATE evidence_artifacts SET review_date = ? WHERE id = ?",
+                (payload.review_date.isoformat() if payload.review_date else None, artifact_id),
+            )
+            _audit(
+                connection,
+                "evidence.review_date_set",
+                "evidence_artifact",
+                artifact_id,
+                {"review_date": payload.review_date.isoformat() if payload.review_date else None},
+            )
+            review = payload.review_date.isoformat() if payload.review_date else None
+            return {"review_date": review, "overdue": evidence_lifecycle.overdue(review)}
+
+    @app.post("/api/projects/{project_id}/evidence/{artifact_id}/recycle")
+    def recycle_evidence(
+        project_id: str, artifact_id: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            artifact = evidence_lifecycle.artifact_or_404(connection, project_id, artifact_id)
+            if artifact["deleted_at"]:
+                raise HTTPException(status_code=409, detail="Evidence is already in the bin")
+            if evidence_lifecycle.mapping_count(connection, artifact_id):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Detach every mapping before moving evidence to the recycle bin",
+                )
+            deleted_at = now()
+            connection.execute(
+                "UPDATE evidence_artifacts SET deleted_at = ? WHERE id = ?",
+                (deleted_at, artifact_id),
+            )
+            _audit(connection, "evidence.binned", "evidence_artifact", artifact_id, {})
+            return {"id": artifact_id, "deleted_at": deleted_at}
+
+    @app.post("/api/projects/{project_id}/evidence/{artifact_id}/restore")
+    def restore_evidence(
+        project_id: str, artifact_id: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            artifact = evidence_lifecycle.artifact_or_404(connection, project_id, artifact_id)
+            if not artifact["deleted_at"] or artifact["purged_at"]:
+                raise HTTPException(
+                    status_code=409, detail="Only binned, unpurged evidence can be restored"
+                )
+            connection.execute(
+                "UPDATE evidence_artifacts SET deleted_at = NULL WHERE id = ?", (artifact_id,)
+            )
+            _audit(connection, "evidence.restored", "evidence_artifact", artifact_id, {})
+            return {"id": artifact_id, "deleted_at": None}
+
+    @app.delete("/api/projects/{project_id}/evidence/{artifact_id}")
+    def purge_evidence(
+        project_id: str,
+        artifact_id: str,
+        database: Annotated[Database, Depends(db)],
+        file_storage: Annotated[FileStorage, Depends(files)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            artifact = evidence_lifecycle.artifact_or_404(connection, project_id, artifact_id)
+            if artifact["purged_at"]:
+                raise HTTPException(status_code=409, detail="Evidence is already purged")
+            removed = evidence_lifecycle.purge(file_storage, connection, artifact)
+            _audit(
+                connection, "evidence.purged", "evidence_artifact", artifact_id, {"paths": removed}
+            )
+            return {"id": artifact_id, "purged": True}
+
+    @app.put(
+        "/api/projects/{project_id}/assessments/{assessment_id}"
+        "/evidence-mappings/{mapping_id}/version"
+    )
+    def move_mapping_to_latest(
+        project_id: str,
+        assessment_id: str,
+        mapping_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
+            mapping = connection.execute(
+                """SELECT * FROM evidence_mappings WHERE id = ? AND assessment_id = ?
+                   AND project_id = ? AND target_type = 'assessment_record'""",
+                (mapping_id, assessment_id, project_id),
+            ).fetchone()
+            if mapping is None:
+                raise HTTPException(status_code=404, detail="Evidence mapping not found")
+            latest = evidence_lifecycle.versions(connection, mapping["artifact_id"])[-1]
+            if latest["id"] == mapping["evidence_version_id"]:
+                raise HTTPException(409, "Mapping already uses the latest version")
+            connection.execute(
+                "UPDATE evidence_mappings SET evidence_version_id = ? WHERE id = ?",
+                (latest["id"], mapping_id),
+            )
+            _audit(
+                connection,
+                "evidence.mapping_version_moved",
+                "evidence_mapping",
+                mapping_id,
+                {
+                    "from_version_id": mapping["evidence_version_id"],
+                    "to_version_id": latest["id"],
+                    "record_id": mapping["record_id"],
+                },
+            )
+            return {"mapping_id": mapping_id, "version": latest}
 
     @app.post(
         "/api/projects/{project_id}/assessments/{assessment_id}/evidence-mappings",

@@ -164,7 +164,7 @@ def test_pending_migration_takes_a_backup_first_and_failure_blocks_it(tmp_path: 
     command.downgrade(_config(db, files), "0016")
     database.migrate()
     copies = list((files / "backups" / "pre-migration").glob("*.db"))
-    assert len(copies) == 1 and "0016-to-0017" in copies[0].name
+    assert len(copies) == 1 and copies[0].name.startswith("workspace-0016-to-")
     with sqlite3.connect(copies[0]) as copy:
         assert copy.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0016"
 
