@@ -9,7 +9,8 @@ from typing import Any, cast
 from uuid import uuid4
 
 from api.database import active_assessment_by_id
-from api.generation import TEMPLATES, _snapshot
+from api.generation import TEMPLATE_VERSIONS, _snapshot
+from api.generation import template_hashes as _template_hashes
 
 STATES = ("Complete candidate", "In Review", "Reviewed", "Ready to issue")
 TRANSITIONS = {STATES[0]: STATES[1], STATES[1]: STATES[2], STATES[2]: STATES[3]}
@@ -21,7 +22,10 @@ def _now() -> str:
 
 def _content_hash(source: dict[str, Any]) -> str:
     value = {
-        key: item for key, item in source.items() if key not in {"snapshot_id", "source_sha256"}
+        key: item
+        for key, item in source.items()
+        # The template version is presentation, not assessment content.
+        if key not in {"snapshot_id", "source_sha256", "template_version"}
     }
     encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
     return sha256(encoded).hexdigest()
@@ -55,15 +59,21 @@ def _binding(
     ]
     component_hashes = {row["kind"]: row["sha256"] for row in component_rows}
     component_ids = {row["kind"]: row["id"] for row in component_rows}
-    template_hashes = {
-        kind: sha256((root / "docs/templates/hipaa/v2" / filename).read_bytes()).hexdigest()
-        for kind, filename in TEMPLATES
-    }
     blockers: list[str] = []
+    version = package["template_version"]
+    known = version in TEMPLATE_VERSIONS
+    if not known:
+        blockers.append(f"Unknown template version: {version}")
+    # Each package binds to its own template version, so a newer version cannot
+    # disturb an older package's review.
+    template_hashes = _template_hashes(root, version) if known else {}
+    expected_kinds_for_version = (
+        {kind for kind, _ in TEMPLATE_VERSIONS[version][1]} if known else set()
+    )
     drift: list[str] = []
     if package["state"] != "promoted":
         blockers.append("Only promoted complete candidates can be reviewed")
-    expected_kinds = {kind for kind, _ in TEMPLATES}
+    expected_kinds = expected_kinds_for_version
     manifest_hashes = {
         item.get("kind"): item.get("sha256") for item in manifest.get("components", [])
     }
