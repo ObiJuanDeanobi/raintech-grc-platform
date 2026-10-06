@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, field_validator
 
-from api import cmmc, evidence_lifecycle, workspace_backup
+from api import cmmc, evidence_lifecycle, ssp, workspace_backup
 from api.close import fieldwork_ready
 from api.correction import create_correction, package_issuance
 from api.database import (
@@ -51,6 +51,13 @@ class PartialImplementationSave(BaseModel):
     implementation: str
     rationale: str = ""
     actor_id: str = "johnathan"
+
+
+class SspEdit(BaseModel):
+    system_description: str | None = None
+    environment_narrative: str | None = None
+    requirements: dict[str, str] | None = None
+    note: str = ""
 
 
 class PoamItemCreate(BaseModel):
@@ -3211,6 +3218,81 @@ def create_app(
         ).fetchone()
         if row is None:
             raise HTTPException(404, "Requirement not found")
+
+    @app.post("/api/projects/{project_id}/assessments/{assessment_id}/ssp", status_code=201)
+    def generate_ssp(
+        project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            assessment, _ = cmmc_context(connection, project_id, assessment_id)
+            result = ssp.generate(
+                connection, root, project_id, assessment, "johnathan", _derived_status
+            )
+            _audit(
+                connection, "ssp.generated", "ssp", result["id"], {"assessment_id": assessment_id}
+            )
+            return result
+
+    @app.get("/api/projects/{project_id}/assessments/{assessment_id}/ssp")
+    def get_ssp(
+        project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any] | None:
+        with database.connect() as connection:
+            cmmc_context(connection, project_id, assessment_id)
+            return ssp.latest_for_project(connection, project_id, assessment_id)
+
+    @app.put("/api/projects/{project_id}/ssp/{ssp_id}")
+    def edit_ssp(
+        project_id: str,
+        ssp_id: str,
+        payload: SspEdit,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            changes = payload.model_dump(exclude={"note"}, exclude_none=True)
+            result = ssp.edit(connection, project_id, ssp_id, changes, payload.note, "johnathan")
+            _audit(
+                connection,
+                "ssp.edited",
+                "ssp",
+                ssp_id,
+                {"version_number": result["latest"]["version_number"]},
+            )
+            return result
+
+    @app.post("/api/projects/{project_id}/ssp/{ssp_id}/approve")
+    def approve_ssp(
+        project_id: str, ssp_id: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            result = ssp.approve(connection, project_id, ssp_id, "johnathan")
+            _audit(
+                connection,
+                "ssp.approved",
+                "ssp",
+                ssp_id,
+                {"version_number": result["latest"]["version_number"]},
+            )
+            return result
+
+    @app.get("/api/projects/{project_id}/ssp/{ssp_id}/versions/{version_number}/docx")
+    def export_ssp(
+        project_id: str,
+        ssp_id: str,
+        version_number: int,
+        database: Annotated[Database, Depends(db)],
+    ) -> Response:
+        with database.connect() as connection:
+            data = ssp.render_docx(connection, project_id, ssp_id, version_number)
+        return Response(
+            content=data,
+            media_type=(
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ),
+            headers={
+                "Content-Disposition": f'attachment; filename="SSP-v{version_number}.docx"'
+            },
+        )
 
     @app.get("/api/projects/{project_id}/assessments/{assessment_id}/cmmc-score")
     def get_cmmc_score(

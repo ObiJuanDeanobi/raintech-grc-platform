@@ -30,6 +30,7 @@ import type {
   FrameworkDeclarations,
   FrameworkOption,
   RequirementFinding,
+  SspView,
   GeneratedPackage,
   RevalidationItem,
   AssessmentReopening,
@@ -1029,6 +1030,100 @@ function BackupControl() {
         {state === "working" ? "Backing up…" : state === "failed" ? "Backup failed · retry" : "Back up now"}
       </button>
     </span>
+  );
+}
+
+function SspPanel({ projectId, assessmentId, requirementId }: { projectId: string; assessmentId: string; requirementId: string | null }) {
+  const [ssp, setSsp] = useState<SspView | null>(null);
+  const [error, setError] = useState("");
+  const base = `/api/projects/${projectId}`;
+  const load = useCallback(() => {
+    request<SspView | null>(`${base}/assessments/${assessmentId}/ssp`)
+      .then((value) => setSsp(value && value.latest ? value : null))
+      .catch(() => undefined);
+  }, [base, assessmentId]);
+  useEffect(load, [load]);
+
+  async function act(path: string, init: RequestInit) {
+    setError("");
+    try {
+      setSsp(await request<SspView>(path, init));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "SSP action failed.");
+    }
+  }
+
+  const frozen = Boolean(ssp?.approval);
+  return (
+    <section className="cmmc-ssp" aria-label="System Security Plan">
+      <div className="section-title">
+        <div><p className="eyebrow">SYSTEM SECURITY PLAN · NIST SP 800-171 STRUCTURE</p>
+          <h3>{ssp ? `Version ${ssp.latest.version_number}${frozen ? " · approved and frozen" : ""}` : "Not generated"}</h3></div>
+        {ssp && <a className="text-button" href={`${base}/ssp/${ssp.id}/versions/${ssp.latest.version_number}/docx`}>Download DOCX copy</a>}
+      </div>
+      {!ssp && (
+        <>
+          <p className="muted">Generate once every requirement is Met or Not Met and the Profile is approved.</p>
+          <button className="small-button" type="button" onClick={() => void act(`${base}/assessments/${assessmentId}/ssp`, { method: "POST" })}>Generate SSP</button>
+        </>
+      )}
+      {ssp && (
+        // Keyed so the fields start from the loaded version, never from an empty draft.
+        <SspEditor
+          key={`${ssp.latest.id}:${requirementId ?? ""}`}
+          ssp={ssp}
+          requirementId={requirementId}
+          onSave={(body) => void act(`${base}/ssp/${ssp.id}`, { method: "PUT", body: JSON.stringify(body) })}
+          onApprove={() => void act(`${base}/ssp/${ssp.id}/approve`, { method: "POST" })}
+        />
+      )}
+      {error && <p className="form-error"><CircleAlert size={16} /> {error}</p>}
+    </section>
+  );
+}
+
+function SspEditor({
+  ssp,
+  requirementId,
+  onSave,
+  onApprove,
+}: {
+  ssp: SspView;
+  requirementId: string | null;
+  onSave: (body: Record<string, unknown>) => void;
+  onApprove: () => void;
+}) {
+  const content = ssp.latest.content;
+  const hasRequirement = Boolean(requirementId && content.requirements[requirementId]);
+  const [draft, setDraft] = useState(() => ({
+    system_description: content.system_description,
+    environment_narrative: content.environment_narrative,
+    implementation: hasRequirement ? content.requirements[requirementId!].implementation : "",
+  }));
+  const frozen = Boolean(ssp.approval);
+  function save() {
+    onSave({
+      system_description: draft.system_description,
+      environment_narrative: draft.environment_narrative,
+      note: "Edited in the workspace.",
+      ...(hasRequirement ? { requirements: { [requirementId!]: draft.implementation } } : {}),
+    });
+  }
+  return (
+    <>
+      <label>System description<textarea rows={2} disabled={frozen} value={draft.system_description} onChange={(e) => setDraft({ ...draft, system_description: e.target.value })} /></label>
+      <label>Environment narrative<textarea rows={2} disabled={frozen} value={draft.environment_narrative} onChange={(e) => setDraft({ ...draft, environment_narrative: e.target.value })} /></label>
+      {hasRequirement && (
+        <label>Implementation statement for {requirementId}<textarea rows={3} disabled={frozen} value={draft.implementation} onChange={(e) => setDraft({ ...draft, implementation: e.target.value })} /></label>
+      )}
+      {!frozen && (
+        <div className="modal-actions">
+          <button className="small-button" type="button" onClick={save}>Save new version</button>
+          <button className="small-button" type="button" disabled={ssp.missing_for_approval.length > 0} onClick={onApprove}>Approve and freeze</button>
+        </div>
+      )}
+      {!frozen && ssp.missing_for_approval.length > 0 && <p className="muted">{ssp.missing_for_approval.length} section(s) still need text before approval.</p>}
+    </>
   );
 }
 
@@ -2132,6 +2227,14 @@ export function Workspace({
           </section>
         )}
 
+        {objectiveMode && assessment.framework.declarations.scoring && (
+          <SspPanel
+            key={`ssp:${assessment.id}`}
+            projectId={assessment.project.id}
+            assessmentId={assessment.id}
+            requirementId={detail.record.editable_determination ? null : detail.record.record_id}
+          />
+        )}
         {objectiveMode && assessment.framework.declarations.scoring && (
           <CmmcScorePanel projectId={assessment.project.id} assessmentId={assessment.id} refreshKey={`${scoreTick}:${progress.resolved_determination_count}:${detail.record.record_id}:${detail.determination.status}`} />
         )}

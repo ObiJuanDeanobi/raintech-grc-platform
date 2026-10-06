@@ -522,3 +522,22 @@ export interface RequirementFinding {
   poam_items: { id: string; title: string; description: string; status: string; validation_state: string }[];
   history: { event: string; failed_objectives: string[]; created_at: string }[];
 }
+
+export interface SspView {
+  id: string;
+  template_version: string;
+  source_sha256: string;
+  source: { requirements: { record_id: string; citation: string; status: string; poam_items: string[] }[] };
+  versions: { id: string; version_number: number; note: string; created_at: string }[];
+  latest: {
+    id: string;
+    version_number: number;
+    content: {
+      system_description: string;
+      environment_narrative: string;
+      requirements: Record<string, { implementation: string }>;
+    };
+  };
+  missing_for_approval: string[];
+  approval: { approver_id: string; approved_at: string } | null;
+}
