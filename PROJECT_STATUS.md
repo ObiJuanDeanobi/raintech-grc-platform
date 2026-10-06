@@ -32,9 +32,13 @@ CI passed.
 
 ## Active ticket
 
-**Operator runbook draft (roadmap #88 item 10): PR pending.** See
-`docs/OPERATOR_RUNBOOK.md`. It covers what is on `main`. CMMC close/issuance
-(#107/#108) and #109 remain open.
+**GitHub issue #107 - CMMC SSP; PR pending.** See
+`docs/evidence/issue-107/SSP_VERIFICATION.md`. The template follows the public
+NIST SP 800-171 CUI SSP structure, under Johnathan's October 6 delegation. CMMC
+has no N/A (Johnathan, October 6). Migration `0019`. #108 (close gate and
+package) is next in this session.
+
+The operator runbook (`docs/OPERATOR_RUNBOOK.md`) merged through PR #121.
 
 #119 (evidence replace, recycle bin, overdue review) merged through PR #120 at
 `96dcbc9`.
@@ -716,10 +720,11 @@ Awaiting Johnathan:
    verbatim and clean only for display.
 2. #31: run `catalog/cmmc_guidance_reconcile.py` against the original workbook
    on the Surface, then review the count differences.
-3. #105: the scoring source was settled under the October 6 delegation as
-   32 CFR 170.24/170.21 (eCFR, amended 2024-12-16). Confirm it, and decide
-   whether CMMC gets N/A (170.24(b)(3)), which needs a specification change.
-4. #107: supply and approve a sanitized SSP template.
+3. #105: the scoring source is 32 CFR 170.24/170.21 (eCFR, amended
+   2024-12-16), settled under the October 6 delegation. CMMC has no N/A
+   (Johnathan, October 6).
+4. #107: confirm the delegated SSP template approval
+   (`docs/templates/cmmc/ssp-v1/APPROVAL_RECORD.md`).
 
 ## Branch inventory
 

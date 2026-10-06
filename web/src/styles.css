@@ -807,3 +807,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .evidence-library ul { padding-left: 16px; }
 .evidence-library li { margin: 4px 0; }
 .evidence-library .text-button { margin-left: 8px; }
+.cmmc-ssp { display: grid; margin: 18px 28px 0; padding: 14px 18px; gap: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.cmmc-ssp .section-title { display: flex; justify-content: space-between; align-items: center; }
+.cmmc-ssp h3 { margin: 0; font: 700 14px "Segoe UI"; }
+.cmmc-ssp label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; }

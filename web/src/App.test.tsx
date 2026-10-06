@@ -1874,3 +1874,42 @@ test("offers the latest evidence version explicitly and manages the recycle bin"
   await user.click(await screen.findByRole("button", { name: "Restore" }));
   await waitFor(() => expect(calls).toContain("POST /api/projects/project-1/evidence/art-9/restore"));
 });
+
+test("CMMC SSP panel edits the open requirement's statement and approves", async () => {
+  const { cmmc, requirementDetail } = cmmcFixtures();
+  const scored = { ...cmmc, framework: { ...cmmc.framework, declarations: { ...cmmc.framework.declarations, scoring: { authority: "32 CFR 170.24", requirements: {} } } } };
+  const sent: { method: string; url: string; body?: string }[] = [];
+  const view = (approved: boolean, missing: string[]) => ({
+    id: "ssp-1", template_version: "cmmc-ssp-v1", source_sha256: "abc",
+    source: { requirements: [{ record_id: "AC.L2-3.1.1", citation: "AC.L2-3.1.1", status: "Implemented", poam_items: [] }] },
+    versions: [{ id: "v1", version_number: 1, note: "Generated", created_at: "2026-10-06" }],
+    latest: { id: "v1", version_number: approved ? 2 : 1, content: { system_description: "", environment_narrative: "", requirements: { "AC.L2-3.1.1": { implementation: "Drafted from notes." } } } },
+    missing_for_approval: missing,
+    approval: approved ? { approver_id: "johnathan", approved_at: "2026-10-06" } : null,
+  });
+  mockApi(async (input, init) => {
+    const url = String(input);
+    if (init?.method && init.method !== "GET") sent.push({ method: init.method, url, body: init.body as string });
+    if (url.endsWith("/assessment")) return Response.json(scored);
+    if (url.endsWith("/ssp") && !init?.method) return Response.json(view(false, []));
+    if (url.endsWith("/ssp/ssp-1") && init?.method === "PUT") return Response.json(view(false, []));
+    if (url.endsWith("/approve")) return Response.json(view(true, []));
+    if (url.includes("/records/AC.L2-3.1.1")) return Response.json(requirementDetail);
+    if (url.endsWith("/finding")) return Response.json(null);
+    if (url.endsWith("/cmmc-score")) return Response.json(null);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  const panel = await screen.findByRole("region", { name: "System Security Plan" });
+  const statement = await within(panel).findByLabelText("Implementation statement for AC.L2-3.1.1");
+  expect(statement).toHaveValue("Drafted from notes.");
+  const user = userEvent.setup();
+  await user.clear(statement);
+  await user.type(statement, "Accounts reviewed quarterly.");
+  await user.click(within(panel).getByRole("button", { name: "Save new version" }));
+  await waitFor(() => expect(sent.some((c) => c.method === "PUT" && c.body?.includes("Accounts reviewed quarterly."))).toBe(true));
+  await user.click(within(panel).getByRole("button", { name: "Approve and freeze" }));
+  expect(await within(panel).findByText(/approved and frozen/)).toBeVisible();
+  expect(within(panel).queryByRole("button", { name: "Save new version" })).not.toBeInTheDocument();
+});

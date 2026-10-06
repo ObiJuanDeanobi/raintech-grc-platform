@@ -1,0 +1,22 @@
+{
+  "template_version": "cmmc-ssp-v1",
+  "title": "System Security Plan",
+  "derived_from": {
+    "title": "NIST SP 800-171 Rev. 2 CUI System Security Plan template",
+    "url": "https://csrc.nist.gov/CSRC/media/Publications/sp/800-171/rev-2/final/documents/CUI-SSP-Template-final.docx",
+    "sha256": "341a8cad3fc26efa567ac304097e0cabd8191925ce743169bb2e9bd1b41341a4",
+    "public_domain": "U.S. Government work; no client material"
+  },
+  "sections": [
+    {"key": "system_identification", "heading": "1. System Identification"},
+    {"key": "system_environment", "heading": "2. System Environment"},
+    {"key": "requirements", "heading": "3. Requirements"},
+    {"key": "record_of_changes", "heading": "4. Record of Changes"}
+  ],
+  "requirement_statuses": {
+    "Met": "Implemented",
+    "Not Met": "Planned to be Implemented"
+  },
+  "status_note": "NIST's 'Not Applicable' choice is removed: CMMC has no N/A (Johnathan, October 6, 2026).",
+  "editable": ["system_description", "environment_narrative", "requirements.implementation"]
+}
