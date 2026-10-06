@@ -183,6 +183,40 @@ from two of them.
 Practitioner review of the full export is a separate, outstanding step. This
 sample checks the parser, not the catalog's fitness for assessment.
 
+## CMMC Level 2 — Assessment Guide v2.13
+
+`catalog/versions/cmmc-l2-ag-v2.13.json` is migrated from the archived legacy
+seed, not re-extracted (issue #30). `cmmc_ingest.py` checks the seed's
+structure, keeps every published ID, and records the seed's SHA-256 and a
+content hash. It refuses a seed with duplicates, orphans, unpublished ID
+shapes, gaps in objective letters, or wrong counts.
+
+- 14 domains, 110 requirements, 320 objectives. Requirement counts per domain
+  are pinned to the Guide in `tests/test_cmmc_catalog.py`.
+- Shape: requirement → objective. Objectives carry the determination.
+- `field_authority` names the source of every field. No RainTech guidance is
+  here; #31 adds it as a separate layer.
+- Text is verbatim. Extraction artifacts (heading prefixes, footnote markers,
+  leaked page headers, `[cui Data]` titles) are listed in `discrepancies`,
+  not fixed.
+- The seed's per-objective `evidence_examples` are dropped: they were a
+  truncated copy of the requirement's Examine list, plus a legacy placeholder.
+
+The review export and reconciliation report is
+`docs/catalogs/cmmc-l2-ag-v2.13.md`. Rebuild both with:
+
+```
+python catalog/cmmc_ingest.py --out catalog/versions/cmmc-l2-ag-v2.13.json
+python catalog/cmmc_export.py --catalog catalog/versions/cmmc-l2-ag-v2.13.json \
+    --out docs/catalogs/cmmc-l2-ag-v2.13.md
+```
+
+The tests fail if either committed file differs from a rebuild.
+
+The catalog is not loaded into the application database yet. A CMMC project
+needs CMMC declarations (status set, rollup, scoring) that the HIPAA workflow
+does not have, so loading belongs with the CMMC assessment ticket.
+
 ## Adding a framework
 
 Do not generalize this into a framework-agnostic ingestion engine. Add the
