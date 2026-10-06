@@ -2,32 +2,25 @@
 
 ## Current phase
 
-`BUILD/REVIEW`. GitHub issues #71, #72, and #73 are complete and merged through
-PRs #89, #90, and #91. The Surface ARM64 offline pilot was accepted with named
-physical deferrals and merged through PR #92 at `16b1475`. The governed HIPAA
-flow generates, reviews, backs up, and atomically issues the exact signed
-package. The authoritative remaining path is tracked in GitHub issue #88.
+`BUILD`, Phase 3 (CMMC Level 2) of roadmap issue #88. HIPAA Phase 2 is
+complete: presentation correction (#80, PR #99), substantive reopening (#81,
+PR #101), and template versioning (#100, PR #103) are merged. Issue #32 stays
+open for native x64, adapter-disabled, and downloaded-file SmartScreen checks.
 
 ## Current mode
 
-Issue #80 presentation-only correction merged through PR #99 at `9cc66eb`.
-Issue #81 substantive reopening is implemented on
-`claude/issue-81-substantive-reopening` (pushed, PR and CI pending). Issue #75's
-backend route migration merged as PR #93 at `79c0114`; Issue #76's service
-migration merged as PR #94 at `4ccac5e`; Issue #77's frontend migration merged
-as PR #95 at `a305bf9`; Issue #78's shared fixtures merged as PR #96 at
-`a55bd39`; Issue #79's revision contract merged as PR #97 at `feaa96d`.
-Issue #32 remains open for native x64,
-adapter-disabled, and downloaded-file SmartScreen checks before broader Windows
-distribution; all three were accepted as deferrals for this Surface pilot.
+October 6, 2026. Agents open, watch, and merge their own PRs on green CI (see
+Ownership). **Two Claude sessions are working this repository in parallel.**
+Session `01PT2ki4…` (#80/#81/#100/#30/#31) and session `013nM5in…` (#104 on
+`claude/dreamy-gauss-nwm40t`) collided once on #30; the split is recorded on
+issue #104. Check open PRs and issue comments before starting a ticket.
 
 ## Current objective
 
-Begin #80's explicit presentation-only correction and governed reissue from
-the merged, immutable assessment revision foundation. Preserve the source
-assessment and prior issued package through correction and supersession.
-CMMC #30/#31 preserve the already extracted catalog and practitioner guidance
-as migration inputs rather than greenfield ingestion work.
+CMMC Level 2 delivery. The catalog (#30, PR #110, plus page-header reporting
+in PR #112) and practitioner guidance (#31, PR #111) are merged as versioned
+catalog files; `seed_cmmc_catalog` exists but is not wired to startup until the
+CMMC workspace lands. Execution tickets #104–#109 were filed on October 6.
 
 ## Approved specification
 
@@ -708,14 +701,18 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-Open the #81 PR from `claude/issue-81-substantive-reopening` (pushed; no PR yet),
-confirm the six CI checks, and have Johnathan review and merge. Evidence is in
-`docs/evidence/issue-81/REOPENING_VERIFICATION.md`; the decisions are ADR 0018.
-Optionally repeat the reopening browser check in Edge on the Surface. Issue #80
-merged through PR #99 at `9cc66eb` and can be closed. Issue #100 (template
-versioning for corrected packages) awaits triage and must be settled before the
-first real presentation correction. Issue #32 stays open for native x64,
-adapter-disabled, and downloaded-file SmartScreen checks.
+- Session `013nM5in…`: finish #104 (objective-level CMMC workspace and rollup).
+- Session `01PT2ki4…`: after #104 merges, take #106 (evidence hash verification).
+- #105 (scoring) and #107 (SSP) wait on Johnathan's answers below; #108 follows
+  #105–#107; #109 needs the physical Windows device.
+
+Awaiting Johnathan:
+1. #30: normalize the reported CMMC text artifacts in the catalog, or keep them
+   verbatim and clean only for display.
+2. #31: run `catalog/cmmc_guidance_reconcile.py` against the original workbook
+   on the Surface, then review the count differences.
+3. #105: name the official CMMC scoring source and version.
+4. #107: supply and approve a sanitized SSP template.
 
 ## Branch inventory
 
