@@ -26,6 +26,7 @@ import type {
   Assessment,
   Client,
   CloseReadiness,
+  FrameworkOption,
   GeneratedPackage,
   RevalidationItem,
   AssessmentReopening,
@@ -450,9 +451,60 @@ function RoutineSaveStatus({
   );
 }
 
+const GUIDANCE_LABELS: Record<string, string> = {
+  evidence_type: "Evidence type",
+  evidence_examples: "Evidence examples",
+  assessment_considerations: "Assessment considerations",
+  c3pao_guidance: "C3PAO guidance",
+};
+
+const DEFAULT_FRAMEWORK: FrameworkOption = {
+  id: "hipaa-45cfr164-2026-07-01",
+  name: "HIPAA 45 CFR Part 164",
+};
+
+function useFrameworks(): FrameworkOption[] {
+  const [frameworks, setFrameworks] = useState<FrameworkOption[]>([DEFAULT_FRAMEWORK]);
+  useEffect(() => {
+    let live = true;
+    request<FrameworkOption[]>("/api/frameworks")
+      .then((options) => {
+        if (live && Array.isArray(options) && options.length > 0) setFrameworks(options);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+  return frameworks;
+}
+
+function FrameworkSelect({
+  frameworks,
+  value,
+  onChange,
+}: {
+  frameworks: FrameworkOption[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <label>
+      Framework
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {frameworks.map((framework) => (
+          <option key={framework.id} value={framework.id}>{framework.name} · {framework.id}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 function Setup({ onCreated }: { onCreated: (projectId: string) => void }) {
   const [clientName, setClientName] = useState("");
   const [projectName, setProjectName] = useState("HIPAA 2026");
+  const frameworks = useFrameworks();
+  const [frameworkId, setFrameworkId] = useState(DEFAULT_FRAMEWORK.id);
   const [error, setError] = useState("");
   const [working, setWorking] = useState(false);
 
@@ -467,7 +519,7 @@ function Setup({ onCreated }: { onCreated: (projectId: string) => void }) {
       });
       const project = await request<{ id: string }>(`/api/clients/${client.id}/projects`, {
         method: "POST",
-        body: JSON.stringify({ name: projectName }),
+        body: JSON.stringify({ name: projectName, framework_version_id: frameworkId }),
       });
       onCreated(project.id);
     } catch (caught) {
@@ -514,11 +566,12 @@ function Setup({ onCreated }: { onCreated: (projectId: string) => void }) {
             onChange={(event) => setProjectName(event.target.value)}
           />
         </label>
+        <FrameworkSelect frameworks={frameworks} value={frameworkId} onChange={setFrameworkId} />
         <div className="pinned-framework">
           <BookOpen size={18} />
           <div>
-            <strong>HIPAA 45 CFR Part 164</strong>
-            <span>Version hipaa-45cfr164-2026-07-01</span>
+            <strong>{frameworks.find((framework) => framework.id === frameworkId)?.name ?? frameworkId}</strong>
+            <span>Version {frameworkId}</span>
           </div>
         </div>
         {error && <p className="form-error"><CircleAlert size={16} /> {error}</p>}
@@ -543,6 +596,8 @@ function WorkspaceCreator({
   const [clientId, setClientId] = useState(clients[0]?.id || "__new__");
   const [clientName, setClientName] = useState("");
   const [projectName, setProjectName] = useState("HIPAA 2026");
+  const frameworks = useFrameworks();
+  const [frameworkId, setFrameworkId] = useState(DEFAULT_FRAMEWORK.id);
   const [error, setError] = useState("");
 
   async function submit(event: FormEvent) {
@@ -559,7 +614,10 @@ function WorkspaceCreator({
       }
       const project = await request<{ id: string }>(
         `/api/clients/${destinationClientId}/projects`,
-        { method: "POST", body: JSON.stringify({ name: projectName }) },
+        {
+          method: "POST",
+          body: JSON.stringify({ name: projectName, framework_version_id: frameworkId }),
+        },
       );
       onCreated(project.id);
     } catch (caught) {
@@ -572,7 +630,7 @@ function WorkspaceCreator({
       <form className="workspace-modal" onSubmit={submit} aria-label="Create client project">
         <div>
           <p className="eyebrow">NEW WORKSPACE</p>
-          <h2>Add a HIPAA project</h2>
+          <h2>Add a client project</h2>
         </div>
         <label>
           Client
@@ -591,6 +649,7 @@ function WorkspaceCreator({
           Project name
           <input required value={projectName} onChange={(event) => setProjectName(event.target.value)} />
         </label>
+        <FrameworkSelect frameworks={frameworks} value={frameworkId} onChange={setFrameworkId} />
         {error && <p className="form-error"><CircleAlert size={16} /> {error}</p>}
         <div className="modal-actions">
           <button className="small-button" type="submit">Create and open</button>
@@ -713,12 +772,13 @@ function DeterminationPanel({
     return (
       <section className="working-section rollup-section">
         <div className="section-title">
-          <div><p className="eyebrow">ROLLED UP</p><h3>Derived standard status</h3></div>
+          <div><p className="eyebrow">ROLLED UP</p><h3>Derived {detail.record.record_type === "requirement" ? "requirement" : "standard"} status</h3></div>
           <StatusPill status={detail.determination.status} derived />
         </div>
         <p className="muted">
-          This standard has no editable determination. Its status follows the child
-          specifications; notes and evidence here remain independently recordable.
+          {detail.record.record_type === "requirement"
+            ? "This requirement has no editable determination. Its status follows its assessment objectives; notes and evidence here remain independently recordable."
+            : "This standard has no editable determination. Its status follows the child specifications; notes and evidence here remain independently recordable."}
         </p>
       </section>
     );
@@ -1559,17 +1619,29 @@ export function Workspace({
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
   }, [hasUnsavedRoutineEdit, profileDirty]);
 
+  // CMMC presents each requirement with its objectives; HIPAA one record at a time.
+  const objectiveMode = assessment?.framework?.declarations?.presentation_mode === "requirement_with_objectives";
+  const activeRequirementId = objectiveMode
+    ? assessment?.work_list?.find((record) => record.record_id === recordId)?.parent_id ?? recordId
+    : "";
+
   const filtered = useMemo(() => {
     if (!assessment) return [];
     const term = search.toLowerCase();
     return assessment.work_list.filter(
       (record) =>
+        (!objectiveMode || !record.parent_id || record.parent_id === activeRequirementId) &&
         (area === "all" || record.work_area === area) &&
         (!term ||
           record.title.toLowerCase().includes(term) ||
           record.citation.toLowerCase().includes(term)),
     );
-  }, [assessment, search, area]);
+  }, [assessment, search, area, objectiveMode, activeRequirementId]);
+
+  const workAreas = useMemo(
+    () => (assessment ? [...new Set(assessment.work_list.map((record) => record.work_area))] : []),
+    [assessment],
+  );
 
   const projects = clients.flatMap((client) =>
     client.projects.map((project) => ({ ...project, clientName: client.name })),
@@ -1692,16 +1764,22 @@ export function Workspace({
           <label className="search-field"><Search size={15} /><input aria-label="Search records" placeholder="Find a citation…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
           <label className="area-filter"><ListFilter size={15} /><select aria-label="Filter work area" value={area} onChange={(event) => setArea(event.target.value)}>
             <option value="all">All work areas</option>
-            <option value="security">Security</option>
-            <option value="privacy">Privacy</option>
-            <option value="breach">Breach notification</option>
+            {objectiveMode ? (
+              workAreas.map((workArea) => <option key={workArea} value={workArea}>{workArea}</option>)
+            ) : (
+              <>
+                <option value="security">Security</option>
+                <option value="privacy">Privacy</option>
+                <option value="breach">Breach notification</option>
+              </>
+            )}
           </select></label>
         </div>
         <div className="record-list">
           {filtered.map((record, index) => (
             <button
               key={record.record_id}
-              className={record.record_id === recordId ? "active" : ""}
+              className={`${record.record_id === recordId ? "active" : ""} ${objectiveMode && record.parent_id ? "nested-objective" : ""}`}
               onClick={() => changeRecord(record.record_id)}
             >
               <span className="record-number">{String(index + 1).padStart(3, "0")}</span>
@@ -1749,37 +1827,37 @@ export function Workspace({
           </div>
         )}
         {assessment.reopening && <RevalidationPanel key={`revalidation:${assessment.id}`} projectId={assessment.project.id} assessmentId={assessment.id} reopening={assessment.reopening} items={assessment.revalidation_items ?? []} currentRecordId={recordId} onChanged={() => setRevalidationTick((tick) => tick + 1)} onOpenRecord={(next) => changeRecord(next)} />}
-        <CloseReadinessPanel key={`close:${assessment.project.id}:${assessment.id}:${revalidationTick}`} projectId={assessment.project.id} assessmentId={assessment.id} onNavigate={(link) => {
+        {assessment.framework.declarations.close_readiness && <CloseReadinessPanel key={`close:${assessment.project.id}:${assessment.id}:${revalidationTick}`} projectId={assessment.project.id} assessmentId={assessment.id} onNavigate={(link) => {
           const target = String(link.target ?? link.view ?? "");
           if (target === "profile" || target === "sra" || target === "overview") changeView(target as "profile" | "sra" | "overview");
           else if (link.record_id || link.recordId) changeRecord(String(link.record_id ?? link.recordId));
-        }} />
-        <PackageGenerationPanel key={`package:${assessment.project.id}:${assessment.id}:${revalidationTick}`} projectId={assessment.project.id} assessmentId={assessment.id} records={assessment.record_index} onReopened={refreshAssessmentProgress} />
+        }} />}
+        {assessment.framework.declarations.close_readiness && <PackageGenerationPanel key={`package:${assessment.project.id}:${assessment.id}:${revalidationTick}`} projectId={assessment.project.id} assessmentId={assessment.id} records={assessment.record_index} onReopened={refreshAssessmentProgress} />}
 
         {detail.parent && (
           <section className="parent-context">
             <div className="parent-icon"><FolderKanban size={18} /></div>
             <div>
-              <p className="eyebrow">STANDARD CONTEXT</p>
+              <p className="eyebrow">{objectiveMode ? "REQUIREMENT CONTEXT" : "STANDARD CONTEXT"}</p>
               <h3>{detail.parent.title}</h3>
               <span>{detail.parent.citation}</span>
               <p>{detail.parent.regulation_text}</p>
               <details>
-                <summary><ChevronDown size={14} /> Standard-level questions</summary>
+                <summary><ChevronDown size={14} /> {objectiveMode ? "Requirement-level questions" : "Standard-level questions"}</summary>
                 {detail.parent_prompts.length === 0 ? (
-                  <p>No standard-level guidance questions are attached to this record.</p>
+                  <p>No {objectiveMode ? "requirement-level" : "standard-level"} guidance questions are attached to this record.</p>
                 ) : (
                   <ul className="parent-question-list">
                     {detail.parent_prompts.map((prompt) => <li key={prompt.id}>{prompt.text}</li>)}
                   </ul>
                 )}
-                <p>Open the standard work to record answers, notes, and evidence.</p>
+                <p>Open the {objectiveMode ? "requirement" : "standard"} work to record answers, notes, and evidence.</p>
               </details>
             </div>
             <div className="parent-actions">
               <StatusPill status={detail.parent.determination?.status ?? ""} derived />
               <button className="text-button" onClick={() => changeRecord(detail.parent!.record_id, recordId)}>
-                Open standard notes & evidence
+                {objectiveMode ? "Open requirement and all objectives" : "Open standard notes & evidence"}
               </button>
             </div>
           </section>
@@ -1795,6 +1873,49 @@ export function Workspace({
           <h1>{detail.record.title}</h1>
           <blockquote>{detail.record.regulation_text}</blockquote>
         </section>
+
+        {detail.practitioner_guidance && (
+          <section className="practitioner-guidance" aria-label="RainTech practitioner guidance">
+            <p className="eyebrow">RAINTECH PRACTITIONER GUIDANCE · NOT DOD OR NIST TEXT</p>
+            <dl>
+              {Object.entries(detail.practitioner_guidance.fields)
+                .filter(([field, value]) => value && field !== "worksheet_level")
+                .map(([field, value]) => (
+                  <div key={field}>
+                    <dt>{GUIDANCE_LABELS[field] ?? field.replaceAll("_", " ")}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+            </dl>
+            <small>{detail.practitioner_guidance.provenance}</small>
+          </section>
+        )}
+
+        {objectiveMode && detail.children.length > 0 && (
+          <section className="objective-panel" aria-label="Assessment objectives">
+            <div className="section-title">
+              <div>
+                <p className="eyebrow">ASSESSMENT OBJECTIVES</p>
+                <h3>Determinations are recorded per objective</h3>
+              </div>
+              <StatusPill status={detail.determination.status} derived />
+            </div>
+            <p className="objective-rule">
+              Requirement status is derived: any Not Met → Not Met; otherwise any Pending → Pending; all Met → Met; otherwise blank.
+            </p>
+            <ul>
+              {detail.children.map((objective) => (
+                <li key={objective.record_id}>
+                  <button className="objective-row" onClick={() => changeRecord(objective.record_id)}>
+                    <span className="citation">{objective.citation}</span>
+                    <span>{objective.regulation_text}</span>
+                    <StatusPill status={objective.determination?.status ?? ""} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <section className="prompt-section">
           <div className="content-heading">
@@ -1840,13 +1961,16 @@ export function Workspace({
             void refreshAssessmentProgress();
           }}
         />
-        <NotMetReconciliation
-          key={`${assessment.id}:${detail.record.record_id}:reconciliation`}
-          assessmentId={assessment.id}
-          projectId={assessment.project.id}
-          recordId={detail.record.record_id}
-          status={detail.determination.status}
-        />
+        {/* CMMC requirement findings and POA&M arrive with official scoring (#105). */}
+        {!objectiveMode && (
+          <NotMetReconciliation
+            key={`${assessment.id}:${detail.record.record_id}:reconciliation`}
+            assessmentId={assessment.id}
+            projectId={assessment.project.id}
+            recordId={detail.record.record_id}
+            status={detail.determination.status}
+          />
+        )}
         <RecordNotes
           key={`${assessment.id}:${detail.record.record_id}:notes`}
           assessmentId={assessment.id}

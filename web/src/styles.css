@@ -769,3 +769,20 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .revalidation-panel { margin: 14px 28px 0; padding: 16px; border: 1px solid #f0d9a8; border-radius: 9px; background: #fffaf0; }
 .revalidation-panel h2 { margin: 0; font-size: 15px; }
 .revalidation-panel ul { margin: 8px 0; padding-left: 18px; font-size: 12px; }
+
+/* CMMC: a requirement with its assessment objectives visible together. */
+.record-list button.nested-objective { padding-left: 30px; font-size: 12px; }
+.objective-panel { margin: 18px 28px 0; padding: 17px 19px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.objective-panel .section-title { display: flex; justify-content: space-between; }
+.objective-panel h3 { margin: 0; font: 700 14px "Segoe UI"; }
+.objective-rule { margin: 0 0 12px; color: var(--muted); font-size: 12px; }
+.objective-panel ul { margin: 0; padding: 0; list-style: none; }
+.objective-row { display: grid; width: 100%; padding: 9px 4px; grid-template-columns: 150px 1fr auto; gap: 12px; align-items: center; border: 0; border-top: 1px solid var(--line); color: var(--ink); background: none; text-align: left; }
+.objective-row:hover { background: #f7fbfa; }
+.objective-row .citation { margin: 0; color: var(--muted); font-size: 11px; font-weight: 700; }
+.practitioner-guidance { margin: 18px 28px 0; padding: 14px 18px; border: 1px dashed var(--amber); border-radius: 10px; background: var(--amber-soft); }
+.practitioner-guidance .eyebrow { margin: 0 0 8px; color: #8d5818; }
+.practitioner-guidance dl { display: grid; margin: 0 0 8px; gap: 8px; }
+.practitioner-guidance dt { color: #8d5818; font-size: 11px; font-weight: 700; }
+.practitioner-guidance dd { margin: 2px 0 0; font-size: 13px; }
+.practitioner-guidance small { color: var(--muted); font-size: 11px; }

@@ -8,6 +8,7 @@ from alembic import command
 from fastapi.testclient import TestClient
 
 from api.database import configure_connection
+from api.framework import FRAMEWORK_ID
 from api.main import create_app
 from api.tests.test_issue_62_versioned_profile import (
     create_project,
@@ -320,20 +321,32 @@ def test_migration_cycle_preserves_sra_tables(tmp_path: Path) -> None:
             == 3
         )
         declarations = json.loads(
-            c.execute("SELECT declarations_json FROM framework_versions").fetchone()[0]
+            c.execute(
+                "SELECT declarations_json FROM framework_versions WHERE id = ?", (FRAMEWORK_ID,)
+            ).fetchone()[0]
         )
         assert declarations["sra"]["anchor_record_id"] == "164.308(a)(1)(ii)(A)"
-        assert c.execute("SELECT COUNT(*) FROM framework_records").fetchone()[0] == 194
         assert (
             c.execute(
-                "SELECT COUNT(*) FROM framework_records WHERE carries_determination = 1"
+                "SELECT COUNT(*) FROM framework_records WHERE framework_version_id = ?",
+                (FRAMEWORK_ID,),
+            ).fetchone()[0]
+            == 194
+        )
+        assert (
+            c.execute(
+                "SELECT COUNT(*) FROM framework_records "
+                "WHERE carries_determination = 1 AND framework_version_id = ?",
+                (FRAMEWORK_ID,),
             ).fetchone()[0]
             == 149
         )
     command.downgrade(config, "0007")
     with sqlite3.connect(db) as c:
         declarations = json.loads(
-            c.execute("SELECT declarations_json FROM framework_versions").fetchone()[0]
+            c.execute(
+                "SELECT declarations_json FROM framework_versions WHERE id = ?", (FRAMEWORK_ID,)
+            ).fetchone()[0]
         )
         assert "sra" not in declarations
     command.upgrade(config, "head")
@@ -346,7 +359,15 @@ def test_migration_cycle_preserves_sra_tables(tmp_path: Path) -> None:
             == 3
         )
         declarations = json.loads(
-            c.execute("SELECT declarations_json FROM framework_versions").fetchone()[0]
+            c.execute(
+                "SELECT declarations_json FROM framework_versions WHERE id = ?", (FRAMEWORK_ID,)
+            ).fetchone()[0]
         )
         assert declarations["sra"]["anchor_record_id"] == "164.308(a)(1)(ii)(A)"
-        assert c.execute("SELECT COUNT(*) FROM framework_records").fetchone()[0] == 194
+        assert (
+            c.execute(
+                "SELECT COUNT(*) FROM framework_records WHERE framework_version_id = ?",
+                (FRAMEWORK_ID,),
+            ).fetchone()[0]
+            == 194
+        )
