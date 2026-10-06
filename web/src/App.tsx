@@ -998,6 +998,40 @@ function RequirementFindingPanel({
   );
 }
 
+function BackupControl() {
+  const [warning, setWarning] = useState<string | null>(null);
+  const [last, setLast] = useState<string | null>(null);
+  const [state, setState] = useState<"idle" | "working" | "failed">("idle");
+  const load = useCallback(() => {
+    request<{ warning: string | null; backups: { status: string; completed_at: string }[] }>("/api/backups")
+      .then((result) => {
+        if (!result || !Array.isArray(result.backups)) return;
+        setWarning(result.warning);
+        setLast(result.backups.find((backup) => backup.status === "complete")?.completed_at ?? null);
+      })
+      .catch(() => undefined);
+  }, []);
+  useEffect(load, [load]);
+  async function backUpNow() {
+    setState("working");
+    try {
+      await request("/api/backups", { method: "POST" });
+      setState("idle");
+      load();
+    } catch {
+      setState("failed");
+    }
+  }
+  return (
+    <span className="backup-control">
+      {warning && <span className="backup-warning" role="alert" title={warning}><CircleAlert size={14} /> Backup failed</span>}
+      <button type="button" className="text-button" disabled={state === "working"} onClick={() => void backUpNow()} title={last ? `Last backup ${new Date(last).toLocaleString()}` : "No backup yet"}>
+        {state === "working" ? "Backing up…" : state === "failed" ? "Backup failed · retry" : "Back up now"}
+      </button>
+    </span>
+  );
+}
+
 function NotMetReconciliation({ projectId, assessmentId, recordId, status }: { projectId: string; assessmentId: string; recordId: string; status: string }) {
   const [data, setData] = useState<ReconciliationRecord | null>(null);
   const [choice, setChoice] = useState<ReconciliationDisposition>("create");
@@ -1864,6 +1898,7 @@ export function Workspace({
             {(visibleSaveState === "error" || visibleSaveState === "failed") && <CircleAlert size={14} />}
             {visibleSaveState === "saving" ? "Saving" : visibleSaveState === "saved" ? "Saved" : "Save failed"}
           </span>
+          <BackupControl />
           <span className="account"><UserRound size={16} /> Johnathan</span>
         </div>
       </header>

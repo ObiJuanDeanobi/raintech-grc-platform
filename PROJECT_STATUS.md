@@ -32,15 +32,16 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #105 - CMMC official scoring, requirement findings, POA&M; PR
-pending.** See `docs/evidence/issue-105/SCORING_FINDINGS_VERIFICATION.md`.
-Scoring follows 32 CFR 170.24 Table 7 and 170.21(a)(2), pinned from eCFR as of
-2026-10-01. The point values are built from the regulation text, not typed in.
-Migration `0016` adds one project-level finding per Not Met requirement with
-append-only history, plus partial-implementation input for IA.L2-3.5.3 and
-SC.L2-3.13.11. Pending creates follow-up only. Open for Johnathan: the
-regulation allows N/A for CMMC, but the approved specification does not.
+**GitHub issue #117 - workspace backups and retention; PR pending.** See
+`docs/evidence/issue-117/WORKSPACE_BACKUP_VERIFICATION.md`. It adds Back Up Now,
+automatic daily and weekly sets taken only after a change, 14/2 retention, a
+persistent failure warning, and a database copy before any pending migration.
+Migration `0017`. Phase 4 roadmap item 8; drafted under the October 6
+delegation.
 
+#105 (CMMC scoring, findings, POA&M) merged through PR #116 at `6f230f8`; see
+`docs/evidence/issue-105/SCORING_FINDINGS_VERIFICATION.md`. Open for Johnathan:
+the regulation allows N/A for CMMC, but the specification does not.
 #104 (CMMC objective workspace) merged through PR #115 at `bbb005d`; see
 `docs/evidence/issue-104/CMMC_WORKSPACE_VERIFICATION.md`.
 

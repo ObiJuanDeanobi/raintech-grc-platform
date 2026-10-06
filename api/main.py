@@ -1,3 +1,4 @@
+import asyncio
 import json
 import sqlite3
 from collections.abc import AsyncIterator
@@ -13,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, field_validator
 
-from api import cmmc
+from api import cmmc, workspace_backup
 from api.close import fieldwork_ready
 from api.correction import create_correction, package_issuance
 from api.database import (
@@ -1137,11 +1138,15 @@ def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[
     }
 
 
+BACKUP_CHECK_SECONDS = 15 * 60
+
+
 def create_app(
     database_path: Path | None = None,
     storage_path: Path | None = None,
     repository_root: Path | None = None,
     backup_path: Path | None = None,
+    automatic_backups_enabled: bool = False,
 ) -> FastAPI:
     root = repository_root or Path(__file__).resolve().parents[1]
     managed_storage = storage_path or root / "data" / "files"
@@ -1149,6 +1154,20 @@ def create_app(
     storage: FileStorage = LocalFileStorage(managed_storage)
     backup_root = backup_path or managed_storage / "backups"
     practitioner_guidance = load_practitioner_guidance(root)
+
+    template_root = root / "docs" / "templates"
+
+    def run_due_backups() -> list[dict[str, Any]]:
+        with database.connect() as connection:
+            return workspace_backup.run_due(
+                connection, database.path, managed_storage, template_root, backup_root
+            )
+
+    async def automatic_backups() -> None:
+        # Due checks are cheap; a backup is only taken after a persisted change.
+        while True:
+            await asyncio.to_thread(run_due_backups)
+            await asyncio.sleep(BACKUP_CHECK_SECONDS)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -1159,7 +1178,12 @@ def create_app(
         seed_cmmc_catalog(database, root)
         app.state.database = database
         app.state.file_storage = storage
-        yield
+        checker = asyncio.create_task(automatic_backups()) if automatic_backups_enabled else None
+        try:
+            yield
+        finally:
+            if checker:
+                checker.cancel()
 
     app = FastAPI(title="RainTech GRC API", version="0.1.0", lifespan=lifespan)
 
@@ -1664,6 +1688,21 @@ def create_app(
                 payload.actor_id,
             )
             return result
+
+    @app.get("/api/backups")
+    def list_backups(database: Annotated[Database, Depends(db)]) -> dict[str, Any]:
+        with database.connect() as connection:
+            return workspace_backup.status(connection)
+
+    @app.post("/api/backups", status_code=201)
+    def back_up_now(database: Annotated[Database, Depends(db)]) -> dict[str, Any]:
+        with database.connect() as connection:
+            result = workspace_backup.create_backup(
+                connection, database.path, managed_storage, template_root, backup_root, "manual"
+            )
+        if result["status"] != "complete":
+            raise HTTPException(status_code=500, detail=f"Backup failed: {result['failure']}")
+        return result
 
     @app.get("/api/frameworks")
     def list_frameworks(database: Annotated[Database, Depends(db)]) -> list[dict[str, Any]]:
@@ -4836,4 +4875,4 @@ def create_app(
     return app
 
 
-app = create_app()
+app = create_app(automatic_backups_enabled=True)

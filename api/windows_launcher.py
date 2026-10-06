@@ -78,6 +78,7 @@ def build_app(server_holder: dict[str, uvicorn.Server]) -> FastAPI:
         storage_path=mutable / "files",
         repository_root=resources,
         backup_path=mutable / "files" / "backups",
+        automatic_backups_enabled=True,
     )
 
     @app.get("/api/app/status")
