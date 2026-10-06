@@ -1719,6 +1719,48 @@ test("CMMC shows each requirement with its objectives and nests only the active 
   expect(screen.getByRole("heading", { level: 1 }).closest("section")).not.toHaveTextContent("RBAC");
 });
 
+test("a new project opens on Profile with the intake decision and starting moves to the assessment", async () => {
+  let started = false;
+  mockApi(async (input, init) => {
+    const url = String(input);
+    if (url === "/api/projects/project-1/profile-readiness") {
+      return Response.json({
+        ...readiness,
+        state: "Intake complete",
+        assessment_exists: started,
+        assessment_entry_allowed: true,
+        assessment_entry_blocking_reasons: [],
+      });
+    }
+    if (url === "/api/projects/project-1/assessments" && init?.method === "POST") {
+      started = true;
+      return Response.json({ id: "assessment-1" }, { status: 201 });
+    }
+    if (url === "/api/projects/project-1/assessment" && !started) {
+      return Response.json({ detail: "Assessment not found" }, { status: 404 });
+    }
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  const user = userEvent.setup();
+  render(
+    <Workspace
+      clients={clients}
+      projectId="project-1"
+      onProjectChange={vi.fn()}
+      onWorkspaceCreated={vi.fn()}
+      initialView="profile"
+    />,
+  );
+
+  expect(await screen.findByRole("button", { name: "Profile" })).toHaveClass("active");
+  expect(screen.getByRole("heading", { name: "Assessment readiness" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "+ Client / project" })).toBeVisible();
+  expect(screen.queryByLabelText("Named reviewer")).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Start assessment" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Assessments" })).toHaveClass("active"));
+});
+
 test("project creation sends the chosen framework version", async () => {
   const posted: string[] = [];
   mockApi(async (input, init) => {
@@ -1740,6 +1782,7 @@ test("project creation sends the chosen framework version", async () => {
   render(<App />);
   const user = userEvent.setup();
   await user.type(await screen.findByPlaceholderText("e.g. Northwind Health"), "Contoso Defense");
+  await user.type(screen.getByPlaceholderText("e.g. CMMC L2 2026"), "CMMC L2 2026");
   await user.selectOptions(await screen.findByLabelText("Framework"), "cmmc-l2-ag-v2.13");
   await user.click(screen.getByRole("button", { name: /Create workspace/ }));
   await waitFor(() => expect(posted).toHaveLength(1));

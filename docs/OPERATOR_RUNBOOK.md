@@ -30,10 +30,14 @@ CMMC Windows/offline acceptance on the Surface (#109) is still open. This runboo
 1. **+ Client / project.** Choose the client, the project name, and the
    **framework**: HIPAA 45 CFR Part 164 or CMMC Level 2. The framework version
    is pinned for the life of the project.
-2. **Profile.** Complete intake and
-   move readiness to *Intake complete*. An assessment cannot start before that.
-   *Profile complete* needs a named reviewer and approval evidence.
-3. Create the assessment from the Assessments view.
+2. **Profile.** A new project opens on its Profile. Fill in the scope facts,
+   then use **Assessment readiness** at the bottom of the same page: record
+   *Intake complete* with a decision note. An assessment cannot start before
+   that.
+3. **Start assessment**, from the same panel. The app moves to the
+   Assessments view.
+4. **Profile complete** is recorded later, from the Profile page, with a named
+   reviewer and approval evidence. Close readiness requires it.
 
 ## 4. HIPAA workflow
 

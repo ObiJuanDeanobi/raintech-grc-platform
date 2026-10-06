@@ -51,10 +51,12 @@ function ReadinessPanel({
   readiness,
   hasAssessment,
   onChanged,
+  onStarted,
 }: {
   readiness: ProfileReadiness;
   hasAssessment: boolean;
   onChanged: () => Promise<void>;
+  onStarted?: () => void;
 }) {
   const [nextState, setNextState] = useState(
     readiness.allowed_next_states[0] ?? "",
@@ -119,6 +121,7 @@ function ReadinessPanel({
     try {
       await request(`/api/projects/${readiness.project_id}/assessments`, { method: "POST" });
       await onChanged();
+      onStarted?.();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Assessment creation failed.");
     } finally {
@@ -189,14 +192,18 @@ function ReadinessPanel({
               onChange={(event) => setFollowUp(event.target.value)}
             />
           </label>
-          <label>
-            Named reviewer
-            <input value={reviewedBy} onChange={(event) => setReviewedBy(event.target.value)} />
-          </label>
-          <label>
-            Review / approval evidence
-            <textarea rows={2} value={approvalEvidence} onChange={(event) => setApprovalEvidence(event.target.value)} />
-          </label>
+          {nextState === "Profile complete" && (
+            <>
+              <label>
+                Named reviewer
+                <input value={reviewedBy} onChange={(event) => setReviewedBy(event.target.value)} />
+              </label>
+              <label>
+                Review / approval evidence
+                <textarea rows={2} value={approvalEvidence} onChange={(event) => setApprovalEvidence(event.target.value)} />
+              </label>
+            </>
+          )}
         </div>
         {readiness.profile_completion_blocking_reasons.length > 0 && (
           <div className="profile-blockers">
@@ -474,7 +481,7 @@ function FrameworkSelect({
 
 function Setup({ onCreated }: { onCreated: (projectId: string) => void }) {
   const [clientName, setClientName] = useState("");
-  const [projectName, setProjectName] = useState("HIPAA 2026");
+  const [projectName, setProjectName] = useState("");
   const frameworks = useFrameworks();
   const [frameworkId, setFrameworkId] = useState(DEFAULT_FRAMEWORK.id);
   const [error, setError] = useState("");
@@ -534,6 +541,7 @@ function Setup({ onCreated }: { onCreated: (projectId: string) => void }) {
           Project name
           <input
             required
+            placeholder="e.g. CMMC L2 2026"
             value={projectName}
             onChange={(event) => setProjectName(event.target.value)}
           />
@@ -567,7 +575,7 @@ function WorkspaceCreator({
 }) {
   const [clientId, setClientId] = useState(clients[0]?.id || "__new__");
   const [clientName, setClientName] = useState("");
-  const [projectName, setProjectName] = useState("HIPAA 2026");
+  const [projectName, setProjectName] = useState("");
   const frameworks = useFrameworks();
   const [frameworkId, setFrameworkId] = useState(DEFAULT_FRAMEWORK.id);
   const [error, setError] = useState("");
@@ -619,7 +627,7 @@ function WorkspaceCreator({
         )}
         <label>
           Project name
-          <input required value={projectName} onChange={(event) => setProjectName(event.target.value)} />
+          <input required placeholder="e.g. CMMC L2 2026" value={projectName} onChange={(event) => setProjectName(event.target.value)} />
         </label>
         <FrameworkSelect frameworks={frameworks} value={frameworkId} onChange={setFrameworkId} />
         {error && <p className="form-error"><CircleAlert size={16} /> {error}</p>}
@@ -1697,11 +1705,13 @@ export function Workspace({
   projectId,
   onProjectChange,
   onWorkspaceCreated,
+  initialView = "assessment",
 }: {
   clients: Client[];
   projectId: string;
   onProjectChange: (id: string) => void;
   onWorkspaceCreated: (id: string) => void;
+  initialView?: "assessment" | "profile";
 }) {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loadedProjectId, setLoadedProjectId] = useState("");
@@ -1722,7 +1732,7 @@ export function Workspace({
   const [loading, setLoading] = useState(true);
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const [profileDirty, setProfileDirty] = useState(false);
-  const [view, setView] = useState<"assessment" | "overview" | "profile" | "sra">("assessment");
+  const [view, setView] = useState<"assessment" | "overview" | "profile" | "sra">(initialView);
   const detailTargetRef = useRef({ assessmentId: "", recordId: "" });
   const detailRequestSequenceRef = useRef(0);
   const assessmentRequestSequenceRef = useRef(0);
@@ -2003,9 +2013,25 @@ export function Workspace({
               </select>
             </label>
             <span>{selectedProject?.framework_version_id}</span>
+            <button
+              className="add-workspace"
+              onClick={() => {
+                if (confirmRoutineNavigation()) setCreatingWorkspace(true);
+              }}
+            >
+              + Client / project
+            </button>
           </div>
           {view === "profile" ? (
-            <ProfilePanel key={projectId} projectId={projectId} onDirtyChange={setProfileDirty} />
+            <>
+              <ProfilePanel key={projectId} projectId={projectId} onDirtyChange={setProfileDirty} />
+              <ReadinessPanel
+                readiness={readiness}
+                hasAssessment={Boolean(assessment)}
+                onChanged={reloadWorkspace}
+                onStarted={() => setView("assessment")}
+              />
+            </>
           ) : view === "sra" ? (
             <SraPanel key={`${projectId}:${assessment?.id ?? "none"}`} projectId={projectId} assessmentId={assessment?.id} onDirtyChange={setProfileDirty} />
           ) : (
@@ -2013,6 +2039,7 @@ export function Workspace({
               readiness={readiness}
               hasAssessment={Boolean(assessment)}
               onChanged={reloadWorkspace}
+              onStarted={() => setView("assessment")}
             />
           )}
         </main>
@@ -2022,6 +2049,7 @@ export function Workspace({
             onCancel={() => setCreatingWorkspace(false)}
             onCreated={(id) => {
               setCreatingWorkspace(false);
+              setView("profile");
               onWorkspaceCreated(id);
             }}
           />
@@ -2396,6 +2424,7 @@ export function Workspace({
           onCancel={() => setCreatingWorkspace(false)}
           onCreated={(id) => {
             setCreatingWorkspace(false);
+            setView("profile");
             onWorkspaceCreated(id);
           }}
         />
@@ -2407,6 +2436,7 @@ export function Workspace({
 export default function App() {
   const [clients, setClients] = useState<Client[] | null>(null);
   const [projectId, setProjectId] = useState("");
+  const [openedFromSetup, setOpenedFromSetup] = useState(false);
   const [error, setError] = useState("");
 
   async function loadClients(preferredProjectId = "") {
@@ -2438,7 +2468,14 @@ export default function App() {
     return <div className="loading-screen"><LoaderCircle className="spin" /><span>Opening local workspace…</span></div>;
   }
   if (!projectId) {
-    return <Setup onCreated={(id) => void loadClients(id)} />;
+    return (
+      <Setup
+        onCreated={(id) => {
+          setOpenedFromSetup(true);
+          void loadClients(id);
+        }}
+      />
+    );
   }
   return (
     <Workspace
@@ -2446,6 +2483,7 @@ export default function App() {
       projectId={projectId}
       onProjectChange={setProjectId}
       onWorkspaceCreated={(id) => void loadClients(id)}
+      initialView={openedFromSetup ? "profile" : "assessment"}
     />
   );
 }
