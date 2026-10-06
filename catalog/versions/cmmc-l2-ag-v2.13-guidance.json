@@ -1,0 +1,2065 @@
+{
+  "framework_version_id": "cmmc-l2-ag-v2.13",
+  "catalog_content_sha256": "2f83215faf796fbd4c32c5bfaf99d2a705c683983a6af709738fb3557f6e3f84",
+  "provenance": "RainTech CMMC assessment worksheet - practitioner guidance. Not DoD or NIST authority; must never be cited as such and cannot create determinations or findings.",
+  "derived_from": "docs/prototypes/mockups/cmmc-assessment-workspace.html (const GUID)",
+  "counts": {
+    "evidence_type": 320,
+    "evidence_examples": 318,
+    "assessment_considerations": 239,
+    "c3pao_guidance": 110
+  },
+  "blanks": {
+    "evidence_type": [],
+    "evidence_examples": [
+      "AC.L2-3.1.22a",
+      "CM.L2-3.4.1f"
+    ],
+    "assessment_considerations": [
+      "AC.L2-3.1.15b",
+      "AC.L2-3.1.15d",
+      "AC.L2-3.1.18c",
+      "AC.L2-3.1.1b",
+      "AC.L2-3.1.1c",
+      "AC.L2-3.1.21c",
+      "AC.L2-3.1.22a",
+      "AC.L2-3.1.22b",
+      "AC.L2-3.1.22d",
+      "AC.L2-3.1.22e",
+      "AC.L2-3.1.3a",
+      "AC.L2-3.1.3b",
+      "AC.L2-3.1.4b",
+      "AC.L2-3.1.4c",
+      "AC.L2-3.1.7b",
+      "AT.L2-3.2.1a",
+      "AT.L2-3.2.1b",
+      "AU.L2-3.3.1a",
+      "AU.L2-3.3.1b",
+      "AU.L2-3.3.1c",
+      "AU.L2-3.3.1d",
+      "AU.L2-3.3.1f",
+      "AU.L2-3.3.3c",
+      "AU.L2-3.3.4a",
+      "AU.L2-3.3.4b",
+      "AU.L2-3.3.4c",
+      "AU.L2-3.3.5a",
+      "AU.L2-3.3.6a",
+      "AU.L2-3.3.7a",
+      "AU.L2-3.3.7b",
+      "AU.L2-3.3.8b",
+      "AU.L2-3.3.8c",
+      "AU.L2-3.3.8d",
+      "AU.L2-3.3.8e",
+      "AU.L2-3.3.8f",
+      "AU.L2-3.3.9a",
+      "CA.L2-3.12.4b",
+      "CA.L2-3.12.4c",
+      "CA.L2-3.12.4e",
+      "CA.L2-3.12.4f",
+      "CA.L2-3.12.4h",
+      "CM.L2-3.4.1d",
+      "CM.L2-3.4.1e",
+      "CM.L2-3.4.1f",
+      "CM.L2-3.4.5c",
+      "CM.L2-3.4.5g",
+      "CM.L2-3.4.7n",
+      "CM.L2-3.4.7o",
+      "IA.L2-3.5.10b",
+      "IA.L2-3.5.3a",
+      "IA.L2-3.5.5a",
+      "IA.L2-3.5.6a",
+      "IA.L2-3.5.8b",
+      "IR.L2-3.6.1b",
+      "IR.L2-3.6.1c",
+      "IR.L2-3.6.1d",
+      "IR.L2-3.6.1e",
+      "IR.L2-3.6.1f",
+      "IR.L2-3.6.1g",
+      "IR.L2-3.6.2b",
+      "IR.L2-3.6.2c",
+      "MP.L2-3.8.2a",
+      "PE.L2-3.10.2a",
+      "PE.L2-3.10.2b",
+      "PE.L2-3.10.6a",
+      "RA.L2-3.11.1a",
+      "RA.L2-3.11.3a",
+      "SC.L2-3.13.12a",
+      "SC.L2-3.13.2b",
+      "SC.L2-3.13.2c",
+      "SC.L2-3.13.3a",
+      "SC.L2-3.13.3b",
+      "SC.L2-3.13.8a",
+      "SC.L2-3.13.8b",
+      "SC.L2-3.13.9b",
+      "SI.L2-3.14.1c",
+      "SI.L2-3.14.1d",
+      "SI.L2-3.14.2b",
+      "SI.L2-3.14.3b",
+      "SI.L2-3.14.5a",
+      "SI.L2-3.14.5b"
+    ]
+  },
+  "unmapped_keys": [],
+  "objectives": {
+    "AC.L2-3.1.10a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) that defines the period of inactivity and when a session lock is defined.",
+      "assessment_considerations": "If session locks are not managed centrally, how are all computer users made aware of the requirements and how to configure them?"
+    },
+    "AC.L2-3.1.10b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Artifact that shows the setting of session lock (GPO or system policy or similar solution addressing the controls supporting centralized management and configuration of operating systems, applications, and users' settings for the working environment of user accounts and computer accounts).",
+      "assessment_considerations": "If session locks are not managed centrally, how are all computer users made aware of the requirements and how to configure them?"
+    },
+    "AC.L2-3.1.10c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Screenshot of GPO setting and configuration settings, or similar solution addressing the controls supporting centralized management and configuration of operating systems, applications, and users' settings for the working environment of user accounts and computer accounts.",
+      "assessment_considerations": "[i] If session locks are not managed centrally, how are all computer users made aware of the requirements and how to configure them? [ii] Does the session lock hide previously visible information (e.g., replacing what was visible with a lock screen or screensaver that does not include sensitive information)?"
+    },
+    "AC.L2-3.1.11a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) that defines the conditions requiring a user session to be terminated.",
+      "assessment_considerations": "[i] Are the conditions in which a user session must be terminated described (e.g., after a period of inactivity or after a defined time limit)? [ii] Are user sessions terminated based on organizationally defined conditions?"
+    },
+    "AC.L2-3.1.11b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share showing GPO / VPN Settings that show when a session would be terminated (Idle time, max connection time).",
+      "assessment_considerations": "[i] Are procedures documented that describe how to configure the system to enable automatic termination of user sessions after any of the defined conditions occur? [ii] Are user sessions terminated based on organizationally defined conditions?"
+    },
+    "AC.L2-3.1.12a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) that defines remote access sessions.",
+      "assessment_considerations": "Do policies identify when remote access is permitted and what methods must be used?"
+    },
+    "AC.L2-3.1.12b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) that defines remote access is permitted.",
+      "assessment_considerations": "Do policies identify when remote access is permitted and what methods must be used?"
+    },
+    "AC.L2-3.1.12c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share that shows how the remote access is controlled (access session, and or groups).",
+      "assessment_considerations": "Are systems configured to permit only approved remote access sessions (e.g., disallow remote access sessions by default)?"
+    },
+    "AC.L2-3.1.12d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share that shows how remote sessions are monitored (logs).",
+      "assessment_considerations": "Are automated or manual mechanisms employed for monitoring remote connections? If the monitoring is manual, does it occur at a frequency commensurate with the level of risk?"
+    },
+    "AC.L2-3.1.13a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) that discusses the CUI rules, consistent, and associated with the specific CUI category; FIPS Cert # of appliance or application.",
+      "assessment_considerations": "Are cryptographic mechanisms used for remote access sessions (e.g., Transport Layer Security (TLS) and Internet Protocol Security (IPSec) using FIPS-validated encryption algorithms) defined and implemented? Note that simply using an approved algorithm is not sufficient – the module (software and/or hardware) used to implement the algorithm must be separately validated under FIPS 140."
+    },
+    "AC.L2-3.1.13b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screenshot of VPN concentration that shows encryption is on and enabled (point-to-point, etc.).",
+      "assessment_considerations": "Are cryptographic mechanisms used for remote access sessions (e.g., Transport Layer Security (TLS) and Internet Protocol Security (IPSec) using FIPS-validated encryption algorithms) defined and implemented? Note that simply using an approved algorithm is not sufficient – the module (software and/or hardware) used to implement the algorithm must be separately validated under FIPS 140."
+    },
+    "AC.L2-3.1.14a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share that shows access control points (groups and/or users).",
+      "assessment_considerations": "How many managed access control points are implemented?"
+    },
+    "AC.L2-3.1.14b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share that shows access control points and how they are managed.",
+      "assessment_considerations": "Is all remote access routed through the managed access control points?"
+    },
+    "AC.L2-3.1.15a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) that defines what is authorized to be executed remotely and how that is handled.",
+      "assessment_considerations": "Does system documentation identify system administration or security functions that can be executed remotely?"
+    },
+    "AC.L2-3.1.15b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) that defines what can be accessed remotely and what procedures are implemented to allow this (RDP, jump box)."
+    },
+    "AC.L2-3.1.15c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share that shows who has access to perform privileged commands a remotely (access groups for privileged accounts).",
+      "assessment_considerations": "Is execution of the identified privileged commands via remote access only authorized for documented operational needs?"
+    },
+    "AC.L2-3.1.15d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share that shows the routing of remote access and how it is monitored and how many locations (Firewall, VPN Concentrator)."
+    },
+    "AC.L2-3.1.16a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, network administration document.",
+      "assessment_considerations": "Is an updated list of approved network devices providing wireless access to the system maintained?"
+    },
+    "AC.L2-3.1.16b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Authorization profile(s) in Wireless Access Controller or Identity Manager (i.e. Cisco ISE).",
+      "assessment_considerations": "[i] Are network devices providing wireless access configured to require users or devices be authorized prior to permitting a wireless connection? [ii] Is wireless access to the system authorized and managed?"
+    },
+    "AC.L2-3.1.17a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Security page (or similar) of a Wireless Access Controller.",
+      "assessment_considerations": "[i] Is wireless access limited only to authenticated and authorized users (e.g., required to supply a username and password)? [ii] If the organization is securing its wireless network with a pre-shared key, is access to that key restricted to only authorized users?"
+    },
+    "AC.L2-3.1.17b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Security page (or similar) of a Wireless Access Controller.",
+      "assessment_considerations": "Is wireless access encrypted using FIPS-validated cryptography? Note that simply using an approved algorithm is not sufficient; the module (software and/or hardware) used to implement the algorithm must be separately validated under FIPS 140."
+    },
+    "AC.L2-3.1.18a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, Mobile Device Policy",
+      "assessment_considerations": "Is a list of mobile devices that are permitted to process, store, or transmit CUI maintained?"
+    },
+    "AC.L2-3.1.18b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Authorization profile(s) in Wireless Access Controller or Identity Manager (i.e. Cisco ISE)",
+      "assessment_considerations": "[i] Is a list of mobile devices that are permitted to process, store, or transmit CUI maintained? [ii] Is the system configured to only permit connections from identified, authorized mobile devices?"
+    },
+    "AC.L2-3.1.18c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Mobile device logs within the MDM, log intake (sources) configuration (within SIEM) showing MDM is feeding logs to the SIEM."
+    },
+    "AC.L2-3.1.19a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, Mobile Device Policy.",
+      "assessment_considerations": "Is a list maintained of mobile devices and mobile computing platforms that are permitted to process, store, or transmit CUI?"
+    },
+    "AC.L2-3.1.19b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Security policy page in MDM showing how encryption are enforced on mobile device. If no MDM or MDM doesn't enforce encryption, then validate if the devices used are on the list of devices with native FIPS approved validation.",
+      "assessment_considerations": "Is CUI encrypted on mobile devices using FIPS-validated algorithms?"
+    },
+    "AC.L2-3.1.1a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Document defining account request, approval, provisioning.",
+      "assessment_considerations": "Is a list of authorized users maintained that defines their identities and roles?"
+    },
+    "AC.L2-3.1.1b": {
+      "evidence_type": "Document",
+      "evidence_examples": "Document defining account request, approval, provisioning."
+    },
+    "AC.L2-3.1.1c": {
+      "evidence_type": "Document",
+      "evidence_examples": "Document defining account request, approval, provisioning."
+    },
+    "AC.L2-3.1.1d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share showing login requirements are enforced. Example of an unauthorized user denied (unauthorized username entered at login).",
+      "assessment_considerations": "Are account requests authorized before system access is granted?"
+    },
+    "AC.L2-3.1.1e": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screenshot showing that service accounts are assigned to authorized users only; no rogue accounts without an authorized user are active.",
+      "assessment_considerations": "Are account requests authorized before system access is granted?"
+    },
+    "AC.L2-3.1.1f": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share showing that all devices running are authorized; no rogue devices on the network.",
+      "assessment_considerations": "Are account requests authorized before system access is granted?"
+    },
+    "AC.L2-3.1.20a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, Systems Interconnection Agreements, SLA.",
+      "assessment_considerations": "Are all connections to external systems outside of the assessment scope identified?"
+    },
+    "AC.L2-3.1.20b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, Systems Interconnection Agreements, SLA.",
+      "assessment_considerations": "Are external systems (e.g., systems managed by contractors, partners, or vendors; personal devices) that are permitted to connect to or make use of organizational systems identified?"
+    },
+    "AC.L2-3.1.20c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "SLA for external systems, memorandum for interconnection, information to prove that any cloud solution is at FedRAMP impact level of moderate or higher (i.e. license information, screenshot of AWS cloud dashboard, purchase order document).",
+      "assessment_considerations": "Are methods employed to ensure that only authorized connections are being made to external systems (e.g., requiring log-ins or certificates, access from a specific IP address, or access via Virtual Private Network (VPN))?"
+    },
+    "AC.L2-3.1.20d": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "SLA for external systems, memorandum for interconnection, information to prove that any cloud solution is at FedRAMP impact level of moderate or higher (i.e. license information, screenshot of AWS cloud dashboard, Ppurchase order document).",
+      "assessment_considerations": "Are methods employed to confirm that only authorized external systems are connecting (e.g., if employees are receiving company email on personal cell phones, is the contractor checking to verify that only known/expected devices are connecting)?"
+    },
+    "AC.L2-3.1.20e": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Firewall ruleset for controlling access to cloud service or external system.",
+      "assessment_considerations": "Are methods employed to ensure that only authorized connections are being made to external systems (e.g., requiring log-ins or certificates, access from a specific IP address, or access via Virtual Private Network (VPN))?"
+    },
+    "AC.L2-3.1.20f": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Firewall ruleset for controlling access to cloud service or external system.",
+      "assessment_considerations": "Is the use of external systems limited, including by policy or physical control?"
+    },
+    "AC.L2-3.1.21a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, Removable Media Policy, Acceptable Use Policy (with emphasis on portable media use).",
+      "assessment_considerations": "Are the portable storage devices authorized for external use identified and documented?"
+    },
+    "AC.L2-3.1.21b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, Removable Media Policy, Acceptable Use Policy (with emphasis on portable media use).",
+      "assessment_considerations": "[i] Are the circumstances defined in which portable storage devices containing CUI may be used on external systems (e.g., with management approval)? [ii] Are limitations stipulated for the use of portable storage devices containing CUI on external systems (e.g., authorized personnel only, encrypted drives required)?"
+    },
+    "AC.L2-3.1.21c": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, Removable Media Policy, Acceptable Use Policy (with emphasis on portable media use)."
+    },
+    "AC.L2-3.1.22a": {
+      "evidence_type": "Document"
+    },
+    "AC.L2-3.1.22b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, Website Governance Plan, Information Release Document."
+    },
+    "AC.L2-3.1.22c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Information release approval process, i.e. chain of email communication from originator, approver, and final decision (may or may not include individual authorized to post); SharePoint/electronic or paper form/ ticket system showing information flow between requestor and approver (may or may not include individual authorized to post).",
+      "assessment_considerations": "Does information on externally facing systems (i.e., publicly accessible) have a documented approval chain for public release ?"
+    },
+    "AC.L2-3.1.22d": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Incident response process, web design/update/modification SOP etc."
+    },
+    "AC.L2-3.1.22e": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Incident response process, web design/update/modification SOP etc."
+    },
+    "AC.L2-3.1.2a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, AUP, or IAM document that defines what authorized users can execute.",
+      "assessment_considerations": "Are access control lists used to limit access to applications and data based on role and/or identity?"
+    },
+    "AC.L2-3.1.2b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screenshot of security roles in AD or IAM or other directory-based identity-related services tool that shows transactions are as defined in the SSP or IAM document; privileged and non-privileged accounts need to be defined and identified in the artifact; screenshot of a non-privileged user trying to execute a privileged function.",
+      "assessment_considerations": "Is access for authorized users restricted to those parts of the system they are explicitly permitted to use (e.g., a person who only performs word-processing cannot access developer tools)?"
+    },
+    "AC.L2-3.1.3a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or other document describing the control of CUI on the network."
+    },
+    "AC.L2-3.1.3b": {
+      "evidence_type": "Document",
+      "evidence_examples": "Document that defines the networking devices that are on the CUI network and answers what measures are in place to control the flow. List of firewalls, border and internal layer 3 devices, IDS/IPS, DLP, that process CUI."
+    },
+    "AC.L2-3.1.3c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Network diagram, data flow diagram, external system connection diagrams, document describing the policies for CUI on the network; listing of VLANs and subnets where CUI is authorized; document must describe source and authorized destinations.",
+      "assessment_considerations": "[i] Are designated sources of regulated data identified within the system (e.g., internal network and IP address) and between interconnected systems (e.g., external networks, IP addresses, ports, and protocols)? [ii] Are designated destinations of regulated data identified within the system (e.g., internal network and IP address) and between interconnected systems (external networks and IP addresses)?"
+    },
+    "AC.L2-3.1.3d": {
+      "evidence_type": "Document",
+      "evidence_examples": "Document that defines how CUI is to be controlled, such as an InfoSec plan, and/or network management plan.",
+      "assessment_considerations": "Are authorizations defined for each source and destination within the system and between interconnected systems (e.g., allow or deny rules for each combination of source and destination)?"
+    },
+    "AC.L2-3.1.3e": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screenshots of firewall rules, ACLs, etc.",
+      "assessment_considerations": "Are approved authorizations for controlling the flow of regulated data enforced within the system and between interconnected systems (e.g., traffic between authorized sources and destinations is allowed and traffic between unauthorized sources and destinations is denied)?"
+    },
+    "AC.L2-3.1.4a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Document, SSP, account management policy, defining separation of duties by person or role.",
+      "assessment_considerations": "Does system documentation identify the system functions or processes that require separation of duties (e.g., function combinations that represent a conflict of interest or an over-allocation of security privilege for one individual)?"
+    },
+    "AC.L2-3.1.4b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screenshot showing that separation of duties is enforced by showing admin accounts are assigned to different people based on role."
+    },
+    "AC.L2-3.1.4c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen shot showing an example such as a security manager can not log into a network device and change ACLs, or network admins can not access security logs in the SIEM tool."
+    },
+    "AC.L2-3.1.5a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) identify what is considered a privileged account.",
+      "assessment_considerations": "Are privileged accounts documented and is when they may be used defined?"
+    },
+    "AC.L2-3.1.5b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "An artifact that identifies the least amount of permissions associated with different types of privileged accounts are approved.",
+      "assessment_considerations": "Are users assigned privileged accounts to perform their job functions only when it is necessary?"
+    },
+    "AC.L2-3.1.5c": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) identifies what is considered a security account.",
+      "assessment_considerations": "Are necessary security functions identified (e.g., access control configuration, system configuration settings, or privileged account lists) that must be managed through the use of privileged accounts?"
+    },
+    "AC.L2-3.1.5d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Artifact(s) that identify the least amount of permissions associated with different types of security accounts are approved.",
+      "assessment_considerations": "Is access to privileged functions and security information restricted to authorized employees?"
+    },
+    "AC.L2-3.1.6a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or account management document, AUP, that defines non-security functions.",
+      "assessment_considerations": "Are nonsecurity functions and non-privileged roles defined?"
+    },
+    "AC.L2-3.1.6b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screenshot showing that a privileged user tried to use their admin account to access a non-security function, such as a browser or email (whatever is defined in their policy) and was blocked.",
+      "assessment_considerations": "[i] Are nonsecurity functions and non-privileged roles defined? [ii] Is it required that nonsecurity functions only be accessed with the use of non-privileged accounts? How is this verified?"
+    },
+    "AC.L2-3.1.7a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) that defines privileged functions.",
+      "assessment_considerations": "Are the privileged system functions documented (e.g., functions that involve the control, monitoring or administration of the system, including security functions and log management)?"
+    },
+    "AC.L2-3.1.7b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) that defines non-privileged users."
+    },
+    "AC.L2-3.1.7c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share that shows that a non-privileged user is not allowed to complete a privileged function (installing software).",
+      "assessment_considerations": "Do documented procedures describe the configuration of the system to ensure system roles do not grant non-privileged users the ability to execute privileged functions?"
+    },
+    "AC.L2-3.1.7d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share that shows logs being captured of the execution of privileged functions.",
+      "assessment_considerations": "[i] Is it possible to identify who enabled privileges at any particular time? [ii] Do procedures describe the configuration of system settings to capture the execution of all privileged functions in audit logs?"
+    },
+    "AC.L2-3.1.8a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) showing unsuccessful logon attempts settings and or policy.",
+      "assessment_considerations": "Is there a defined threshold for the number of unsuccessful logon attempts for which the system takes action to prevent additional attempts?"
+    },
+    "AC.L2-3.1.8b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Artifact showing GPO / Policy for limiting logon attempts.",
+      "assessment_considerations": "Is a mechanism for limiting the number of unsuccessful logon attempts implemented and does it use the defined threshold?"
+    },
+    "AC.L2-3.1.9a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy (documentation) showing CUI-specified rules are identified, consistent, and associated with the specific CUI category.",
+      "assessment_considerations": "[i] Are requirements identified for privacy and security notices, and do the implemented practices match those identified requirements? Discrepancies may indicate a deficient process and/or an incomplete practice. [ii] Are there any special requirements associated with the specific CUI category?"
+    },
+    "AC.L2-3.1.9b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Artifact that shows a consent banner or screen that a user sees as they log in to the system.",
+      "assessment_considerations": "[i] Are requirements identified for privacy and security notices, and do the implemented practices match those identified requirements? Discrepancies may indicate a deficient process and/or an incomplete practice. [ii] Are appropriate notices displayed in areas where paper-based CUI is stored and processed?"
+    },
+    "PE.L2-3.10.1a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Authorized personnel (names) access list.",
+      "assessment_considerations": "Are lists of personnel with authorized access developed and maintained, and are appropriate authorization credentials issued?"
+    },
+    "PE.L2-3.10.1b": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Badge reader logs, audit logs, and/or card swipe test.",
+      "assessment_considerations": "Has the facility/building manager designated building areas as “sensitive” and designed physical security protections (e.g., guards, locks, cameras, card readers) to limit physical access to the area to only authorized employees?"
+    },
+    "PE.L2-3.10.1c": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Badge reader logs, audit logs, and/or card swipe test.",
+      "assessment_considerations": "[i] Are output devices such as printers placed in areas where their use does not expose data to unauthorized individuals? [ii] Has the facility/building manager designated building areas as “sensitive” and designed physical security protections (e.g., guards, locks, cameras, card readers) to limit physical access to the area to only authorized employees?"
+    },
+    "PE.L2-3.10.1d": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Badge reader logs, audit logs, and/or card swipe test.",
+      "assessment_considerations": "Has the facility/building manager designated building areas as “sensitive” and designed physical security protections (e.g., guards, locks, cameras, card readers) to limit physical access to the area to only authorized employees?"
+    },
+    "PE.L2-3.10.2a": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Physical security measures and barriers into the physical facility (cameras/locks/gates/guards, etc.)."
+    },
+    "PE.L2-3.10.2b": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Physical barriers to entries into computer spaces, server rooms, etc.."
+    },
+    "PE.L2-3.10.2c": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Audit logs/how the physical facility is being monitored (cameras/access system/guards, etc.).",
+      "assessment_considerations": "Is physical access monitored to detect and respond to physical security incidents?"
+    },
+    "PE.L2-3.10.2d": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Audit logs/how the physical facility is being monitored (cameras/access system/guards, etc.).",
+      "assessment_considerations": "Is physical access monitored to detect and respond to physical security incidents?"
+    },
+    "PE.L2-3.10.3a": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Policy/procedures/instruction on methodology for handling non-authorized personnel (entry to exit).",
+      "assessment_considerations": "Are personnel required to accompany visitors to areas in a facility with physical access to organizational systems?"
+    },
+    "PE.L2-3.10.3b": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Policy/procedures/instructio on methodology for handling non-authorized personnel (entry to exit).",
+      "assessment_considerations": "[i] Are visitors clearly distinguishable from regular personnel? [ii] Is visitor activity monitored (e.g., use of cameras or guards, reviews of secure areas upon visitor departure, review of visitor audit logs)?"
+    },
+    "PE.L2-3.10.4a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Log or report from badging system.",
+      "assessment_considerations": "[i] Are logs of physical access to sensitive areas (both authorized access and visitor access) maintained per retention requirements? [ii] Are visitor access records retained for as long as required?"
+    },
+    "PE.L2-3.10.5a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Physical access control systems description, guard force contract/policy, key locks, logical systems specifications, etc..",
+      "assessment_considerations": "Are lists or inventories of physical access devices maintained (e.g., keys, facility badges, key cards)?"
+    },
+    "PE.L2-3.10.5b": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Inventory records of physical access control devices (e.g. keys, locks, card readers, locks, etc.).",
+      "assessment_considerations": "Is access to physical access devices limited (e.g., granted to, and accessible only by, authorized individuals)?"
+    },
+    "PE.L2-3.10.5c": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "List of security safeguards controlling access to the facility (e.g. cameras, monitoring by guards, isolation of IT systems equiment and or system components).",
+      "assessment_considerations": "Are physical access devices managed (e.g., revoking key card access when necessary, changing locks as needed, maintaining access control devices and systems)?"
+    },
+    "PE.L2-3.10.6a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Telework agreement, Acceptable Use Policy and SOP for alternate work locations; user security training validation which includes physical/logical/technical protections of system at alternate work sites."
+    },
+    "PE.L2-3.10.6b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Monitoring/audit log of user activity and logical/physical/technical mechanisms in place to preclude unauthorized activity (telework agrement , AUP?).",
+      "assessment_considerations": "[i] Do all alternate sites where CUI data is stored or processed meet the same physical security requirements as the main site? [ii] Does the alternate processing site provide information security measures equivalent to those of the primary site?"
+    },
+    "RA.L2-3.11.1a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Risk assessment policy."
+    },
+    "RA.L2-3.11.1b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Copy of last risk assessment done within defined frequency.",
+      "assessment_considerations": "[i] Have initial and periodic risk assessments been conducted? [ii] Are methods defined for assessing risk (e.g., reviewing security assessments, incident reports, and security advisories, identifying threat sources, threat events, and vulnerabilities, and determining likelihood, impact, and overall risk to the confidentiality of CUI)?"
+    },
+    "RA.L2-3.11.2a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Policy/procedures/instruction addressing vulnerability scanning records.",
+      "assessment_considerations": "[i] Is the frequency specified for vulnerability scans to be performed in organizational systems and applications (e.g., continuous passive scanning, scheduled active scans)? [ii] Are vulnerability scans performed on a defined frequency or randomly in accordance with company policy?"
+    },
+    "RA.L2-3.11.2b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "System configuration settings of vulnerability scanning scheduling and vulnerability scan results of systems within defined frequency.",
+      "assessment_considerations": "Are vulnerability scans performed on a defined frequency or randomly in accordance with company policy?"
+    },
+    "RA.L2-3.11.2c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "System configuration settings of vulnerability scanning scheduling and vulnerability scan results of applications within defined frequency.",
+      "assessment_considerations": "Are vulnerability scans performed on a defined frequency or randomly in accordance with company policy?"
+    },
+    "RA.L2-3.11.2d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "View signatures in scanning tool/ad hoc scan performed as a result.",
+      "assessment_considerations": "[i] Are systems periodically scanned for common and new vulnerabilities? [ii] Is the list of scanned system vulnerabilities updated on a defined frequency or when new vulnerabilities are identified and reported?"
+    },
+    "RA.L2-3.11.2e": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "View signatures in scanning tool/ad hoc scan performed as a result.",
+      "assessment_considerations": "[i] Are systems periodically scanned for common and new vulnerabilities? [ii] Is the list of scanned system vulnerabilities updated on a defined frequency or when new vulnerabilities are identified and reported?"
+    },
+    "RA.L2-3.11.3a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Scan results showing vulnerabilities identified."
+    },
+    "RA.L2-3.11.3b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Screenshot/document of scan results of remediated vulnerabilities in accordance to risk assessments.",
+      "assessment_considerations": "[i] Are the results of risk assessments used to prioritize vulnerabilities for remediation? [ii] For any given vulnerability is action taken for remediation, acceptance, avoidance, or transference of the vulnerability risk? [iii] Are all high risk vulnerabilities prioritized?"
+    },
+    "CA.L2-3.12.1a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP.",
+      "assessment_considerations": "Are security controls assessed at least annually?"
+    },
+    "CA.L2-3.12.1b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Copy of last security control assessment done within defined frequency.",
+      "assessment_considerations": "Is the output of the security controls assessment documented?"
+    },
+    "CA.L2-3.12.2a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Plan of Action (POA).",
+      "assessment_considerations": "Is there an action plan to remediate identified weaknesses or deficiencies?"
+    },
+    "CA.L2-3.12.2b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Plan of Action (POA).",
+      "assessment_considerations": "Is the action plan maintained as remediation is performed?"
+    },
+    "CA.L2-3.12.2c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Plan of Action (POA)/previously completed POAs.",
+      "assessment_considerations": "Does the action plan designate remediation dates and milestones for each item?"
+    },
+    "CA.L2-3.12.3a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Collection of risk assessment results, internal or third-party audits/security assessments and/or continous monitoring reports/alerts (SIEM tool, etc.).",
+      "assessment_considerations": "[i] Are the security controls that need to be continuously monitored identified? [ii] Is the timeframe for continuous monitoring activities to support risk-based decision making defined? [iii] Is the output of continuous monitoring activities provided to stakeholders?"
+    },
+    "CA.L2-3.12.4a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP.",
+      "assessment_considerations": "Do mechanisms exist to develop and periodically update an SSP?"
+    },
+    "CA.L2-3.12.4b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP and any supporting documentation."
+    },
+    "CA.L2-3.12.4c": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP and any supporting documentation."
+    },
+    "CA.L2-3.12.4d": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP and required adjudication from DoD CIO.",
+      "assessment_considerations": "Are security requirements identified and approved by the designated authority as non-applicable documented?"
+    },
+    "CA.L2-3.12.4e": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP and any supporting documentation."
+    },
+    "CA.L2-3.12.4f": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP and any supporting documentation."
+    },
+    "CA.L2-3.12.4g": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP.",
+      "assessment_considerations": "Do mechanisms exist to develop and periodically update an SSP?"
+    },
+    "CA.L2-3.12.4h": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP/any previous versions."
+    },
+    "SC.L2-3.13.10a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "SSP, PKI/certificate management policy, configuration management.",
+      "assessment_considerations": "Are cryptographic keys established whenever cryptography is employed (e.g., digital signatures, authentication, authorization, transport, or other cryptographic mechanisms)?"
+    },
+    "SC.L2-3.13.10b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "SSP, PKI/certificate management policy, configuration management, access control policy.",
+      "assessment_considerations": "Are cryptographic keys maintained whenever cryptography is employed (e.g., key storage, backup, recovery, revocation, destruction, etc.)?"
+    },
+    "SC.L2-3.13.11a": {
+      "evidence_type": "Artifact, and Screen Share",
+      "evidence_examples": "VPN, wireless, mobile devices, client certificates, server certificates, disk encryption, Outlook plugin, external mail, backup media, ePO server, removable storage, SAN, file compression; look for FIPS mode enabled on appliances.",
+      "assessment_considerations": "Is cryptography implemented to protect the confidentiality of CUI at rest and in transit, through the configuration of systems and applications or through the use of encryption tools?"
+    },
+    "SC.L2-3.13.12a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, network diagrams."
+    },
+    "SC.L2-3.13.12b": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Physical inspection of device.",
+      "assessment_considerations": "Are the collaborative computing devices configured to provide indication to users when in use (e.g., a light, text notification, or audio tone) or are users alerted before entering a space (e.g., written notice posted outside the space) where they are in use?"
+    },
+    "SC.L2-3.13.12c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Collaboration device configuration/console.",
+      "assessment_considerations": "Are the collaborative computing devices configured to prevent them from being turned on without user interaction or consent?"
+    },
+    "SC.L2-3.13.13a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "GPO settings, malware protection, software agent configurations, software development policies, code scanners, MDM configuration, firewall/secure web gateway/proxy config.",
+      "assessment_considerations": "Are there defined limits of mobile code usage and established usage restrictions, which specifically authorize use of mobile code (e.g., Java, JavaScript, ActiveX, PDF, Flash, Shockwave, Postscript, VBScript) within the information system?"
+    },
+    "SC.L2-3.13.13b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "SIEM/console monitoring.",
+      "assessment_considerations": "Is the use of mobile code documented, monitored, and managed (e.g., Java, JavaScript, ActiveX, PDF, Flash, Shockwave, Postscript, VBScript)?"
+    },
+    "SC.L2-3.13.14a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "VLAN, ACL, firewall config, VoIP gateway/condenser configuration.",
+      "assessment_considerations": "Are VoIP technologies (e.g., approved and managed products or solutions) that may or may not be used in the system defined?"
+    },
+    "SC.L2-3.13.14b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "SIEM/VoIP console monitoring, session border controller.",
+      "assessment_considerations": "Is monitoring for unapproved VoIP technologies or unapproved use of the allowed VoIP solutions employed?"
+    },
+    "SC.L2-3.13.15a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "SSL, TLS, SMB3, SFTP, IPSec, SSH, Kerberos configs, MPLS, Network Access Control.",
+      "assessment_considerations": "[i] Is a communications protocol used that ensures the sending and receiving parties do not change during a communications session? [ii] Are controls in place to validate the identities and information transmitted to protect against man-in-the-middle attacks, session hijacking, and insertion of false information into communications sessions?"
+    },
+    "SC.L2-3.13.16a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Full disk encryption, removable media encryption, SAN encryption, digital backups, mobile device encryption, third party offsite backup storage, cloud virtualization encryption, physical media storage policies.",
+      "assessment_considerations": "Is the confidentiality of CUI at rest protected using encryption of storage devices and/or appropriate physical methods?"
+    },
+    "SC.L2-3.13.1a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, network diagrams, CUI flow, cloud provider FedRAMP Moderate.",
+      "assessment_considerations": "[i] What are the external system boundary components that make up the entry and exit points for data flow (e.g., firewalls, gateways, cloud service boundaries), behind which all system components that handle regulated data are contained? [ii] What are the supporting system components necessary for the protection of regulated data?"
+    },
+    "SC.L2-3.13.1b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, network diagrams, CUI flow.",
+      "assessment_considerations": "What are the internal system boundary components that make up the entry and exit points for key internal data flow (e.g., internal firewalls, routers, any devices that can bridge the connection between one segment of the system and another) that separate segments of the internal network – including devices that separate internal network segments such as development and production networks as well as a traditional Demilitarized Zone (DMZ) at the edge of the network?"
+    },
+    "SC.L2-3.13.1c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "SSP, logging server, boundary device configurations, monitoring policy.",
+      "assessment_considerations": "Is data flowing in and out of the external and key internal system boundaries monitored (e.g., connections are logged and able to be reviewed, suspicious traffic generates alerts)?"
+    },
+    "SC.L2-3.13.1d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "SSP, logging server, boundary device configurations, monitoring policy.",
+      "assessment_considerations": "Is data flowing in and out of the external and key internal system boundaries monitored (e.g., connections are logged and able to be reviewed, suspicious traffic generates alerts)?"
+    },
+    "SC.L2-3.13.1e": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "SSP, boundary device configurations, ACL, subnets, DMZ.",
+      "assessment_considerations": "Is data traversing the external and internal system boundaries controlled such that connections are denied by default and only authorized connections are allowed?"
+    },
+    "SC.L2-3.13.1f": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "SSP, boundary device configurations, ACL, subnets.",
+      "assessment_considerations": "Is data traversing the external and internal system boundaries controlled such that connections are denied by default and only authorized connections are allowed?"
+    },
+    "SC.L2-3.13.1g": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Configurations for IPS/IDS, email gateway, VLAN, proxy, firewall, malware protection, DNS, TSL.",
+      "assessment_considerations": "Is data flowing in and out of the external and key internal system boundaries protected (e.g., applying encryption when required or prudent, tunneling traffic as needed)?"
+    },
+    "SC.L2-3.13.1h": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Configurations for IPS/IDS, VLAN, firewall, malware protection, SSL.",
+      "assessment_considerations": "Is data flowing in and out of the external and key internal system boundaries protected (e.g., applying encryption when required or prudent, tunneling traffic as needed)?"
+    },
+    "SC.L2-3.13.2a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, config management policy, network diagram, CCB minutes, enterprise architecture process.",
+      "assessment_considerations": "Does the organization have a defined system architecture?"
+    },
+    "SC.L2-3.13.2b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, config management policy, SDLC, CCB minutes."
+    },
+    "SC.L2-3.13.2c": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, config management policy, CCB minutes, security architecture engineering."
+    },
+    "SC.L2-3.13.2d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "CCB minutes, Network diagrams and configurations, Project Plans.",
+      "assessment_considerations": "[i] Does the organization have a defined system architecture? [ii] Are system security engineering principles applied in the specification, design, development and implementation of the systems?"
+    },
+    "SC.L2-3.13.2e": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "CCB minutes, SDLC, code scanner results, code management tracking.",
+      "assessment_considerations": "Are system security engineering principles applied in the specification, design, development and implementation of the systems?"
+    },
+    "SC.L2-3.13.2f": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "CCB minutes, configuration management, ITSM, patch management, lifecycle replacement processes .",
+      "assessment_considerations": "Are system security engineering principles applied in the specification, design, development and implementation of the systems?"
+    },
+    "SC.L2-3.13.3a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, AUP."
+    },
+    "SC.L2-3.13.3b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, Privileged Account Agreement."
+    },
+    "SC.L2-3.13.3c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Active Directory, Jump Boxes, GPO, VM, RDP.",
+      "assessment_considerations": "Are physical or logical controls used to separate user functionality from system management-related functionality (e.g., to ensure that administration (e.g., privilege) options are not available to general users)?"
+    },
+    "SC.L2-3.13.4a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "SSP, OS configurations, Linux containers, system/media reuse policies, certificate management policies, media destruction policies, printer configs, VDI configuration.",
+      "assessment_considerations": "Are shared system resources identified and documented?"
+    },
+    "SC.L2-3.13.5a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, network diagram, DMZ inventory/roles.",
+      "assessment_considerations": "Are any system components reachable by the public (e.g., internet-facing web servers, VPN gateways, publicly accessible cloud services)?"
+    },
+    "SC.L2-3.13.5b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Network diagram, IPAM, VLAN, DHCP, DMZ.",
+      "assessment_considerations": "Are publicly accessible system components on physically or logically separated subnetworks (e.g., isolated subnetworks using separate, dedicated VLAN segments such as DMZs)?"
+    },
+    "SC.L2-3.13.6a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Host and network firewall rules, SIEM logs, hit counts.",
+      "assessment_considerations": "Are network communications traffic on relevant system components (e.g., host and network firewalls, routers, gateways) denied by default (e.g., configured with an implicit deny rule that takes effect in the absence of any other matching traffic rules)?"
+    },
+    "SC.L2-3.13.6b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Host and network firewall rules, match roles.",
+      "assessment_considerations": "Are network communications traffic on relevant system components (e.g., host and network firewalls, routers, gateways) allowed by exception (e.g., configured with explicit allow rules that takes effect only when network traffic matches one or more rules)?"
+    },
+    "SC.L2-3.13.7a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "VPN appliance/server configuration, endpoint VPN software configuration.",
+      "assessment_considerations": "Does the system prevent remote devices that have established connections (e.g., remote laptops) with the system from communicating outside that communications path with resources on uncontrolled/unauthorized networks?"
+    },
+    "SC.L2-3.13.8a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, PKI policies, configuration processes, config management, email attachment encryption policy, removable media policy, data at rest policy."
+    },
+    "SC.L2-3.13.8b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, physical security policy."
+    },
+    "SC.L2-3.13.8c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "TLS settings, SSL settings, VPN/Wireless Access Points/Mobile Devices cryptographic settings, ODBC connector settings, SAN configuration, IPSec/MPLS, backup configuration, physical security.",
+      "assessment_considerations": "Are cryptographic mechanisms used to prevent unauthorized disclosure of information during transmission unless otherwise protected by alternative physical measures (e.g., PDS)?"
+    },
+    "SC.L2-3.13.9a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, network communications policy.",
+      "assessment_considerations": "Are the network connections requiring management and time-out for inactivity documented?"
+    },
+    "SC.L2-3.13.9b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "VPN appliance/server logs, VPN configurations, web server configurations, firewall connection settings."
+    },
+    "SC.L2-3.13.9c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "VPN appliance/server logs, VPN configurations, web server configurations, frewall connection settings.",
+      "assessment_considerations": "Are the network connections requiring management and time-out for inactivity configured and implemented?"
+    },
+    "SI.L2-3.14.1a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, patch management policy.",
+      "assessment_considerations": "Is the time frame (e.g., a set number of days) within which system flaw identification activities (e.g., vulnerability scans, configuration scans, manual review) must be performed defined and documented?"
+    },
+    "SI.L2-3.14.1b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Vulnerability management scanner output and scan policy configuration.",
+      "assessment_considerations": "Are system flaws (e.g., vulnerabilities, misconfigurations) identified in accordance with the specified time frame?"
+    },
+    "SI.L2-3.14.1c": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, patch management policy."
+    },
+    "SI.L2-3.14.1d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "ITSM/trouble tickets, vulnerability management scanner output."
+    },
+    "SI.L2-3.14.1e": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, patch management policy.",
+      "assessment_considerations": "Is the time frame (e.g., a set number of days dependent on the assessed severity of a flaw) within which system flaws must be corrected defined and documented?"
+    },
+    "SI.L2-3.14.1f": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Vulnerability management scanner output and scan policy configuration.",
+      "assessment_considerations": "Are system flaws (e.g., applied security patches, made configuration changes, or implemented workarounds or mitigations) corrected in accordance with the specified time frame?"
+    },
+    "SI.L2-3.14.2a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, system protection policy, network diagrams, security architecture documents.",
+      "assessment_considerations": "Are system components (e.g., workstations, servers, email gateways, mobile devices) for which malicious code protection must be provided identified and documented?"
+    },
+    "SI.L2-3.14.2b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Endpoint security settings, email/web proxy gateways, firewall, IPS sensor, MDM configuration, Network Access Control."
+    },
+    "SI.L2-3.14.3a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, vulnerability management policy, Incident Response Plan.",
+      "assessment_considerations": "[i] Are the responses to system security alerts and advisories identified in relation to the assessed severity of potential flaws (e.g., communicating with responsible personnel, initiating vulnerability scans, initiating system flaw remediation activities)? [ii] Are system security alerts and advisories addressed (e.g., assessing potential severity or likelihood, communicating with responsible personnel, initiating vulnerability scans, initiating system flaw remediation activities)?"
+    },
+    "SI.L2-3.14.3b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Threat intelligence subscriptions, email advisories."
+    },
+    "SI.L2-3.14.3c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "ITSM/trouble tickets, user notifications, updates to firewall/IPS, etc..",
+      "assessment_considerations": "Are system security alerts and advisories addressed (e.g., assessing potential severity or likelihood, communicating with responsible personnel, initiating vulnerability scans, initiating system flaw remediation activities)?"
+    },
+    "SI.L2-3.14.4a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Antivirus console dashboard, firewall AV, Email gateway signatures,proxy, IPS updates.",
+      "assessment_considerations": "Is there a defined frequency by which malicious code protection mechanisms must be updated (e.g., frequency of automatic updates or manual processes)?"
+    },
+    "SI.L2-3.14.5a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, vulnerability management policy."
+    },
+    "SI.L2-3.14.5b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Consoles for AV (endpoints, servers, and file shares), firewall, email gateway, proxy, IPS, MDM configurations."
+    },
+    "SI.L2-3.14.5c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Consoles for AV (endpoints, servers, and file shares), firewall, email gateway, proxy, IPS, MDM configurations.",
+      "assessment_considerations": "Are files from media (e.g., USB drives, CD-ROM) included in the definition of external sources and are they being scanned?"
+    },
+    "SI.L2-3.14.6a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Firewall, IPS, endpoint protection, SIEM alerts and reports.",
+      "assessment_considerations": "[i] Are details provided for the methodology of determining attacks and indicators of attack? [ii] Are monitoring devices deployed within the information system to collect information that may indicate an attack?"
+    },
+    "SI.L2-3.14.6b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Firewall, IPS, endpoint protection, SIEM alerts and reports.",
+      "assessment_considerations": "Are communications traffic flows understood and is there a deployed capability to review that traffic?"
+    },
+    "SI.L2-3.14.6c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Firewall, IPS, endpoint protection, SIEM alerts and reports.",
+      "assessment_considerations": "Are communications traffic flows understood and is there a deployed capability to review that traffic?"
+    },
+    "SI.L2-3.14.7a": {
+      "evidence_type": "Document",
+      "evidence_examples": "AUP, SSP.",
+      "assessment_considerations": "Is authorized use of systems defined (e.g., data types permitted for storage or processing, personnel authorized to access, times or days of permitted use, permitted software)?"
+    },
+    "SI.L2-3.14.7b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "SIEM logs, endpoint protection console, IPS, Firewall.",
+      "assessment_considerations": "Is unauthorized use of systems defined (e.g., not authorized to use systems for bitcoin mining, not authorized for pornographic content, not authorized to access gambling games/content)?"
+    },
+    "AT.L2-3.2.1a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Policy of Security Awareness Training; Security Awareness Training Briefing."
+    },
+    "AT.L2-3.2.1b": {
+      "evidence_type": "Document",
+      "evidence_examples": "Acceptable Use Policy, Policy/Procedures/Instruction related to the security of the system."
+    },
+    "AT.L2-3.2.1c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Security Training Brief, training records.",
+      "assessment_considerations": "Do all users, managers, and system administrators receive initial and refresher training commensurate with their roles and responsibilities?"
+    },
+    "AT.L2-3.2.1d": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Policies, standards and procedures for employees within training (completed training report).",
+      "assessment_considerations": "[i] Do all users, managers, and system administrators receive initial and refresher training commensurate with their roles and responsibilities? [ii] Do training materials identify the organizationally defined security requirements that must be met by users while interacting with the system as described in written policies, standards, and procedures?"
+    },
+    "AT.L2-3.2.2a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Policy/Procedures/Instruction, Job Role Matrix, Position Descriptions, User Roles.",
+      "assessment_considerations": "Are the duties, roles, and responsibilities that impact, directly or indirectly, the information security of the company or its systems defined and documented?"
+    },
+    "AT.L2-3.2.2b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Screenshot of breakout of different roles/permissions assigned to individuals (i.e. ActiveDirectory); Privilege Access Agreement.",
+      "assessment_considerations": "Do information security-related tasks have accountable owners, and is a strictly limited group of individuals assigned to perform them?"
+    },
+    "AT.L2-3.2.2c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Screenshot of tool and/or training specifying security specific roles, duties and responsibilities; Screenshot of required certifications (i.e. Sec+, CISSP).",
+      "assessment_considerations": "Are personnel who are assigned information security-related duties, roles, and responsibilities trained on those responsibilities, including the security requirements unique or inherent to their roles or responsibilities?"
+    },
+    "AT.L2-3.2.3a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Insidert Threat Policy/Procedures/Instruction; Insider Threat Training/Briefing.",
+      "assessment_considerations": "Do training materials include potential indicators associated with insider threats (e.g., repeated security violations, unusual work hours, unexpected significant transfers of data, suspicious contacts, concerning behaviors outside the workplace)?"
+    },
+    "AT.L2-3.2.3b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Screenshot of training records showing completion of Insider Threat training, emails showing completion of Insider Threat training, Screenshot of certificate showing completion with individual's name.",
+      "assessment_considerations": "[i] Do training materials include potential indicators associated with insider threats (e.g., repeated security violations, unusual work hours, unexpected significant transfers of data, suspicious contacts, concerning behaviors outside the workplace)? [ii] Do training materials include methods of reporting potential indicators of insider threats to management or responsible security personnel?"
+    },
+    "AU.L2-3.3.1a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, policy, or auditing and logging process that defines specific types of events to be logged."
+    },
+    "AU.L2-3.3.1b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, policy, or auditing and logging process that defines specific content of audit records/files."
+    },
+    "AU.L2-3.3.1c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share of tool that shows logs are generated for all systems."
+    },
+    "AU.L2-3.3.1d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share of tool that shows logs contain defined content as defined in SSP, policy, or procedures."
+    },
+    "AU.L2-3.3.1e": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, Polocy, or Auditing and logging process that describes how long records are kept.",
+      "assessment_considerations": "Are audit log retention requirements appropriate to the system and its associated level of risk?"
+    },
+    "AU.L2-3.3.1f": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share of tool that shows records and audit content retained at a minimum as defined."
+    },
+    "AU.L2-3.3.2a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, policy, or process that defines actions traced back to individuals.",
+      "assessment_considerations": "Are users uniquely traced and held responsible for unauthorized actions?"
+    },
+    "AU.L2-3.3.2b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share of tool that shows audit records traced to specific users/roles.",
+      "assessment_considerations": "Does the system protect against an individual denying having performed an action (non_x0002_repudiation?"
+    },
+    "AU.L2-3.3.3a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, policy, or documented process that shows frequency of when to review types of logged events.",
+      "assessment_considerations": "Do documented processes include methods for determining when to review logged event types (i.e., regular frequency, after incidents, after major system changes)?"
+    },
+    "AU.L2-3.3.3b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Evidence through a documented method such as meeting minutes, CAB minutes, etc. of log sources and log events being logged at the defined frequency.",
+      "assessment_considerations": "Do documented processes include methods for reviewing event types being logged (i.e., based on specific threat, use case, retention capacity, current utilization, and/or newly added system component or functionality)?"
+    },
+    "AU.L2-3.3.3c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Evidence of implementation based on the results of the review of logged events/sources through a ticket, meeting minutes, or screen share of the tool that shows changes implemented (finetuning)."
+    },
+    "AU.L2-3.3.4a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, policy, or procedure that shows who needs to be notified in case of an audit failure."
+    },
+    "AU.L2-3.3.4b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, policy, or procedure that shows what types of failure will generate notifications."
+    },
+    "AU.L2-3.3.4c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Artifact such as email or ticket that shows the identified personnel were alerted of any audit/logging process failure as defined."
+    },
+    "AU.L2-3.3.5a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, policy, or procedure covering audit logging, monitoring, and reporting."
+    },
+    "AU.L2-3.3.5b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Artifact showing an audit event and the resultant corrective action or actions to the event; this can be a Help Desk ticket, meeting notes, or a change control board items showing the event and any corrective action taken.",
+      "assessment_considerations": "Are mechanisms used across different repositories to integrate audit review, analysis, correlation, and reporting processes?"
+    },
+    "AU.L2-3.3.6a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share of the logging environment where an event can be selected and traced back to a specific device, or dashboard showing realtime event analysis."
+    },
+    "AU.L2-3.3.6b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share showing the generation of an on demand report.",
+      "assessment_considerations": "Does the system support on-demand audit review, analysis, and reporting requirements and after-the-fact security investigations?"
+    },
+    "AU.L2-3.3.7a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share showing the NTP settings of a windows, Unix, Linux device; a screen share showing the NTP settings of network appliances."
+    },
+    "AU.L2-3.3.7b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy indicating that devices need to be synched to a local authoritative time device that is synched with an authoritative time service."
+    },
+    "AU.L2-3.3.7c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share showing device logging appliance time is point to the appropriate authoritative time server",
+      "assessment_considerations": "[i] Can the records’ time stamps map to Coordinated Universal Time (UTC), compare system clocks with authoritative Network Time Protocol (NTP) servers, and synchronize system clocks when the time difference is greater than 1 second? [ii] Does the system synchronize internal system clocks on a defined frequency?"
+    },
+    "AU.L2-3.3.8a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share showing operating system permissions on the audit folders being restricted to appropriate users.",
+      "assessment_considerations": "Is there a list of authorized users for audit systems and tools?"
+    },
+    "AU.L2-3.3.8b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share showing operating system permissions on the audit folders being restricted to appropriate users."
+    },
+    "AU.L2-3.3.8c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share showing operating system permissions on the audit folders being restricted to appropriate users."
+    },
+    "AU.L2-3.3.8d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Artifact showing access permissions in the SIEM tool."
+    },
+    "AU.L2-3.3.8e": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Artifact showing update permissions in the SIEM tool."
+    },
+    "AU.L2-3.3.8f": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Artifact showing delete permissions in the SIEM tool."
+    },
+    "AU.L2-3.3.9a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP or policy indicating which users or groups have access to audit logs."
+    },
+    "AU.L2-3.3.9b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Artifact showing SIEM or OS folder permissions (this should be limited to the assigned users or groups); artifact showing an ACL setting in SIEM tool in regards to logs.",
+      "assessment_considerations": "Are audit records of nonlocal accesses to privileged accounts and the execution of privileged functions protected?"
+    },
+    "CM.L2-3.4.1a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documentation showing or explaining standard imaging process (how standard images are deployed and where they are stored).",
+      "assessment_considerations": "Do baseline configurations include software versions and patch level, configuration parameters, network information, and communications with connected systems?"
+    },
+    "CM.L2-3.4.1b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Screenshot of repository of where images are maintained and information relating to hardware, software, and firmware.",
+      "assessment_considerations": "Do baseline configurations include software versions and patch level, configuration parameters, network information, and communications with connected systems?"
+    },
+    "CM.L2-3.4.1c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Screenshot/evidence displaying management of baseline configurations (how often they are being managed as stated).",
+      "assessment_considerations": "Are baseline configurations updated as needed to accommodate security risks or software changes?"
+    },
+    "CM.L2-3.4.1d": {
+      "evidence_type": "Document",
+      "evidence_examples": "Screenshot/evidence displaying inventory listing of approved products for use."
+    },
+    "CM.L2-3.4.1e": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Screeenshot/evidence displaying management of baseline configurations (How often and are they being managed as stated."
+    },
+    "CM.L2-3.4.1f": {
+      "evidence_type": "Artifact"
+    },
+    "CM.L2-3.4.2a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documentation explaining methodology used by organization to create secure baselines (STIGs, benchmarks).",
+      "assessment_considerations": "Do security settings reflect the most restrictive settings appropriate?"
+    },
+    "CM.L2-3.4.2b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Evidence of tool/s used to enforce security configurations to ensure images used are free from modification unless authorized.",
+      "assessment_considerations": "Are changes or deviations to security settings documented?"
+    },
+    "CM.L2-3.4.3a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Evidence of IT Service Management tool / process used to track system changes.",
+      "assessment_considerations": "Are changes to the system authorized by company management and documented?"
+    },
+    "CM.L2-3.4.3b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Evidence of IT Service Management tool / process used to review system changes.",
+      "assessment_considerations": "Are changes to the system authorized by company management and documented?"
+    },
+    "CM.L2-3.4.3c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Evidence of IT Service Management tool / process used to approve/disapprove system changes.",
+      "assessment_considerations": "Are changes to the system authorized by company management and documented?"
+    },
+    "CM.L2-3.4.3d": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Evidence of IT Service Management tool / process used to log system changes.",
+      "assessment_considerations": "[i] Are changes to the system authorized by company management and documented? [ii] Are changes documented and tracked (e.g., manually written down or included in a tracking service such as a ticketing system)?"
+    },
+    "CM.L2-3.4.4a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Document explaining that security impact analysis of proposed changes to a system is conducted prior to implementation.",
+      "assessment_considerations": "Are configuration changes tested, validated, and documented before installing them on the operational system?"
+    },
+    "CM.L2-3.4.5a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Document explaining the process of how physical access restrictions are defined for an individuals ability to make system changes.",
+      "assessment_considerations": "[i] Are only employees who are approved to make physical or logical changes on systems allowed to do so? [ii] Are authorized personnel approved and documented by the service owner and IT security?"
+    },
+    "CM.L2-3.4.5b": {
+      "evidence_type": "Document",
+      "evidence_examples": "Document explaining the process of how physical access restrictions are defined for an individuals ability to make system changes are documented; access request process.",
+      "assessment_considerations": "Does all change documentation include the name of the authorized employee making the change?"
+    },
+    "CM.L2-3.4.5c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Evidence of process of how physical access to systems are granted (i.e. physical access request sample)."
+    },
+    "CM.L2-3.4.5d": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Evidence of process of how physical access to systems are enforced (physical access system).",
+      "assessment_considerations": "[i] Are only employees who are approved to make physical or logical changes on systems allowed to do so? [ii] Does all change documentation include the name of the authorized employee making the change?"
+    },
+    "CM.L2-3.4.5e": {
+      "evidence_type": "Document",
+      "evidence_examples": "Document explaining the process of how logical access restrictions are defined for an individual's ability to make system changes.",
+      "assessment_considerations": "[i] Are only employees who are approved to make physical or logical changes on systems allowed to do so? [ii] Are authorized personnel approved and documented by the service owner and IT security?"
+    },
+    "CM.L2-3.4.5f": {
+      "evidence_type": "Document",
+      "evidence_examples": "Document explaining the process of how logical access restrictions are defined for an individual's ability to make system changes are documented.",
+      "assessment_considerations": "Does all change documentation include the name of the authorized employee making the change?"
+    },
+    "CM.L2-3.4.5g": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Evidence of process of how logical access to systems are granted."
+    },
+    "CM.L2-3.4.5h": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Evidence of process of how logical access to systems are enforced.",
+      "assessment_considerations": "[i] Are only employees who are approved to make physical or logical changes on systems allowed to do so? [ii] Does all change documentation include the name of the authorized employee making the change?"
+    },
+    "CM.L2-3.4.6a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documentation explaining how systems are configured to utilize the principle of least functionality for designated users.",
+      "assessment_considerations": "[i] Are the roles and functions for each system identified along with the software and services required to perform those functions? [ii] Are the software and services required for those defined functions identified?"
+    },
+    "CM.L2-3.4.6b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Evidence displaying how systems are configured to utilize the principle of least functionality for designated users; disabled service settings, accepted standards for hardening (CIS benchmarks, etc.).",
+      "assessment_considerations": "Is the information system configured to exclude any function not needed in the operational environment?"
+    },
+    "CM.L2-3.4.7a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documented essential programs specified; build documents; software center; SSP.",
+      "assessment_considerations": "Are only applications and services that are needed for the function of the system configured and enabled?"
+    },
+    "CM.L2-3.4.7b": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documented listing of nonessential programs (whatever is NOT specified in [a]); AUP/User Agreement may identify nonessential use/programs.",
+      "assessment_considerations": "Are only applications and services that are needed for the function of the system configured and enabled?"
+    },
+    "CM.L2-3.4.7c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Tool used to restrict nonessential programs displays restrictions as defined (McAfee ePO settings, Carbon Black rules, etc.).",
+      "assessment_considerations": "Are only applications and services that are needed for the function of the system configured and enabled?"
+    },
+    "CM.L2-3.4.7d": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documented essential functions are specified.",
+      "assessment_considerations": "Are only applications and services that are needed for the function of the system configured and enabled?"
+    },
+    "CM.L2-3.4.7e": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documented nonessential functions are specified.",
+      "assessment_considerations": "Are only applications and services that are needed for the function of the system configured and enabled?"
+    },
+    "CM.L2-3.4.7f": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Tool used to restrict essential/nonessential functions displays restrictions as defined.",
+      "assessment_considerations": "Are only applications and services that are needed for the function of the system configured and enabled?"
+    },
+    "CM.L2-3.4.7g": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documented essential ports are specified.",
+      "assessment_considerations": "Are only those ports and protocols necessary to provide the service of the information system configured for that system?"
+    },
+    "CM.L2-3.4.7h": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documented nonessential ports functions are specified.",
+      "assessment_considerations": "Are only those ports and protocols necessary to provide the service of the information system configured for that system?"
+    },
+    "CM.L2-3.4.7i": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Tool used to restrict essential/nonessential ports displays restrictions as defined (FW rules; McAfee; GPO, etc.).",
+      "assessment_considerations": "Are only those ports and protocols necessary to provide the service of the information system configured for that system?"
+    },
+    "CM.L2-3.4.7j": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documented essential protocols are specified.",
+      "assessment_considerations": "Are only those ports and protocols necessary to provide the service of the information system configured for that system?"
+    },
+    "CM.L2-3.4.7k": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documented nonessential protocols functions are specified.",
+      "assessment_considerations": "Are only those ports and protocols necessary to provide the service of the information system configured for that system?"
+    },
+    "CM.L2-3.4.7l": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Tool used to restrict essential/nonessential protoocols displays restrictions as defined (FW rules; GPO, etc.).",
+      "assessment_considerations": "Are only those ports and protocols necessary to provide the service of the information system configured for that system?"
+    },
+    "CM.L2-3.4.7m": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documented essential services specified.",
+      "assessment_considerations": "Are systems services reviewed to determine what is essential for the function of that system?"
+    },
+    "CM.L2-3.4.7n": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documented nonessential services functions are specified."
+    },
+    "CM.L2-3.4.7o": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Tool used to restrict essential/nonessential services displays restrictions as defined."
+    },
+    "CM.L2-3.4.8a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documentation explaining whitelisting or blacklisting process.",
+      "assessment_considerations": "[i] Is the information system configured to only allow authorized software to run? [ii] Is the system configured to disallow running unauthorized software? [iii] Is the authorization policy a deny-all, permit by exception for software allowed to execute on the system? [iv] Are automated mechanisms used to prevent program execution in accordance with defined lists (e.g., white listing)?"
+    },
+    "CM.L2-3.4.8b": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documentation explaining whitelisting or blacklisting process for software.",
+      "assessment_considerations": "[i] Is there a defined list of software programs authorized to execute on the system? [ii] Is the information system configured to only allow authorized software to run? [iii] Is the system configured to disallow running unauthorized software? [iv] Is the authorization policy a deny-all, permit by exception for software allowed to execute on the system? [v] Are automated mechanisms used to prevent program execution in accordance with defined lists (e.g., white listing)?"
+    },
+    "CM.L2-3.4.8c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Tool used for whitelisting or blacklisting for software shows capability of restricting/authorizing software (Carbon Black dashboard, \"SW Store\", web proxies, DNS Blackhole, etc.).",
+      "assessment_considerations": "[i] Is the information system configured to only allow authorized software to run? [ii] Is the system configured to disallow running unauthorized software? [iii] Is the authorization policy a deny-all, permit by exception for software allowed to execute on the system? [iv] Are automated mechanisms used to prevent program execution in accordance with defined lists (e.g., white listing)?"
+    },
+    "CM.L2-3.4.9a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Documented software authorization process or methodolgy for approval.",
+      "assessment_considerations": "Are user controls in place to prohibit the installation of unauthorized software?"
+    },
+    "CM.L2-3.4.9b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Evidence that approval/restriction in installation of software by authorized personnel is implemented as specified (AUP, GPO, etc.).",
+      "assessment_considerations": "Is all software in use on the information systems approved?"
+    },
+    "CM.L2-3.4.9c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Evidence that installation of software by authorized personnel is monitored (SCCM groups, SW Center, etc.).",
+      "assessment_considerations": "Is there a mechanism in place to monitor the types of software a user is permitted to download (e.g., is there a white list of approved software)?"
+    },
+    "IA.L2-3.5.10a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share Group Policy or similar tool providing centralized management and configuration of operating systems, applications, and users' settings in a directory-based identity-related service tool's configuration that Kerberos, or a similar network authentication protocol that works on the basis of tickets to allow nodes communicating over a non-secure network to prove their identity to one another in a secure manner, is enabled.",
+      "assessment_considerations": "[i] Are passwords prevented from being stored in reversible encryption form in any company systems? [ii] Are passwords stored as one-way hashes constructed from passwords?"
+    },
+    "IA.L2-3.5.10b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share Group Policy or similar tool providing centralized management and configuration of operating systems, applications, and users' settings in a directory-based identity-related service tool's configuration that Kerberos, or a similar network authentication protocol that works on the basis of tickets to allow nodes communicating over a non-secure network to prove their identity to one another in a secure manner, is enabled."
+    },
+    "IA.L2-3.5.11a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share of Group Policy or similar tool providing centralized management and configuration of operating systems, applications, and users' settings in a directory-based identity-related service tool's configuration to show that passwords are obscured.",
+      "assessment_considerations": "Is the feedback immediately obscured when the authentication is presented on a larger display (e.g., desktop or notebook computers with relatively large monitors)?"
+    },
+    "IA.L2-3.5.1a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Based on what is defined in their documentation (SSP, AUP, Policy, SOP), request to see a sample of non-privileged/privileged users in AD OU group (overlaps with 3.1.1 and 3.1.5).",
+      "assessment_considerations": "Are unique identifiers issued to individual users (e.g., usernames)?"
+    },
+    "IA.L2-3.5.1b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Based on what is defined in their documentation (SSP, AUP, Policy, SOP), request to see a sample of service accounts in AD OU group (overlaps with 3.1.1 and 3.1.5).",
+      "assessment_considerations": "Are the processes and service accounts that an authorized user initiates identified (e.g., scripts, automatic updates, configuration updates, vulnerability scans)?"
+    },
+    "IA.L2-3.5.1c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Based on what is defined in their documentation (SSP, AUP, Policy, SOP), request to see a sample of domain-joined workstation & servers in AD OU group (overlaps with 3.1.1 and 3.1.5). For network devices, request screen share/artifact to show how they are identified on the enterprise network.",
+      "assessment_considerations": "Are unique device identifiers used for devices that access the system identified?"
+    },
+    "IA.L2-3.5.2a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "If the user logs in with non-privileged account during other demoes and then a privileged account, then this should be satisfied. If screen share is unavailable, request logs to show successful and unsuccessful login by privileged and non-privilged users.",
+      "assessment_considerations": "Are unique authenticators used to verify user identities (e.g., passwords)?"
+    },
+    "IA.L2-3.5.2b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Request a log that shows successful/unsuccessful service account trying to log on to company's asset.",
+      "assessment_considerations": "[i] An example of a process acting on behalf of users could be a script that logs in as a person or service account [b]. Can the contractor show that it maintains a record of all of those service accounts for use when reviewing log data or responding to an incident? [ii] Are user credentials authenticated in system processes (e.g., credentials binding, certificates, tokens)?"
+    },
+    "IA.L2-3.5.2c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Request a log that shows domain-joined workstation/server authenticating to AD (focus on the MAC/IP address/hostname).",
+      "assessment_considerations": "Are device identifiers used in authentication processes (e.g., MAC address, non-anonymous computer name, certificates)?"
+    },
+    "IA.L2-3.5.3a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Based on what is defined in their documentation, request to see a sample of privileged users in AD OU group. Overlaps with 3.1.5. Screenshot/screen share to show implementation is enforced."
+    },
+    "IA.L2-3.5.3b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "SSP, AUP, Policy, SOP that defines that MFA is needed for privileged local access.",
+      "assessment_considerations": "Does the system uniquely identify and authenticate users, including privileged accounts?"
+    },
+    "IA.L2-3.5.3c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Within the MFA implementation mechanism, show that privileged users are forced to use MFA; Screenshot/Screen share to show implementation is enforced.",
+      "assessment_considerations": "Does the system uniquely identify and authenticate users, including privileged accounts?"
+    },
+    "IA.L2-3.5.3d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Within the MFA implementation mechanism, show that non-privileged users are forced to use MFA; Screenshot/Screen share to show implementation is enforced.",
+      "assessment_considerations": "Does the system uniquely identify and authenticate users, including privileged accounts?"
+    },
+    "IA.L2-3.5.4a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Show the GPO setting that enforces Kerberos within AD. If MFA is used, show the implementation to enforce replay resistant techniques. For non-windows, show the technical solution to enforce replay resistant attacks.",
+      "assessment_considerations": "Are only anti-replay authentication mechanisms used?"
+    },
+    "IA.L2-3.5.5a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, policies, or SOP that defines identifier reuse."
+    },
+    "IA.L2-3.5.5b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Show the GPO setting/technical solution that enforces what is defined in policy/documentation (this can be automated or manual process; screen share/artifacts can be presented to satisfy this requirement.",
+      "assessment_considerations": "[i] Are accounts uniquely assigned to employees, contractors, and subcontractors? [ii] Are account identifiers reused?"
+    },
+    "IA.L2-3.5.6a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, policy that defines the period of inactivity after which an identifier is disabled."
+    },
+    "IA.L2-3.5.6b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share AD or similar tool supporting directory-based identity-related services for disabled accounts (can be done by hand or script).",
+      "assessment_considerations": "Are user accounts or identifiers monitored for inactivity?"
+    },
+    "IA.L2-3.5.7a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, policy that defines password complexity requirements.",
+      "assessment_considerations": "Is a degree of complexity specified for passwords, (e.g., are account passwords a minimum of 12 characters and a mix of upper/lower case, numbers, and special characters), including minimum requirements for each type?"
+    },
+    "IA.L2-3.5.7b": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, policy that defines change of character requirements are defined.",
+      "assessment_considerations": "Is a degree of complexity specified for passwords, (e.g., are account passwords a minimum of 12 characters and a mix of upper/lower case, numbers, and special characters), including minimum requirements for each type?"
+    },
+    "IA.L2-3.5.7c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share of AD or similar directory-based identity-related service tool to show complexity requirements.",
+      "assessment_considerations": "Is a degree of complexity specified for passwords, (e.g., are account passwords a minimum of 12 characters and a mix of upper/lower case, numbers, and special characters), including minimum requirements for each type?"
+    },
+    "IA.L2-3.5.7d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share of Group Policy configuration or similar tool providing centralized management and configuration of operating systems, applications, and users' settings to show that characters must be changed.",
+      "assessment_considerations": "Is a change of characters required when new passwords are created?"
+    },
+    "IA.L2-3.5.8a": {
+      "evidence_type": "Document",
+      "evidence_examples": "SSP, policy that specifies the number of generations during which a password cannot be reused is specified.",
+      "assessment_considerations": "How many generations of password changes need to take place before a password can be reused?"
+    },
+    "IA.L2-3.5.8b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share Group Policy or similar tool providing centralized management and configuration of operating systems, applications, and users' settings in a directory-based identity-related service tool's configuration to show reuse of passwords is prohibited."
+    },
+    "IA.L2-3.5.9a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screen share of Group Policy or similar tool providing centralized management and configuration of operating systems, applications, and users' settings in a directory-based identity-related service tool's configuration to show \"change password at first logon\".",
+      "assessment_considerations": "[i] Are temporary passwords only valid to allow a user to perform a password reset? [ii] Does the system enforce an immediate password change after logon when a temporary password is issued?"
+    },
+    "IR.L2-3.6.1a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Incident Response SOP/Plan.",
+      "assessment_considerations": "Is there an incident response policy which specifically outlines requirements for handling of incidents involving CUI?"
+    },
+    "IR.L2-3.6.1b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Incident Response SOP/Plan, prior incident report, training, COOP plan"
+    },
+    "IR.L2-3.6.1c": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Incident Response SOP/Plan; definition of tools used to detect; artifacts showing tools used; prior incident report"
+    },
+    "IR.L2-3.6.1d": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Incident Response SOP/Plan; Definition of tools used to analyze potential incidents; artifacts showing tools used for analysis; prior incident report."
+    },
+    "IR.L2-3.6.1e": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Incident Response SOP/Plan; isolation/quarantine process; user training."
+    },
+    "IR.L2-3.6.1f": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Incident Response SOP/Plan; COOP Plan; prior incident reports, re-baselining impacted devices."
+    },
+    "IR.L2-3.6.1g": {
+      "evidence_type": "Document",
+      "evidence_examples": "Incident Response SOP/Plan; user awareness training; Help Desk process."
+    },
+    "IR.L2-3.6.2a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Incident Response SOP/Plan; ITSM artifact; technical implementation for incident tracking.",
+      "assessment_considerations": "Is there an incident response policy that directs the establishment of requirements for tracking and reporting of incidents involving CUI to appropriate officials?"
+    },
+    "IR.L2-3.6.2b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Incident Response SOP/Plan; ITSM artifact; technical implementation for incident tracking."
+    },
+    "IR.L2-3.6.2c": {
+      "evidence_type": "Document",
+      "evidence_examples": "Incident Response SOP/Plan."
+    },
+    "IR.L2-3.6.2d": {
+      "evidence_type": "Document",
+      "evidence_examples": "Incident Response SOP/Plan.",
+      "assessment_considerations": "Is there an incident response policy that directs the establishment of requirements for tracking and reporting of incidents involving CUI to appropriate officials?"
+    },
+    "IR.L2-3.6.2e": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Prior incident report; DIBNET login; prior email notifications.",
+      "assessment_considerations": "Is cybersecurity incident information promptly reported to management?"
+    },
+    "IR.L2-3.6.2f": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Prior incident report; prior email notifications; tabletop exercises.",
+      "assessment_considerations": "Is cybersecurity incident information promptly reported to management?"
+    },
+    "IR.L2-3.6.3a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Incident response table top/scheduled or unscheduled test or penetration test.",
+      "assessment_considerations": "Does the incident response policy outline requirements for regular incident response plan testing and reviews of incident response capabilities?"
+    },
+    "MA.L2-3.7.1a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Establish typical maintenance activities (HVAC, UPS, power distribution, generators, copier maintenance) that are performed; maintenance agreements or contracts detailing these types of activities are acceptable; interview responses should be considered. This requirement should not be confused with 3.14.1 - report, remediate, and correct system flaws in a timely manner (patch management).",
+      "assessment_considerations": "Are systems, devices, and supporting systems maintained per manufacturer recommendations or company defined schedules?"
+    },
+    "MA.L2-3.7.2a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Tools may largely depend on the assessed environment; discussion examples include network diagnostic and monitoring tools (including hardware and software); artifacts could demonstrate secured locations/areas for these tools (photos) or checkout sheets/rosters (documents) depicting responsible personnel and the dates/times of checkout.",
+      "assessment_considerations": "Are physical or logical access controls used to limit access to maintenance tools to authorized personnel?"
+    },
+    "MA.L2-3.7.2b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Processes for scheduling, performing, documenting, reviewing, approving, and monitoring maintenance and repairs for the information system.",
+      "assessment_considerations": "Are physical or logical access controls used to limit access to system documentation and organizational maintenance process documentation to authorized personnel?"
+    },
+    "MA.L2-3.7.2c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Processes for scheduling, performing, documenting, reviewing, approving, and monitoring maintenance and repairs for the information system.",
+      "assessment_considerations": "Are physical or logical access controls used to limit access to automated mechanisms (e.g., automated scripts, scheduled jobs) to authorized personnel?"
+    },
+    "MA.L2-3.7.2d": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Screenshot of who is authorized to conduct maintenance; maintenance personnel training program.",
+      "assessment_considerations": "Are physical or logical access controls used to limit access to the system entry points that enable maintenance (e.g., administrative portals, local and remote console access, and physical equipment panels) to authorized personnel?"
+    },
+    "MA.L2-3.7.3a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Document or artifact; record if equipment sanitized; categories of sanitization/destruction defined; sanitization procedural document.",
+      "assessment_considerations": "Is there a process for sanitizing (e.g., erasing, wiping, degaussing) equipment that was used to store, process, or transmit CUI before it is removed from the facility for off-site maintenance (e.g., manufacturer or contracted maintenance support)?"
+    },
+    "MA.L2-3.7.4a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Screenshot of diagnostic/test program being used (such as Symantec and McAfee on access scans…).",
+      "assessment_considerations": "Are media containing diagnostic and test programs (e.g., downloaded or copied utilities or tools from manufacturer, third-party, or in-house support teams) checked for malicious code (e.g., using antivirus or antimalware scans) before the media are used on organizational systems?"
+    },
+    "MA.L2-3.7.5a": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Describe MFA used to remote from external service to organizational systems for maintenance and screenshot of MFA (3.5.3)(points associated with admin).",
+      "assessment_considerations": "Is multifactor authentication required prior to maintenance of a system when connecting remotely from outside the system boundary?"
+    },
+    "MA.L2-3.7.5b": {
+      "evidence_type": "Screen Share",
+      "evidence_examples": "Screenshot VPN session timeout.",
+      "assessment_considerations": "Are personnel required to manually terminate remote maintenance sessions established via external network connections when maintenance is complete, or are connections terminated automatically through system session management mechanisms?"
+    },
+    "MA.L2-3.7.6a": {
+      "evidence_type": "Document",
+      "evidence_examples": "System maintenance policy; list of authorized personnel; maintenance records or, contracts/SLAs; WebEx.",
+      "assessment_considerations": "Are there processes for escorting and supervising maintenance personnel without required access authorization (e.g., vendor support personnel, short-term maintenance contractors) during system maintenance?"
+    },
+    "MP.L2-3.8.1a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Policy showing CUI paper media is controlled; artifact showing who has access; artifacts/records of inventories conducted; media check out procedures (i.e. file cabinets, encryption, password protection).",
+      "assessment_considerations": "Is hardcopy media containing CUI handled only by authorized personnel according to defined procedures?"
+    },
+    "MP.L2-3.8.1b": {
+      "evidence_type": "Document",
+      "evidence_examples": "Policy showing CUI digital media is controlled; artifact showing who has access; artifacts/records of inventories conducted; media check out procedures (i.e. file cabinets, external drives, USBs, encryption, password protection).",
+      "assessment_considerations": "Is digital media containing CUI handled only by authorized personnel according to defined procedures?"
+    },
+    "MP.L2-3.8.1c": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Check out/sign out sheets; possible photo of storage container/video walk through of storage area; badge reader logs or access lists for keys for secured areas; interview response considered (i.e. file cabinets, encryption, password protection).",
+      "assessment_considerations": "Is paper media containing CUI physically secured (e.g., in a locked drawer or cabinet)?"
+    },
+    "MP.L2-3.8.1d": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Check out/sign out sheets; possible photo of storage container/video walk through of storage area; badge reader logs or access lists for keys for secured areas; interview response considered (i.e. file cabinets, external drives, USBs, encryption, password protection).",
+      "assessment_considerations": "Is digital media containing CUI securely stored (e.g., in access-controlled repositories)?"
+    },
+    "MP.L2-3.8.2a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Document describing how CUI is limited AND artifact showing principle of least access is implemented."
+    },
+    "MP.L2-3.8.3a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Policy or artifact of media destruction logs; certificates of destruction; SLAs or contracts.",
+      "assessment_considerations": "Is all managed data storage erased, encrypted, or destroyed using mechanisms to ensure that no usable data is retrievable?"
+    },
+    "MP.L2-3.8.3b": {
+      "evidence_type": "Document",
+      "evidence_examples": "Policy or artifact describing method to sanitize, software used (i.e. DoD Wipe, ShredIT and Iron Mountain; Blancco; GDisk, DBAN).",
+      "assessment_considerations": "Is all managed data storage erased, encrypted, or destroyed using mechanisms to ensure that no usable data is retrievable?"
+    },
+    "MP.L2-3.8.4a": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Document or artifact showing CUI markings (i.e. labeling standards ).",
+      "assessment_considerations": "Are all media containing CUI identified?"
+    },
+    "MP.L2-3.8.4b": {
+      "evidence_type": "Physical Review",
+      "evidence_examples": "Document or artifact showing distro limitations (i.e. labeling standards ).",
+      "assessment_considerations": "Are all media containing CUI identified?"
+    },
+    "MP.L2-3.8.5a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Policy, artifact of audit logs showing tracking, Access Control Lists, records of transport activities (i.e. USB drives, CDs, chain of custody.",
+      "assessment_considerations": "Do only approved individuals have access to media containing CUI?"
+    },
+    "MP.L2-3.8.5b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Artifact of audit logs showing tracking, Access Control Lists, records of transport activities (i.e. USB drives, CDs; chain of custody.",
+      "assessment_considerations": "[i] Is access to the media containing CUI recorded in an audit log? [ii] Is all CUI data on media encrypted or physically locked prior to transport outside of secure locations?"
+    },
+    "MP.L2-3.8.6a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Artifact showing crypto mechanisms used to protect (are they FIPS 140-2 [13.11]); artifact showing what alternative physical safeguards are in place (i.e. encryption; Bitlocker; McAfee).",
+      "assessment_considerations": "[i] Are all CUI data on media encrypted or physically protected prior to transport outside of controlled areas? [ii] Are cryptographic mechanisms used to protect digital media during transport outside of controlled areas? [iii] Do cryptographic mechanisms comply with FIPS 140-2?"
+    },
+    "MP.L2-3.8.7a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Policy showing if removable media is allowed; writable removable media is restricted; tracking artifacts; what tools are used (i.e. Carbon Black, Crowd Strike, GPO, Zoho Desktop Central); procedure/process describing what happens if it is lost; what mechanisms are in place to control/restrict removable media (i.e. Active Directory Groups and Group Policy artifact showing restriction).",
+      "assessment_considerations": "[i] Are removable media allowed? [ii] Are policies and/or procedures in use to control the use of removable media?"
+    },
+    "MP.L2-3.8.8a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Policy and/or artifact showing company stance on portable storage devices if there is no owner (are personal USB devices allowed or are they company-issued; artifact showing alerts if device is connected to network (i.e. external HDD, Carbon Black, Crowd Strike, GPO, Zoho Desktop Central.",
+      "assessment_considerations": "Do portable storage devices used have identifiable owners?"
+    },
+    "MP.L2-3.8.9a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Policy on system backups; artifact showing media labeling; artifact showing encyption (is it FIPS 140-2 [13.11]); Access Control List artifact (i.e. backup tapes, Tivoli Storage Manager).",
+      "assessment_considerations": "[i] Are data backups encrypted on media before removal from a secured facility? [ii] Are cryptographic mechanisms FIPS validated?"
+    },
+    "PS.L2-3.9.1a": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Screenshot of records of screened personnel/background checks.",
+      "assessment_considerations": "Are appropriate background checks completed prior granting access to organizational systems containing CUI?"
+    },
+    "PS.L2-3.9.2a": {
+      "evidence_type": "Document",
+      "evidence_examples": "Personnel security policy/procedures/instruction; Access control policy/procedure/instruction.",
+      "assessment_considerations": "[i] Is all company information system-related property retrieved from the terminated or transferred employee within a certain timeframe? [ii] Is access to company information and information systems formerly controlled by the terminated or transferred employee retained for a certain timeframe? [iii] Is the information security office and data owner of the change in authorization notified within a certain timeframe?"
+    },
+    "PS.L2-3.9.2b": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Screenshot of records of personnel transfer and termination actions.",
+      "assessment_considerations": "Are authenticators/ credentials associated with the employee revoked upon termination or transfer within a certain time frame?"
+    },
+    "PS.L2-3.9.2c": {
+      "evidence_type": "Artifact",
+      "evidence_examples": "Completed outprocessing checklist.",
+      "assessment_considerations": "[i] Is information system access disabled upon employee termination or transfer? [ii] Are authenticators/ credentials associated with the employee revoked upon termination or transfer within a certain time frame? [iii] Is all company information system-related property retrieved from the terminated or transferred employee within a certain timeframe? [iv] Is access to company information and information systems formerly controlled by the terminated or transferred employee retained for a certain timeframe?"
+    }
+  },
+  "requirements": {
+    "AC.L2-3.1.1": {
+      "c3pao_guidance": "Access control lists, role-based access control (RBAC), Active Directory dump, security groups, remote access lists, asset inventory list, authorized device list.",
+      "worksheet_level": "L1"
+    },
+    "AC.L2-3.1.10": {
+      "c3pao_guidance": "Session lock configuration and screen for [the information system] and [web application].",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.11": {
+      "c3pao_guidance": "GPO settings demonstrating account timeout, screenshot of session timeout, conditions resulting in session termination.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.12": {
+      "c3pao_guidance": "Settings/audit logs/evidence demonstrating how remote access is provisioned, monitored, and controlled. Evidence may include tickets, emails, and forms relevant to granting access to remote resources.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.13": {
+      "c3pao_guidance": "Firewalls rules, proxies, system configuration for encryption level of remote access technology (VPN, SSH, RDP, etc.).",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.14": {
+      "c3pao_guidance": "List of all managed network access control points, network diagram displaying all network access control points.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.15": {
+      "c3pao_guidance": "Remote access authorizations, security-relevant information to be accessed remotely, functions to be conducted remotely.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.16": {
+      "c3pao_guidance": "Wireless access policies and procedures; unless incorporated in the access control policies and procedures.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.17": {
+      "c3pao_guidance": "Encryption services in use for wireless internet, procedures demonstrating how all types of users authenticate to wireless internet. WAN safeguards in place to prevent unauthorized access or man-in-the-middle attacks.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.18": {
+      "c3pao_guidance": "Mobile Device Management configuration settings, MDM device list, MDM conditional access policies, user access agreements for mobile devices, demonstration of how mobile devices are configured for users.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.19": {
+      "c3pao_guidance": "Mobile Device Management configuration settings, encryption settings, MDM conditional access policies.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.2": {
+      "c3pao_guidance": "Privileged/non-privileged user lists, info system monitoring tool(s) user lists, security groups, GPO dump, remote console access configurations, flow control policies, separation of duties, roles and responsibilities documents.",
+      "worksheet_level": "L1"
+    },
+    "AC.L2-3.1.20": {
+      "c3pao_guidance": "List of external system connections and authorizations, external system connection specifications, flow control policies, system architecture documents, network diagrams, firewall rules, system interconnection agreements.",
+      "worksheet_level": "L1"
+    },
+    "AC.L2-3.1.21": {
+      "c3pao_guidance": "Configuration baselines for portable storage devices, encryption in use on portable storage devices and any other safeguards in use to protect portable storage devices, acceptable use policy.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.22": {
+      "c3pao_guidance": "Demo how publicly accessible content is managed including list of users authorized. Evidence that info posted on publicly accessible websites reviewed. Inappropriate info posted to publicly accessible websites reviewed.",
+      "worksheet_level": "L1"
+    },
+    "AC.L2-3.1.3": {
+      "c3pao_guidance": "Access control lists, firewall rules, flow control policies, external connection authorizations, CUI access authorizations, system interconnection agreements.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.4": {
+      "c3pao_guidance": "Separation of Duties Matrix (SoD), information security roles and responsibilities.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.5": {
+      "c3pao_guidance": "AD users including privileged and non-privileged accounts, access control list, GPO dump, list of account types, birthright account privileges, privilege escalation procedures.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.6": {
+      "c3pao_guidance": "AD users including privileged and non-privileged accounts, policy requiring the use of non-privilege accounts for non-security functions, tools monitoring privileged actions.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.7": {
+      "c3pao_guidance": "List of privileged functions to be audited via [SIEM tool]. GPO dump for non-privileged users, RBAC.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.8": {
+      "c3pao_guidance": "GPO settings demonstrating invalid login attempt thresholds and account lockout.",
+      "worksheet_level": "L2"
+    },
+    "AC.L2-3.1.9": {
+      "c3pao_guidance": "Warning banner on [the information system] and [web application].",
+      "worksheet_level": "L2"
+    },
+    "PE.L2-3.10.1": {
+      "c3pao_guidance": "Complete listing of personnel with authorized badge access generated via the physical access software, including access to communication equipment or closets, physical access log.",
+      "worksheet_level": "L1"
+    },
+    "PE.L2-3.10.2": {
+      "c3pao_guidance": "Evidence demonstrating the phys facility/support infra are protected/monitored. Evidence includes confirmations for alarm software console, configs for monitoring software, logs of successful/unsuccessful access attempts.",
+      "worksheet_level": "L2"
+    },
+    "PE.L2-3.10.3": {
+      "c3pao_guidance": "MSA, SLA, or contracts with any third party security contractors related to colocation services, visitor sign-in logs.",
+      "worksheet_level": "L1"
+    },
+    "PE.L2-3.10.4": {
+      "c3pao_guidance": "Sample of physical access audit logs, asset listing of all components managing physical access control.",
+      "worksheet_level": "L1"
+    },
+    "PE.L2-3.10.5": {
+      "c3pao_guidance": "Asset listing of all components managing physical access control.",
+      "worksheet_level": "L1"
+    },
+    "PE.L2-3.10.6": {
+      "c3pao_guidance": "Organization's alternate work site including security controls in place there (such as physical and logical access, physical security, WAN, and LAN). SLAs related to alternate work site.",
+      "worksheet_level": "L2"
+    },
+    "RA.L2-3.11.1": {
+      "c3pao_guidance": "Evidence showing the review and update of the risk assessment periodically and when there are changes to the information system, revision history table, emails, tickets, risk assessment policy and procedures, previous SARs, POA&M.",
+      "worksheet_level": "L2"
+    },
+    "RA.L2-3.11.2": {
+      "c3pao_guidance": "Evidence demonstrating vuln scanning process (org systems and applications), scan results, evidence that privileged access authorization are implemented for vuln scanning activities, sec groups configured for vul scan admins.",
+      "worksheet_level": "L2"
+    },
+    "RA.L2-3.11.3": {
+      "c3pao_guidance": "Demonstration of vuln remediation process & tickets, docs demonstrating Security Control Assessments being analyzed, POA&M (open/closed items), vulnerability scan reports/output (for both the system and hosted applications).",
+      "worksheet_level": "L2"
+    },
+    "CA.L2-3.12.1": {
+      "c3pao_guidance": "Security assessment policy and procedures, security assessment plan, previous security assessment reports.",
+      "worksheet_level": "L2"
+    },
+    "CA.L2-3.12.2": {
+      "c3pao_guidance": "POA&M (open and close items).",
+      "worksheet_level": "L2"
+    },
+    "CA.L2-3.12.3": {
+      "c3pao_guidance": "POAM (open and close items), ConMon Plan, vulnerability scan reports, incident reports.",
+      "worksheet_level": "L2"
+    },
+    "CA.L2-3.12.4": {
+      "c3pao_guidance": "SSP, system diagram, data flow diagram.",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.1": {
+      "c3pao_guidance": "Description of monitoring tools, load balancers, firewalls, proxy servers, IDS, switches and routers to monitor internal and external communications. Evidence of transmitted info via VPN, SSL/TLS, firewall, IDS, IPDS logs.",
+      "worksheet_level": "L1"
+    },
+    "SC.L2-3.13.10": {
+      "c3pao_guidance": "Policy and procedures for creating, managing, and deleting cryptographic keys.",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.11": {
+      "c3pao_guidance": "GPO forcing the use of FIPS-validated crypto, list of cryptography used.",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.12": {
+      "c3pao_guidance": "List of networked collaborative computing devices (CCTV, Printer, Scanner, microphone) and evidence that they cannot be remotely activated.",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.13": {
+      "c3pao_guidance": "Mobile code acceptable use procedure, acceptable/unacceptable mobile code technologies (ActiveX, Java, Applets, etc.…), mobile code content filtering, IDS/IPS configuration settings.",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.14": {
+      "c3pao_guidance": "VOIP console screenshots, VOIP activity log, VOIP configuration, VOIP acceptable use procedure.",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.15": {
+      "c3pao_guidance": "Employing TLS 1.2, VPN and/or session tokens (session ID), GPO policy, protecting communication sessions.",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.16": {
+      "c3pao_guidance": "Evidence of encryption at rest, Bitlocker configuration, Bitlocker client list.",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.2": {
+      "c3pao_guidance": "List of privileged functions to be audited via [SIEM tool]. GPO dump for non-privileged users, RBAC.",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.3": {
+      "c3pao_guidance": "Evidence that [the information system] isolates management functionality from user functionality via subnetting, VLANs, access control and firewall configurations, remote access, RBAC.",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.4": {
+      "c3pao_guidance": "Evidence that shared systems remove information after session logout, session timeout configurations, tenant isolation, blocking FTP protocols, Residual Information Protection (RIP).",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.5": {
+      "c3pao_guidance": "Separate subnets for publicly accessible components, evidence that security engineering principles are incorporated in [the information system] system development life cycle (SDLC), VLAN configurations, network diagram.",
+      "worksheet_level": "L1"
+    },
+    "SC.L2-3.13.6": {
+      "c3pao_guidance": "Firewall configuration settings (deny-all, allow by exception).",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.7": {
+      "c3pao_guidance": "Evidence that split tunnel is disabled, remote access policy, VPN configurations.",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.8": {
+      "c3pao_guidance": "Evidence of employing protection for transmitted information via VPN, SSL/TLS and other methodologies, evidence of a hardened or alarmed carrier Protective Distribution System (PDS).",
+      "worksheet_level": "L2"
+    },
+    "SC.L2-3.13.9": {
+      "c3pao_guidance": "Evidence of manual network disconnect at the termination of a session. Evidence of network disconnect due to inactive session. Evidence of employing a \"logout\" button.",
+      "worksheet_level": "L2"
+    },
+    "SI.L2-3.14.1": {
+      "c3pao_guidance": "Evidence of patch management process, anti-virus on host, periodic scans, and flaw remediation, POA&M.",
+      "worksheet_level": "L1"
+    },
+    "SI.L2-3.14.2": {
+      "c3pao_guidance": "Endpoints with anti-virus, anti-virus scanning configuration, periodic scans, and flaw remediation, IDS/IPS.",
+      "worksheet_level": "L1"
+    },
+    "SI.L2-3.14.3": {
+      "c3pao_guidance": "Security alerts (internal and external), trouble tickets (open and closed).",
+      "worksheet_level": "L2"
+    },
+    "SI.L2-3.14.4": {
+      "c3pao_guidance": "Anti-virus or malware notification updates and installation.",
+      "worksheet_level": "L1"
+    },
+    "SI.L2-3.14.5": {
+      "c3pao_guidance": "Real-time anti-virus scans of files from external sources that are downloaded, opened, or executed.",
+      "worksheet_level": "L1"
+    },
+    "SI.L2-3.14.6": {
+      "c3pao_guidance": "Intrusion monitoring tool, [integrity monitoring] and [SIEM tool] configured to detect unauthorized access, modification, and deletion of information and [the information system], ConMon plan and reports.",
+      "worksheet_level": "L2"
+    },
+    "SI.L2-3.14.7": {
+      "c3pao_guidance": "Intrusion monitoring tools and reports, IDS, IPS, SIEM alerts, Acceptable Use Policy.",
+      "worksheet_level": "L2"
+    },
+    "AT.L2-3.2.1": {
+      "c3pao_guidance": "Content of security awareness and training program, acceptable use policy with employee signature, rules of behavior, CUI/CDI/FCI related training.",
+      "worksheet_level": "L2"
+    },
+    "AT.L2-3.2.2": {
+      "c3pao_guidance": "Security awareness and training records, rules of behavior acknowledgement, acceptable use policy, role-based security training, information security training for executives.",
+      "worksheet_level": "L2"
+    },
+    "AT.L2-3.2.3": {
+      "c3pao_guidance": "Security awareness and training program that includes insider threat, training records.",
+      "worksheet_level": "L2"
+    },
+    "AU.L2-3.3.1": {
+      "c3pao_guidance": "Audit policy and procedures including types of auditing events, monitoring, logging, SIEM correlation rules.",
+      "worksheet_level": "L2"
+    },
+    "AU.L2-3.3.2": {
+      "c3pao_guidance": "Auditing/accountability for unique user, AD users privilege/non-privileged accounts, audit reports, role-based access control, list of authorized personnel that review/analyze info system audits, list of auditable events - Shown in Policy.",
+      "worksheet_level": "L2"
+    },
+    "AU.L2-3.3.3": {
+      "c3pao_guidance": "Documentation demonstrating the auditable event review process, (e.g. tickets, emails notifying administrator to review defined auditable events, ticket documenting the administrator reviewing auditable events, unique logins.",
+      "worksheet_level": "L2"
+    },
+    "AU.L2-3.3.4": {
+      "c3pao_guidance": "Alert sent from [SIEM tool] to [organization]-defined personnel, alert for audit log processing failure.",
+      "worksheet_level": "L2"
+    },
+    "AU.L2-3.3.5": {
+      "c3pao_guidance": "SIEM tools, audit log correlation, dashboard of automated tools for auditing and monitoring, list of log input and output to SIEM tools, audit record retention configuration(s).",
+      "worksheet_level": "L2"
+    },
+    "AU.L2-3.3.6": {
+      "c3pao_guidance": "SIEM tool report output.",
+      "worksheet_level": "L2"
+    },
+    "AU.L2-3.3.7": {
+      "c3pao_guidance": "NTP configuration demonstrating synchronization with external time source to NIST timeclock via primary domain controller, NTP configuration demonstrating how often time synchronization with external time source occurs.",
+      "worksheet_level": "L2"
+    },
+    "AU.L2-3.3.8": {
+      "c3pao_guidance": "A walkthrough of demonstrating how audit log information are protected.",
+      "worksheet_level": "L2"
+    },
+    "AU.L2-3.3.9": {
+      "c3pao_guidance": "List of privileged users with auditing capabilities, RBAC.",
+      "worksheet_level": "L2"
+    },
+    "CM.L2-3.4.1": {
+      "c3pao_guidance": "Screenshots/evidence demonstrating how configuration baselines for all system components are managed (created, updated, deleted). Evidence may include items such as configuration baselines and asset inventory list.",
+      "worksheet_level": "L2"
+    },
+    "CM.L2-3.4.2": {
+      "c3pao_guidance": "SCAP and Nessus validated scans/reports, CIS benchmark, STIG scans.",
+      "worksheet_level": "L2"
+    },
+    "CM.L2-3.4.3": {
+      "c3pao_guidance": "Change Control Board meeting minutes, change requests (approvals and denials), change tickets.",
+      "worksheet_level": "L2"
+    },
+    "CM.L2-3.4.4": {
+      "c3pao_guidance": "Security impact analysis and any related documentation (e.g. tickets, emails, forms, meeting minutes, scan output), change tickets/requests with analysis.",
+      "worksheet_level": "L2"
+    },
+    "CM.L2-3.4.5": {
+      "c3pao_guidance": "Documented approval of changes that impacted logical or physical access restrictions, configuration management plan.",
+      "worksheet_level": "L2"
+    },
+    "CM.L2-3.4.6": {
+      "c3pao_guidance": "Review of unnecessary or insecure ports, protocols and services, CIS benchmark, SCAP scan reports, evidence that system components are configured according to the principle of least functionality.",
+      "worksheet_level": "L2"
+    },
+    "CM.L2-3.4.7": {
+      "c3pao_guidance": "Software program usage policies and restrictions, approved/denied software lists, CIS benchmark, SCAP scan results.",
+      "worksheet_level": "L2"
+    },
+    "CM.L2-3.4.8": {
+      "c3pao_guidance": "Firewall rules, whitelisting and blacklisting of software, evidence of reviews and updates of the list of authorized software programs.",
+      "worksheet_level": "L2"
+    },
+    "CM.L2-3.4.9": {
+      "c3pao_guidance": "Tool in place to monitor and prevent the install of software, GPO policies.",
+      "worksheet_level": "L2"
+    },
+    "IA.L2-3.5.1": {
+      "c3pao_guidance": "Walkthrough how identifiers are created, updated, and deleted. Access control lists, role-based access control (RBAC), Active Directory user list, security groups.",
+      "worksheet_level": "L1"
+    },
+    "IA.L2-3.5.10": {
+      "c3pao_guidance": "Password hashing/encryption configurations, Windows SAM file and or /etc./shadow.",
+      "worksheet_level": "L2"
+    },
+    "IA.L2-3.5.11": {
+      "c3pao_guidance": "Screenshots of login masking and error messages that obscure passwords.",
+      "worksheet_level": "L2"
+    },
+    "IA.L2-3.5.2": {
+      "c3pao_guidance": "Multifactor authentication walkthrough, listing of types of authenticators (username, password, security token, hardware token, soft token, etc.).",
+      "worksheet_level": "L1"
+    },
+    "IA.L2-3.5.3": {
+      "c3pao_guidance": "Listing of the types of access requiring MFA, multifactor authentication network access for privileged and non-privileged accounts, demonstrate the logon process using MFA.",
+      "worksheet_level": "L2"
+    },
+    "IA.L2-3.5.4": {
+      "c3pao_guidance": "Configuration for replay resistant authentication (multifactor authentication via token) for network access to privileged accounts and non-privileged accounts.",
+      "worksheet_level": "L2"
+    },
+    "IA.L2-3.5.5": {
+      "c3pao_guidance": "GPO settings (min and max life configuration) for usernames, identifier reuse policy/description.",
+      "worksheet_level": "L2"
+    },
+    "IA.L2-3.5.6": {
+      "c3pao_guidance": "Walkthrough demonstrating the disabling of inactive accounts after an organizationally-defined period. GPO settings (min and max life configuration) for usernames, GPO policy for identifiers.",
+      "worksheet_level": "L2"
+    },
+    "IA.L2-3.5.7": {
+      "c3pao_guidance": "Password policy and GPO password configurations, change of character requirements.",
+      "worksheet_level": "L2"
+    },
+    "IA.L2-3.5.8": {
+      "c3pao_guidance": "Password policy and GPO password configurations, password history config.",
+      "worksheet_level": "L2"
+    },
+    "IA.L2-3.5.9": {
+      "c3pao_guidance": "Temporary password configurations, account activation email with temporary password, procedures for changing a temporary password upon first logon.",
+      "worksheet_level": "L2"
+    },
+    "IR.L2-3.6.1": {
+      "c3pao_guidance": "Incident response plan/capabilities, IR policies and procedures, incident handling process.",
+      "worksheet_level": "L2"
+    },
+    "IR.L2-3.6.2": {
+      "c3pao_guidance": "IR tickets, IR notifications (internally and externally), contingency plan, coordination of incident handling with contingency planning team and security personnel.",
+      "worksheet_level": "L2"
+    },
+    "IR.L2-3.6.3": {
+      "c3pao_guidance": "IR training, tabletop exercises, lessons learned.",
+      "worksheet_level": "L2"
+    },
+    "MA.L2-3.7.1": {
+      "c3pao_guidance": "Organization's maintenance process.",
+      "worksheet_level": "L2"
+    },
+    "MA.L2-3.7.2": {
+      "c3pao_guidance": "Maintenance tickets, list of maintenance tools, list of authorized maintenance personnel, maintenance policy and procedures.",
+      "worksheet_level": "L2"
+    },
+    "MA.L2-3.7.3": {
+      "c3pao_guidance": "Off-site maintenance process and procedures, vendor agreement with \"keep your own hard drive\" clause, sanitization process.",
+      "worksheet_level": "L2"
+    },
+    "MA.L2-3.7.4": {
+      "c3pao_guidance": "Maintain policy and procedures, sanitization of media process, anti-virus/malware scan reports.",
+      "worksheet_level": "L2"
+    },
+    "MA.L2-3.7.5": {
+      "c3pao_guidance": "Non-local maintenance procedures.",
+      "worksheet_level": "L2"
+    },
+    "MA.L2-3.7.6": {
+      "c3pao_guidance": "Listing of external orgs that perform system maintenance, listing of individuals from external organizations that perform system maintenance, demo of external maintenance process, SLA, physical access logs, escort list.",
+      "worksheet_level": "L2"
+    },
+    "MP.L2-3.8.1": {
+      "c3pao_guidance": "All safeguards in place for protecting paper/digital media containing Federal Contract Information (Passwords, authenticators, keys, encryption, spec manuals demonstrating how removable media is protected), media marking.",
+      "worksheet_level": "L2"
+    },
+    "MP.L2-3.8.2": {
+      "c3pao_guidance": "Access control list, all safeguards in place for protecting system media (Passwords, authenticators, keys, encryption, spec manuals demonstrating how removable media is protected), access list of authorize CUI users.",
+      "worksheet_level": "L2"
+    },
+    "MP.L2-3.8.3": {
+      "c3pao_guidance": "Destruction certificate from media destruction entity, receipt showing media destroyed, walkthrough of media destruction process, maintenance policy and procedures.",
+      "worksheet_level": "L1"
+    },
+    "MP.L2-3.8.4": {
+      "c3pao_guidance": "Media marking, tracking, distribution limitations.",
+      "worksheet_level": "L2"
+    },
+    "MP.L2-3.8.5": {
+      "c3pao_guidance": "Evidence demonstrating how media is transported; receipts showing an approved carrier was used; SLA.",
+      "worksheet_level": "L2"
+    },
+    "MP.L2-3.8.6": {
+      "c3pao_guidance": "Cryptographic ciphers/mechanisms/standards in use for when media is transported outside of controlled areas, maintenance policy and procedures.",
+      "worksheet_level": "L2"
+    },
+    "MP.L2-3.8.7": {
+      "c3pao_guidance": "Comprehensive listing of digital and non-digital media permitted for use on the system, demo of how media usage is restricted to specific personnel, and restriction of media usage to certain system components.",
+      "worksheet_level": "L2"
+    },
+    "MP.L2-3.8.8": {
+      "c3pao_guidance": "Access policy and procedure for use of portable devices with no identifiable owner, acceptable use policy.",
+      "worksheet_level": "L2"
+    },
+    "MP.L2-3.8.9": {
+      "c3pao_guidance": "Backup and data protection software configurations, backup procedures.",
+      "worksheet_level": "L2"
+    },
+    "PS.L2-3.9.1": {
+      "c3pao_guidance": "Sample of employee background check and rescreening procedures, background check status report.",
+      "worksheet_level": "L2"
+    },
+    "PS.L2-3.9.2": {
+      "c3pao_guidance": "Evidence / walkthrough demonstrating the employee transfer and termination process. Evidence may include employee transfer checklist, equipment retention forms, tickets and notification emails.",
+      "worksheet_level": "L2"
+    }
+  },
+  "content_sha256": "a479e37ae2b7566c9a2b50bfe3285916bf5e3bb02d065f43cd947b131b4051b4"
+}
