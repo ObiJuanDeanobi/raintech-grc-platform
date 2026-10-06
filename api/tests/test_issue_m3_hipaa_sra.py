@@ -33,9 +33,6 @@ def _setup(client: TestClient, suffix: str = "sra") -> tuple[str, str, dict[str,
         )
         assert response.status_code == 201
     assert (
-        client.post(f"/api/projects/{project}/profile-readiness/acknowledgement").status_code == 201
-    )
-    assert (
         client.post(
             f"/api/projects/{project}/profile-readiness/transitions",
             json={"next_state": "Intake complete", "decision_note": "ready"},

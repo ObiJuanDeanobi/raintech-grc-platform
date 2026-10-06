@@ -46,7 +46,6 @@ def _project(
             ).status_code
             == 201
         )
-    client.post(f"/api/projects/{project}/profile-readiness/acknowledgement")
     client.post(
         f"/api/projects/{project}/profile-readiness/transitions",
         json={"next_state": "Intake complete", "decision_note": "ready"},

@@ -11,8 +11,6 @@ from httpx import Response
 from api.main import create_app
 from api.tests.test_workspace_api import migration_config
 
-BOUNDARY_DOCUMENT = "docs/local-evidence-operating-boundary.md"
-
 
 def create_project(client: TestClient, suffix: str) -> str:
     client_id = client.post("/api/clients", json={"name": f"Synthetic Client {suffix}"}).json()[
@@ -54,10 +52,6 @@ def transition(
     )
 
 
-def acknowledge_boundary(client: TestClient, project_id: str) -> Response:
-    return client.post(f"{readiness_path(project_id)}/acknowledgement")
-
-
 def test_readiness_path_gates_new_assessments_and_keeps_existing_assessment_readable(
     tmp_path: Path,
 ) -> None:
@@ -83,14 +77,6 @@ def test_readiness_path_gates_new_assessments_and_keeps_existing_assessment_read
         blocked = client.post(f"/api/projects/{project_id}/assessments")
         assert blocked.status_code == 409
         assert blocked.json()["detail"] == initial.json()["assessment_entry_blocking_reasons"]
-
-        acknowledgement = acknowledge_boundary(client, project_id)
-        assert acknowledgement.status_code == 201
-        assert acknowledgement.json()["document_path"] == BOUNDARY_DOCUMENT
-        assert acknowledgement.json()["statement"] == (
-            "Acknowledges review of the local evidence operating boundary; "
-            "this is not an attestation that content is free of CUI, PHI, or ePHI."
-        )
 
         intake_complete = transition(
             client,
@@ -163,22 +149,12 @@ def test_readiness_path_gates_new_assessments_and_keeps_existing_assessment_read
         assert all(item["timestamp"] and item["decision_note"] for item in history)
 
 
-def test_unknown_follow_up_approval_and_acknowledgement_rules_are_enforced(
+def test_unknown_follow_up_and_approval_rules_are_enforced(
     tmp_path: Path,
 ) -> None:
     app = create_app(database_path=tmp_path / "workspace.db", storage_path=tmp_path / "files")
     with TestClient(app) as client:
         project_id = create_project(client, "Rules")
-        missing_ack = transition(
-            client,
-            project_id,
-            "Intake complete",
-            "Try without acknowledgement.",
-        )
-        assert missing_ack.status_code == 422
-        assert "operating boundary" in missing_ack.json()["detail"]
-        acknowledge_boundary(client, project_id)
-
         follow_up_without_work = transition(
             client,
             project_id,
@@ -252,7 +228,6 @@ def test_two_project_isolation_restart_persistence_and_append_only_history(
     with TestClient(app) as client:
         project_a = create_project(client, "A")
         project_b = create_project(client, "B")
-        acknowledge_boundary(client, project_a)
         assert (
             transition(
                 client,
@@ -282,7 +257,6 @@ def test_two_project_isolation_restart_persistence_and_append_only_history(
     with TestClient(restarted) as client:
         ready = client.get(readiness_path(project_a)).json()
         assert ready["state"] == "Intake complete"
-        assert ready["acknowledgement"]["actor"]["id"] == "johnathan"
         assert client.get(f"{readiness_path(project_a)}/transitions").json()[-1][
             "decision_note"
         ] == "Project A is ready."
@@ -293,7 +267,6 @@ def test_two_project_isolation_restart_persistence_and_append_only_history(
             "SELECT action, actor_id FROM audit_events WHERE entity_id = ? ORDER BY created_at",
             (project_a,),
         ).fetchall()
-        assert ("profile.boundary_acknowledged", "johnathan") in audit_rows
         assert ("profile.readiness_transitioned", "johnathan") in audit_rows
         transition_id = connection.execute(
             "SELECT id FROM profile_readiness_transitions WHERE project_id = ? "
@@ -373,7 +346,6 @@ def test_readiness_behavior_consumes_the_persisted_framework_declaration(
                     "required_states": ["Needs follow-up"],
                     "required_when_unresolved_required_fields": True,
                 },
-                "boundary_document": BOUNDARY_DOCUMENT,
             }
             connection.execute(
                 "UPDATE framework_versions SET declarations_json = ? "
@@ -384,7 +356,6 @@ def test_readiness_behavior_consumes_the_persisted_framework_declaration(
         initial = client.get(readiness_path(project_id)).json()
         assert initial["assessment_entry_allowed"] is True
         assert initial["allowed_next_states"] == ["Profile complete"]
-        acknowledge_boundary(client, project_id)
         completed = transition(
             client,
             project_id,

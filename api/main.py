@@ -775,21 +775,10 @@ def _latest_profile_readiness_transition(connection: Any, project_id: str) -> An
 def _profile_readiness(connection: Any, project_id: str) -> dict[str, Any]:
     _project_or_404(connection, project_id)
     declaration = _project_readiness_declaration(connection, project_id)
-    acknowledgement = connection.execute(
-        """
-        SELECT profile_boundary_acknowledgements.*, user_accounts.display_name
-        FROM profile_boundary_acknowledgements
-        JOIN user_accounts ON user_accounts.id = profile_boundary_acknowledgements.actor_id
-        WHERE project_id = ?
-        """,
-        (project_id,),
-    ).fetchone()
     latest = _latest_profile_readiness_transition(connection, project_id)
     unresolved = json.loads(latest["unresolved_required_fields_json"])
     completion = cast(dict[str, Any], declaration["profile_completion"])
     profile_blockers: list[str] = []
-    if completion.get("requires_boundary_acknowledgement") and acknowledgement is None:
-        profile_blockers.append(completion["boundary_acknowledgement_blocking_reason"])
     if completion.get("requires_no_unresolved_required_fields"):
         profile_blockers.extend(
             completion["unresolved_required_field_blocking_reason"].format(field=field)
@@ -803,20 +792,6 @@ def _profile_readiness(connection: Any, project_id: str) -> dict[str, Any]:
     assessment_entry = cast(dict[str, Any], declaration["assessment_entry"])
     follow_up_rule = cast(dict[str, Any], declaration["follow_up_work"])
     assessment_exists = active_assessment_for_project(connection, project_id) is not None
-    acknowledgement_result = None
-    if acknowledgement is not None:
-        acknowledgement_result = {
-            "document_path": acknowledgement["document_path"],
-            "statement": (
-                "Acknowledges review of the local evidence operating boundary; "
-                "this is not an attestation that content is free of CUI, PHI, or ePHI."
-            ),
-            "actor": {
-                "id": acknowledgement["actor_id"],
-                "display_name": acknowledgement["display_name"],
-            },
-            "timestamp": acknowledgement["created_at"],
-        }
     return {
         "project_id": project_id,
         "state": state,
@@ -838,8 +813,6 @@ def _profile_readiness(connection: Any, project_id: str) -> dict[str, Any]:
         "follow_up_work_required_when_unresolved_required_fields": follow_up_rule[
             "required_when_unresolved_required_fields"
         ],
-        "boundary_document": declaration["boundary_document"],
-        "acknowledgement": acknowledgement_result,
         "current_details": {
             "unresolved_required_fields": unresolved,
             "follow_up_work": latest["follow_up_work"],
@@ -2675,35 +2648,6 @@ def create_app(
         with database.connect() as connection:
             return _profile_readiness(connection, project_id)
 
-    @app.post("/api/projects/{project_id}/profile-readiness/acknowledgement", status_code=201)
-    def acknowledge_profile_boundary(
-        project_id: str,
-        database: Annotated[Database, Depends(db)],
-    ) -> dict[str, Any]:
-        with database.connect() as connection:
-            _project_or_404(connection, project_id)
-            declaration = _project_readiness_declaration(connection, project_id)
-            acknowledgement_id = str(uuid4())
-            created_at = now()
-            result = connection.execute(
-                """
-                INSERT OR IGNORE INTO profile_boundary_acknowledgements(
-                    id, project_id, document_path, actor_id, created_at
-                ) VALUES (?, ?, ?, 'johnathan', ?)
-                """,
-                (acknowledgement_id, project_id, declaration["boundary_document"], created_at),
-            )
-            if result.rowcount:
-                _audit(
-                    connection,
-                    "profile.boundary_acknowledged",
-                    "project",
-                    project_id,
-                    {"document_path": declaration["boundary_document"]},
-                )
-            acknowledgement = _profile_readiness(connection, project_id)["acknowledgement"]
-            return cast(dict[str, Any], acknowledgement)
-
     @app.get("/api/projects/{project_id}/profile-readiness/transitions")
     def list_profile_readiness_transitions(
         project_id: str,
@@ -2766,18 +2710,6 @@ def create_app(
                 raise HTTPException(
                     status_code=422,
                     detail=f"Cannot transition from {prior_state} to {next_state}",
-                )
-            if (
-                declaration.get("requires_boundary_acknowledgement_before_transition")
-                and connection.execute(
-                    "SELECT id FROM profile_boundary_acknowledgements WHERE project_id = ?",
-                    (project_id,),
-                ).fetchone()
-                is None
-            ):
-                raise HTTPException(
-                    status_code=422,
-                    detail=declaration["boundary_acknowledgement_validation_message"],
                 )
             unresolved = [
                 value.strip() for value in payload.unresolved_required_fields if value.strip()

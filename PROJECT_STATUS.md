@@ -34,6 +34,13 @@ CI passed.
 
 **None agent-buildable. CMMC Level 2 is complete in software.**
 
+Johnathan removed the operating boundary acknowledgment on October 6, 2026,
+after seeing it on the Surface: "that boundary is implied." Profile readiness no
+longer requires a per-project acknowledgment, and the API endpoint and UI card
+are gone. The rule in `docs/local-evidence-operating-boundary.md` still applies;
+only the click is removed. The `profile_boundary_acknowledgements` table stays,
+unused, so existing records are kept and no migration is needed.
+
 #108 (CMMC close gate and standard package issuance) merged through PR #123
 at `4b0528b` on October 6, 2026, after all CI checks passed on head
 `98f99ae`; the issue auto-closed. See

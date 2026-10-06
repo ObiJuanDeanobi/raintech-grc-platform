@@ -30,7 +30,7 @@ CMMC Windows/offline acceptance on the Surface (#109) is still open. This runboo
 1. **+ Client / project.** Choose the client, the project name, and the
    **framework**: HIPAA 45 CFR Part 164 or CMMC Level 2. The framework version
    is pinned for the life of the project.
-2. **Profile.** Acknowledge the local evidence boundary, complete intake, and
+2. **Profile.** Complete intake and
    move readiness to *Intake complete*. An assessment cannot start before that.
    *Profile complete* needs a named reviewer and approval evidence.
 3. Create the assessment from the Assessments view.

@@ -57,10 +57,6 @@ PROFILE_READINESS: dict[str, Any] = {
     },
     "profile_completion": {
         "state": "Profile complete",
-        "requires_boundary_acknowledgement": True,
-        "boundary_acknowledgement_blocking_reason": (
-            "Acknowledge the local evidence operating boundary."
-        ),
         "requires_no_unresolved_required_fields": True,
         "unresolved_required_field_blocking_reason": "Resolve required field: {field}.",
         "unresolved_required_fields_validation_message": (
@@ -89,11 +85,6 @@ PROFILE_READINESS: dict[str, Any] = {
             "Unknown required fields require explicit follow-up work"
         ),
     },
-    "requires_boundary_acknowledgement_before_transition": True,
-    "boundary_acknowledgement_validation_message": (
-        "Acknowledge the local evidence operating boundary first"
-    ),
-    "boundary_document": "docs/local-evidence-operating-boundary.md",
 }
 
 

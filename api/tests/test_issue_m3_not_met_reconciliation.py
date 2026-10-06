@@ -11,7 +11,6 @@ def workspace(client: TestClient, name: str = "HIPAA") -> tuple[str, str]:
     cid = client.post("/api/clients", json={"name": name}).json()["id"]
     project = client.post(f"/api/clients/{cid}/projects", json={"name": name}).json()
     pid = project["id"]
-    client.post(f"/api/projects/{pid}/profile-readiness/acknowledgement")
     client.post(
         f"/api/projects/{pid}/profile-readiness/transitions",
         json={"next_state": "Intake complete", "decision_note": "test"},

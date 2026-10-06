@@ -203,14 +203,6 @@ const readiness = {
   assessment_entry_allowed: true,
   assessment_entry_blocking_reasons: [],
   profile_completion_blocking_reasons: ["Record a named reviewer."],
-  boundary_document: "docs/local-evidence-operating-boundary.md",
-  acknowledgement: {
-    document_path: "docs/local-evidence-operating-boundary.md",
-    statement:
-      "Acknowledges review of the local evidence operating boundary; this is not an attestation that content is free of CUI, PHI, or ePHI.",
-    actor: { id: "johnathan", display_name: "Johnathan" },
-    timestamp: "2026-08-26T00:00:00+00:00",
-  },
   current_details: {
     unresolved_required_fields: [],
     follow_up_work: "",
@@ -590,7 +582,6 @@ test("shows readiness state and concrete assessment blocking before an assessmen
         assessment_entry_blocking_reasons: [
           "Complete the initial intake before starting a new assessment.",
         ],
-        acknowledgement: null,
       });
     }
     if (url === "/api/projects/project-1/assessment") {
@@ -613,8 +604,7 @@ test("shows readiness state and concrete assessment blocking before an assessmen
   ).toBeVisible();
   expect(screen.getByRole("button", { name: "Start assessment" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Profile" })).toBeEnabled();
-  expect(screen.getByText(/not an attestation that content is free of CUI, PHI, or ePHI/i))
-    .toBeVisible();
+  expect(screen.queryByRole("heading", { name: "Operating boundary" })).toBeNull();
   expect(fetch).not.toHaveBeenCalledWith(
     "/api/projects/project-1/assessment",
     expect.anything(),
