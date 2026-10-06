@@ -32,10 +32,12 @@ CI passed.
 
 ## Active ticket
 
-**GitHub issue #119 - evidence replace, recycle bin, overdue review; PR
-pending.** See `docs/evidence/issue-119/EVIDENCE_LIFECYCLE_VERIFICATION.md`.
-Migration `0018`. Phase 4 roadmap item 9; drafted under the October 6
-delegation.
+**Operator runbook draft (roadmap #88 item 10): PR pending.** See
+`docs/OPERATOR_RUNBOOK.md`. It covers what is on `main`. CMMC close/issuance
+(#107/#108) and #109 remain open.
+
+#119 (evidence replace, recycle bin, overdue review) merged through PR #120 at
+`96dcbc9`.
 
 #117 (workspace backups and retention) merged through PR #118 at `8da9cb1`.
 
