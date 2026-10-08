@@ -730,8 +730,10 @@ for an issue. Each names who has to answer it.
   other frameworks. Service cadence: one monthly maintenance focus plus a
   yearly gap analysis / mock assessment (CMMC) or yearly report with POA&M
   (HIPAA), with a monthly client meeting for focus points and client updates
-  on compliance changes that affect them. Waiting on: a sanitized example HIPAA yearly report from Johnathan
-  to define the report's structure. See
+  on compliance changes that affect them. Johnathan's HIPAA POA&M workbook
+  format is recorded (structure only) in
+  `docs/research/2026-10-competitor-ux/hipaa-poam-reference.md`. Waiting on:
+  the yearly report narrative, if one exists beyond the POA&M. See
   `docs/research/2026-10-competitor-ux/README.md`.
   Mockup (six screens: Home, Assess, Overview, Deliver, monthly service cycle,
   compliance-change log): https://claude.ai/artifact/AzqferR2ShcVqp2B1aox8p
