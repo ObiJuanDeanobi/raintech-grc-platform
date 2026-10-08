@@ -717,6 +717,15 @@ for an issue. Each names who has to answer it.
   `docs/specification.md:104` (requirement-centered, objectives together)
   conflicts with `docs/specification.md:493` (objective-by-objective). Resolve
   with D1.
+- **Product direction, October 8, 2026 — recorded, not yet in the spec.**
+  Consultant first (assessor features later); compliance as a service is a
+  growth priority; HIPAA yearly report deliverable (contents to define; ADR
+  0011 bars claiming an annual interval is required); evidence many-to-many with
+  stale warnings; V2 integrations with Halo PSA / NinjaOne, so V1 records source
+  and suggested-vs-confirmed on profile facts and answers; client access V3; no
+  other frameworks. See `docs/research/2026-10-competitor-ux/README.md`.
+  Mockup: https://claude.ai/artifact/AzqferR2ShcVqp2B1aox8p (private to
+  Johnathan).
 - **Question-level working record test in Issue #49 — Johnathan.** The test is
   isolated from the approved baseline. If accepted, it requires an explicit
   ADR 0012 disposition and a specification revision before any production work.

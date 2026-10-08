@@ -274,6 +274,35 @@ gap-assessment deliverable, NOT MET → POA&M inline, interview mode, the
 evidence library, the Profile questionnaire, and fixing the spec's
 contradiction.
 
+## Product direction from Johnathan (October 8, 2026)
+
+Given after reviewing the mockup. These are direction, not yet spec changes.
+
+- **Consultant first.** The tool serves an RPO-style consultant. Deliverables
+  are packaged so they would hold up in a CMMC Level 2 assessment. C3PAO
+  assessor features may come later.
+- **Compliance as a service is a growth priority.** Retained clients with
+  ongoing work, not only one-off projects. This raises the weight of the Home
+  queue, recurring reviews and year-over-year history.
+- **HIPAA needs a full yearly report as a deliverable.** Note for whoever
+  builds it: ADR 0011 still applies. The report can be produced yearly as a
+  service, but generated text must not say the Security Rule requires an annual
+  interval, because the current rule says "periodic" (45 CFR 164.308(a)(8),
+  164.316(b)(2)(iii)). Contents still to be defined with Johnathan.
+- **Evidence maps to many objectives or requirements, and warns before it goes
+  stale.** Both are already in the spec (Evidence; Recurring Reviews and
+  Notifications); the build has neither an evidence view nor stale warnings.
+- **Build with automation in mind, V2.** Johnathan is moving to Halo PSA and
+  wants Halo PSA or NinjaOne data to flesh out client profiles and pre-fill
+  much of the gap analysis. V1 stays manual (spec non-goal), but the V1 data
+  model should keep the seam open: every profile fact and answer records its
+  source and whether it is suggested or confirmed, so imported data can arrive
+  as unconfirmed suggestions later.
+- **Client access is V3.**
+- **No other frameworks for now** (SOC 2, HITRUST, PCI DSS out of scope).
+- **CUI/PHI/ePHI stay out of the tool** by operator practice; Johnathan is the
+  only user. No change to `docs/local-evidence-operating-boundary.md`.
+
 ## Decisions needed from Johnathan
 
 | # | Decision | Recommendation |
