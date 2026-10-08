@@ -732,8 +732,8 @@ for an issue. Each names who has to answer it.
   (HIPAA), with a monthly client meeting for focus points and client updates
   on compliance changes that affect them. Johnathan's HIPAA POA&M workbook
   format is recorded (structure only) in
-  `docs/research/2026-10-competitor-ux/hipaa-poam-reference.md`. Waiting on:
-  the yearly report narrative, if one exists beyond the POA&M. See
+  `docs/research/2026-10-competitor-ux/hipaa-poam-reference.md`, and the
+  yearly report's structure in `hipaa-report-reference.md` (same folder). See
   `docs/research/2026-10-competitor-ux/README.md`.
   Mockup (six screens: Home, Assess, Overview, Deliver, monthly service cycle,
   compliance-change log): https://claude.ai/artifact/AzqferR2ShcVqp2B1aox8p
