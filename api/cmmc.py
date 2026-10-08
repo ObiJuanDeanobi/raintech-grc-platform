@@ -309,6 +309,11 @@ def score(
         )
     if ssp_blocked:
         blockers.append(scoring["requirements"]["CA.L2-3.12.4"]["note"])
+    unplanned = not_met_without_poam(
+        connection,
+        assessment["project_id"],
+        [record_id for record_id, state in states.items() if state == "not_met"],
+    )
     return {
         "scoring_id": scoring["id"],
         "authority": scoring["authority"],
@@ -330,6 +335,8 @@ def score(
         "conditional": _conditional(
             scoring, verified_figure["value"], lines, titles, states, complete
         ),
+        # The same figure the assessment view shows, for the Overview (#143).
+        "not_met_without_poam": unplanned,
     }
 
 
@@ -468,13 +475,74 @@ def requirement_finding(
 
 
 def add_poam_item(
-    connection: Any, project_id: str, finding_id: str, title: str, description: str
+    connection: Any,
+    project_id: str,
+    finding_id: str,
+    title: str,
+    description: str,
+    status: str = "Open",
 ) -> str:
     action_id, created = str(uuid4()), _now()
     connection.execute(
         """INSERT INTO corrective_actions(
-               id, project_id, finding_id, title, description, created_at, updated_at
-           ) VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (action_id, project_id, finding_id, title, description, created, created),
+               id, project_id, finding_id, title, description, status, created_at, updated_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (action_id, project_id, finding_id, title, description, status, created, created),
     )
     return action_id
+
+
+# A POA&M item plans remediation while it is neither Closed nor Withdrawn
+# (Draft counts: it exists and is being written).
+TERMINAL_POAM_STATUSES = ("Closed", "Withdrawn")
+
+
+def planned_requirements(connection: Any, project_id: str) -> set[str]:
+    """Requirements of this project with at least one open POA&M item."""
+    return {
+        row["record_id"]
+        for row in connection.execute(
+            """SELECT DISTINCT f.record_id FROM requirement_findings f
+               JOIN corrective_actions a
+                 ON a.finding_id = f.finding_id AND a.project_id = f.project_id
+               WHERE f.project_id = ? AND a.status NOT IN (?, ?)""",
+            (project_id, *TERMINAL_POAM_STATUSES),
+        )
+    }
+
+
+def not_met_without_poam(
+    connection: Any, project_id: str, not_met_ids: list[str]
+) -> dict[str, Any]:
+    """NOT MET requirements that are not on any open POA&M item (GitHub issue #143).
+
+    Derived on read, never stored. ``not_met_ids`` are the requirements that
+    currently derive Not Met in the assessment, in work-list order; Closed and
+    Withdrawn POA&M items do not count as planned.
+    """
+    planned = planned_requirements(connection, project_id)
+    ids = [record_id for record_id in not_met_ids if record_id not in planned]
+    return {"count": len(ids), "requirement_ids": ids}
+
+
+def poam_draft(finding: dict[str, Any], record_id: str, title: str) -> tuple[str, str]:
+    """Title and description for a POA&M draft, prefilled from the requirement finding.
+
+    Lists every failed objective with its notes, documented interview or
+    observation, and mapped evidence, as the requirement-level finding does.
+    """
+    lines = [
+        f"Remediate {record_id} {title}. Failed assessment objectives:",
+    ]
+    for objective in finding["failed_objectives"]:
+        lines.append("")
+        lines.append(f"- {objective['citation']}: {objective['regulation_text']}".rstrip())
+        if objective["note"].strip():
+            lines.append("  Notes: " + objective["note"].strip().replace("\n", "\n  "))
+        observation = objective["interview_observation"].strip()
+        if observation:
+            lines.append(f"  Interview or observation: {observation}")
+        for item in objective["evidence"]:
+            rationale = f" ({item['rationale']})" if item["rationale"] else ""
+            lines.append(f"  Evidence: {item['name']}{rationale}")
+    return f"{record_id} {title}", "\n".join(lines)

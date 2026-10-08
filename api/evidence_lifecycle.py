@@ -8,7 +8,7 @@ backup's copy is unaffected by purging the live bytes.
 """
 
 import sqlite3
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from hashlib import sha256
 from typing import Any
 from uuid import uuid4
@@ -43,10 +43,48 @@ def versions(connection: sqlite3.Connection, artifact_id: str) -> list[dict[str,
     ]
 
 
-def overdue(review_date: str | None, today: date | None = None) -> bool:
+def today() -> date:
+    """The date staleness is computed against (on read; no scheduler, #142).
+
+    Tests replace this function to inject a date.
+    """
+    return datetime.now(UTC).date()
+
+
+def overdue(review_date: str | None, on: date | None = None) -> bool:
     if not review_date:
         return False
-    return review_date < (today or datetime.now(UTC).date()).isoformat()
+    return review_date < (on or today()).isoformat()
+
+
+CURRENT = "current"
+DUE_SOON = "due_soon"
+STALE = "stale"
+DEFAULT_LEAD_DAYS = 30
+
+
+def review_status(review_date: str | None, lead_days: int, on: date | None = None) -> str:
+    """Current, due soon (within the warning lead time) or stale (#142).
+
+    Evidence without a review date is current. Evidence is stale once its
+    review date has passed, the same boundary as ``overdue``; on the review
+    date itself it is due soon.
+    """
+    if not review_date:
+        return CURRENT
+    day = on or today()
+    if review_date < day.isoformat():
+        return STALE
+    if review_date <= (day + timedelta(days=lead_days)).isoformat():
+        return DUE_SOON
+    return CURRENT
+
+
+def lead_days(connection: sqlite3.Connection, project_id: str) -> int:
+    row = connection.execute(
+        "SELECT evidence_review_lead_days FROM projects WHERE id = ?", (project_id,)
+    ).fetchone()
+    return int(row[0]) if row is not None and row[0] is not None else DEFAULT_LEAD_DAYS
 
 
 def replace(

@@ -26,12 +26,15 @@ import { Setup, WorkspaceCreator } from "./views/Setup";
 import { DeterminationPanel, EvidencePanel, NotMetReconciliation, PromptCard, RecordNotes } from "./views/assessment/RecordPanels";
 import { RequirementList } from "./views/assessment/RequirementList";
 import { CmmcScoreLine, CmmcScorePanel } from "./views/assessment/CmmcScore";
+import { UnplannedNotMet } from "./views/assessment/PoamSection";
 import { RequirementWorkspace } from "./views/assessment/RequirementWorkspace";
 import { BackupControl, CloseReadinessPanel, PackageGenerationPanel, RevalidationPanel } from "./views/close/ClosePanels";
+import { EvidenceLibraryView } from "./views/evidence/EvidenceLibraryView";
 import type {
   Artifact,
   Assessment,
   Client,
+  NotMetWithoutPoam,
   ProfileReadiness,
   RecordDetail,
   RecordState,
@@ -67,11 +70,15 @@ export function Workspace({
   const [loadedProjectId, setLoadedProjectId] = useState("");
   const [revalidationTick, setRevalidationTick] = useState(0);
   const [scoreTick, setScoreTick] = useState(0);
+  const [evidenceTick, setEvidenceTick] = useState(0);
   const [readiness, setReadiness] = useState<ProfileReadiness | null>(null);
   const [progress, setProgress] = useState<Assessment["progress"] | null>(null);
   const [recordId, setRecordId] = useState("");
   const [focusObjectiveId, setFocusObjectiveId] = useState("");
   const [recordStates, setRecordStates] = useState<Record<string, RecordState>>({});
+  // NOT MET requirements not on any open POA&M item, and whether the list shows only them (#143).
+  const [unplanned, setUnplanned] = useState<NotMetWithoutPoam | null>(null);
+  const [unplannedOnly, setUnplannedOnly] = useState(false);
   const [expandedFamilies, setExpandedFamilies] = useState<Map<string, boolean>>(() => new Map());
   const [returnRecordId, setReturnRecordId] = useState("");
   const [detail, setDetail] = useState<RecordDetail | null>(null);
@@ -85,7 +92,7 @@ export function Workspace({
   const [loading, setLoading] = useState(true);
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const [profileDirty, setProfileDirty] = useState(false);
-  const [view, setView] = useState<"assessment" | "overview" | "profile" | "sra">(initialView);
+  const [view, setView] = useState<"assessment" | "overview" | "profile" | "sra" | "evidence">(initialView);
   const detailTargetRef = useRef({ assessmentId: "", recordId: "" });
   const detailRequestSequenceRef = useRef(0);
   const assessmentRequestSequenceRef = useRef(0);
@@ -118,6 +125,8 @@ export function Workspace({
     setLoadedProjectId(targetProjectId);
     setProgress(next?.progress ?? null);
     setRecordStates(next?.record_states ?? {});
+    setUnplanned(next?.not_met_without_poam ?? null);
+    setUnplannedOnly(false);
     setFocusObjectiveId("");
     setRecordId(openingRecordId(next));
   }, [projectId]);
@@ -153,6 +162,7 @@ export function Workspace({
     const next = await request<Assessment>(`/api/projects/${targetProjectId}/assessment`);
     if (assessmentRequestSequenceRef.current !== requestSequence || projectTargetRef.current !== targetProjectId) return;
     setRecordStates(next.record_states ?? {});
+    setUnplanned(next.not_met_without_poam ?? null);
     if (next.id !== targetAssessmentId) {
       setDetail(null);
       detailLoadedTargetRef.current = { assessmentId: "", recordId: "" };
@@ -305,7 +315,7 @@ export function Workspace({
     return true;
   }, [confirmRoutineNavigation, onProjectChange, projectId]);
 
-  const changeView = useCallback((nextView: "assessment" | "overview" | "profile" | "sra") => {
+  const changeView = useCallback((nextView: "assessment" | "overview" | "profile" | "sra" | "evidence") => {
     if (nextView === view || !confirmRoutineNavigation()) return;
     setView(nextView);
   }, [confirmRoutineNavigation, view]);
@@ -442,6 +452,7 @@ export function Workspace({
           {assessment.framework.declarations.sra && (
             <button className={view === "sra" ? "active" : ""} onClick={() => changeView("sra")}>{assessment.framework.declarations.sra.work_area}</button>
           )}
+          <button className={view === "evidence" ? "active" : ""} onClick={() => changeView("evidence")}>Evidence</button>
           <button disabled>Actions</button>
         </nav>
         <div className="topbar-utility">
@@ -506,6 +517,7 @@ export function Workspace({
             expanded={expandedFamilies}
             onExpandedChange={setExpandedFamilies}
             onSelect={(requirementId) => changeRecord(requirementId)}
+            onlyIds={unplannedOnly && unplanned ? new Set(unplanned.requirement_ids) : null}
           />
         ) : (
           <div className="record-list">
@@ -539,6 +551,7 @@ export function Workspace({
               {assessment.framework.declarations.scoring && (
                 <CmmcScoreLine projectId={assessment.project.id} assessmentId={assessment.id} refreshKey={`${scoreTick}:${progress.resolved_determination_count}`} />
               )}
+              {unplanned && <UnplannedNotMet summary={unplanned} active={unplannedOnly} onToggle={() => setUnplannedOnly((only) => !only)} />}
             </div>
             <div className="previous-next">
               <button aria-label="Previous requirement" title="Previous requirement (K or [)" disabled={!previousRequirementId} onClick={() => previousRequirementId && changeRecord(previousRequirementId)}>
@@ -589,7 +602,7 @@ export function Workspace({
 
         {objectiveMode ? (
           <RequirementWorkspace
-            key={`${assessment.id}:${detail.record.record_id}`}
+            key={`${assessment.id}:${detail.record.record_id}:${evidenceTick}`}
             assessment={assessment}
             detail={detail}
             artifacts={artifacts}
@@ -802,6 +815,31 @@ export function Workspace({
             ))}
           </div>
         </main>
+      )}
+      {view === "evidence" && (
+        <EvidenceLibraryView
+          key={`evidence:${projectId}`}
+          projectId={assessment.project.id}
+          onOpenRecord={(next) => {
+            const parentId = objectiveMode ? assessment.work_list.find((record) => record.record_id === next)?.parent_id : null;
+            if ((parentId ?? next) === recordId) {
+              // Already on that requirement: refocus the objective row.
+              setFocusObjectiveId(parentId ? next : "");
+              setEvidenceTick((tick) => tick + 1);
+            } else {
+              changeRecord(next);
+            }
+            setView("assessment");
+          }}
+          onChanged={() => {
+            // Staleness, renewal and lead time change derived verification (#142).
+            void loadArtifacts();
+            void loadDetail();
+            void refreshAssessmentProgress();
+            setScoreTick((tick) => tick + 1);
+            setEvidenceTick((tick) => tick + 1);
+          }}
+        />
       )}
       {view === "profile" && (
         <main className="overview-panel">

@@ -12,6 +12,7 @@ import type {
   Artifact,
   Assessment,
   Determination,
+  EvidenceReview,
   RecordDetail,
   RecordState,
   RecordSummary,
@@ -19,6 +20,7 @@ import type {
   Status,
   Verification,
 } from "../../types";
+import { LinkEvidencePicker } from "./LinkEvidencePicker";
 import { EvidencePanel, RequirementFindingPanel, SspPanel } from "./RecordPanels";
 
 const EMPTY_DETERMINATION: Determination = {
@@ -235,6 +237,7 @@ export function RequirementWorkspace({
               objectiveDetail={objectiveDetails[objective.record_id]}
               evidenceCount={objectiveDetails[objective.record_id]?.evidence.length ?? recordStates[objective.record_id]?.evidence_count ?? 0}
               verification={recordStates[objective.record_id]?.verification ?? objective.determination?.verification ?? null}
+              evidenceReview={recordStates[objective.record_id]?.evidence_review ?? null}
               rowRef={(element) => {
                 if (element) rowRefs.current.set(objective.record_id, element);
                 else rowRefs.current.delete(objective.record_id);
@@ -272,12 +275,30 @@ export function RequirementWorkspace({
             <p className="eyebrow">LINKED EVIDENCE</p>
             <h3>{focused ? focused.citation : "No objective"}</h3>
           </div>
+          {objectives.length > 0 && (
+            <LinkEvidencePicker
+              key={`${assessment.id}:${detail.record.record_id}:link`}
+              projectId={projectId}
+              assessmentId={assessment.id}
+              objectives={objectives}
+              artifacts={artifacts}
+              linked={Object.fromEntries(Object.entries(objectiveDetails).map(([id, next]) => [id, next.evidence.map((mapping) => mapping.artifact_id)]))}
+              focusedObjectiveId={focused?.record_id ?? ""}
+              onLinked={(recordIds) => {
+                recordIds.forEach(reloadObjective);
+                onRecordsChanged();
+              }}
+              onArtifactsChanged={onArtifactsChanged}
+              onSaveState={onSaveState}
+            />
+          )}
           {focused && focusedDetail ? (
             <EvidencePanel
               key={`${assessment.id}:${focused.record_id}:evidence`}
               assessment={assessment}
               detail={focusedDetail}
               artifacts={artifacts}
+              mapForm={false}
               onChanged={() => {
                 reloadObjective(focused.record_id);
                 onRecordsChanged();
@@ -331,6 +352,7 @@ function ObjectiveRow({
   objectiveDetail,
   evidenceCount,
   verification,
+  evidenceReview,
   rowRef,
   onFocus,
   onToggle,
@@ -349,6 +371,8 @@ function ObjectiveRow({
   evidenceCount: number;
   /** Server-derived; trusted only while the shown status is the saved Met. */
   verification: Verification;
+  /** Worst review status of the objective's mapped evidence (#142). */
+  evidenceReview: EvidenceReview | null;
   rowRef: (element: HTMLLIElement | null) => void;
   onFocus: () => void;
   onToggle: () => void;
@@ -407,6 +431,16 @@ function ObjectiveRow({
           {evidencePending && (
             <span className="evidence-pending-tag" title="Met without current evidence or a documented interview/observation. Excluded from the verified score; blocks close and issue until verified.">
               Evidence pending
+            </span>
+          )}
+          {evidenceReview === "stale" && (
+            <span className="evidence-review-tag stale" title="Mapped evidence is past its review date and no longer verifies this objective. Renew it in the Evidence view.">
+              Evidence stale
+            </span>
+          )}
+          {evidenceReview === "due_soon" && (
+            <span className="evidence-review-tag due-soon" title="Mapped evidence reaches its review date within the project's lead time.">
+              Evidence due soon
             </span>
           )}
         </span>

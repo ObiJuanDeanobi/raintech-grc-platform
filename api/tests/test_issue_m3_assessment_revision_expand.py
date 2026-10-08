@@ -96,6 +96,8 @@ def test_clean_database_keeps_one_assessment_api_and_adds_one_active_revision(
             "record_index",
             # Read-only requirement-list markers (#140).
             "record_states",
+            # CMMC NOT MET requirements not on an open POA&M; None for HIPAA (#143).
+            "not_met_without_poam",
         }
         assert read.json()["id"] == assessment_id
         assert client.post(f"/api/projects/{project_id}/assessments").status_code == 409

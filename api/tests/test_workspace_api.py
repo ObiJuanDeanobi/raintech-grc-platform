@@ -456,6 +456,8 @@ def test_0001_evidence_artifact_upgrade_backfills_stored_bytes_without_hiding_ma
                 "sha256": sha256(stored_bytes).hexdigest(),
                 "review_date": None,
                 "latest_version_number": 1,
+                "review_status": "current",  # #142: no review date is current
+                "days_until_review": None,
                 "shared_record_count": 1,
             }
         ]

@@ -88,6 +88,14 @@ export interface Assessment {
   revalidation_items?: RevalidationItem[];
   /** Per-record status and markers for the requirement list (#140). */
   record_states?: Record<string, RecordState>;
+  /** CMMC only: NOT MET requirements not on any open POA&M item (#143). */
+  not_met_without_poam?: NotMetWithoutPoam | null;
+}
+
+/** Derived on read; Closed and Withdrawn POA&M items do not count as planned (#143). */
+export interface NotMetWithoutPoam {
+  count: number;
+  requirement_ids: string[];
 }
 
 /** Met is verified (current evidence or interview/observation) or evidence pending (#141). */
@@ -98,7 +106,12 @@ export interface RecordState {
   evidence_count: number;
   open_poam_count: number;
   verification?: Verification;
+  /** Worst review status of the record's mapped evidence when not current (#142). */
+  evidence_review?: EvidenceReview | null;
 }
+
+/** Evidence review status, derived on read from the review date and lead time (#142). */
+export type EvidenceReview = "current" | "due_soon" | "stale";
 
 export interface AssessmentReopening {
   id: string;
@@ -320,6 +333,8 @@ export interface EvidenceMapping {
   sha256: string;
   latest_version_number?: number;
   review_date?: string | null;
+  review_status?: EvidenceReview;
+  days_until_review?: number | null;
 }
 
 export interface Artifact {
@@ -334,8 +349,46 @@ export interface Artifact {
   version_created_at: string;
   review_date?: string | null;
   overdue?: boolean;
+  review_status?: EvidenceReview;
+  days_until_review?: number | null;
   deleted_at?: string | null;
   purged_at?: string | null;
+}
+
+/** One objective that uses a library artifact (#142). */
+export interface EvidenceUse {
+  mapping_id: string;
+  artifact_id: string;
+  assessment_id: string;
+  record_id: string;
+  citation: string;
+  title: string;
+  parent_id: string | null;
+  rationale: string;
+  review_state: string;
+  version_number: number;
+}
+
+export interface LibraryArtifact {
+  id: string;
+  name: string;
+  created_at: string;
+  review_date: string | null;
+  version_id: string;
+  version_number: number;
+  sha256: string;
+  version_created_at: string;
+  review_status: EvidenceReview;
+  days_until_review: number | null;
+  used_by: EvidenceUse[];
+  other_use_count: number;
+}
+
+export interface EvidenceLibrary {
+  today: string;
+  lead_days: number;
+  assessment_id: string | null;
+  artifacts: LibraryArtifact[];
 }
 
 export type ProfileItemType =
@@ -542,6 +595,8 @@ export interface CmmcScore {
   partial_implementations: Record<string, { implementation: "partial" | "none"; rationale: string }>;
   follow_up: { record_id: string; requirement_id: string; kind: string }[];
   conditional: { source: string; score_ratio: number; minimum_score: number; eligible: boolean; checks: ConditionalCheck[] };
+  /** The same figure the assessment view shows, for the Overview (#143). */
+  not_met_without_poam?: NotMetWithoutPoam;
 }
 
 export interface RequirementFinding {

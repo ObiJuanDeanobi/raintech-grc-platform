@@ -104,12 +104,13 @@ export function cmmcScoreFixture(lines: ScoreLine[], options: { complete?: boole
   };
   const verified = figure(lines);
   const projected = figure(lines.filter((line) => line.state !== "evidence_pending"));
+  const reason = (line: ScoreLine) => line.points <= 1
+    ? "1-point requirement (32 CFR 170.21(a)(2)(ii))."
+    : `${line.points}-point requirement; only 1-point requirements may be on a POA&M (32 CFR 170.21(a)(2)(ii)).`;
   const items = lines.map((line) => ({
     record_id: line.record_id, title: line.title ?? line.record_id, state: line.state, points: line.points,
     allowed: line.points <= 1,
-    reason: line.points <= 1
-      ? "1-point requirement (32 CFR 170.21(a)(2)(ii))."
-      : `${line.points}-point requirement; only 1-point requirements may be on a POA&M (32 CFR 170.21(a)(2)(ii)).`,
+    reason: reason(line),
   }));
   const complete = options.complete ?? !lines.some((line) => line.state === "pending" || line.state === "not_assessed");
   const checks = [
@@ -121,7 +122,7 @@ export function cmmcScoreFixture(lines: ScoreLine[], options: { complete?: boole
     authority: "32 CFR 170.24 CMMC Scoring Methodology", methodology: "NIST SP 800-171 DoD Assessment Methodology v1.2.1",
     maximum_score: 110, minimum_score: -203, score: verified.value, verified, projected, complete,
     blockers: options.blockers ?? [],
-    deductions: lines.map((line) => ({ record_id: line.record_id, citation: line.record_id, title: line.title ?? line.record_id, points: line.points, state: line.state, source: "32 CFR 170.24", conditional_poam_allowed: line.points <= 1, poam_reason: "" })),
+    deductions: lines.map((line) => ({ record_id: line.record_id, citation: line.record_id, title: line.title ?? line.record_id, points: line.points, state: line.state, source: "32 CFR 170.24", conditional_poam_allowed: line.points <= 1, poam_reason: reason(line) })),
     evidence_pending: lines.filter((line) => line.state === "evidence_pending").map((line) => line.record_id),
     unscored: [], partial_inputs_needed: [], partial_implementations: {}, follow_up: [],
     conditional: { source: "32 CFR 170.21(a)(2)", score_ratio: verified.value / 110, minimum_score: 88, eligible: complete && checks.every((check) => check.passed), checks },

@@ -19,6 +19,7 @@ export function RequirementList({
   expanded,
   onExpandedChange,
   onSelect,
+  onlyIds = null,
 }: {
   workList: RecordIndex[];
   states: Record<string, RecordState>;
@@ -33,6 +34,8 @@ export function RequirementList({
   expanded: Map<string, boolean>;
   onExpandedChange: Dispatch<SetStateAction<Map<string, boolean>>>;
   onSelect: (requirementId: string) => void;
+  /** When set, only these requirements are listed, with their families open (#143). */
+  onlyIds?: ReadonlySet<string> | null;
 }) {
   const families = useMemo(() => requirementFamilies(workList, states), [workList, states]);
   const objectives = useMemo(() => objectivesByRequirement(workList), [workList]);
@@ -45,16 +48,19 @@ export function RequirementList({
 
   const term = search.trim().toLowerCase();
   const matches = (record: RecordIndex) =>
-    !term || record.title.toLowerCase().includes(term) || record.citation.toLowerCase().includes(term);
+    (!onlyIds || onlyIds.has(record.record_id))
+    && (!term || record.title.toLowerCase().includes(term) || record.citation.toLowerCase().includes(term));
+  const narrowed = Boolean(term) || Boolean(onlyIds);
 
   return (
     <div ref={listRef} className="requirement-list" role="navigation" aria-label="Requirements by family">
+      {onlyIds && onlyIds.size === 0 && <p className="muted-small requirement-list-empty">Every NOT MET requirement is on an open POA&amp;M item.</p>}
       {families
         .filter((family) => area === "all" || family.name === area)
         .map((family) => {
           const visible = family.requirements.filter(matches);
-          if (term && visible.length === 0) return null;
-          const open = Boolean(term) || (expanded.get(family.name) ?? family.name === activeFamily);
+          if (narrowed && visible.length === 0) return null;
+          const open = narrowed || (expanded.get(family.name) ?? family.name === activeFamily);
           return (
             <section key={family.name} className="family-group">
               <button
