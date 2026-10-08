@@ -10,9 +10,8 @@ The requirements-reconciliation amendment under GitHub issue #50 was approved
 by Johnathan on August 24, 2026. Production BUILD remains separately gated: each
 slice requires an approved ticket and applicable verification.
 
-The **workflow redesign amendment (ADR 0019)** was proposed on October 8, 2026
-and is awaiting Johnathan's approval. Text it adds or changes is marked
-*[Amendment 2026-10]*.
+The **workflow redesign amendment (ADR 0019)** was approved by Johnathan on
+October 8, 2026. Text it adds or changes is marked *[Amendment 2026-10]*.
 
 ## Problem
 
@@ -892,11 +891,10 @@ Approved by Johnathan on July 23, 2026. This approval authorized the UI prototyp
 and creation of the vertical-slice ticket plan. Each production slice still
 requires an approved ticket and applicable verification.
 
-### Workflow redesign amendment — proposed October 8, 2026
+### Workflow redesign amendment — approved October 8, 2026
 
-See ADR 0019. Direction agreed by Johnathan on October 8, 2026. **Awaiting
-Johnathan's approval of this text.** Production BUILD on it still requires
-approved tickets.
+See ADR 0019. **Approved by Johnathan on October 8, 2026.** Production BUILD on
+it still requires approved tickets.
 
 ### Post-prototype revision — approved July 27, 2026
 

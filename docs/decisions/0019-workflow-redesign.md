@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed October 8, 2026. Direction agreed by Johnathan on October 8, 2026
-("agreed on all CMMC bits"; HIPAA executive summary to use counts). Becomes
-Accepted when Johnathan approves the matching specification amendment.
+Accepted. Approved by Johnathan on October 8, 2026, with the matching
+specification amendment. Direction agreed earlier the same day ("agreed on all
+CMMC bits"; HIPAA executive summary to use counts).
 
 ## Context
 

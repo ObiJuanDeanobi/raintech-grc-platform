@@ -720,8 +720,9 @@ for an issue. Each names who has to answer it.
   executive summary switches from "% compliant" to counts by status. D3 (one
   Profile approval and one review-and-issue step) is read as included. These
   still need the spec amendment drafted and approved before BUILD. Drafted as
-  ADR 0019 plus *[Amendment 2026-10]* edits in `docs/specification.md`; awaiting
-  Johnathan's approval of the text.
+  ADR 0019 plus *[Amendment 2026-10]* edits in `docs/specification.md`;
+  **approved by Johnathan on October 8, 2026.** Next: ticket plan for his
+  approval; #127–#133 to be superseded by it.
 - **Pinned primary sources (October 8, 2026):** `docs/sources/` holds official
   copies (eCFR, Federal Register, NIST, DoW CIO, HHS via archive captures where
   hhs.gov blocks cloud IPs) with SHA-256 manifest. Cite these, not secondary
