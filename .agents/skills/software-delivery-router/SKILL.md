@@ -174,6 +174,9 @@ Require explicit approval before:
 
 Do not require excessive approval for tiny, clearly defined corrections.
 
+When `AGENTS.md` records a current delegation, follow it: gates it delegates are
+decided by the agent and recorded, not put to the user.
+
 ## TEACHING REQUIREMENT
 
 Teach while working.

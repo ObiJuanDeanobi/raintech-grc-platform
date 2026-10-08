@@ -9,6 +9,15 @@ open for native x64, adapter-disabled, and downloaded-file SmartScreen checks.
 
 ## Current mode
 
+**Engineering decisions are delegated (Johnathan, October 8, 2026).** Agents
+decide engineering, ticket plans, sequencing, architecture within the approved
+specification, and merging their own PRs once CI is green, without waiting for
+approval. They record the reasoning here or in `docs/decisions/`. Still
+Johnathan's call: client-facing compliance or legal claims, anything sent to a
+client, money, and deleting real data. Kept regardless: executed verification
+before claiming done, no CUI/PHI/ePHI in the repo, immutable issued records, and
+this file kept current. Full text under Ownership.
+
 October 6, 2026. Agents open, watch, and merge their own PRs on green CI (see
 Ownership). **Two Claude sessions are working this repository in parallel.**
 Session `01PT2ki4…` (#80/#81/#100/#30/#31) and session `013nM5in…` (#104 on

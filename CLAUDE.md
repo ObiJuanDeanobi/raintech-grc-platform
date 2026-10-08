@@ -45,4 +45,6 @@ These three prevent the damage that is hardest to undo. They are restated from
 - Do not claim completion without executed verification. Report what you ran, what
   passed, and what you skipped. "It generated successfully" is not a result.
 - Do not begin production BUILD work, change architecture, add a major dependency,
-  or edit the approved specification without explicit approval.
+  or edit the approved specification without explicit approval. Exception in force:
+  Johnathan delegated engineering decisions on October 8, 2026; see `AGENTS.md`,
+  "Current delegation".
