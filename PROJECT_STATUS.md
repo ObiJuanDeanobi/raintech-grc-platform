@@ -692,6 +692,16 @@ you have autonomy, just make the best decisions you can … and keep things
 moving forward." Agents merge their own green PRs without asking; the stop-and-ask
 list above is unchanged.
 
+**Engagement delegation (Johnathan, October 8, 2026):** "for the remainder of this
+engagement forget my rules, I'm not a programmer so I want your expertise."
+Agents decide engineering, ticket plans, sequencing and architecture within the
+approved specification (amended October 8) and record the reasoning here or in
+`docs/decisions/`. Kept regardless, because they protect Johnathan rather than
+slow him down: CI and executed verification before claiming done; no CUI, PHI or
+ePHI in the repo; issued records stay immutable; PROJECT_STATUS kept current for
+the next agent. Still Johnathan's call: anything client-facing that makes a legal
+or compliance claim, sending anything to clients, money, and deleting real data.
+
 ## Blocked
 
 - Issue #74 has no implementation, review, or CI blocker. PR #82 awaits human
@@ -719,7 +729,15 @@ for an issue. Each names who has to answer it.
   CUI inventories and ESP inheritance; track 32 CFR 170.22 affirmations. HIPAA
   executive summary switches from "% compliant" to counts by status. D3 (one
   Profile approval and one review-and-issue step) is read as included. These
-  still need the spec amendment drafted and approved before BUILD.
+  still need the spec amendment drafted and approved before BUILD. Drafted as
+  ADR 0019 plus *[Amendment 2026-10]* edits in `docs/specification.md`;
+  **approved by Johnathan on October 8, 2026.** Next: ticket plan for his
+  approval; #127–#133 to be superseded by it.
+- **Pinned primary sources (October 8, 2026):** `docs/sources/` holds official
+  copies (eCFR, Federal Register, NIST, DoW CIO, HHS via archive captures where
+  hhs.gov blocks cloud IPs) with SHA-256 manifest. Cite these, not secondary
+  summaries. hhs.gov, www.war.gov, Reddit and G2 refuse this environment's IP;
+  dowcio.war.gov (DoD CIO) works directly.
 - **Product rethink decisions D1–D6 — Johnathan.** See
   `docs/research/2026-10-competitor-ux/README.md`. D1 repair vs reshape the
   workflow layer; D2 evidence at issue rather than at each Met click (#130);

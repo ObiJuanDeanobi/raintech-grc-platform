@@ -10,6 +10,9 @@ The requirements-reconciliation amendment under GitHub issue #50 was approved
 by Johnathan on August 24, 2026. Production BUILD remains separately gated: each
 slice requires an approved ticket and applicable verification.
 
+The **workflow redesign amendment (ADR 0019)** was approved by Johnathan on
+October 8, 2026. Text it adds or changes is marked *[Amendment 2026-10]*.
+
 ## Problem
 
 RainTech needs one coherent internal workspace for delivering CMMC Level 2 and
@@ -87,6 +90,23 @@ and scope-dependent final artifacts cannot complete until the Profile is complet
 - Pair each externally created uploaded CUI/ePHI flow diagram with structured
   flow rows recording name/description, source, destination, data types,
   classification, transmission method, storage location, and encryption status.
+- *[Amendment 2026-10]* CMMC scoping records: an asset inventory whose entries
+  carry the 32 CFR 170.19 category (CUI Asset, Security Protection Asset,
+  Contractor Risk Managed Asset, Specialized Asset, Out-of-Scope Asset); a CUI
+  inventory by category with where it is received, stored, processed and
+  transmitted (metadata only); and external service providers with the
+  responsibilities they carry. An objective may be marked inherited only with a
+  linked provider and responsibility; otherwise it is flagged.
+- *[Amendment 2026-10]* Record 32 CFR 170.22 affirmations: who affirmed, when,
+  for which assessment, and when the next is due.
+- *[Amendment 2026-10]* HIPAA Profile adds the documentation-reviewed list,
+  physical sites, and a business associate inventory with BAA status.
+- *[Amendment 2026-10]* Every Profile fact records its source (for example
+  interview, document, or later an imported system) and whether it is
+  confirmed, so future imported data can arrive as unconfirmed suggestions.
+- *[Amendment 2026-10]* The Profile is approved once per version. Approving a
+  Profile version is the Profile-complete act; there is no separate review
+  record or readiness sign-off for the same Profile.
 
 ### Frameworks and Assessments
 
@@ -99,6 +119,12 @@ and scope-dependent final artifacts cannot complete until the Profile is complet
   used.
 - A final Met determination requires mapped evidence or a documented
   interview/observation record.
+- *[Amendment 2026-10]* "Final" means at issue, not at the click. Met may be
+  recorded during fieldwork without evidence; such a result is shown as
+  **evidence pending** and is unverified. A Met result is **verified** while it
+  has current mapped evidence or a documented interview/observation record.
+  Evidence that becomes stale or expires returns a verified Met to evidence
+  pending without changing the determination.
 - Requirement views show official text, what to examine, expected evidence,
   notes, status, and rule-based client-specific implementation guidance.
 - CMMC uses a requirement-centered workspace with its assessment objectives
@@ -247,6 +273,16 @@ and scope-dependent final artifacts cannot complete until the Profile is complet
   Estimate."
 - Use only the official CMMC assessment scoring model where scoring applies.
 - Do not create a generic readiness score.
+- *[Amendment 2026-10]* Show two figures from the official model: the
+  **verified SPRS score**, counting only verified Met results, as the headline;
+  and a **projected score**, counting evidence-pending Met as Met, as secondary
+  and labelled as such. Only the verified score may appear in an issued
+  self-assessment, SPRS worksheet, or client deliverable. Each score shows its
+  arithmetic (110 minus each deducted weight). Partial credit for 3.5.3 and
+  3.13.11 follows the DoD Assessment Methodology.
+- *[Amendment 2026-10]* Show the 32 CFR 170.21 Conditional-status checks
+  alongside the score: minimum score, which NOT MET requirements may be on a
+  POA&M, and the requirements that never may.
 - HIPAA quoting remains manual in V1.
 
 ### Findings, POA&M, and Continuous Work
@@ -295,6 +331,11 @@ evidence, and history; its only outcomes are Validated or Validation failed.
 For CMMC, a derived Not Met requirement has one requirement-level finding that
 lists every failed objective with its evidence and notes. Newly failed objectives
 join that finding; a broader root-cause finding may link across requirements.
+
+*[Amendment 2026-10]* From the assessment view, a NOT MET requirement creates its
+POA&M draft in one action, prefilled from the finding. It is never created
+automatically. The assessment and Overview show a count of NOT MET requirements
+not on any POA&M.
 
 ### Risk Management
 
@@ -393,8 +434,13 @@ artifacts remain pinned, and draft regeneration is explicit and previewed.
   Security Risk Analysis, risk/heatmap, remediation, evidence
   capture/coverage, evidence manifest, policy/review register, and quote reports.
 - Support applicable PDF, XLSX, DOCX, and ZIP exports.
-- Report lifecycle: Draft, In Review, Reviewed, Issued, and Superseded. Issuance
-  requires a named human reviewer and cannot bypass Reviewed.
+- Report lifecycle: Draft, Issued, and Superseded. *[Amendment 2026-10]* Drafts
+  can be generated at any time, regenerate from current data, and are
+  watermarked DRAFT. Issuing is one review-and-issue act by the selected account:
+  it shows a checklist of open items as warnings, records the reviewer, date and
+  optional note, runs the required pre-issuance full backup automatically, and
+  freezes the issued version. A failed backup still blocks issue. This replaces
+  the separate In Review and Reviewed states and the multi-step package review.
 - Every generated artifact records its engagement, framework version, Profile
   snapshot, applicable template version, relevant source-record versions,
   generation timestamp, and named reviewer or approver so it can be reproduced.
@@ -407,11 +453,46 @@ The first HIPAA cycle produces two end-of-assessment companion outputs: one
 combined report with executive highlights followed by the detailed report, and
 one separate POA&M export. Point-in-time HIPAA snapshot export is deferred.
 
+*[Amendment 2026-10]* HIPAA yearly deliverable:
+
+- The report reproduces RainTech's November 2025 HIPAA Risk Assessment Report
+  template (structure recorded in
+  `docs/research/2026-10-competitor-ux/hipaa-report-reference.md`). The template
+  changes only for accuracy, consistency, ADR 0011, or the additions below.
+- The executive summary shows counts by status (implemented, partially
+  implemented, not implemented, N/A) per rule, not compliance percentages, and
+  findings by risk level and POA&M sheet. Every count is computed from the same
+  records the appendix and POA&M show.
+- Added sections: business associates and BAA status; training, incident and
+  contingency-plan-test summaries; the per-asset risk register from the Security
+  Risk Analysis; changes since the prior assessment; and an optional recognized
+  security practices section (Public Law 116-321) with no safe-harbor claim.
+- The methodology section describes the risk model actually used: the 5x5 scales,
+  the bands, and how bands are shown to the client.
+- The POA&M workbook keeps RainTech's columns and sheets: HIPAA Compliance
+  Controls (cited gaps), Control Enhancements (recommendations with a control
+  group, stated as not regulatory requirements), Technical Vulnerabilities (with
+  affected targets), and Site Controls (by site). Control enhancements,
+  technical vulnerabilities and site findings are record types alongside
+  findings.
+- Client-facing POA&M status uses Pending, Open, On-Hold, Closed, Cancelled, plus
+  Risk Accepted and Verified. Its mapping from work-item statuses is defined in
+  the ticket that builds the export and approved by Johnathan.
+
 HIPAA issuance requires a complete Profile; no blank or Pending determinations;
 required N/A rationale; reconciled Not Met findings/actions; complete SRA scope
 and risk records; complete report and POA&M generation; explicit sign-off; a
 successful pre-issuance full backup; and an immutable issued snapshot. Documented
 Not Met items may remain and open corrective work may continue after delivery.
+
+*[Amendment 2026-10]* CMMC deliverables:
+
+- **Gap assessment package**, issuable with NOT MET requirements: gap report
+  grouped by family with examine/interview/test notes, verified SPRS worksheet,
+  POA&M with 32 CFR 170.21 eligibility, SSP draft, and evidence index.
+- **Self-assessment package**, issuable when no Met result is evidence pending:
+  requirement results for SPRS entry, verified SPRS worksheet, SSP, and POA&M.
+- **Internal readiness close**, unchanged below.
 
 RainTech internal CMMC readiness close requires all 110 requirements Met, no
 open POA&M, a complete approved final SSP, verified evidence hashes, a complete
@@ -429,6 +510,27 @@ package version with unchanged-source confirmation. A substantive Profile,
 evidence, determination, score, remediation, or SSP change reopens affected
 work, regenerates dependencies, reruns every close check, and requires new
 sign-off.
+
+### Compliance as a Service *[Amendment 2026-10]*
+
+- A project can run as a continuing service engagement across years, not only a
+  bounded project.
+- A service year shows one maintenance focus per month and the yearly
+  assessment (CMMC gap analysis or mock assessment; HIPAA yearly report with
+  POA&M) as scheduled work.
+- A monthly meeting record holds the agenda, notes, and agreed focus points.
+  The agenda is assembled from changes since the last meeting: open compliance
+  updates for the client, policies and procedures due for review, software
+  inventory changes, evidence nearing staleness, and POA&M milestones. Focus
+  points become tracked work items with an owner and due date. Closing the
+  meeting drafts a client summary; RainTech sends it outside the application.
+- A regulatory change log records each change once with its date, source,
+  plain-language summary, and the frameworks it affects. It lists the affected
+  clients, records when each was told, and adds the item to each affected
+  client's next meeting agenda. Entries must cite their source and follow
+  ADR 0011.
+- The yearly assessment is a reassessment (copy forward as Needs Revalidation)
+  and the issued result is frozen as that year's snapshot.
 
 ### Local Operation and Recovery
 
@@ -463,6 +565,12 @@ unsaved changes. Multi-user merge and automatic conflict copies are out of
 scope.
 
 ## Navigation
+
+*[Amendment 2026-10]* Home is the cross-client Unified Queue grouped as overdue,
+next up, and waiting on client, with each engagement's score and progress, plus
+the regulatory change log. A project shows a step rail of Scope, Assess,
+Remediate and Deliver, each with one progress figure. The views below remain the
+record homes.
 
 After client and project selection, the workspace uses:
 
@@ -500,11 +608,22 @@ work-resumption panel, and the Client Queue directly beneath. It does not contai
 a requirement-review list, a requirement inspector, a separate evidence/risk/report
 summary strip, or a chart section added to fill space.
 
-**Assessments is objective-by-objective.** An objective navigator on the left, a
-central decision surface carrying the requirement, what to determine, the
-determination control, implementation guidance, expected evidence, and linked
-work, and a right-side working record holding the implementation statement,
-mapped evidence, and assessment notes.
+**Assessments is requirement-centred.** *[Amendment 2026-10; replaces
+"objective-by-objective".]* A family and requirement list on the left, each row
+showing derived status and evidence and POA&M markers. The selected requirement
+fills the right: its text and guidance, every assessment objective as a row with
+a one-click Met / Not Met / N/A where allowed, evidence and examine / interview /
+test notes per objective, the implementation statement that feeds the SSP, and
+linked evidence. Determinations remain at objective level. A focused
+interview view walks one item at a time over the same data, and the assessment
+supports keyboard navigation and determination. HIPAA uses the same layout
+with standards and their implementation specifications.
+
+**Overview shows where the engagement stands.** *[Amendment 2026-10]* Verified
+and projected scores, the 32 CFR 170.21 checks for CMMC, progress by family, NOT
+MET requirements with their POA&M state, and what is left before issue as grouped
+counts that open the matching filtered list. It keeps the phase rail and work
+resumption; it does not list blockers one by one.
 
 **Profile is progressive and additive.** The onboarding baseline stays visible
 beside the current validated state and the required target, each fact carrying a
@@ -539,6 +658,11 @@ home, which weakens project orientation for deep assessment work.
 - Public or QR-code intake before hosted deployment and internal validation.
 - Storing actual CUI, PHI, or ePHI.
 - Automated evidence collection or third-party system integrations.
+  *[Amendment 2026-10]* Planned for V2: Halo PSA and NinjaOne data may pre-fill
+  Profile facts and inventories and attach evidence as unconfirmed suggestions.
+  Imported data never becomes an assessment determination. An ADR on external
+  service provider scope is required before integration work begins.
+- Client access to the application (planned for V3).
 - Crosswalking CMMC and HIPAA requirements.
 - Diagram generation.
 - LLM-generated compliance conclusions or freeform policy generation.
@@ -680,7 +804,9 @@ production shell is established.
 - AC-003: A HIPAA project exposes Security, Privacy, Breach Notification, and
   Security Risk Analysis work areas.
 - AC-004: Met cannot be finalized without evidence or an interview/observation
-  record.
+  record. *[Amendment 2026-10]* Met recorded without evidence shows as evidence
+  pending, is excluded from the verified score, and blocks the self-assessment
+  package but not the gap-assessment package.
 - AC-005: Not Met work can produce traceable findings and continuous
   project-level remediation. Pending produces follow-up or evidence-request work
   and cannot create a finding or POA&M item.
@@ -719,6 +845,20 @@ production shell is established.
   and restore testing is repeated monthly.
 - AC-022: Two rapid edits to one record persist in order; failed edits remain
   visible and retryable, and navigation warns while changes are unsaved.
+- AC-023 *[Amendment 2026-10]*: A CMMC requirement's objectives are all decided
+  from one requirement view without page navigation, and the verified and
+  projected scores update with each determination.
+- AC-024 *[Amendment 2026-10]*: Stale or expired evidence moves an affected
+  verified Met to evidence pending and lowers the verified score.
+- AC-025 *[Amendment 2026-10]*: A CMMC gap-assessment package can be issued with
+  NOT MET requirements in one review-and-issue act, showing only the verified
+  score.
+- AC-026 *[Amendment 2026-10]*: The HIPAA yearly report and POA&M workbook
+  reproduce the RainTech template, with executive-summary counts that reconcile
+  to the appendix and POA&M.
+- AC-027 *[Amendment 2026-10]*: A monthly meeting's focus points become tracked
+  work items, and a regulatory change records which affected clients were told
+  and when.
 
 ## Success Criteria
 
@@ -750,6 +890,11 @@ Closed:
 Approved by Johnathan on July 23, 2026. This approval authorized the UI prototype
 and creation of the vertical-slice ticket plan. Each production slice still
 requires an approved ticket and applicable verification.
+
+### Workflow redesign amendment — approved October 8, 2026
+
+See ADR 0019. **Approved by Johnathan on October 8, 2026.** Production BUILD on
+it still requires approved tickets.
 
 ### Post-prototype revision — approved July 27, 2026
 

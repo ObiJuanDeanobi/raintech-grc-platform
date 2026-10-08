@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<REGINFO_RIN_DATA xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" RUN_DATE="2026-10-08-04:00" xsi:noNamespaceSchemaLocation="https://www.reginfo.gov/public/xml/REGINFO_XML_Ver10262011.xsd">
+    <RIN_INFO>
+        <RIN>0945-AA22</RIN>
+        <PUBLICATION>
+            <PUBLICATION_ID>202510</PUBLICATION_ID>
+            <PUBLICATION_TITLE>The Regulatory Plan and the Unified Agenda of Federal Regulatory and Deregulatory Actions</PUBLICATION_TITLE>
+        </PUBLICATION>
+        <AGENCY>
+            <CODE>0945</CODE>
+            <NAME>Office for Civil Rights</NAME>
+            <ACRONYM>OCR</ACRONYM>
+        </AGENCY>
+        <PARENT_AGENCY>
+            <CODE>0900</CODE>
+            <NAME>Department of Health and Human Services</NAME>
+            <ACRONYM>HHS</ACRONYM>
+        </PARENT_AGENCY>
+        <RULE_TITLE>HIPAA Security Rule to Strengthen the Cybersecurity of Electronic Protected Health Information</RULE_TITLE>
+        <ABSTRACT><![CDATA[<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+<p>This rule will&nbsp;modify the Security Standards for the Protection of Electronic Protected Health Information (the Security Rule) under the Health Insurance Portability and Accountability Act of 1996 (HIPAA) and the Health Information Technology for Economic and Clinical Health Act of 2009 (HITECH Act). These modifications will improve cybersecurity in the health care sector by strengthening requirements for HIPAA regulated entities to safeguard electronic protected health information to prevent, detect, contain, mitigate, and recover from cybersecurity threats.</p>
+</body>
+</html>]]></ABSTRACT>
+        <PRIORITY_CATEGORY>Economically Significant</PRIORITY_CATEGORY>
+        <RIN_STATUS>Previously Published in The Unified Agenda</RIN_STATUS>
+        <RULE_STAGE>Long-Term Actions</RULE_STAGE>
+        <MAJOR>Yes</MAJOR>
+        <UNFUNDED_MANDATE_LIST>
+            <UNFUNDED_MANDATE>Undetermined</UNFUNDED_MANDATE>
+        </UNFUNDED_MANDATE_LIST>
+        <EO_13771_DESIGNATION>Regulatory</EO_13771_DESIGNATION>
+        <CFR_LIST>
+            <CFR>45 CFR 160</CFR>
+            <CFR>45 CFR 164</CFR>
+        </CFR_LIST>
+        <LEGAL_AUTHORITY_LIST>
+            <LEGAL_AUTHORITY>Health Insurance Portability and Accountability Act of 1996 (HIPAA), sec. 262 (42 U.S.C. 1320d-2)</LEGAL_AUTHORITY>
+            <LEGAL_AUTHORITY>Health Information Technology for Economic and Clinical Health (HITECH) Act, sec. 13401 (42 U.S.C. 17931)</LEGAL_AUTHORITY>
+        </LEGAL_AUTHORITY_LIST>
+        <LEGAL_DLINE_LIST/>
+        <RPLAN_ENTRY>No</RPLAN_ENTRY>
+        <TIMETABLE_LIST>
+            <TIMETABLE>
+                <TTBL_ACTION>NPRM</TTBL_ACTION>
+                <TTBL_DATE>01/06/2025</TTBL_DATE>
+                <FR_CITATION>90 FR 898</FR_CITATION>
+            </TIMETABLE>
+            <TIMETABLE>
+                <TTBL_ACTION>Final Action</TTBL_ACTION>
+                <TTBL_DATE>07/00/2027</TTBL_DATE>
+            </TIMETABLE>
+        </TIMETABLE_LIST>
+        <RFA_REQUIRED>Undetermined</RFA_REQUIRED>
+        <SMALL_ENTITY_LIST>
+            <SMALL_ENTITY>Businesses</SMALL_ENTITY>
+            <SMALL_ENTITY>Governmental Jurisdictions</SMALL_ENTITY>
+            <SMALL_ENTITY>Organizations</SMALL_ENTITY>
+        </SMALL_ENTITY_LIST>
+        <GOVT_LEVEL_LIST>
+            <GOVT_LEVEL>Federal</GOVT_LEVEL>
+            <GOVT_LEVEL>Local</GOVT_LEVEL>
+            <GOVT_LEVEL>State</GOVT_LEVEL>
+            <GOVT_LEVEL>Tribal</GOVT_LEVEL>
+        </GOVT_LEVEL_LIST>
+        <FEDERALISM>Undetermined</FEDERALISM>
+        <ENERGY_AFFECTED>Undetermined</ENERGY_AFFECTED>
+        <PRINT_PAPER>No</PRINT_PAPER>
+        <INTERNATIONAL_INTEREST>Yes</INTERNATIONAL_INTEREST>
+        <AGENCY_CONTACT_LIST>
+            <CONTACT>
+                <FIRST_NAME>Conner</FIRST_NAME>
+                <LAST_NAME>O&apos;Brien</LAST_NAME>
+                <TITLE>Senior Advisor</TITLE>
+                <AGENCY>
+                    <CODE>0945</CODE>
+                    <NAME>Office for Civil Rights</NAME>
+                    <ACRONYM>OCR</ACRONYM>
+                </AGENCY>
+                <PHONE>800 537-7697</PHONE>
+                <EMAIL>conner.obrien@hhs.gov</EMAIL>
+                <MAILING_ADDRESS>
+                    <STREET_ADDRESS>200 Independence Avenue SW,</STREET_ADDRESS>
+                    <CITY>Washington</CITY>
+                    <STATE>DC</STATE>
+                    <ZIP>20201</ZIP>
+                </MAILING_ADDRESS>
+            </CONTACT>
+        </AGENCY_CONTACT_LIST>
+    </RIN_INFO>
+</REGINFO_RIN_DATA>

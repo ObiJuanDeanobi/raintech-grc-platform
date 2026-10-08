@@ -139,20 +139,32 @@ Built after Slice 4. See the ordering note above.
 - Windows ARM64 and x64 packaging and offline verification.
 - End-to-end review against the approved specification.
 
-## V2 - Hosted Collaboration and Extended Modeling
+## V2 - Hosted in Azure with PSA/RMM Integration
 
-- Hosted PostgreSQL and object storage migration.
-- Authentication, RBAC, tenant isolation, and client workspace.
-- Public intake only after hosted controls and internal testing are complete.
-- Framework crosswalking as an explicit mapping layer.
-- Diagram generation from structured project profile and flow data.
+Reordered by Johnathan on October 8, 2026: integrations come with hosting, and
+client access moves to V3. Hosting the application in Azure lets integrations
+run server-side instead of holding client RMM/PSA credentials on a laptop.
+
+- Hosted PostgreSQL and object storage migration in Azure.
+- Authentication (Entra ID) and RBAC for RainTech staff.
+- Halo PSA and NinjaOne integrations: pre-fill Profile facts and inventories and
+  attach evidence as unconfirmed suggestions; push work items out as Halo
+  tickets. Imported data never becomes an assessment determination.
+- Before any V2 work, an ADR must settle: Azure Commercial versus Azure
+  Government, given that the application holds client security protection data
+  but no CUI, PHI or ePHI; and whether the hosted application and RainTech fall
+  into clients' CMMC assessment scope as an external service provider.
 - Notifications beyond in-app reminders.
 
-## V3 - Evidence Automation
+## V3 - Client Access and Evidence Automation
 
-- Connectors for approved sources such as Microsoft 365, Entra ID, Intune,
-  Defender, Huntress, Autotask, and SharePoint.
+- Client workspace with tenant isolation; public intake only after hosted
+  controls and internal testing are complete.
+- Further connectors for approved sources such as Microsoft 365, Entra ID,
+  Intune, Defender, Huntress, Autotask, and SharePoint.
 - Evidence collection schedules, provenance, health monitoring, and exceptions.
+- Framework crosswalking as an explicit mapping layer.
+- Diagram generation from structured project profile and flow data.
 - Evaluate bounded LLM assistance only after deterministic workflows and data
   quality are established.
 

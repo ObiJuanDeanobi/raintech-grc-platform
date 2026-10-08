@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<DIV6 N="204.76" TYPE="SUBPART" VOLUME="3" hierarchy_metadata="{&amp;quot;path&amp;quot;:&amp;quot;/on/_SUBSTITUTE_DATE_/title-48/part-204/subpart-204.76&amp;quot;,&amp;quot;citation&amp;quot;:&amp;quot;48 CFR Part 204 Subpart 204.76&amp;quot;,&amp;quot;alternate_reference&amp;quot;:&amp;quot;DFARS Part 204 Subpart 204.76&amp;quot;}">
+<HEAD>Subpart 204.76&#x2014;Supplier Performance Risk System</HEAD>
+<SOURCE>
+<HED>Source:</HED><PSPACE>88 FR 17338, Mar. 22, 2023, unless otherwise noted.
+</PSPACE></SOURCE>
+<DIV8 N="204.7600" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-48/section-204.7600&quot;,&quot;citation&quot;:&quot;48 CFR 204.7600&quot;,&quot;alternate_reference&quot;:&quot;DFARS 204.7600&quot;}">
+<HEAD>204.7600 Scope of subpart.</HEAD>
+<P>This subpart provides policies and procedures for use of the Supplier Performance Risk System (SPRS) risk assessments in the evaluation of a quotation or offer.</P>
+</DIV8>
+
+<DIV8 N="204.7601" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-48/section-204.7601&quot;,&quot;citation&quot;:&quot;48 CFR 204.7601&quot;,&quot;alternate_reference&quot;:&quot;DFARS 204.7601&quot;}">
+<HEAD>204.7601 Definitions.</HEAD>
+<P>As used in this subpart&#x2014;</P>
+<P><I>Item risk</I> means the probability that a product, based on intended use, will introduce performance risk resulting in safety issues, mission degradation, or monetary loss.</P>
+<P><I>Price risk</I> means the measure of whether a proposed price for a product or service is consistent with historical prices paid for that item or service.</P>
+<P><I>Supplier risk</I> means the probability that an award may subject the procurement to the risk of unsuccessful performance or to supply chain risk (see 239.7301).</P>
+</DIV8>
+
+<DIV8 N="204.7602" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-48/section-204.7602&quot;,&quot;citation&quot;:&quot;48 CFR 204.7602&quot;,&quot;alternate_reference&quot;:&quot;DFARS 204.7602&quot;}">
+<HEAD>204.7602 Applicability.</HEAD>
+<P>Use of SPRS risk assessments is required for the evaluation of quotations or offers in response to solicitations for supplies and services, including solicitations using FAR part 12 procedures for the acquisition of commercial products and commercial services, excluding solicitations for the procurement of supplies or services exempted by the Department of Defense Instruction (DoDI) 5000.79, Defense-wide Sharing and Use of Supplier and Product Performance Information. SPRS retrieves item, price, quality, delivery, and contractor information from contracts in Government reporting systems in order to develop risk assessments of contractors. SPRS is available at <I>https://piee.eb.mil/,</I> and the SPRS user's guides are available at <I>https://www.sprs.csd.disa.mil/reference.htm.</I></P>
+</DIV8>
+
+<DIV8 N="204.7603" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-48/section-204.7603&quot;,&quot;citation&quot;:&quot;48 CFR 204.7603&quot;,&quot;alternate_reference&quot;:&quot;DFARS 204.7603&quot;}">
+<HEAD>204.7603 Procedures.</HEAD>
+<P>The contracting officer shall consider price risk and supplier risk, if available in SPRS, as a part of the award decision. For procurement of an end product identified by a material identifier that is available as described at PGI 204.7603, the contracting officer shall also consider assessments of item risk, if available, as a part of the award decision. Offerors or quoters without a risk assessment in SPRS shall not be considered favorably or unfavorably. Contracting officers shall use their discretion in considering the information available in SPRS on item risk, price risk, and supplier risk as follows:</P>
+<P>(a) <I>Item risk.</I> (1) Consider item risk to determine whether the procurement of products represents a high performance risk to the Government. If an item has a high risk rating, then the SPRS item risk report will display the reason(s) an item is identified as high risk.</P>
+<P>(2) Before issuing a solicitation for the procurement of an end product identified by a material identifier that is available as described at PGI 204.7603, the contracting officer shall ensure a SPRS item risk search has been performed and shall consider any item risk warnings provided. When evaluating quotations or offers for an end product identified by a material identifier, a SPRS item risk search is required for any end product that did not have an item risk search performed prior to solicitation. If there are item risk warnings, the contracting officer shall consider strategies to mitigate risk, such as the following:</P>
+<P>(i) Consulting with the program office.</P>
+<P>(ii) Including mitigating requirements in the statement of work, as provided by the requiring activity.</P>
+<P>(iii) Including FAR and DFARS clauses identified in the SPRS application, as appropriate.</P>
+<P>(b) <I>Price risk.</I> (1) When procuring a service or an end product identified by a material identifier that is available as described at PGI 204.7603, the contracting officer shall consider price risk assessment in determining if a proposed price is consistent with historical prices paid for an item or otherwise creates a risk to the Government. Contracting officers shall not rely solely on the price risk assessment when determining prices to be fair and reasonable.</P>
+<P>(2) The contracting officer shall consider strategies to mitigate price risk, such as the following:</P>
+<P>(i) Not awarding to offerors or quoters with high risk price ratings unless there is a way to justify the price through additional price or cost analysis.</P>
+<P>(ii) Utilizing appropriate price negotiation techniques and procedures.</P>
+<P>(iii) Using price reasonableness or price realism techniques at FAR 13.106 or 15.4. See also 215.403-3 when making award decisions.</P>
+<P>(c) <I>Supplier risk.</I> The contracting officer shall consider supplier risk, to assess the risk of unsuccessful performance and supply chain risk, in award decisions. Supplier risk assessments in SPRS include quality, delivery, and other contractor performance information.</P>
+</DIV8>
+
+<DIV8 N="204.7604" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-48/section-204.7604&quot;,&quot;citation&quot;:&quot;48 CFR 204.7604&quot;,&quot;alternate_reference&quot;:&quot;DFARS 204.7604&quot;}">
+<HEAD>204.7604 Solicitation provision.</HEAD>
+<P>Except for supplies or services exempted by DoDI 5000.79, use the provision at 252.204-7024, Notice on the Use of the Supplier Performance Risk System, in solicitations for supplies and services, including solicitations using FAR part 12 procedures for the acquisition of commercial products and commercial services.</P>
+</DIV8>
+
+</DIV6>
