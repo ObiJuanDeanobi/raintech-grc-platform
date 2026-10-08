@@ -687,6 +687,10 @@ merge their own PRs once all CI checks pass on the final head, without waiting
 for Johnathan's review. Agents still stop and ask before product or scope
 decisions they cannot settle from the approved ticket, specification changes,
 architecture changes, and new major dependencies.
+Johnathan reaffirmed this on October 8, 2026: "when it comes to PR's and stuff
+you have autonomy, just make the best decisions you can … and keep things
+moving forward." Agents merge their own green PRs without asking; the stop-and-ask
+list above is unchanged.
 
 ## Blocked
 
@@ -706,6 +710,16 @@ architecture changes, and new major dependencies.
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
+- **Decided October 8, 2026 (Johnathan): "agreed on all CMMC bits".** Covers
+  D1 (reshape the workflow layer, keep the engine), D2 (evidence at issue, with
+  verified score as headline and projected secondary), D4 (gap-assessment
+  package with NOT MET items), and the validation adjustments: expired evidence
+  returns verified MET to evidence pending; one-click NOT MET → POA&M plus an
+  "unplanned NOT MET" count; issue checklist warns, never blocks; add asset and
+  CUI inventories and ESP inheritance; track 32 CFR 170.22 affirmations. HIPAA
+  executive summary switches from "% compliant" to counts by status. D3 (one
+  Profile approval and one review-and-issue step) is read as included. These
+  still need the spec amendment drafted and approved before BUILD.
 - **Product rethink decisions D1–D6 — Johnathan.** See
   `docs/research/2026-10-competitor-ux/README.md`. D1 repair vs reshape the
   workflow layer; D2 evidence at issue rather than at each Met click (#130);
@@ -726,11 +740,19 @@ for an issue. Each names who has to answer it.
   other frameworks. Service cadence: one monthly maintenance focus plus a
   yearly gap analysis / mock assessment (CMMC) or yearly report with POA&M
   (HIPAA), with a monthly client meeting for focus points and client updates
-  on compliance changes that affect them. Waiting on: a sanitized example HIPAA yearly report from Johnathan
-  to define the report's structure. See
+  on compliance changes that affect them. Johnathan's HIPAA POA&M workbook
+  format is recorded (structure only) in
+  `docs/research/2026-10-competitor-ux/hipaa-poam-reference.md`, and the
+  yearly report's structure in `hipaa-report-reference.md` (same folder).
+  Second research pass validating the redesign against proven tools:
+  `docs/research/2026-10-competitor-ux/validation/README.md` (nothing
+  contradicted except turning RMM/PSA data into assessment answers; verified
+  score must be the headline; asset/CUI inventory and ESP inheritance missing;
+  V2 integrations need an ADR on external-service-provider scope first). See
   `docs/research/2026-10-competitor-ux/README.md`.
-  Mockup: https://claude.ai/artifact/AzqferR2ShcVqp2B1aox8p (private to
-  Johnathan).
+  Mockup (six screens: Home, Assess, Overview, Deliver, monthly service cycle,
+  compliance-change log): https://claude.ai/artifact/AzqferR2ShcVqp2B1aox8p
+  (private to Johnathan).
 - **Question-level working record test in Issue #49 — Johnathan.** The test is
   isolated from the approved baseline. If accepted, it requires an explicit
   ADR 0012 disposition and a specification revision before any production work.
