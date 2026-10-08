@@ -74,6 +74,17 @@ Require user approval before:
 - Changing architecture
 - Deploying or releasing
 
+**Current delegation (Johnathan, October 8, 2026).** For the current engagement
+Johnathan has delegated engineering decisions to the agents: ticket plans,
+sequencing, implementation, architecture within the approved specification, and
+merging their own PRs once CI is green. Agents do not stop for the gates above
+except where they remain Johnathan's: changes to the approved specification's
+product scope, client-facing compliance or legal claims, anything sent to a
+client, spending money, and deleting real data. Record each decision's reasoning
+in `PROJECT_STATUS.md` or `docs/decisions/`. Verification, the data boundary and
+immutability of issued records still apply in full. Details: `PROJECT_STATUS.md`,
+Ownership.
+
 ## Completion
 
 Generated code is not proof of completion.

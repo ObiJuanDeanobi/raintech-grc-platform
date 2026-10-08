@@ -16,6 +16,15 @@ Read AGENTS.md and PROJECT_STATUS.md, verify repo state against GitHub,
 then tell me where we are and the single next thing. Don't start until I confirm.
 ```
 
+While the October 8, 2026 engineering delegation in `AGENTS.md` is in force, use
+this instead, so the agent carries on without waiting at each step:
+
+```
+Read AGENTS.md and PROJECT_STATUS.md, verify repo state against GitHub,
+tell me where we are and the next thing, then continue the work under the
+engineering delegation.
+```
+
 It works unchanged for both agents. `AGENTS.md` is the rulebook and points at
 everything else; `CLAUDE.md` is only a pointer to it. `PROJECT_STATUS.md` carries
 the live state.
