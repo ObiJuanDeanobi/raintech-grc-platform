@@ -692,6 +692,16 @@ you have autonomy, just make the best decisions you can … and keep things
 moving forward." Agents merge their own green PRs without asking; the stop-and-ask
 list above is unchanged.
 
+**Engagement delegation (Johnathan, October 8, 2026):** "for the remainder of this
+engagement forget my rules, I'm not a programmer so I want your expertise."
+Agents decide engineering, ticket plans, sequencing and architecture within the
+approved specification (amended October 8) and record the reasoning here or in
+`docs/decisions/`. Kept regardless, because they protect Johnathan rather than
+slow him down: CI and executed verification before claiming done; no CUI, PHI or
+ePHI in the repo; issued records stay immutable; PROJECT_STATUS kept current for
+the next agent. Still Johnathan's call: anything client-facing that makes a legal
+or compliance claim, sending anything to clients, money, and deleting real data.
+
 ## Blocked
 
 - Issue #74 has no implementation, review, or CI blocker. PR #82 awaits human
