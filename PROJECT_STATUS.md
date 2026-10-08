@@ -38,6 +38,13 @@ CI passed.
 
 ## Active ticket
 
+**On hold, October 8, 2026: product rethink.** Johnathan asked to step back
+before building more. Competitor research and a measured review of our own
+app are in `docs/research/2026-10-competitor-ux/README.md`. It recommends
+reshaping the workflow layer (keep the engine) and asks for decisions D1–D6.
+**Do not start #128 or any #127 ticket until Johnathan answers D1.** The
+#127 plan below is kept as history.
+
 **Usability overhaul, #127.** Johnathan used the Surface build on October 6,
 2026 and called the tool "really not usable". A competitor review (HHS SRA
 Tool, Kaseya Compliance Manager GRC, ControlMap, Cynomi, Secureframe,
@@ -699,6 +706,31 @@ architecture changes, and new major dependencies.
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
+- **Product rethink decisions D1–D6 — Johnathan.** See
+  `docs/research/2026-10-competitor-ux/README.md`. D1 repair vs reshape the
+  workflow layer; D2 evidence at issue rather than at each Met click (#130);
+  D3 one Profile approval plus one Review-and-issue step (#131); D4 allow a
+  CMMC gap-assessment package with NOT MET requirements; D5 self-assessment
+  path first given the July 13, 2026 Phase 2 suspension; D6 prototype the
+  Assess workspace before amending the spec. D1–D4 change the approved spec.
+- **Spec contradiction on the CMMC unit of work — Johnathan.**
+  `docs/specification.md:104` (requirement-centered, objectives together)
+  conflicts with `docs/specification.md:493` (objective-by-objective). Resolve
+  with D1.
+- **Product direction, October 8, 2026 — recorded, not yet in the spec.**
+  Consultant first (assessor features later); compliance as a service is a
+  growth priority; HIPAA yearly report deliverable (contents to define; ADR
+  0011 bars claiming an annual interval is required); evidence many-to-many with
+  stale warnings; V2 integrations with Halo PSA / NinjaOne, so V1 records source
+  and suggested-vs-confirmed on profile facts and answers; client access V3; no
+  other frameworks. Service cadence: one monthly maintenance focus plus a
+  yearly gap analysis / mock assessment (CMMC) or yearly report with POA&M
+  (HIPAA), with a monthly client meeting for focus points and client updates
+  on compliance changes that affect them. Waiting on: a sanitized example HIPAA yearly report from Johnathan
+  to define the report's structure. See
+  `docs/research/2026-10-competitor-ux/README.md`.
+  Mockup: https://claude.ai/artifact/AzqferR2ShcVqp2B1aox8p (private to
+  Johnathan).
 - **Question-level working record test in Issue #49 — Johnathan.** The test is
   isolated from the approved baseline. If accepted, it requires an explicit
   ADR 0012 disposition and a specification revision before any production work.
@@ -763,6 +795,11 @@ for an issue. Each names who has to answer it.
   for it; the analysis is recorded in ADR 0012 so it is not rediscovered.
 
 ## Next recommended action
+
+- **Now:** Johnathan reads `docs/research/2026-10-competitor-ux/README.md`
+  and answers D1–D6. If D6 is yes, the next work is a clickable prototype of
+  the Assess workspace (PLAN/prototype, not production BUILD).
+- The items below predate the October 8 rethink.
 
 - #104 and #106 are merged. Session `013nM5in…` has #105 in review. Session
   `01PT2ki4…` is preparing #108 pieces that don't depend on #105 or #107.
