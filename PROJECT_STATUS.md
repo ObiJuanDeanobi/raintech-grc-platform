@@ -687,6 +687,10 @@ merge their own PRs once all CI checks pass on the final head, without waiting
 for Johnathan's review. Agents still stop and ask before product or scope
 decisions they cannot settle from the approved ticket, specification changes,
 architecture changes, and new major dependencies.
+Johnathan reaffirmed this on October 8, 2026: "when it comes to PR's and stuff
+you have autonomy, just make the best decisions you can … and keep things
+moving forward." Agents merge their own green PRs without asking; the stop-and-ask
+list above is unchanged.
 
 ## Blocked
 
@@ -729,8 +733,9 @@ for an issue. Each names who has to answer it.
   on compliance changes that affect them. Waiting on: a sanitized example HIPAA yearly report from Johnathan
   to define the report's structure. See
   `docs/research/2026-10-competitor-ux/README.md`.
-  Mockup: https://claude.ai/artifact/AzqferR2ShcVqp2B1aox8p (private to
-  Johnathan).
+  Mockup (six screens: Home, Assess, Overview, Deliver, monthly service cycle,
+  compliance-change log): https://claude.ai/artifact/AzqferR2ShcVqp2B1aox8p
+  (private to Johnathan).
 - **Question-level working record test in Issue #49 — Johnathan.** The test is
   isolated from the approved baseline. If accepted, it requires an explicit
   ADR 0012 disposition and a specification revision before any production work.
