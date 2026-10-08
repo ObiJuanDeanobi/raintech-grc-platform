@@ -86,6 +86,14 @@ export interface Assessment {
   record_index: RecordIndex[];
   reopening?: AssessmentReopening | null;
   revalidation_items?: RevalidationItem[];
+  /** Per-record status and markers for the requirement list (#140). */
+  record_states?: Record<string, RecordState>;
+}
+
+export interface RecordState {
+  status: Status;
+  evidence_count: number;
+  open_poam_count: number;
 }
 
 export interface AssessmentReopening {

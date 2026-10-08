@@ -811,3 +811,135 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .cmmc-ssp .section-title { display: flex; justify-content: space-between; align-items: center; }
 .cmmc-ssp h3 { margin: 0; font: 700 14px "Segoe UI"; }
 .cmmc-ssp label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; }
+
+/* CMMC requirement-centred assessment (#140). */
+.app-shell.requirement-shell .assessment-main { grid-column: 2 / -1; }
+.requirement-list { overflow-y: auto; padding: 0 8px 18px; }
+.family-group { margin-bottom: 2px; }
+.family-group ul { margin: 0 0 6px; padding: 0; list-style: none; }
+.family-header { display: grid; width: 100%; padding: 8px 8px 7px 4px; grid-template-columns: 16px 1fr auto; align-items: center; gap: 4px; border: 0; border-radius: 6px; color: #2c394b; background: transparent; text-align: left; }
+.family-header:hover { background: #eef2f5; }
+.family-header strong { overflow: hidden; font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.family-count { min-width: 38px; padding: 2px 6px; border-radius: 9px; color: #5c6879; background: #e9edf2; font-size: 10px; font-weight: 700; text-align: center; }
+.family-count.complete { color: #126b5f; background: var(--teal-soft); }
+.requirement-row { display: grid; width: 100%; min-height: 40px; padding: 6px 8px 6px 10px; grid-template-columns: 9px minmax(0, 1fr) auto; align-items: center; gap: 8px; border: 0; border-radius: 6px; color: var(--ink); background: transparent; text-align: left; }
+.requirement-row:hover { background: #eef2f5; }
+.requirement-row.active { background: #e4f2ef; box-shadow: inset 3px 0 var(--teal); }
+.requirement-row-text { display: grid; min-width: 0; gap: 1px; }
+.requirement-row-text small { color: #7a8594; font-size: 9px; font-weight: 600; }
+.requirement-row-text strong { overflow: hidden; font-size: 11px; font-weight: 600; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.status-dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08); }
+.status-dot.status-met { background: var(--teal); }
+.status-dot.status-not-met { background: var(--red); }
+.status-dot.status-pending { background: #d69a3c; }
+.status-dot.status-blank { background: #fff; box-shadow: inset 0 0 0 1.5px #b6c0cc; }
+.requirement-markers { display: flex; align-items: center; gap: 4px; }
+.marker-count { color: #8792a1; font-size: 9px; font-weight: 700; }
+.marker { display: inline-flex; padding: 1px 5px; align-items: center; gap: 2px; border-radius: 8px; font-size: 8px; font-weight: 700; white-space: nowrap; }
+.marker.evidence { color: #126b5f; background: var(--teal-soft); }
+.marker.poam { color: #325d95; background: var(--blue-soft); }
+.marker.poam-needed { color: #9b3030; background: transparent; box-shadow: inset 0 0 0 1px #e8b9b9; }
+
+.record-toolbar .cmmc-score-line { display: inline-flex; margin-left: 4px; padding: 3px 10px; align-items: baseline; gap: 7px; border-left: 1px solid var(--line); color: #5f6a7b; font-size: 11px; }
+.cmmc-score-line .eyebrow { margin: 0; font-size: 9px; }
+.cmmc-score-line strong { color: var(--ink); font-size: 15px; }
+.cmmc-score-line small { color: var(--muted); font-size: 10px; }
+.cmmc-score-line span:not(.eyebrow) { white-space: nowrap; }
+
+.requirement-workspace { padding: 0 0 48px; }
+.requirement-head { padding: 16px 28px 12px; border-bottom: 1px solid var(--line); background: white; }
+.requirement-head-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.requirement-head h1 { margin: 0; font: 700 22px/1.2 "Segoe UI"; letter-spacing: -.01em; }
+.requirement-head .citation { margin: 0 0 3px; }
+.requirement-head blockquote { max-width: 980px; margin: 9px 0 0; padding-left: 13px; border-left: 3px solid #b9c4d0; color: #536072; font-family: Georgia, serif; font-size: 13px; line-height: 1.5; }
+.requirement-head-actions { display: flex; flex-shrink: 0; align-items: center; gap: 10px; }
+.mode-toggle { display: inline-flex; padding: 2px; border: 1px solid #dce1e7; border-radius: 7px; background: #f6f8fa; }
+.mode-toggle button { height: 26px; padding: 0 10px; border: 0; border-radius: 5px; color: #5d6979; background: transparent; font-size: 11px; font-weight: 600; }
+.mode-toggle button.selected { color: var(--teal); background: white; box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+.requirement-guidance { margin: 0; padding: 7px 28px; border-bottom: 1px solid var(--line); background: #fbfcfd; font-size: 11px; }
+.requirement-guidance summary { display: inline-flex; align-items: center; gap: 4px; color: #566375; cursor: pointer; font-weight: 700; }
+.requirement-guidance[open] summary svg { transform: rotate(90deg); }
+.requirement-guidance .practitioner-guidance { margin: 8px 0 4px; }
+
+.objective-table { margin: 14px 28px 0; border: 1px solid var(--line); border-radius: 10px; background: white; }
+.objective-table-head { display: flex; padding: 9px 14px; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
+.objective-table-head h2 { margin: 0; font: 700 13px "Segoe UI"; }
+.objective-table-head h2 span { margin-left: 6px; color: var(--muted); font-size: 11px; font-weight: 600; }
+.key-legend { margin: 0; color: #7a8594; font-size: 10px; }
+kbd { display: inline-block; min-width: 16px; margin: 0 1px; padding: 0 4px; border: 1px solid #d3d9e1; border-bottom-width: 2px; border-radius: 4px; color: #3d4a5c; background: #f7f9fb; font: 600 9px/14px "Segoe UI", system-ui, sans-serif; text-align: center; }
+.objective-table > ul { margin: 0; padding: 0; list-style: none; }
+.objective-item { border-top: 1px solid #edf0f3; }
+.objective-item:first-child { border-top: 0; }
+.objective-item.focused { background: #f6fbfa; box-shadow: inset 3px 0 var(--teal); }
+.objective-item.failed { background: #fffafa; }
+.objective-item.interview-hidden { display: none; }
+.objective-line { display: grid; padding: 7px 10px 7px 14px; grid-template-columns: 150px minmax(0, 1fr) 30px auto 28px; align-items: center; gap: 10px; cursor: default; }
+.objective-citation { color: var(--muted); font-size: 10px; font-weight: 700; }
+.objective-text { color: #283447; font-size: 12px; line-height: 1.4; }
+.objective-evidence { display: inline-flex; align-items: center; gap: 2px; color: #c3cad3; font-size: 10px; font-weight: 700; }
+.objective-evidence.has-evidence { color: var(--teal); }
+.objective-buttons { display: inline-flex; gap: 4px; }
+.objective-buttons button { height: 26px; padding: 0 9px; border: 1px solid #dce1e7; border-radius: 6px; color: #647083; background: white; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.objective-buttons button:hover { border-color: #b8c3cf; }
+.objective-buttons button.det-met.selected { border-color: var(--teal); color: #126b5f; background: var(--teal-soft); }
+.objective-buttons button.det-not-met.selected { border-color: var(--red); color: #9b3030; background: var(--red-soft); }
+.objective-buttons button.det-pending.selected { border-color: var(--amber); color: #8d5818; background: var(--amber-soft); }
+.objective-buttons button.attempted { border-style: dashed; border-color: var(--red); color: #9b3030; }
+.objective-item .routine-save-state { display: block; margin: -2px 14px 7px 174px; line-height: 1.45; }
+.objective-item .routine-save-state .text-button { margin-left: 8px; }
+.routine-save-reason { font-weight: 600; }
+.routine-save-reason::before { content: "\00a0·\00a0"; font-weight: 400; }
+.requirement-shell .record-toolbar .position { white-space: nowrap; }
+.objective-notes { display: grid; padding: 4px 14px 12px 174px; gap: 8px; }
+.method-notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.method-notes label, .observation-field { gap: 4px; font-size: 10px; }
+.method-notes textarea, .observation-field textarea { min-height: 50px; padding: 6px 8px; font-size: 11px; }
+.method-notes .general-note, .method-notes .routine-save-state { grid-column: 1 / -1; }
+.observation-field small { color: var(--muted); font-weight: 500; }
+.interview-nav { display: flex; padding: 8px 14px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); color: #5f6a7b; font-size: 12px; font-weight: 600; }
+.interview-nav .small-button { min-height: 28px; padding: 0 10px; font-size: 11px; }
+.mode-interview .objective-item.focused .objective-text { font-size: 15px; }
+.mode-interview .objective-item.focused { box-shadow: none; }
+
+.requirement-columns { display: grid; margin: 14px 28px 0; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 14px; }
+.implementation-statement, .linked-evidence { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: white; }
+.implementation-statement .section-title { margin-bottom: 6px; }
+.implementation-statement textarea { font-size: 12px; }
+.statement-actions { display: flex; margin-top: 8px; align-items: center; gap: 10px; }
+.muted-small { color: #7a8491; font-size: 10px; }
+.implementation-statement .muted-small { margin: 5px 0 0; }
+.linked-evidence { padding: 0; }
+.linked-evidence-head { padding: 12px 14px 0; }
+.linked-evidence-head h3 { margin: 0; font: 700 12px "Segoe UI"; }
+.linked-evidence > .muted { padding: 0 14px 12px; }
+.linked-evidence .working-section { border-bottom: 0; }
+.requirement-secondary { display: grid; margin: 14px 28px 0; gap: 10px; }
+.requirement-secondary .requirement-finding { border: 1px solid var(--line); border-radius: 10px; background: white; }
+.ssp-details { border: 1px solid var(--line); border-radius: 10px; background: white; }
+.ssp-details summary { display: flex; padding: 10px 14px; align-items: center; gap: 4px; color: #566375; cursor: pointer; font-size: 11px; font-weight: 700; }
+.ssp-details[open] summary svg { transform: rotate(90deg); }
+.ssp-details .cmmc-ssp { margin: 0 14px 14px; }
+
+@media (max-width: 1250px) {
+  .app-shell.requirement-shell { grid-template-columns: 250px minmax(0, 1fr) 0; }
+}
+@media (max-width: 1000px) {
+  body:has(.requirement-shell) { min-width: 0; }
+  .app-shell.requirement-shell { grid-template-columns: 220px minmax(0, 1fr) 0; }
+  .requirement-shell .topbar { grid-template-columns: 220px 1fr auto; }
+  .requirement-shell .topbar nav button { padding: 0 8px; }
+  .requirement-shell .record-toolbar { flex-wrap: wrap; padding: 6px 16px; gap: 6px; }
+  .requirement-shell .record-toolbar > div:first-child { flex-wrap: wrap; gap: 6px; }
+  .requirement-head, .requirement-guidance { padding-right: 16px; padding-left: 16px; }
+  .requirement-head-top { flex-direction: column; gap: 8px; }
+  .objective-table, .requirement-columns, .requirement-secondary { margin-right: 16px; margin-left: 16px; }
+  .objective-line { grid-template-columns: minmax(0, 1fr) 30px 28px; grid-template-areas: "cite evidence toggle" "text text text" "buttons buttons buttons"; row-gap: 5px; }
+  .objective-citation { grid-area: cite; }
+  .objective-text { grid-area: text; }
+  .objective-evidence { grid-area: evidence; }
+  .objective-buttons { grid-area: buttons; }
+  .objective-line > .icon-button { grid-area: toggle; }
+  .objective-notes { padding-left: 14px; }
+  .objective-item .routine-save-state { margin-left: 14px; }
+  .method-notes, .requirement-columns { grid-template-columns: 1fr; }
+}

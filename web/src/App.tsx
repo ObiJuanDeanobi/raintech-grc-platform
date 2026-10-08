@@ -20,9 +20,12 @@ import { SraPanel } from "./SraPanel";
 import { StatusPill } from "./components/StatusPill";
 import { RoutineSaveReporter, RoutineSaveState, useRoutineRecordSaveCoordinator } from "./components/routineSave";
 import { GUIDANCE_LABELS } from "./lib/guidance";
+import { firstActionableRequirement } from "./lib/requirements";
 import { ReadinessPanel } from "./views/ReadinessPanel";
 import { Setup, WorkspaceCreator } from "./views/Setup";
-import { CmmcScorePanel, DeterminationPanel, EvidencePanel, NotMetReconciliation, PromptCard, RecordNotes, RequirementFindingPanel, SspPanel } from "./views/assessment/RecordPanels";
+import { DeterminationPanel, EvidencePanel, NotMetReconciliation, PromptCard, RecordNotes } from "./views/assessment/RecordPanels";
+import { RequirementList } from "./views/assessment/RequirementList";
+import { CmmcScoreLine, RequirementWorkspace } from "./views/assessment/RequirementWorkspace";
 import { BackupControl, CloseReadinessPanel, PackageGenerationPanel, RevalidationPanel } from "./views/close/ClosePanels";
 import type {
   Artifact,
@@ -30,7 +33,21 @@ import type {
   Client,
   ProfileReadiness,
   RecordDetail,
+  RecordState,
 } from "./types";
+
+function isRequirementCentred(assessment: Assessment | null | undefined): boolean {
+  return assessment?.framework?.declarations?.presentation_mode === "requirement_with_objectives";
+}
+
+/** CMMC opens on the first requirement with an undecided objective (#140). */
+function openingRecordId(assessment: Assessment | null): string {
+  if (!assessment) return "";
+  if (isRequirementCentred(assessment)) {
+    return firstActionableRequirement(assessment.work_list, assessment.record_states ?? {});
+  }
+  return assessment.work_list[0]?.record_id || "";
+}
 
 export function Workspace({
   clients,
@@ -52,6 +69,9 @@ export function Workspace({
   const [readiness, setReadiness] = useState<ProfileReadiness | null>(null);
   const [progress, setProgress] = useState<Assessment["progress"] | null>(null);
   const [recordId, setRecordId] = useState("");
+  const [focusObjectiveId, setFocusObjectiveId] = useState("");
+  const [recordStates, setRecordStates] = useState<Record<string, RecordState>>({});
+  const [expandedFamilies, setExpandedFamilies] = useState<Map<string, boolean>>(() => new Map());
   const [returnRecordId, setReturnRecordId] = useState("");
   const [detail, setDetail] = useState<RecordDetail | null>(null);
   const detailLoadedTargetRef = useRef({ assessmentId: "", recordId: "" });
@@ -96,7 +116,9 @@ export function Workspace({
     setAssessment(next);
     setLoadedProjectId(targetProjectId);
     setProgress(next?.progress ?? null);
-    setRecordId(next?.work_list[0]?.record_id || "");
+    setRecordStates(next?.record_states ?? {});
+    setFocusObjectiveId("");
+    setRecordId(openingRecordId(next));
   }, [projectId]);
 
   const loadReadiness = useCallback(async (signal?: AbortSignal) => {
@@ -129,10 +151,12 @@ export function Workspace({
     const requestSequence = ++assessmentRequestSequenceRef.current;
     const next = await request<Assessment>(`/api/projects/${targetProjectId}/assessment`);
     if (assessmentRequestSequenceRef.current !== requestSequence || projectTargetRef.current !== targetProjectId) return;
+    setRecordStates(next.record_states ?? {});
     if (next.id !== targetAssessmentId) {
       setDetail(null);
       detailLoadedTargetRef.current = { assessmentId: "", recordId: "" };
-      setRecordId(next.work_list[0]?.record_id || "");
+      setFocusObjectiveId("");
+      setRecordId(openingRecordId(next));
       setReturnRecordId("");
       setRoutineSaves(new Map());
       setSaveState("saved");
@@ -189,6 +213,9 @@ export function Workspace({
     setReadiness(null);
     setProgress(null);
     setRecordId("");
+    setFocusObjectiveId("");
+    setRecordStates({});
+    setExpandedFamilies(new Map());
     setReturnRecordId("");
     setLoading(true);
     setDetail(null);
@@ -256,11 +283,20 @@ export function Workspace({
     return window.confirm("Changes are still saving or failed to save. Leave this record?");
   }, [hasUnsavedRoutineEdit, profileDirty]);
 
+  // CMMC presents each requirement with its objectives; HIPAA one record at a time.
+  const objectiveMode = isRequirementCentred(assessment);
+
   const changeRecord = useCallback((nextRecordId: string, nextReturnRecordId = "") => {
-    if (nextRecordId === recordId || !confirmRoutineNavigation()) return;
+    // CMMC objectives are worked on their requirement's view (#140).
+    const parentId = objectiveMode
+      ? assessment?.work_list.find((record) => record.record_id === nextRecordId)?.parent_id
+      : null;
+    const targetRecordId = parentId ?? nextRecordId;
+    if (targetRecordId === recordId || !confirmRoutineNavigation()) return;
+    setFocusObjectiveId(parentId ? nextRecordId : "");
     setReturnRecordId(nextReturnRecordId);
-    setRecordId(nextRecordId);
-  }, [confirmRoutineNavigation, recordId]);
+    setRecordId(targetRecordId);
+  }, [assessment, confirmRoutineNavigation, objectiveMode, recordId]);
 
   const changeProject = useCallback((nextProjectId: string) => {
     if (nextProjectId === projectId || !confirmRoutineNavigation()) return false;
@@ -283,24 +319,25 @@ export function Workspace({
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
   }, [hasUnsavedRoutineEdit, profileDirty]);
 
-  // CMMC presents each requirement with its objectives; HIPAA one record at a time.
-  const objectiveMode = assessment?.framework?.declarations?.presentation_mode === "requirement_with_objectives";
-  const activeRequirementId = objectiveMode
-    ? assessment?.work_list?.find((record) => record.record_id === recordId)?.parent_id ?? recordId
-    : "";
-
   const filtered = useMemo(() => {
-    if (!assessment) return [];
+    if (!assessment || objectiveMode) return [];
     const term = search.toLowerCase();
     return assessment.work_list.filter(
       (record) =>
-        (!objectiveMode || !record.parent_id || record.parent_id === activeRequirementId) &&
         (area === "all" || record.work_area === area) &&
         (!term ||
           record.title.toLowerCase().includes(term) ||
           record.citation.toLowerCase().includes(term)),
     );
-  }, [assessment, search, area, objectiveMode, activeRequirementId]);
+  }, [assessment, search, area, objectiveMode]);
+
+  const requirementIds = useMemo(
+    () => (assessment && objectiveMode ? assessment.work_list.filter((record) => !record.parent_id).map((record) => record.record_id) : []),
+    [assessment, objectiveMode],
+  );
+  const requirementIndex = requirementIds.indexOf(recordId);
+  const previousRequirementId = requirementIndex > 0 ? requirementIds[requirementIndex - 1] : "";
+  const nextRequirementId = requirementIndex >= 0 && requirementIndex < requirementIds.length - 1 ? requirementIds[requirementIndex + 1] : "";
 
   const workAreas = useMemo(
     () => (assessment ? [...new Set(assessment.work_list.map((record) => record.work_area))] : []),
@@ -391,7 +428,7 @@ export function Workspace({
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${objectiveMode ? "requirement-shell" : ""}`}>
       <header className="topbar">
         <div className="topbar-brand">
           <div className="brand-mark small"><ShieldCheck size={20} /></div>
@@ -441,7 +478,7 @@ export function Workspace({
             <p className="eyebrow">GAP ANALYSIS</p>
             <h2>Work list</h2>
           </div>
-          <span>{assessment.work_list.length}</span>
+          <span>{objectiveMode ? requirementIds.length : assessment.work_list.length}</span>
         </div>
         <div className="rail-filters">
           <label className="search-field"><Search size={15} /><input aria-label="Search records" placeholder="Find a citation…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
@@ -458,23 +495,60 @@ export function Workspace({
             )}
           </select></label>
         </div>
-        <div className="record-list">
-          {filtered.map((record, index) => (
-            <button
-              key={record.record_id}
-              className={`${record.record_id === recordId ? "active" : ""} ${objectiveMode && record.parent_id ? "nested-objective" : ""}`}
-              onClick={() => changeRecord(record.record_id)}
-            >
-              <span className="record-number">{String(index + 1).padStart(3, "0")}</span>
-              <span><strong>{record.title}</strong><small>{record.citation}</small></span>
-              {record.designation && <em>{record.designation}</em>}
-            </button>
-          ))}
-        </div>
+        {objectiveMode ? (
+          <RequirementList
+            workList={assessment.work_list}
+            states={recordStates}
+            activeRequirementId={recordId}
+            search={search}
+            area={area}
+            expanded={expandedFamilies}
+            onExpandedChange={setExpandedFamilies}
+            onSelect={(requirementId) => changeRecord(requirementId)}
+          />
+        ) : (
+          <div className="record-list">
+            {filtered.map((record, index) => (
+              <button
+                key={record.record_id}
+                className={record.record_id === recordId ? "active" : ""}
+                onClick={() => changeRecord(record.record_id)}
+              >
+                <span className="record-number">{String(index + 1).padStart(3, "0")}</span>
+                <span><strong>{record.title}</strong><small>{record.citation}</small></span>
+                {record.designation && <em>{record.designation}</em>}
+              </button>
+            ))}
+          </div>
+        )}
       </aside>
 
       {view === "sra" && <SraPanel key={`${projectId}:${assessment.id}`} projectId={projectId} assessmentId={assessment.id} onDirtyChange={setProfileDirty} />}
-      <main className={`assessment-main ${view !== "assessment" ? "workspace-hidden" : ""}`}>
+      <main className={`assessment-main ${objectiveMode ? "requirement-main" : ""} ${view !== "assessment" ? "workspace-hidden" : ""}`}>
+        {objectiveMode ? (
+          <div className="record-toolbar">
+            <div>
+              <span className={`readiness-state compact ${readiness.assessment_entry_allowed ? "ready" : "blocked"}`}>
+                {readiness.state}
+              </span>
+              <span className="position">Requirement {requirementIndex + 1} of {requirementIds.length}</span>
+              <span className="position">
+                {progress.resolved_determination_count} of {progress.determination_record_count} objectives decided
+              </span>
+              {assessment.framework.declarations.scoring && (
+                <CmmcScoreLine projectId={assessment.project.id} assessmentId={assessment.id} refreshKey={`${scoreTick}:${progress.resolved_determination_count}`} />
+              )}
+            </div>
+            <div className="previous-next">
+              <button aria-label="Previous requirement" title="Previous requirement (K or [)" disabled={!previousRequirementId} onClick={() => previousRequirementId && changeRecord(previousRequirementId)}>
+                <ArrowLeft size={16} /> Previous
+              </button>
+              <button aria-label="Next requirement" title="Next requirement (J or ])" disabled={!nextRequirementId} onClick={() => nextRequirementId && changeRecord(nextRequirementId)}>
+                Next <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        ) : (
         <div className="record-toolbar">
           <div>
             <span className={`readiness-state compact ${readiness.assessment_entry_allowed ? "ready" : "blocked"}`}>
@@ -501,6 +575,7 @@ export function Workspace({
             </button>
           </div>
         </div>
+        )}
         {readiness.assessment_entry_blocking_reasons.length > 0 && (
           <div className="assessment-readiness-warning">
             <strong>New assessment entry is blocked.</strong>
@@ -511,6 +586,31 @@ export function Workspace({
         )}
         {assessment.reopening && <RevalidationPanel key={`revalidation:${assessment.id}`} projectId={assessment.project.id} assessmentId={assessment.id} reopening={assessment.reopening} items={assessment.revalidation_items ?? []} currentRecordId={recordId} onChanged={() => setRevalidationTick((tick) => tick + 1)} onOpenRecord={(next) => changeRecord(next)} />}
 
+        {objectiveMode ? (
+          <RequirementWorkspace
+            key={`${assessment.id}:${detail.record.record_id}`}
+            assessment={assessment}
+            detail={detail}
+            artifacts={artifacts}
+            recordStates={recordStates}
+            focusObjectiveId={focusObjectiveId}
+            active={view === "assessment" && !creatingWorkspace}
+            onDetermined={() => {
+              void loadDetail();
+              void refreshAssessmentProgress();
+              setScoreTick((tick) => tick + 1);
+            }}
+            onRecordsChanged={() => void refreshAssessmentProgress()}
+            onArtifactsChanged={() => void loadArtifacts()}
+            onSaveState={updateSaveState}
+            onRoutineSaveState={reportRoutineSave}
+            coordinateSave={coordinateRoutineSave}
+            onPreviousRequirement={previousRequirementId ? () => changeRecord(previousRequirementId) : null}
+            onNextRequirement={nextRequirementId ? () => changeRecord(nextRequirementId) : null}
+            onScoreChanged={() => setScoreTick((tick) => tick + 1)}
+          />
+        ) : (
+        <>
         {detail.parent && (
           <section className="parent-context">
             <div className="parent-icon"><FolderKanban size={18} /></div>
@@ -568,44 +668,6 @@ export function Workspace({
           </section>
         )}
 
-        {objectiveMode && assessment.framework.declarations.scoring && (
-          <SspPanel
-            key={`ssp:${assessment.id}`}
-            projectId={assessment.project.id}
-            assessmentId={assessment.id}
-            requirementId={detail.record.editable_determination ? null : detail.record.record_id}
-          />
-        )}
-        {objectiveMode && assessment.framework.declarations.scoring && (
-          <CmmcScorePanel projectId={assessment.project.id} assessmentId={assessment.id} refreshKey={`${scoreTick}:${progress.resolved_determination_count}:${detail.record.record_id}:${detail.determination.status}`} />
-        )}
-
-        {objectiveMode && detail.children.length > 0 && (
-          <section className="objective-panel" aria-label="Assessment objectives">
-            <div className="section-title">
-              <div>
-                <p className="eyebrow">ASSESSMENT OBJECTIVES</p>
-                <h3>Determinations are recorded per objective</h3>
-              </div>
-              <StatusPill status={detail.determination.status} derived />
-            </div>
-            <p className="objective-rule">
-              Requirement status is derived: any Not Met → Not Met; otherwise any Pending → Pending; all Met → Met; otherwise blank.
-            </p>
-            <ul>
-              {detail.children.map((objective) => (
-                <li key={objective.record_id}>
-                  <button className="objective-row" onClick={() => changeRecord(objective.record_id)}>
-                    <span className="citation">{objective.citation}</span>
-                    <span>{objective.regulation_text}</span>
-                    <StatusPill status={objective.determination?.status ?? ""} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
         <section className="prompt-section">
           <div className="content-heading">
             <div><p className="eyebrow">ASSESSOR GUIDANCE</p><h2>Questions to work through</h2></div>
@@ -631,8 +693,11 @@ export function Workspace({
             </div>
           )}
         </section>
+        </>
+        )}
       </main>
 
+      {!objectiveMode && (
       <aside className={`working-record ${view !== "assessment" ? "workspace-hidden" : ""}`}>
         <div className="working-header">
           <div><p className="eyebrow">WORKING RECORD</p><h2>Assessment notes</h2></div>
@@ -650,27 +715,14 @@ export function Workspace({
             void refreshAssessmentProgress();
           }}
         />
-        {objectiveMode && !detail.record.editable_determination && (
-          <RequirementFindingPanel
-            key={`${assessment.id}:${detail.record.record_id}:finding`}
-            projectId={assessment.project.id}
-            assessmentId={assessment.id}
-            requirementId={detail.record.record_id}
-            status={detail.determination.status}
-            scoring={assessment.framework.declarations.scoring?.requirements[detail.record.record_id]}
-            onChanged={() => setScoreTick((tick) => tick + 1)}
-          />
-        )}
         {/* Objective-level reconciliation is HIPAA's; CMMC findings are requirement-level. */}
-        {!objectiveMode && (
-          <NotMetReconciliation
-            key={`${assessment.id}:${detail.record.record_id}:reconciliation`}
-            assessmentId={assessment.id}
-            projectId={assessment.project.id}
-            recordId={detail.record.record_id}
-            status={detail.determination.status}
-          />
-        )}
+        <NotMetReconciliation
+          key={`${assessment.id}:${detail.record.record_id}:reconciliation`}
+          assessmentId={assessment.id}
+          projectId={assessment.project.id}
+          recordId={detail.record.record_id}
+          status={detail.determination.status}
+        />
         <RecordNotes
           key={`${assessment.id}:${detail.record.record_id}:notes`}
           assessmentId={assessment.id}
@@ -689,6 +741,7 @@ export function Workspace({
           onSaveState={updateSaveState}
         />
       </aside>
+      )}
       {view === "overview" && (
         <main className="overview-panel">
           <div className="overview-heading">

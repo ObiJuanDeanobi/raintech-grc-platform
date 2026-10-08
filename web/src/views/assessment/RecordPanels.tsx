@@ -45,6 +45,7 @@ export function PromptCard({
     stage: stageAnswer,
     save: saveAnswer,
     retry: retryAnswer,
+    error: answerError,
   } = useRoutineAutosave(
     `prompt:${assessment.id}:${prompt.id}`,
     `record:${assessment.id}:${recordId}`,
@@ -90,7 +91,7 @@ export function PromptCard({
         placeholder="Record the answer to this question…"
         rows={2}
       />
-      <RoutineSaveStatus state={answerSaveState} retry={retryAnswer} label="answer" />
+      <RoutineSaveStatus state={answerSaveState} retry={retryAnswer} label="answer" message={answerError} />
     </article>
   );
 }
@@ -116,6 +117,8 @@ export function DeterminationPanel({
     stage: stageDetermination,
     save,
     retry: retryDetermination,
+    error: determinationError,
+    saved: savedDetermination,
   } = useRoutineAutosave(
     `determination:${assessmentId}:${detail.record.record_id}`,
     `record:${assessmentId}:${detail.record.record_id}`,
@@ -154,7 +157,8 @@ export function DeterminationPanel({
     <section className="working-section">
       <div className="section-title">
         <div><p className="eyebrow">DECISION</p><h3>Determination</h3></div>
-        <StatusPill status={form.status} />
+        {/* A refused save keeps showing the last saved status (#140). */}
+        <StatusPill status={determinationSaveState === "failed" ? savedDetermination.status : form.status} />
       </div>
       <div className="status-grid">
         {statuses.filter(Boolean).map((status) => (
@@ -227,7 +231,7 @@ export function DeterminationPanel({
           placeholder="Who was interviewed or what was observed?"
         />
       </details>
-      <RoutineSaveStatus state={determinationSaveState} retry={retryDetermination} label="determination" />
+      <RoutineSaveStatus state={determinationSaveState} retry={retryDetermination} label="determination" message={determinationError} />
     </section>
   );
 }
@@ -380,7 +384,7 @@ export function RequirementFindingPanel({
   );
 }
 
-export function SspPanel({ projectId, assessmentId, requirementId }: { projectId: string; assessmentId: string; requirementId: string | null }) {
+export function SspPanel({ projectId, assessmentId, requirementId, onChanged }: { projectId: string; assessmentId: string; requirementId: string | null; onChanged?: () => void }) {
   const [ssp, setSsp] = useState<SspView | null>(null);
   const [error, setError] = useState("");
   const base = `/api/projects/${projectId}`;
@@ -395,6 +399,7 @@ export function SspPanel({ projectId, assessmentId, requirementId }: { projectId
     setError("");
     try {
       setSsp(await request<SspView>(path, init));
+      onChanged?.();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "SSP action failed.");
     }
@@ -570,6 +575,7 @@ export function RecordNotes({
     stage: stageNote,
     save: saveNote,
     retry: retryNote,
+    error: noteError,
   } = useRoutineAutosave(
     `note:${assessmentId}:${recordId}`,
     `record:${assessmentId}:${recordId}`,
@@ -595,7 +601,7 @@ export function RecordNotes({
         onChange={(event) => stageNote(event.target.value)}
         onBlur={() => saveNote(note)}
       />
-      <RoutineSaveStatus state={noteSaveState} retry={retryNote} label="note" />
+      <RoutineSaveStatus state={noteSaveState} retry={retryNote} label="note" message={noteError} />
     </section>
   );
 }

@@ -94,6 +94,8 @@ def test_clean_database_keeps_one_assessment_api_and_adds_one_active_revision(
             "progress",
             "work_list",
             "record_index",
+            # Read-only requirement-list markers (#140).
+            "record_states",
         }
         assert read.json()["id"] == assessment_id
         assert client.post(f"/api/projects/{project_id}/assessments").status_code == 409
