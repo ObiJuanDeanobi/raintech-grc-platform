@@ -58,7 +58,12 @@ def test_record_states_follow_determinations_evidence_and_poam(tmp_path: Path) -
         assessment = create_assessment(client, project)
         states = _states(client, project)
         assert len(states) == 430
-        assert states[REQUIREMENT] == {"status": "", "evidence_count": 0, "open_poam_count": 0}
+        assert states[REQUIREMENT] == {
+            "status": "",
+            "evidence_count": 0,
+            "open_poam_count": 0,
+            "verification": None,
+        }
 
         for objective in OBJECTIVES:
             _save(client, assessment, objective, status="Met", interview_observation=OBSERVED)

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { Workspace } from "./App";
-import { clientProjectsFixture } from "./activeAssessmentFixtures";
+import { clientProjectsFixture, cmmcScoreFixture } from "./activeAssessmentFixtures";
 import { parseObjectiveNotes, serializeObjectiveNotes } from "./lib/objectiveNotes";
 
 /**
@@ -13,7 +13,8 @@ import { parseObjectiveNotes, serializeObjectiveNotes } from "./lib/objectiveNot
  * server's answer, not the component's optimism.
  */
 
-const MET_RULE = "Met requires mapped evidence or a documented interview/observation";
+/** Any refusal; since #141 Met itself is no longer refused for missing evidence. */
+const REFUSAL = "Linked corrective action must be validated before Met";
 
 const requirements = [
   { id: "AC.L2-3.1.1", title: "Authorized Access Control", family: "Access Control", objectives: ["a", "b"] },
@@ -69,15 +70,26 @@ function cmmcServer(options: ServerOptions = {}) {
 
   const objectivesOf = (requirementId: string) => workList.filter((record) => record.parent_id === requirementId);
   const requirementStatus = (requirementId: string) => derived(objectivesOf(requirementId).map((o) => statuses[o.record_id] ?? ""));
+  // #141: a Met objective is verified by evidence or an interview/observation, otherwise
+  // evidence pending; a requirement is verified only when every objective is.
+  const objectiveVerified = (recordId: string) => (evidence[recordId] ?? 0) > 0 || Boolean(observations[recordId]?.trim());
+  const verification = (recordId: string) => {
+    const record = workList.find((item) => item.record_id === recordId)!;
+    const status = record.parent_id ? statuses[recordId] ?? "" : requirementStatus(recordId);
+    if (status !== "Met") return null;
+    const deciding = record.parent_id ? [recordId] : objectivesOf(recordId).map((o) => o.record_id);
+    return deciding.every(objectiveVerified) ? "verified" : "evidence_pending";
+  };
   const determination = (recordId: string, isDerived = false) => ({
     status: isDerived ? requirementStatus(recordId) : statuses[recordId] ?? "",
     derived: isDerived, na_rationale: "", addressable_disposition: null, disposition_reason: "",
-    interview_observation: observations[recordId] ?? "",
+    interview_observation: observations[recordId] ?? "", verification: verification(recordId),
   });
   const recordStates = () => Object.fromEntries(workList.map((record) => [record.record_id, {
     status: record.parent_id ? statuses[record.record_id] ?? "" : requirementStatus(record.record_id),
     evidence_count: evidence[record.record_id] ?? 0,
     open_poam_count: 0,
+    verification: verification(record.record_id),
   }]));
   const decidedCount = () => Object.values(statuses).filter((status) => status === "Met" || status === "Not Met").length;
   const evidenceRows = (recordId: string) => Array.from({ length: evidence[recordId] ?? 0 }, (_, index) => ({
@@ -145,9 +157,6 @@ function cmmcServer(options: ServerOptions = {}) {
         refuseNextDetermination.reason = null;
         return Response.json({ detail: reason }, { status: 422 });
       }
-      if (body.status === "Met" && !body.interview_observation?.trim() && !evidence[recordId]) {
-        return Response.json({ detail: MET_RULE }, { status: 422 });
-      }
       statuses[recordId] = body.status;
       observations[recordId] = body.interview_observation ?? "";
       return Response.json(determination(recordId));
@@ -162,16 +171,17 @@ function cmmcServer(options: ServerOptions = {}) {
     if (recordMatch) return Response.json(recordDetail(decodeURIComponent(recordMatch[1])));
     if (url.endsWith("/cmmc-score")) {
       scoreReads += 1;
-      const notMet = requirements.filter((r) => requirementStatus(r.id) === "Not Met");
-      const unscored = requirements.filter((r) => !["Met", "Not Met"].includes(requirementStatus(r.id)));
-      return Response.json({
-        authority: "32 CFR 170.24", maximum_score: 110, minimum_score: -203, score: 110 - 5 * notMet.length,
-        complete: unscored.length === 0, blockers: [],
-        deductions: notMet.map((r) => ({ record_id: r.id, citation: r.id, title: r.title, points: 5, source: "x", conditional_poam_allowed: true })),
-        unscored: unscored.map((r) => ({ record_id: r.id, status: requirementStatus(r.id) || "Blank" })),
-        partial_inputs_needed: [], partial_implementations: {}, follow_up: [],
-        conditional: { source: "32 CFR 170.21", score_ratio: 1, eligible: false },
+      // Five points each; anything not verified Met deducts in verified, and only
+      // what is not Met at all deducts in projected.
+      const lines = requirements.flatMap((r) => {
+        const status = requirementStatus(r.id);
+        if (status === "Met" && verification(r.id) === "verified") return [];
+        const state = status === "Met" ? "evidence_pending" as const
+          : status === "Not Met" ? "not_met" as const
+            : status === "Pending" ? "pending" as const : "not_assessed" as const;
+        return [{ record_id: r.id, title: r.title, points: 5, state }];
       });
+      return Response.json(cmmcScoreFixture(lines));
     }
     if (url.endsWith("/ssp") && method === "GET") return Response.json(options.ssp ? sspView() : null);
     if (url.endsWith("/ssp/ssp-1") && method === "PUT") {
@@ -237,13 +247,15 @@ test("opens on the first requirement with an undecided objective and shows famil
 });
 
 test("decides every objective with the keyboard only, updates the score, and moves between requirements", async () => {
-  const server = cmmcServer();
-  server.evidence["AC.L2-3.1.1a"] = 1;
+  // The other requirements are verified Met, so only AC.L2-3.1.1 moves the score.
+  const server = cmmcServer({ statuses: { "AC.L2-3.1.2a": "Met", "AC.L2-3.1.2b": "Met", "AU.L2-3.3.1a": "Met" } });
+  for (const id of ["AC.L2-3.1.1a", "AC.L2-3.1.2a", "AC.L2-3.1.2b", "AU.L2-3.3.1a"]) server.evidence[id] = 1;
   renderWorkspace();
   await screen.findByRole("heading", { level: 1, name: "Authorized Access Control" });
   expect(screen.getByLabelText("Keyboard shortcuts")).toHaveTextContent("M Met");
-  const score = await screen.findByRole("region", { name: "Official CMMC score" });
-  expect(score).toHaveTextContent("110");
+  const score = () => screen.getByRole("region", { name: "Official CMMC score" });
+  await screen.findByRole("region", { name: "Official CMMC score" });
+  expect(score()).toHaveTextContent("VERIFIED SPRS105of 110");
   const readsBefore = server.scoreReads();
   const user = userEvent.setup();
 
@@ -251,12 +263,21 @@ test("decides every objective with the keyboard only, updates the score, and mov
   await waitFor(() => expect(server.statuses["AC.L2-3.1.1a"]).toBe("Met"));
   await user.keyboard("{ArrowDown}");
   expect(objectiveRow("AC.L2-3.1.1[b]")).toHaveAttribute("aria-current", "true");
+  // Met without evidence is saved and shown as evidence pending (#141): the
+  // projected score counts it, the verified headline does not.
+  await user.keyboard("m");
+  await waitFor(() => expect(server.statuses["AC.L2-3.1.1b"]).toBe("Met"));
+  expect(await screen.findByText("Derived · Met")).toBeVisible();
+  await waitFor(() => expect(server.scoreReads()).toBeGreaterThan(readsBefore));
+  await waitFor(() => expect(score()).toHaveTextContent("110 projected (includes evidence pending)"));
+  expect(score()).toHaveTextContent("VERIFIED SPRS105of 110");
+  expect(await within(objectiveRow("AC.L2-3.1.1[b]")).findByText("Evidence pending")).toBeVisible();
   await user.keyboard("n");
   await waitFor(() => expect(server.statuses["AC.L2-3.1.1b"]).toBe("Not Met"));
-  // The derived status and the official score follow without a reload.
+  // The derived status and both scores follow without a reload.
   expect(await screen.findByText("Derived · Not Met")).toBeVisible();
-  await waitFor(() => expect(server.scoreReads()).toBeGreaterThan(readsBefore));
-  await waitFor(() => expect(screen.getByRole("region", { name: "Official CMMC score" })).toHaveTextContent("105"));
+  await waitFor(() => expect(score()).toHaveTextContent("105 projected (includes evidence pending)"));
+  expect(within(objectiveRow("AC.L2-3.1.1[b]")).queryByText("Evidence pending")).not.toBeInTheDocument();
   expect(pressed("AC.L2-3.1.1[a]")).toEqual(["Met"]);
   expect(pressed("AC.L2-3.1.1[b]")).toEqual(["Not Met"]);
 
@@ -285,30 +306,84 @@ test("decides every objective with the keyboard only, updates the score, and mov
   expect(await screen.findByRole("heading", { level: 1, name: "Authorized Access Control" })).toBeVisible();
   // Every determination was a single PUT for its objective.
   expect(server.determinationWrites().map((write) => decodeURIComponent(write.url.split("/").pop()!))).toEqual([
-    "AC.L2-3.1.1a", "AC.L2-3.1.1b", "AC.L2-3.1.2a", "AC.L2-3.1.2b",
+    "AC.L2-3.1.1a", "AC.L2-3.1.1b", "AC.L2-3.1.1b", "AC.L2-3.1.2a", "AC.L2-3.1.2b",
   ]);
 });
 
-test("a refused Met shows the API reason and the last saved status, and Retry succeeds once evidence exists", async () => {
+test("a refused determination shows the API reason and the last saved status, and Retry succeeds", async () => {
   const server = cmmcServer({ statuses: { "AC.L2-3.1.1a": "Pending" } });
+  server.refuseNextDetermination.reason = REFUSAL;
   renderWorkspace();
   await screen.findByRole("heading", { level: 1, name: "Authorized Access Control" });
   const user = userEvent.setup();
 
   await user.click(within(objectiveRow("AC.L2-3.1.1[a]")).getByRole("button", { name: "Met" }));
   const row = objectiveRow("AC.L2-3.1.1[a]");
-  expect(await within(row).findByText(new RegExp(MET_RULE))).toBeVisible();
+  expect(await within(row).findByText(new RegExp(REFUSAL))).toBeVisible();
   expect(row).toHaveTextContent("Saved status is still Pending");
   expect(pressed("AC.L2-3.1.1[a]")).toEqual(["Pending"]);
   expect(within(row).getByRole("button", { name: "Met" })).toHaveClass("attempted");
   expect(server.statuses["AC.L2-3.1.1a"]).toBe("Pending");
 
-  server.evidence["AC.L2-3.1.1a"] = 1;
   await user.click(within(row).getByRole("button", { name: "Retry AC.L2-3.1.1[a] determination" }));
   await waitFor(() => expect(server.statuses["AC.L2-3.1.1a"]).toBe("Met"));
   await waitFor(() => expect(pressed("AC.L2-3.1.1[a]")).toEqual(["Met"]));
-  expect(within(objectiveRow("AC.L2-3.1.1[a]")).queryByText(new RegExp(MET_RULE))).not.toBeInTheDocument();
+  expect(within(objectiveRow("AC.L2-3.1.1[a]")).queryByText(new RegExp(REFUSAL))).not.toBeInTheDocument();
   expect(await screen.findByText("Saved")).toBeInTheDocument();
+});
+
+test("Met without evidence is evidence pending on the row, the requirement and the list until an observation verifies it (#141)", async () => {
+  const server = cmmcServer();
+  renderWorkspace();
+  await screen.findByRole("heading", { level: 1, name: "Authorized Access Control" });
+  const user = userEvent.setup();
+
+  await user.click(within(objectiveRow("AC.L2-3.1.1[a]")).getByRole("button", { name: "Met" }));
+  await user.click(within(objectiveRow("AC.L2-3.1.1[b]")).getByRole("button", { name: "Met" }));
+  await waitFor(() => expect(server.statuses["AC.L2-3.1.1b"]).toBe("Met"));
+  // No refusal: the save succeeds and the result is flagged, not blocked.
+  const row = objectiveRow("AC.L2-3.1.1[a]");
+  expect(await within(row).findByText("Evidence pending")).toBeVisible();
+  expect(row).toHaveClass("evidence-pending");
+  expect(within(row).getByRole("button", { name: "Met" })).toHaveClass("unverified");
+  const head = screen.getByRole("heading", { level: 1, name: "Authorized Access Control" }).closest("section")!;
+  expect(await within(head).findByText("Evidence pending")).toBeVisible();
+  const list = screen.getByRole("navigation", { name: "Requirements by family" });
+  const listRow = within(list).getByRole("button", { name: /Authorized Access Control/ });
+  expect(within(listRow).getByText("Evidence pending")).toBeVisible();
+  expect(listRow).toHaveTextContent("Status Met, evidence pending.");
+
+  // A documented interview/observation verifies objective [a]; [b] stays pending.
+  await user.click(screen.getByRole("button", { name: "Notes for AC.L2-3.1.1[a]" }));
+  const observation = screen.getByRole("textbox", { name: "Interview or observation record for AC.L2-3.1.1[a]" });
+  await user.type(observation, "Synthetic: observed the account list.");
+  fireEvent.blur(observation);
+  await waitFor(() => expect(within(objectiveRow("AC.L2-3.1.1[a]")).queryByText("Evidence pending")).not.toBeInTheDocument());
+  expect(within(objectiveRow("AC.L2-3.1.1[b]")).getByText("Evidence pending")).toBeVisible();
+  expect(within(head).getByText("Evidence pending")).toBeVisible();
+});
+
+test("the score block leads with the verified score, labels projected, and shows arithmetic and 170.21 checks", async () => {
+  cmmcServer({ statuses: { "AC.L2-3.1.1a": "Met", "AC.L2-3.1.1b": "Met", "AC.L2-3.1.2a": "Not Met" } });
+  renderWorkspace();
+  const score = await screen.findByRole("region", { name: "Official CMMC score" });
+  await waitFor(() => expect(score).toHaveTextContent("VERIFIED SPRS95of 110 · provisional"));
+  // Projected is secondary and always labelled, next to the verified headline.
+  expect(within(score).getByText(/projected \(includes evidence pending\)/)).toHaveClass("score-projected");
+  expect(score).toHaveTextContent("100 projected (includes evidence pending)");
+  expect(score).toHaveTextContent("Conditional Not eligible");
+
+  const user = userEvent.setup();
+  await user.click(within(score).getByRole("button", { name: /Arithmetic and 170.21 checks/ }));
+  expect(within(score).getByLabelText("Verified SPRS score 95 arithmetic")).toHaveTextContent("110 \u2212 5 \u2212 5 \u2212 5 = 95");
+  expect(within(score).getByLabelText(/Projected score 100 .* arithmetic/)).toHaveTextContent("110 \u2212 5 \u2212 5 = 100");
+  const checks = within(score).getByRole("region", { name: "32 CFR 170.21 Conditional status checks" });
+  expect(checks).toHaveTextContent("Minimum score");
+  expect(checks).toHaveTextContent("32 CFR 170.21(a)(2)(i)");
+  expect(checks).toHaveTextContent("32 CFR 170.21(a)(2)(ii)");
+  expect(checks).toHaveTextContent("32 CFR 170.21(a)(2)(iii)");
+  expect(checks).toHaveTextContent("AC.L2-3.1.1Evidence pending5 pt");
+  expect(checks).toHaveTextContent("AC.L2-3.1.2Not Met5 pt");
 });
 
 test("per-objective examine, interview and test notes autosave as labelled text and load back", async () => {

@@ -25,7 +25,8 @@ import { ReadinessPanel } from "./views/ReadinessPanel";
 import { Setup, WorkspaceCreator } from "./views/Setup";
 import { DeterminationPanel, EvidencePanel, NotMetReconciliation, PromptCard, RecordNotes } from "./views/assessment/RecordPanels";
 import { RequirementList } from "./views/assessment/RequirementList";
-import { CmmcScoreLine, RequirementWorkspace } from "./views/assessment/RequirementWorkspace";
+import { CmmcScoreLine, CmmcScorePanel } from "./views/assessment/CmmcScore";
+import { RequirementWorkspace } from "./views/assessment/RequirementWorkspace";
 import { BackupControl, CloseReadinessPanel, PackageGenerationPanel, RevalidationPanel } from "./views/close/ClosePanels";
 import type {
   Artifact,
@@ -754,6 +755,9 @@ export function Workspace({
               Continue assessment <ArrowRight size={15} />
             </button>
           </div>
+          {assessment.framework.declarations.scoring && (
+            <CmmcScorePanel projectId={assessment.project.id} assessmentId={assessment.id} refreshKey={`${scoreTick}:${progress.resolved_determination_count}:${revalidationTick}`} />
+          )}
           <div className="overview-metrics">
             <article><strong>{assessment.framework.determination_record_count}</strong><span>determinations</span></article>
             <article><strong>{assessment.framework.record_count}</strong><span>cited records</span></article>

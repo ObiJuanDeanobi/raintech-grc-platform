@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, field_validator
 
-from api import cmmc, evidence_lifecycle, ssp, workspace_backup
+from api import cmmc, evidence_lifecycle, ssp, verification, workspace_backup
 from api.close import fieldwork_ready
 from api.correction import create_correction, package_issuance
 from api.database import (
@@ -939,37 +939,61 @@ def _record_states(
             (assessment["project_id"],),
         )
     }
+    bases = verification.met_bases(connection, assessment["id"])
     children: dict[str, list[str]] = {}
     for record in records:
         if record["parent_id"]:
-            children.setdefault(record["parent_id"], []).append(
-                stored.get(record["record_id"], "")
-            )
+            children.setdefault(record["parent_id"], []).append(record["record_id"])
     states: dict[str, dict[str, Any]] = {}
     for record in records:
         record_id = record["record_id"]
         if record["carries_determination"]:
             status = stored.get(record_id, "")
+            deciding = [record_id]
         else:
-            child_statuses = children.get(record_id, [])
+            deciding = children.get(record_id, [])
+            child_statuses = [stored.get(child, "") for child in deciding]
             status = _rollup_status(child_statuses, rule) if child_statuses else ""
         states[record_id] = {
             "status": status,
             "evidence_count": evidence.get(record_id, 0),
             "open_poam_count": poam.get(record_id, 0),
+            # verified / evidence_pending for Met, otherwise None (#141).
+            "verification": verification.state(status, deciding, bases),
         }
     return states
 
 
+def _verification(connection: Any, assessment_id: str, record: Any, status: str) -> str | None:
+    """Verified or evidence pending for a Met record; None otherwise (#141)."""
+    if status != "Met":
+        return None
+    if record["carries_determination"]:
+        deciding = [record["record_id"]]
+    else:
+        deciding = [
+            row["record_id"]
+            for row in connection.execute(
+                """SELECT r.record_id FROM framework_records r
+                   JOIN assessments a ON a.framework_version_id = r.framework_version_id
+                   WHERE a.id = ? AND r.parent_id = ?""",
+                (assessment_id, record["record_id"]),
+            )
+        ]
+    return verification.state(status, deciding, verification.met_bases(connection, assessment_id))
+
+
 def _determination(connection: Any, assessment_id: str, record: Any) -> dict[str, Any]:
     if not record["carries_determination"]:
+        status = _derived_status(connection, assessment_id, record["record_id"])
         return {
-            "status": _derived_status(connection, assessment_id, record["record_id"]),
+            "status": status,
             "derived": True,
             "na_rationale": "",
             "addressable_disposition": None,
             "disposition_reason": "",
             "interview_observation": "",
+            "verification": _verification(connection, assessment_id, record, status),
         }
     value = connection.execute(
         """
@@ -992,6 +1016,7 @@ def _determination(connection: Any, assessment_id: str, record: Any) -> dict[str
         }
     )
     result["derived"] = False
+    result["verification"] = _verification(connection, assessment_id, record, result["status"])
     reconciliation = connection.execute(
         "SELECT id, outcome, finding_id, corrective_action_id, rationale, updated_at "
         "FROM not_met_reconciliations WHERE assessment_id = ? AND record_id = ?",
@@ -3143,7 +3168,11 @@ def create_app(
                     raise HTTPException(
                         422, "Linked corrective action must be validated before Met"
                     )
-            if payload.status == "Met" and not payload.interview_observation.strip():
+            if (
+                payload.status == "Met"
+                and not payload.interview_observation.strip()
+                and declarations.get("met_without_evidence") != "evidence_pending"
+            ):
                 evidence = connection.execute(
                     """
                     SELECT id FROM evidence_mappings
@@ -4554,11 +4583,17 @@ def create_app(
                 """,
                 (assessment_id, mapping["record_id"]),
             ).fetchone()["count"]
+            # Where Met may be evidence pending (#141), unmapping the last evidence
+            # returns the Met to evidence pending instead of being refused.
             if (
                 determination
                 and determination["status"] == "Met"
                 and not determination["interview_observation"].strip()
                 and mapping_count == 1
+                and _framework_declarations(connection, assessment_id).get(
+                    "met_without_evidence"
+                )
+                != "evidence_pending"
             ):
                 raise HTTPException(
                     status_code=422,

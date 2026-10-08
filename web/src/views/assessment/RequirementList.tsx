@@ -82,6 +82,7 @@ export function RequirementList({
                     const decided = children.filter((child) => isDecided(states[child.record_id]?.status)).length;
                     const status = state?.status ?? "";
                     const openPoam = state?.open_poam_count ?? 0;
+                    const evidencePending = status === "Met" && state?.verification === "evidence_pending";
                     return (
                       <li key={requirement.record_id}>
                         <button
@@ -90,18 +91,21 @@ export function RequirementList({
                           aria-current={requirement.record_id === activeRequirementId ? "true" : undefined}
                           onClick={() => onSelect(requirement.record_id)}
                         >
-                          <span className={`status-dot ${statusClass(status)}`} title={status || "Blank"} aria-hidden="true" />
+                          <span className={`status-dot ${statusClass(status)} ${evidencePending ? "evidence-pending" : ""}`} title={evidencePending ? "Met · evidence pending" : status || "Blank"} aria-hidden="true" />
                           <span className="requirement-row-text">
                             <small title={requirement.citation}>{requirement.record_id}</small>
                             <strong>{requirement.title}</strong>
                           </span>
                           <span className="requirement-markers">
-                            <span className="sr-only">Status {status || "Blank"}.</span>
+                            <span className="sr-only">Status {status || "Blank"}{evidencePending ? ", evidence pending" : ""}.</span>
                             <span className="marker-count" title="Objectives decided">{decided}/{children.length}</span>
                             {withEvidence > 0 && (
                               <span className="marker evidence" title={`Evidence on ${withEvidence} record(s)`} aria-label={`Evidence on ${withEvidence}`}>
                                 <FileCheck2 size={11} />{withEvidence}
                               </span>
+                            )}
+                            {evidencePending && (
+                              <span className="marker evidence-pending" title="Met without current evidence or a documented interview/observation">Evidence pending</span>
                             )}
                             {openPoam > 0 ? (
                               <span className="marker poam" title={`${openPoam} open POA&M item(s)`}>POA&amp;M</span>

@@ -683,6 +683,11 @@
   },
   "conditional_poam": {
     "source": "32 CFR 170.21(a)(2)",
+    "paragraphs": {
+      "minimum_score": "32 CFR 170.21(a)(2)(i)",
+      "maximum_points": "32 CFR 170.21(a)(2)(ii)",
+      "excluded": "32 CFR 170.21(a)(2)(iii)"
+    },
     "minimum_score_ratio": 0.8,
     "maximum_points": 1,
     "exceptions": {

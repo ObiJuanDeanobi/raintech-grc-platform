@@ -108,13 +108,18 @@ def test_requirement_edits_and_unsupported_statuses_are_rejected(tmp_path: Path)
         assert _requirement_status(client, project, assessment) == ""
 
 
-def test_met_requires_evidence_or_interview(tmp_path: Path) -> None:
+def test_met_without_evidence_is_evidence_pending_until_evidence_is_mapped(
+    tmp_path: Path,
+) -> None:
+    """Since #141 (ADR 0019 decision 3) Met is not refused at the click; it is
+    saved as evidence pending and verified once evidence is mapped. Close and
+    issue still require the evidence (see test_issue_141_verified_score.py)."""
     with _client(tmp_path) as client:
         project = _project(client, "CMMC evidence", CMMC_FRAMEWORK_ID)
         assessment = create_assessment(client, project)
-        refused = _save(client, assessment, OBJECTIVES[0], status="Met")
-        assert refused.status_code == 422
-        assert "evidence" in refused.json()["detail"]
+        pending = _save(client, assessment, OBJECTIVES[0], status="Met")
+        assert pending.status_code == 200, pending.text
+        assert pending.json()["verification"] == "evidence_pending"
 
         artifact = client.post(
             f"/api/projects/{project}/evidence",
@@ -129,7 +134,9 @@ def test_met_requires_evidence_or_interview(tmp_path: Path) -> None:
             },
         )
         assert mapped.status_code == 201, mapped.text
-        assert _save(client, assessment, OBJECTIVES[0], status="Met").status_code == 200
+        verified = _save(client, assessment, OBJECTIVES[0], status="Met")
+        assert verified.status_code == 200
+        assert verified.json()["verification"] == "verified"
 
 
 def test_hipaa_unchanged_and_cmmc_ids_isolated(tmp_path: Path) -> None:

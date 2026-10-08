@@ -71,7 +71,10 @@ def test_score_matches_the_official_model(tmp_path: Path) -> None:
         project = _project(client, "CMMC score", CMMC_FRAMEWORK_ID)
         assessment = create_assessment(client, project)
         empty = _score(client, project, assessment)
-        assert (empty["maximum_score"], empty["score"], empty["complete"]) == (110, 110, False)
+        # Since #141 the headline is the verified score: nothing assessed is nothing
+        # Met, so an empty assessment shows the official minimum, not 110.
+        assert (empty["maximum_score"], empty["score"], empty["complete"]) == (110, -203, False)
+        assert empty["score"] == empty["minimum_score"]
         assert len(empty["unscored"]) == 110
 
         requirements = _all_requirements(client, project)

@@ -85,3 +85,45 @@ export function delayedResponse<T = Response>() {
   const promise = new Promise<T>((done) => { resolve = done; });
   return { promise, resolve };
 }
+
+type ScoreLine = { record_id: string; title?: string; points: number; state: "evidence_pending" | "not_met" | "pending" | "not_assessed" };
+
+/**
+ * A /cmmc-score response in the #141 shape: verified and projected figures with
+ * literal arithmetic and the three 32 CFR 170.21 checks, built from deduction lines.
+ */
+export function cmmcScoreFixture(lines: ScoreLine[], options: { complete?: boolean; blockers?: string[] } = {}) {
+  const figure = (included: ScoreLine[]) => {
+    const value = 110 - included.reduce((sum, line) => sum + line.points, 0);
+    const terms = included.map((line) => ` − ${line.points}`).join("");
+    return {
+      value,
+      deductions: included.map((line) => ({ record_id: line.record_id, points: line.points, state: line.state })),
+      arithmetic: `110${terms} = ${value < 0 ? `−${-value}` : value}`,
+    };
+  };
+  const verified = figure(lines);
+  const projected = figure(lines.filter((line) => line.state !== "evidence_pending"));
+  const items = lines.map((line) => ({
+    record_id: line.record_id, title: line.title ?? line.record_id, state: line.state, points: line.points,
+    allowed: line.points <= 1,
+    reason: line.points <= 1
+      ? "1-point requirement (32 CFR 170.21(a)(2)(ii))."
+      : `${line.points}-point requirement; only 1-point requirements may be on a POA&M (32 CFR 170.21(a)(2)(ii)).`,
+  }));
+  const complete = options.complete ?? !lines.some((line) => line.state === "pending" || line.state === "not_assessed");
+  const checks = [
+    { key: "minimum_score", source: "32 CFR 170.21(a)(2)(i)", passed: verified.value >= 88, detail: `Verified score ${verified.value} ÷ 110; at least 88 of 110 is required.` },
+    { key: "maximum_points", source: "32 CFR 170.21(a)(2)(ii)", passed: items.every((item) => item.allowed), detail: "Only POA&M-eligible requirements may be unverified.", items },
+    { key: "excluded", source: "32 CFR 170.21(a)(2)(iii)", passed: true, detail: "Never on a POA&M.", items: [{ record_id: "CA.L2-3.12.4", title: "System Security Plan", state: "met" }] },
+  ];
+  return {
+    authority: "32 CFR 170.24 CMMC Scoring Methodology", methodology: "NIST SP 800-171 DoD Assessment Methodology v1.2.1",
+    maximum_score: 110, minimum_score: -203, score: verified.value, verified, projected, complete,
+    blockers: options.blockers ?? [],
+    deductions: lines.map((line) => ({ record_id: line.record_id, citation: line.record_id, title: line.title ?? line.record_id, points: line.points, state: line.state, source: "32 CFR 170.24", conditional_poam_allowed: line.points <= 1, poam_reason: "" })),
+    evidence_pending: lines.filter((line) => line.state === "evidence_pending").map((line) => line.record_id),
+    unscored: [], partial_inputs_needed: [], partial_implementations: {}, follow_up: [],
+    conditional: { source: "32 CFR 170.21(a)(2)", score_ratio: verified.value / 110, minimum_score: 88, eligible: complete && checks.every((check) => check.passed), checks },
+  };
+}

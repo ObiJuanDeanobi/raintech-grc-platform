@@ -152,6 +152,9 @@ def build() -> dict[str, Any]:
         "greater than or equal to 0.8",
         "None of the security requirements included in the POA&M have a point value of greater than 1",
         "SC.L2-3.13.11 CUI Encryption may be included on a POA&M if encryption is employed but it is not FIPS-validated",
+        "(i) The assessment score divided by the total number of CMMC Level 2 security requirements",
+        "(ii) None of the security requirements included in the POA&M",
+        "(iii) None of the following security requirements are included in the POA&M",
     ):
         if phrase not in poam_text:
             raise ScoringError(f"Expected 32 CFR 170.21 text not found: {phrase!r}")
@@ -176,6 +179,12 @@ def build() -> dict[str, Any]:
         "requirements": ordered,
         "conditional_poam": {
             "source": "32 CFR 170.21(a)(2)",
+            # Each Conditional Level 2 check cites its own paragraph (GitHub issue #141).
+            "paragraphs": {
+                "minimum_score": "32 CFR 170.21(a)(2)(i)",
+                "maximum_points": "32 CFR 170.21(a)(2)(ii)",
+                "excluded": "32 CFR 170.21(a)(2)(iii)",
+            },
             "minimum_score_ratio": 0.8,
             "maximum_points": 1,
             "exceptions": {

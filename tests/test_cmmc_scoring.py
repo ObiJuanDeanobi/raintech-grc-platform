@@ -69,6 +69,51 @@ class ScoringDataTests(unittest.TestCase):
             ["AC.L2-3.1.20", "AC.L2-3.1.22", "CA.L2-3.12.4", "PE.L2-3.10.3", "PE.L2-3.10.4", "PE.L2-3.10.5"],
         )
 
+    def test_conditional_checks_cite_their_paragraphs(self) -> None:
+        self.assertEqual(
+            self.data["conditional_poam"]["paragraphs"],
+            {
+                "minimum_score": "32 CFR 170.21(a)(2)(i)",
+                "maximum_points": "32 CFR 170.21(a)(2)(ii)",
+                "excluded": "32 CFR 170.21(a)(2)(iii)",
+            },
+        )
+
+
+class MethodologyReconciliationTests(unittest.TestCase):
+    """The regulation-derived values agree with the pinned DoD Assessment Methodology.
+
+    docs/sources/cmmc-dfars/DoD-NIST-SP-800-171-Assessment-Methodology-v1.2.1.pdf
+    (sha256 dd88416c...0835). The lists below are transcribed from it for
+    cross-checking only; scoring still reads the 32 CFR 170.24 build (Issue #141).
+    """
+
+    # Section 5(d)(i)(1)-(2), p. 6: 5-point basic and derived requirements.
+    FIVE = ["3.1.1", "3.1.2", "3.2.1", "3.2.2", "3.3.1", "3.4.1", "3.4.2", "3.5.1", "3.5.2", "3.6.1", "3.6.2", "3.7.2", "3.8.3", "3.9.2", "3.10.1", "3.10.2", "3.12.1", "3.12.3", "3.13.1", "3.13.2", "3.14.1", "3.14.2", "3.14.3", "3.1.12", "3.1.13", "3.1.16", "3.1.17", "3.1.18", "3.3.5", "3.4.5", "3.4.6", "3.4.7", "3.4.8", "3.5.10", "3.7.5", "3.8.7", "3.11.2", "3.13.5", "3.13.6", "3.13.15", "3.14.4", "3.14.6"]
+    # Section 5(d)(ii)(1)-(2), p. 6: 3-point basic and derived requirements.
+    THREE = ["3.3.2", "3.7.1", "3.8.1", "3.8.2", "3.9.1", "3.11.1", "3.12.2", "3.1.5", "3.1.19", "3.7.4", "3.8.8", "3.13.8", "3.14.5", "3.14.7"]
+
+    def setUp(self) -> None:
+        data = json.loads(SCORING_PATH.read_text(encoding="utf-8"))
+        self.values = {key.split("-", 1)[1]: value for key, value in data["requirements"].items()}
+
+    def test_five_and_three_point_lists_match(self) -> None:
+        fixed = {k: v["points"] for k, v in self.values.items() if v["rule"] == "fixed"}
+        self.assertEqual({k for k, v in fixed.items() if v == 5}, set(self.FIVE))
+        self.assertEqual({k for k, v in fixed.items() if v == 3}, set(self.THREE))
+        # Section 5(d)(iii), pp. 6-7: all remaining derived requirements are 1 point.
+        self.assertEqual(len([v for v in fixed.values() if v == 1]), 110 - 42 - 14 - 3)
+
+    def test_partial_credit_and_ssp_match(self) -> None:
+        # Section 5(e)(i)-(ii), p. 7; Annex A p. 15 (3.5.3) and p. 19 (3.13.11): "3 to 5".
+        for requirement in ("3.5.3", "3.13.11"):
+            self.assertEqual(
+                self.values[requirement]["points_by_implementation"], {"partial": 3, "none": 5}
+            )
+        # Section 5(g)(i), p. 7; Annex A p. 18: 3.12.4 is "NA" (no point value).
+        self.assertEqual(self.values["3.12.4"]["rule"], "ssp_required")
+        self.assertNotIn("points", self.values["3.12.4"])
+
 
 if __name__ == "__main__":
     unittest.main()
