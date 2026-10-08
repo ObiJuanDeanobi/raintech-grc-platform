@@ -1938,6 +1938,7 @@ test("offers the latest evidence version explicitly and manages the recycle bin"
       return Response.json([{ id: "art-9", name: "old.txt", shared_record_count: 0, version_number: 1, sha256: "x", deleted_at: "2026-10-06" }]);
     }
     if (url.endsWith("/evidence")) return Response.json([]);
+    if (url.endsWith("/evidence-library")) return Response.json({ today: "2026-10-08", lead_days: 30, assessment_id: "assessment-1", artifacts: [] });
     if (init?.method === "PUT" || init?.method === "POST") return Response.json({});
     return Response.json({ detail: "not found" }, { status: 404 });
   });
@@ -1947,7 +1948,8 @@ test("offers the latest evidence version explicitly and manages the recycle bin"
   const user = userEvent.setup();
   await user.click(screen.getByRole("button", { name: "Use latest version" }));
   await waitFor(() => expect(calls).toContain("PUT /api/projects/project-1/assessments/assessment-1/evidence-mappings/map-1/version"));
-  await user.click(screen.getByText("Evidence library and recycle bin"));
+  // The recycle bin moved from every record to the Evidence view (#142).
+  await user.click(screen.getByRole("button", { name: "Evidence" }));
   await user.click(await screen.findByRole("button", { name: "Restore" }));
   await waitFor(() => expect(calls).toContain("POST /api/projects/project-1/evidence/art-9/restore"));
 });

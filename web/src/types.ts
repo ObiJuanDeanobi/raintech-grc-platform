@@ -106,7 +106,12 @@ export interface RecordState {
   evidence_count: number;
   open_poam_count: number;
   verification?: Verification;
+  /** Worst review status of the record's mapped evidence when not current (#142). */
+  evidence_review?: EvidenceReview | null;
 }
+
+/** Evidence review status, derived on read from the review date and lead time (#142). */
+export type EvidenceReview = "current" | "due_soon" | "stale";
 
 export interface AssessmentReopening {
   id: string;
@@ -328,6 +333,8 @@ export interface EvidenceMapping {
   sha256: string;
   latest_version_number?: number;
   review_date?: string | null;
+  review_status?: EvidenceReview;
+  days_until_review?: number | null;
 }
 
 export interface Artifact {
@@ -342,8 +349,46 @@ export interface Artifact {
   version_created_at: string;
   review_date?: string | null;
   overdue?: boolean;
+  review_status?: EvidenceReview;
+  days_until_review?: number | null;
   deleted_at?: string | null;
   purged_at?: string | null;
+}
+
+/** One objective that uses a library artifact (#142). */
+export interface EvidenceUse {
+  mapping_id: string;
+  artifact_id: string;
+  assessment_id: string;
+  record_id: string;
+  citation: string;
+  title: string;
+  parent_id: string | null;
+  rationale: string;
+  review_state: string;
+  version_number: number;
+}
+
+export interface LibraryArtifact {
+  id: string;
+  name: string;
+  created_at: string;
+  review_date: string | null;
+  version_id: string;
+  version_number: number;
+  sha256: string;
+  version_created_at: string;
+  review_status: EvidenceReview;
+  days_until_review: number | null;
+  used_by: EvidenceUse[];
+  other_use_count: number;
+}
+
+export interface EvidenceLibrary {
+  today: string;
+  lead_days: number;
+  assessment_id: string | null;
+  artifacts: LibraryArtifact[];
 }
 
 export type ProfileItemType =

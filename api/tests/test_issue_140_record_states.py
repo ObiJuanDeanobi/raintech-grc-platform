@@ -63,6 +63,7 @@ def test_record_states_follow_determinations_evidence_and_poam(tmp_path: Path) -
             "evidence_count": 0,
             "open_poam_count": 0,
             "verification": None,
+            "evidence_review": None,  # #142
         }
 
         for objective in OBJECTIVES:

@@ -9,6 +9,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, request } from "../../api";
 import { RoutineSaveStatus } from "../../components/RoutineSaveStatus";
 import { StatusPill } from "../../components/StatusPill";
+import { artifactLabel, reviewDetail, shortHash } from "../../lib/evidence";
 import { RoutineRecordSaveCoordinator, RoutineSaveReporter, useRoutineAutosave } from "../../components/routineSave";
 import { PoamEligibility, PoamSection } from "./PoamSection";
 import type {
@@ -561,6 +562,7 @@ export function EvidencePanel({
   onChanged,
   onArtifactsChanged,
   onSaveState,
+  mapForm = true,
 }: {
   assessment: Assessment;
   detail: RecordDetail;
@@ -568,10 +570,13 @@ export function EvidencePanel({
   onChanged: () => void;
   onArtifactsChanged: () => void;
   onSaveState: (state: "saving" | "saved" | "error", message?: string) => void;
+  /** False where the requirement view's multi-objective picker links evidence instead (#142). */
+  mapForm?: boolean;
 }) {
   const [artifactId, setArtifactId] = useState("");
   const [rationale, setRationale] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [editing, setEditing] = useState<{ mappingId: string; text: string } | null>(null);
   const targetRef = useRef({ assessmentId: assessment.id, projectId: assessment.project.id, recordId: detail.record.record_id });
   const mountedRef = useRef(true);
   targetRef.current = { assessmentId: assessment.id, projectId: assessment.project.id, recordId: detail.record.record_id };
@@ -639,13 +644,14 @@ export function EvidencePanel({
     onSaveState("saving");
     try {
       await request(path, init);
-      if (!isCurrent(target)) return;
+      if (!isCurrent(target)) return false;
       onSaveState("saved");
       onChanged();
       if (refreshArtifacts) onArtifactsChanged();
-      setBinTick((tick) => tick + 1);
+      return true;
     } catch (caught) {
       if (isCurrent(target)) onSaveState("error", caught instanceof Error ? caught.message : undefined);
+      return false;
     }
   }
 
@@ -655,16 +661,15 @@ export function EvidencePanel({
     void evidenceAction(`/api/projects/${assessment.project.id}/evidence/${mapping.artifact_id}/versions`, { method: "POST", body: data });
   }
 
-  const [binned, setBinned] = useState<Artifact[]>([]);
-  const [binTick, setBinTick] = useState(0);
-  useEffect(() => {
-    const controller = new AbortController();
-    request<Artifact[]>(`/api/projects/${assessment.project.id}/evidence?binned=true`, { signal: controller.signal })
-      .then((rows) => setBinned(Array.isArray(rows) ? rows : []))
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, [assessment.project.id, binTick]);
-  const evidenceBase = `/api/projects/${assessment.project.id}/evidence`;
+  async function saveRationale(mapping: EvidenceMapping, text: string) {
+    const saved = await evidenceAction(
+      `/api/projects/${assessment.project.id}/assessments/${assessment.id}/evidence-mappings/${mapping.mapping_id}/rationale`,
+      { method: "PUT", body: JSON.stringify({ rationale: text }) },
+      false,
+    );
+    if (saved) setEditing(null);
+  }
+
   const today = new Date().toISOString().slice(0, 10);
 
   async function unmap(mapping: EvidenceMapping) {
@@ -695,96 +700,98 @@ export function EvidencePanel({
         {detail.evidence.length === 0 && (
           <p className="empty-copy">No evidence mapped to this record yet.</p>
         )}
-        {detail.evidence.map((mapping) => (
-          <article className="evidence-item" key={mapping.mapping_id}>
-            <FileCheck2 size={18} />
-            <div>
-              <strong>{mapping.name}</strong>
-              <p>{mapping.rationale}</p>
-              <span>Version {mapping.version_number}</span>
-              {mapping.latest_version_number && mapping.latest_version_number > mapping.version_number && (
-                <span className="evidence-newer">
-                  Version {mapping.latest_version_number} is available.{" "}
-                  <button type="button" className="text-button" onClick={() => void evidenceAction(`/api/projects/${assessment.project.id}/assessments/${assessment.id}/evidence-mappings/${mapping.mapping_id}/version`, { method: "PUT" }, false)}>Use latest version</button>
-                </span>
-              )}
-              {mapping.review_date && mapping.review_date < today && <span className="evidence-overdue">Review overdue since {mapping.review_date}</span>}
-              <span>SHA-256: {mapping.sha256}</span>
-              <label className="text-button evidence-replace">Replace file<input type="file" aria-label={`Replace ${mapping.name}`} onChange={(event) => event.target.files?.[0] && replaceFile(mapping, event.target.files[0])} /></label>
-              <span>{mapping.review_state}</span>
-              <span>Shared across {mapping.shared_record_count} record{mapping.shared_record_count === 1 ? "" : "s"}</span>
-            </div>
-            <button className="icon-button" aria-label={`Unmap ${mapping.name}`} onClick={() => void unmap(mapping)}>
-              <X size={15} />
-            </button>
-          </article>
-        ))}
-      </div>
-      <form className="map-form" onSubmit={mapEvidence}>
-        <label className="upload-button">
-          <FileUp size={16} />
-          {uploading ? "Storing file…" : "Add evidence file"}
-          <input
-            type="file"
-            onChange={(event) => event.target.files?.[0] && void upload(event.target.files[0])}
-          />
-        </label>
-        <label>
-          Existing artifact
-          <select required value={artifactId} onChange={(event) => setArtifactId(event.target.value)}>
-            <option value="">Choose evidence…</option>
-            {artifacts.map((artifact) => (
-              <option key={artifact.id} value={artifact.id}>
-                {artifact.name} · Version {artifact.version_number} · SHA-256: {artifact.sha256}
-                {" "}({artifact.shared_record_count} mappings)
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Support rationale
-          <textarea
-            required
-            rows={2}
-            value={rationale}
-            onChange={(event) => setRationale(event.target.value)}
-            placeholder="What does this artifact support here?"
-          />
-        </label>
-        <button className="small-button" type="submit">Map to this record</button>
-      </form>
-      <details className="evidence-library">
-        <summary>Evidence library and recycle bin</summary>
-        <ul>
-          {artifacts.filter((artifact) => artifact.shared_record_count === 0).map((artifact) => (
-            <li key={artifact.id}>
-              {artifact.name} · v{artifact.version_number}{artifact.overdue ? " · review overdue" : ""}
-              <button type="button" className="text-button" onClick={() => void evidenceAction(`${evidenceBase}/${artifact.id}/recycle`, { method: "POST" })}>Move to bin</button>
-            </li>
-          ))}
-        </ul>
-        <p className="muted">Mapped evidence must be detached before it can be binned.</p>
-        <strong>Recycle bin</strong>
-        {binned.length === 0 ? <p className="muted">Empty.</p> : (
-          <ul aria-label="Recycle bin">
-            {binned.map((artifact) => (
-              <li key={artifact.id}>
-                {artifact.name}{artifact.purged_at ? " · file purged" : ""}
-                {!artifact.purged_at && (
+        {detail.evidence.map((mapping) => {
+          // Older payloads carry only the date; the server's status wins when present.
+          const review = mapping.review_status ?? (mapping.review_date && mapping.review_date < today ? "stale" : undefined);
+          return (
+            <article className={`evidence-item ${review === "stale" ? "evidence-stale" : review === "due_soon" ? "evidence-due-soon" : ""}`} key={mapping.mapping_id}>
+              <FileCheck2 size={18} />
+              <div>
+                <strong>{mapping.name}</strong>
+                {editing?.mappingId === mapping.mapping_id ? (
+                  <form className="rationale-edit" onSubmit={(event) => { event.preventDefault(); void saveRationale(mapping, editing.text); }}>
+                    <textarea
+                      aria-label={`Rationale for ${mapping.name}`}
+                      rows={2}
+                      required
+                      value={editing.text}
+                      onChange={(event) => setEditing({ mappingId: mapping.mapping_id, text: event.target.value })}
+                    />
+                    <span className="rationale-actions">
+                      <button type="submit" className="text-button" disabled={!editing.text.trim()}>Save rationale</button>
+                      <button type="button" className="text-button" onClick={() => setEditing(null)}>Cancel</button>
+                    </span>
+                  </form>
+                ) : (
+                  <p>
+                    {mapping.rationale}{" "}
+                    <button type="button" className="text-button" aria-label={`Edit rationale for ${mapping.name}`} onClick={() => setEditing({ mappingId: mapping.mapping_id, text: mapping.rationale })}>Edit</button>
+                  </p>
+                )}
+                <span>Version {mapping.version_number}</span>
+                {mapping.latest_version_number && mapping.latest_version_number > mapping.version_number && (
+                  <span className="evidence-newer">
+                    Version {mapping.latest_version_number} is available.{" "}
+                    <button type="button" className="text-button" onClick={() => void evidenceAction(`/api/projects/${assessment.project.id}/assessments/${assessment.id}/evidence-mappings/${mapping.mapping_id}/version`, { method: "PUT" }, false)}>Use latest version</button>
+                  </span>
+                )}
+                {review === "stale" && (
                   <>
-                    <button type="button" className="text-button" onClick={() => void evidenceAction(`${evidenceBase}/${artifact.id}/restore`, { method: "POST" })}>Restore</button>
-                    <button type="button" className="text-button" onClick={() => {
-                      if (window.confirm(`Permanently delete the stored file for “${artifact.name}”? Its hash history is kept.`)) {
-                        void evidenceAction(`${evidenceBase}/${artifact.id}`, { method: "DELETE" });
-                      }
-                    }}>Delete permanently</button>
+                    <span className="evidence-overdue">Review overdue since {mapping.review_date}</span>
+                    <span className="evidence-overdue">Stale: no longer verifies a Met</span>
                   </>
                 )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </details>
+                {review === "due_soon" && (
+                  <span className="evidence-due">{reviewDetail(mapping.review_date, review, mapping.days_until_review)}</span>
+                )}
+                <span title={`SHA-256 ${mapping.sha256}`}>SHA-256: {shortHash(mapping.sha256)}</span>
+                <label className="text-button evidence-replace">Replace file<input type="file" aria-label={`Replace ${mapping.name}`} onChange={(event) => event.target.files?.[0] && replaceFile(mapping, event.target.files[0])} /></label>
+                <span>{mapping.review_state}</span>
+                <span>Shared across {mapping.shared_record_count} record{mapping.shared_record_count === 1 ? "" : "s"}</span>
+              </div>
+              <button className="icon-button" aria-label={`Unmap ${mapping.name}`} onClick={() => void unmap(mapping)}>
+                <X size={15} />
+              </button>
+            </article>
+          );
+        })}
+      </div>
+      {mapForm && (
+        <form className="map-form" onSubmit={mapEvidence}>
+          <label className="upload-button">
+            <FileUp size={16} />
+            {uploading ? "Storing file…" : "Add evidence file"}
+            <input
+              type="file"
+              onChange={(event) => event.target.files?.[0] && void upload(event.target.files[0])}
+            />
+          </label>
+          <label>
+            Existing artifact
+            <select required value={artifactId} onChange={(event) => setArtifactId(event.target.value)}>
+              <option value="">Choose evidence…</option>
+              {artifacts.map((artifact) => (
+                <option key={artifact.id} value={artifact.id} title={`SHA-256 ${artifact.sha256}`}>
+                  {artifactLabel(artifact)}
+                  {" "}({artifact.shared_record_count} mappings){artifact.review_status === "stale" ? " · stale" : artifact.review_status === "due_soon" ? " · due soon" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Support rationale
+            <textarea
+              required
+              rows={2}
+              value={rationale}
+              onChange={(event) => setRationale(event.target.value)}
+              placeholder="What does this artifact support here?"
+            />
+          </label>
+          <button className="small-button" type="submit">Map to this record</button>
+        </form>
+      )}
+      <p className="muted">Renewal, review dates and the recycle bin are in the Evidence view.</p>
     </section>
   );
 }

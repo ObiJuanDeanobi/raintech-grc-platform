@@ -9,16 +9,25 @@ Verification is derived on read, never stored, so a determination is not
 rewritten when its support changes. ``CURRENT_MAPPING`` is the one predicate
 that decides whether a mapping still counts; evidence staleness and expiry
 (issue #142, AC-024) extend that predicate and nothing else.
+
+Staleness is computed on read against ``evidence_lifecycle.today()``: once an
+artifact's review date has passed, its mappings stop verifying, so a verified
+Met returns to evidence pending and leaves the verified score. The stored
+determination and its history are never touched.
 """
 
+from datetime import date
 from typing import Any
+
+from api import evidence_lifecycle
 
 VERIFIED = "verified"
 EVIDENCE_PENDING = "evidence_pending"
 
 # A mapping counts while it targets this assessment record, pins a stored
-# version of a project artifact, and that artifact has not been binned.
-# Issue #142 adds evidence currency (review date / expiry) here.
+# version of a project artifact, that artifact has not been binned, and its
+# review date (if any) has not passed (#142). ``:today`` is an ISO date bound by
+# the caller. "Passed" matches ``evidence_lifecycle.overdue`` and ``STALE``.
 CURRENT_MAPPING = """
     m.target_type = 'assessment_record'
     AND EXISTS (
@@ -27,15 +36,19 @@ CURRENT_MAPPING = """
           ON ev.artifact_id = ea.id AND ev.project_id = ea.project_id
         WHERE ea.id = m.artifact_id AND ev.id = m.evidence_version_id
           AND ea.deleted_at IS NULL
+          AND (ea.review_date IS NULL OR ea.review_date = '' OR ea.review_date >= :today)
     )
 """
 
 
-def met_bases(connection: Any, assessment_id: str) -> dict[str, str | None]:
+def met_bases(
+    connection: Any, assessment_id: str, today: date | None = None
+) -> dict[str, str | None]:
     """Every Met determination in the assessment and what verifies it.
 
     The value is ``"evidence"``, ``"interview_observation"``, or ``None`` when
-    the Met is evidence pending.
+    the Met is evidence pending. ``today`` defaults to
+    ``evidence_lifecycle.today()``.
     """
     rows = connection.execute(
         f"""SELECT d.record_id,
@@ -46,8 +59,11 @@ def met_bases(connection: Any, assessment_id: str) -> dict[str, str | None]:
                    ) AS has_evidence,
                    trim(COALESCE(d.interview_observation, '')) != '' AS has_observation
             FROM determinations d
-            WHERE d.assessment_id = ? AND d.status = 'Met'""",
-        (assessment_id,),
+            WHERE d.assessment_id = :assessment_id AND d.status = 'Met'""",
+        {
+            "assessment_id": assessment_id,
+            "today": (today or evidence_lifecycle.today()).isoformat(),
+        },
     )
     bases: dict[str, str | None] = {}
     for row in rows:

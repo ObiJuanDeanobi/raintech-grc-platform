@@ -14,7 +14,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, field_validator
 
-from api import cmmc, evidence_lifecycle, ssp, verification, workspace_backup
+from api import (
+    cmmc,
+    evidence_library,
+    evidence_lifecycle,
+    ssp,
+    verification,
+    workspace_backup,
+)
 from api.close import fieldwork_ready
 from api.correction import create_correction, package_issuance
 from api.database import (
@@ -79,6 +86,20 @@ class PoamItemEdit(BaseModel):
 
 class EvidenceReviewDate(BaseModel):
     review_date: date | None = None
+
+
+class EvidenceLeadTime(BaseModel):
+    lead_days: int = Field(ge=0, le=365)
+
+
+class EvidenceMappingBulkCreate(BaseModel):
+    artifact_id: str
+    record_ids: list[str] = Field(min_length=1, max_length=200)
+    rationale: str = Field(min_length=1, max_length=2000)
+
+
+class EvidenceMappingRationale(BaseModel):
+    rationale: str = Field(min_length=1, max_length=2000)
 
 
 class ProjectCreate(BaseModel):
@@ -948,6 +969,7 @@ def _record_states(
         )
     }
     bases = verification.met_bases(connection, assessment["id"])
+    reviews = evidence_library.record_review_states(connection, assessment)
     children: dict[str, list[str]] = {}
     for record in records:
         if record["parent_id"]:
@@ -968,6 +990,10 @@ def _record_states(
             "open_poam_count": poam.get(record_id, 0),
             # verified / evidence_pending for Met, otherwise None (#141).
             "verification": verification.state(status, deciding, bases),
+            # due_soon / stale when mapped evidence nears or passes review (#142).
+            "evidence_review": evidence_library.worst_of(
+                [reviews.get(child) for child in {record_id, *deciding}]
+            ),
         }
     return states
 
@@ -1112,7 +1138,7 @@ def _walkthrough_records(connection: Any, framework_version_id: str) -> list[Any
 def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[str, Any]:
     record = _record_or_404(connection, assessment_id, record_id)
     assessment = connection.execute(
-        "SELECT framework_version_id FROM assessments WHERE id = ?",
+        "SELECT framework_version_id, project_id FROM assessments WHERE id = ?",
         (assessment_id,),
     ).fetchone()
     parent = None
@@ -1164,9 +1190,12 @@ def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[
         "SELECT note FROM record_notes WHERE assessment_id = ? AND record_id = ?",
         (assessment_id, record_id),
     ).fetchone()
+    lead_days = evidence_lifecycle.lead_days(connection, assessment["project_id"])
+    today = evidence_lifecycle.today()
     evidence = [
         {
             **_row(mapping),
+            **evidence_library.review_fields(mapping["review_date"], lead_days, today),
             "shared_record_count": connection.execute(
                 "SELECT COUNT(*) AS count FROM evidence_mappings "
                 "WHERE artifact_id = ? AND target_type = 'assessment_record'",
@@ -4384,10 +4413,13 @@ def create_app(
     ) -> list[dict[str, Any]]:
         with database.connect() as connection:
             _project_or_404(connection, project_id)
+            lead_days = evidence_lifecycle.lead_days(connection, project_id)
+            today = evidence_lifecycle.today()
             return [
                 {
                     **_row(row),
                     "overdue": evidence_lifecycle.overdue(row["review_date"]),
+                    **evidence_library.review_fields(row["review_date"], lead_days, today),
                     "shared_record_count": connection.execute(
                         "SELECT COUNT(*) AS count FROM evidence_mappings "
                         "WHERE artifact_id = ? AND target_type = 'assessment_record'",
@@ -4420,10 +4452,16 @@ def create_app(
         file: Annotated[UploadFile, File()],
         database: Annotated[Database, Depends(db)],
         file_storage: Annotated[FileStorage, Depends(files)],
+        review_date: Annotated[str | None, Form()] = None,
+        move_mappings: Annotated[bool, Form()] = False,
     ) -> dict[str, Any]:
         content = await file.read()
         if not file.filename:
             raise HTTPException(status_code=422, detail="Evidence filename is required")
+        try:
+            renewed = date.fromisoformat(review_date).isoformat() if review_date else None
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail="Review date must be YYYY-MM-DD") from error
         with database.connect() as connection:
             _project_or_404(connection, project_id)
             artifact = evidence_lifecycle.artifact_or_404(connection, project_id, artifact_id)
@@ -4437,7 +4475,73 @@ def create_app(
                 artifact_id,
                 {"version_number": version["version_number"], "sha256": version["sha256"]},
             )
-            return {"artifact_id": artifact_id, "version": version}
+            # Renewing stale evidence (#142): the new version may carry the next
+            # review date and, when asked, take over the assessment mappings.
+            # Without these fields replacement behaves exactly as in #119.
+            if renewed:
+                connection.execute(
+                    "UPDATE evidence_artifacts SET review_date = ? WHERE id = ?",
+                    (renewed, artifact_id),
+                )
+                _audit(
+                    connection,
+                    "evidence.review_date_set",
+                    "evidence_artifact",
+                    artifact_id,
+                    {"review_date": renewed},
+                )
+            moved = []
+            if move_mappings:
+                moved = evidence_library.move_mappings_to(
+                    connection, project_id, artifact_id, version["id"]
+                )
+            for mapping in moved:
+                _audit(
+                    connection,
+                    "evidence.mapping_version_moved",
+                    "evidence_mapping",
+                    mapping["id"],
+                    {
+                        "from_version_id": mapping["evidence_version_id"],
+                        "to_version_id": version["id"],
+                        "record_id": mapping["record_id"],
+                    },
+                )
+            return {
+                "artifact_id": artifact_id,
+                "version": version,
+                "review_date": renewed or artifact["review_date"],
+                "moved_mapping_ids": [mapping["id"] for mapping in moved],
+            }
+
+    @app.get("/api/projects/{project_id}/evidence-library")
+    def get_evidence_library(
+        project_id: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            return evidence_library.library(connection, project_id)
+
+    @app.put("/api/projects/{project_id}/evidence-settings")
+    def set_evidence_lead_time(
+        project_id: str,
+        payload: EvidenceLeadTime,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            connection.execute(
+                "UPDATE projects SET evidence_review_lead_days = ? WHERE id = ?",
+                (payload.lead_days, project_id),
+            )
+            _audit(
+                connection,
+                "evidence.lead_time_set",
+                "project",
+                project_id,
+                {"lead_days": payload.lead_days},
+            )
+            return {"lead_days": payload.lead_days}
 
     @app.put("/api/projects/{project_id}/evidence/{artifact_id}/review-date")
     def set_evidence_review_date(
@@ -4636,6 +4740,76 @@ def create_app(
             "review_state": "Not reviewed",
             "shared_record_count": shared_count,
         }
+
+    @app.post(
+        "/api/projects/{project_id}/assessments/{assessment_id}/evidence-mappings/bulk",
+        status_code=201,
+    )
+    def create_mappings(
+        project_id: str,
+        assessment_id: str,
+        payload: EvidenceMappingBulkCreate,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        """Map one artifact to several objectives in one act (#142, AC-007)."""
+        rationale = payload.rationale.strip()
+        if not rationale:
+            raise HTTPException(status_code=422, detail="Support rationale is required")
+        with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
+            created = evidence_library.map_many(
+                connection,
+                project_id,
+                assessment_id,
+                payload.artifact_id,
+                payload.record_ids,
+                rationale,
+                now(),
+            )
+            for mapping in created:
+                _audit(
+                    connection,
+                    "evidence.mapped",
+                    "evidence_mapping",
+                    mapping["id"],
+                    {
+                        "assessment_id": assessment_id,
+                        "record_id": mapping["record_id"],
+                        "artifact_id": payload.artifact_id,
+                    },
+                )
+            return {"artifact_id": payload.artifact_id, "mappings": created}
+
+    @app.put(
+        "/api/projects/{project_id}/assessments/{assessment_id}"
+        "/evidence-mappings/{mapping_id}/rationale"
+    )
+    def update_mapping_rationale(
+        project_id: str,
+        assessment_id: str,
+        mapping_id: str,
+        payload: EvidenceMappingRationale,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        rationale = payload.rationale.strip()
+        if not rationale:
+            raise HTTPException(status_code=422, detail="Support rationale is required")
+        with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
+            mapping = evidence_library.assessment_mapping_or_404(
+                connection, project_id, assessment_id, mapping_id
+            )
+            connection.execute(
+                "UPDATE evidence_mappings SET rationale = ? WHERE id = ?", (rationale, mapping_id)
+            )
+            _audit(
+                connection,
+                "evidence.mapping_updated",
+                "evidence_mapping",
+                mapping_id,
+                {"record_id": mapping["record_id"], "previous_rationale": mapping["rationale"]},
+            )
+            return {"mapping_id": mapping_id, "rationale": rationale}
 
     @app.delete(
         "/api/projects/{project_id}/assessments/{assessment_id}/evidence-mappings/{mapping_id}"
