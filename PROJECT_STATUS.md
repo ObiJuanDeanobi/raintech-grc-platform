@@ -731,8 +731,9 @@ for an issue. Each names who has to answer it.
   Profile approval and one review-and-issue step) is read as included. These
   still need the spec amendment drafted and approved before BUILD. Drafted as
   ADR 0019 plus *[Amendment 2026-10]* edits in `docs/specification.md`;
-  **approved by Johnathan on October 8, 2026.** Next: ticket plan for his
-  approval; #127–#133 to be superseded by it.
+  **approved by Johnathan on October 8, 2026.** Tickets #139–#156 cut from it
+  (#127–#133 closed as superseded). #139 (split `web/src/App.tsx` into
+  per-view modules, no behaviour change) is the first; then #140.
 - **Pinned primary sources (October 8, 2026):** `docs/sources/` holds official
   copies (eCFR, Federal Register, NIST, DoW CIO, HHS via archive captures where
   hhs.gov blocks cloud IPs) with SHA-256 manifest. Cite these, not secondary
