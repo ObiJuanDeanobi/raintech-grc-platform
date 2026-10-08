@@ -298,6 +298,16 @@ Given after reviewing the mockup. These are direction, not yet spec changes.
   model should keep the seam open: every profile fact and answer records its
   source and whether it is suggested or confirmed, so imported data can arrive
   as unconfirmed suggestions later.
+- **Service cadence for retained clients (varies by client).** One monthly
+  maintenance focus plus one yearly push.
+  - CMMC: monthly check-ins on policies, procedures and software inventory,
+    looking for changes that need maintenance; yearly a simple gap analysis /
+    mock assessment.
+  - HIPAA: monthly maintenance; yearly a report deliverable to the client with
+    the POA&M.
+  - Design consequence: a client record spans years; monthly focus items and
+    the yearly assessment are scheduled work on the Home queue; the yearly
+    assessment carries last year's answers forward for revalidation.
 - **Client access is V3.**
 - **No other frameworks for now** (SOC 2, HITRUST, PCI DSS out of scope).
 - **CUI/PHI/ePHI stay out of the tool** by operator practice; Johnathan is the

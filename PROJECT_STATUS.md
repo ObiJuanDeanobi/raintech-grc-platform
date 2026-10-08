@@ -723,7 +723,11 @@ for an issue. Each names who has to answer it.
   0011 bars claiming an annual interval is required); evidence many-to-many with
   stale warnings; V2 integrations with Halo PSA / NinjaOne, so V1 records source
   and suggested-vs-confirmed on profile facts and answers; client access V3; no
-  other frameworks. See `docs/research/2026-10-competitor-ux/README.md`.
+  other frameworks. Service cadence: one monthly maintenance focus plus a
+  yearly gap analysis / mock assessment (CMMC) or yearly report with POA&M
+  (HIPAA). Waiting on: a sanitized example HIPAA yearly report from Johnathan
+  to define the report's structure. See
+  `docs/research/2026-10-competitor-ux/README.md`.
   Mockup: https://claude.ai/artifact/AzqferR2ShcVqp2B1aox8p (private to
   Johnathan).
 - **Question-level working record test in Issue #49 — Johnathan.** The test is
