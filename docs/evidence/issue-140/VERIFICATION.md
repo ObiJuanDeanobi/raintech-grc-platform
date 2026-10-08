@@ -154,3 +154,12 @@ Measurements (Chromium, synthetic project):
 - Evidence library view (#142), one-click POA&M (#143), HIPAA layout (#149).
 - No Windows or Surface run.
 - CI has not run; this branch is local only.
+
+## Review fix (integrating session)
+
+Review found that the requirement list's open POA&M count included Withdrawn
+items. `_record_states` now counts only items not Closed or Withdrawn, and
+`test_record_states_follow_determinations_evidence_and_poam` withdraws the item
+and asserts the count drops to 0. The test fails without the fix and passes with
+it. Full re-run on the integration branch: `pytest` 243 passed, `ruff` and `mypy`
+clean, `pnpm typecheck`, `lint`, `test` (76 passed) and `build` pass.

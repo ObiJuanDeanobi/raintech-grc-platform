@@ -934,7 +934,7 @@ def _record_states(
             """SELECT f.record_id, COUNT(a.id) AS count FROM requirement_findings f
                JOIN corrective_actions a
                  ON a.finding_id = f.finding_id AND a.project_id = f.project_id
-               WHERE f.project_id = ? AND a.status != 'Closed'
+               WHERE f.project_id = ? AND a.status NOT IN ('Closed', 'Withdrawn')
                GROUP BY f.record_id""",
             (assessment["project_id"],),
         )

@@ -94,6 +94,13 @@ def test_record_states_follow_determinations_evidence_and_poam(tmp_path: Path) -
         assert poam.status_code == 201, poam.text
         assert _states(client, project)[REQUIREMENT]["open_poam_count"] == 1
 
+        action = poam.json()["poam_items"][0]["id"]
+        withdrawn = client.put(
+            f"/api/projects/{project}/corrective-actions/{action}", json={"state": "Withdrawn"}
+        )
+        assert withdrawn.status_code == 200, withdrawn.text
+        assert _states(client, project)[REQUIREMENT]["open_poam_count"] == 0
+
 
 def test_record_states_are_project_scoped_and_hipaa_derives(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
