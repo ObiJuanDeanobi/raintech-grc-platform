@@ -330,6 +330,10 @@ def seed_cmmc_catalog(database: Database, repository_root: Path) -> None:
         "content_sha256": catalog["content_sha256"],
         # Findings attach to the derived requirement, not to each objective (#105).
         "findings_rule": "requirement_level",
+        # ADR 0019 decision 3 (#141): Met may be recorded without evidence and is
+        # then evidence pending. Evidence is enforced at close and issue, not at
+        # the click. Frameworks without this key keep refusing Met at the click.
+        "met_without_evidence": "evidence_pending",
         # Readiness close (AC-018): every objective Met, so every requirement Met;
         # no open POA&M; approved SSP; verified evidence. Review, backup, and
         # issue are the shared package gates that follow (#108).

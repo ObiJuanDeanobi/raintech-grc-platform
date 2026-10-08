@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi import HTTPException
 
+from api import verification
 from api.database import active_assessment_by_id, active_assessment_for_project
 from api.evidence_integrity import evidence_blockers, verify_assessment_evidence
 
@@ -200,6 +201,12 @@ def fieldwork_ready(
                WHERE framework_version_id = ? ORDER BY sort_order, record_id""",
             (project["framework_version_id"],),
         ).fetchall()
+        # A final Met needs current mapped evidence or a documented interview or
+        # observation. Where the framework lets Met be saved without either
+        # (evidence pending, #141; CMMC), the rule is enforced here, at close.
+        # HIPAA still refuses such a Met at the click and is unchanged.
+        pending_allowed = declarations.get("met_without_evidence") == "evidence_pending"
+        bases = verification.met_bases(connection, assessment["id"]) if pending_allowed else {}
         for record_id in [row["record_id"] for row in records if row["carries_determination"]]:
             det = connection.execute(
                 "SELECT * FROM determinations WHERE assessment_id = ? AND record_id = ?",
@@ -212,6 +219,15 @@ def fieldwork_ready(
                     blockers,
                     "determination_not_final",
                     f"Final determination required: {record_id}",
+                    "determinations",
+                    link,
+                )
+            elif pending_allowed and status == "Met" and bases.get(record_id) is None:
+                _block(
+                    blockers,
+                    "met_evidence_pending",
+                    f"Met is evidence pending; map current evidence or record an "
+                    f"interview or observation: {record_id}",
                     "determinations",
                     link,
                 )

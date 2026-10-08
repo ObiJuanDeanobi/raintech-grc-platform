@@ -13,7 +13,6 @@ import { RoutineRecordSaveCoordinator, RoutineSaveReporter, useRoutineAutosave }
 import type {
   Artifact,
   Assessment,
-  CmmcScore,
   FrameworkDeclarations,
   RequirementFinding,
   SspView,
@@ -232,35 +231,6 @@ export function DeterminationPanel({
         />
       </details>
       <RoutineSaveStatus state={determinationSaveState} retry={retryDetermination} label="determination" message={determinationError} />
-    </section>
-  );
-}
-
-export function CmmcScorePanel({ projectId, assessmentId, refreshKey }: { projectId: string; assessmentId: string; refreshKey: unknown }) {
-  const [score, setScore] = useState<CmmcScore | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    request<CmmcScore>(`/api/projects/${projectId}/assessments/${assessmentId}/cmmc-score`, { signal: controller.signal })
-      .then(setScore)
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, [projectId, assessmentId, refreshKey]);
-  if (!score) return null;
-  return (
-    <section className="cmmc-score" aria-label="Official CMMC score">
-      <div>
-        <p className="eyebrow">OFFICIAL SCORE · {score.authority}</p>
-        <h3>
-          {score.score} <small>of {score.maximum_score}{score.complete ? "" : " · provisional"}</small>
-        </h3>
-      </div>
-      <dl>
-        <div><dt>Not Met</dt><dd>{score.deductions.length}</dd></div>
-        <div><dt>Unscored</dt><dd>{score.unscored.length}</dd></div>
-        <div><dt>Follow-up</dt><dd>{score.follow_up.length}</dd></div>
-        <div><dt>Conditional status</dt><dd>{score.conditional.eligible ? "Eligible" : "Not eligible"}</dd></div>
-      </dl>
-      {score.blockers.length > 0 && <ul className="cmmc-score-blockers">{score.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul>}
     </section>
   );
 }

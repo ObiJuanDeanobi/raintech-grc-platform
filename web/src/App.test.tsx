@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import App, { Workspace } from "./App";
-import { activeRevisionFixture, clientAssessmentProjectsFixture, clientProjectsFixture, delayedResponse as deferredResponse } from "./activeAssessmentFixtures";
+import { activeRevisionFixture, clientAssessmentProjectsFixture, clientProjectsFixture, cmmcScoreFixture, delayedResponse as deferredResponse } from "./activeAssessmentFixtures";
 
 const assessment = {
   id: "assessment-1",
@@ -1846,13 +1846,10 @@ test("CMMC shows the official score and the requirement finding with POA&M items
     const url = String(input);
     if (url.endsWith("/assessment")) return Response.json(scored);
     if (url.endsWith("/cmmc-score")) {
-      return Response.json({
-        authority: "32 CFR 170.24 CMMC Scoring Methodology", maximum_score: 110, minimum_score: -203, score: 105,
-        complete: false, blockers: ["108 requirement(s) are not yet Met or Not Met."],
-        deductions: [{ record_id: "AC.L2-3.1.1", citation: "AC.L2-3.1.1", title: "Authorized Access Control", points: 5, source: "32 CFR 170.24(c)(2)(i)(B)(1)", conditional_poam_allowed: false }],
-        unscored: [], partial_inputs_needed: [], partial_implementations: {}, follow_up: [{ record_id: "AC.L2-3.1.2a", requirement_id: "AC.L2-3.1.2", kind: "evidence_request" }],
-        conditional: { source: "32 CFR 170.21(a)(2)", score_ratio: 0.95, eligible: false },
-      });
+      return Response.json(cmmcScoreFixture(
+        [{ record_id: "AC.L2-3.1.1", title: "Authorized Access Control", points: 5, state: "not_met" }],
+        { complete: false, blockers: ["108 requirement(s) are not yet Met or Not Met."] },
+      ));
     }
     if (url.endsWith("/finding")) {
       return Response.json({
@@ -1879,6 +1876,13 @@ test("CMMC shows the official score and the requirement finding with POA&M items
   expect(finding).toHaveTextContent("Evidence: users.txt");
   expect(finding).toHaveTextContent("Rebuild the authorized user list");
   expect(within(finding).getByRole("button", { name: "Add POA&M item" })).toBeVisible();
+
+  // The Overview carries the same two scores and the 32 CFR 170.21 checks (#141).
+  await userEvent.setup().click(screen.getAllByRole("button", { name: "Overview" })[0]);
+  const overview = await screen.findByRole("region", { name: "CMMC score and Conditional status" });
+  expect(overview).toHaveTextContent("VERIFIED SPRS105of 110 · provisional");
+  expect(overview).toHaveTextContent("105 projected (includes evidence pending)");
+  expect(within(overview).getByRole("region", { name: "32 CFR 170.21 Conditional status checks" })).toHaveTextContent("Not eligible");
 });
 
 test("shows a persistent backup warning and backs up on request", async () => {

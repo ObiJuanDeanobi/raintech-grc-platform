@@ -90,10 +90,14 @@ export interface Assessment {
   record_states?: Record<string, RecordState>;
 }
 
+/** Met is verified (current evidence or interview/observation) or evidence pending (#141). */
+export type Verification = "verified" | "evidence_pending" | null;
+
 export interface RecordState {
   status: Status;
   evidence_count: number;
   open_poam_count: number;
+  verification?: Verification;
 }
 
 export interface AssessmentReopening {
@@ -227,6 +231,7 @@ export interface Determination {
   addressable_disposition: string | null;
   disposition_reason: string;
   interview_observation: string;
+  verification?: Verification;
 }
 
 export type ReconciliationDisposition = "create" | "link_existing" | "not_needed";
@@ -500,19 +505,43 @@ export interface RecordDetail {
   };
 }
 
+/** How a requirement counts in the verified score (#141). */
+export type ScoreState = "met" | "evidence_pending" | "not_met" | "pending" | "not_assessed";
+
+export interface ScoreFigure {
+  value: number;
+  deductions: { record_id: string; points: number; state: ScoreState }[];
+  /** Literal arithmetic, for example "110 − 5 − 3 = 102". */
+  arithmetic: string;
+}
+
+export interface ConditionalCheck {
+  key: "minimum_score" | "maximum_points" | "excluded";
+  source: string;
+  passed: boolean;
+  detail: string;
+  items?: { record_id: string; title: string; state: ScoreState; points?: number | null; allowed?: boolean; reason?: string }[];
+}
+
 export interface CmmcScore {
   authority: string;
+  methodology: string;
   maximum_score: number;
   minimum_score: number;
+  /** The verified score: the headline and the only figure that may be issued. */
   score: number;
+  verified: ScoreFigure;
+  /** Counts evidence-pending Met as Met. Never shown without the verified score. */
+  projected: ScoreFigure;
   complete: boolean;
   blockers: string[];
-  deductions: { record_id: string; citation: string; title: string; points: number | null; source: string; conditional_poam_allowed: boolean }[];
+  deductions: { record_id: string; citation: string; title: string; points: number | null; state: ScoreState; source: string; conditional_poam_allowed: boolean; poam_reason: string }[];
+  evidence_pending: string[];
   unscored: { record_id: string; status: string }[];
   partial_inputs_needed: string[];
   partial_implementations: Record<string, { implementation: "partial" | "none"; rationale: string }>;
   follow_up: { record_id: string; requirement_id: string; kind: string }[];
-  conditional: { source: string; score_ratio: number; eligible: boolean };
+  conditional: { source: string; score_ratio: number; minimum_score: number; eligible: boolean; checks: ConditionalCheck[] };
 }
 
 export interface RequirementFinding {

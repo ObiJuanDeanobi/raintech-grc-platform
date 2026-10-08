@@ -737,6 +737,12 @@ for an issue. Each names who has to answer it.
   #140 (requirement-centred CMMC assessment view, one-click objective
   determinations, save-failure reason) is built on top of #139 and awaiting
   review; see `docs/evidence/issue-140/VERIFICATION.md`. Next: #141.
+  #141 (evidence pending; verified SPRS headline with projected secondary,
+  literal arithmetic, 32 CFR 170.21 checks) is built on top of #140 and
+  awaiting review; see `docs/evidence/issue-141/VERIFICATION.md`. Open for
+  Johnathan: an unassessed requirement now deducts its weight in both scores
+  (an empty assessment shows −203, not 110); HIPAA keeps refusing Met without
+  evidence at the click. Next: #142 extends `api/verification.CURRENT_MAPPING`.
 - **Pinned primary sources (October 8, 2026):** `docs/sources/` holds official
   copies (eCFR, Federal Register, NIST, DoW CIO, HHS via archive captures where
   hhs.gov blocks cloud IPs) with SHA-256 manifest. Cite these, not secondary

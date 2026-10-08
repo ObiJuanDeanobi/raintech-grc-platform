@@ -11,13 +11,13 @@ import { isDecided } from "../../lib/requirements";
 import type {
   Artifact,
   Assessment,
-  CmmcScore,
   Determination,
   RecordDetail,
   RecordState,
   RecordSummary,
   SspView,
   Status,
+  Verification,
 } from "../../types";
 import { EvidencePanel, RequirementFindingPanel, SspPanel } from "./RecordPanels";
 
@@ -41,29 +41,6 @@ function isTyping(target: EventTarget | null): boolean {
 
 function statusSlug(status: Status): string {
   return status.toLowerCase().replaceAll(" ", "-");
-}
-
-/** One compact line in place of the full score panel (#140). */
-export function CmmcScoreLine({ projectId, assessmentId, refreshKey }: { projectId: string; assessmentId: string; refreshKey: unknown }) {
-  const [score, setScore] = useState<CmmcScore | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    request<CmmcScore>(`/api/projects/${projectId}/assessments/${assessmentId}/cmmc-score`, { signal: controller.signal })
-      .then(setScore)
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, [projectId, assessmentId, refreshKey]);
-  if (!score) return null;
-  return (
-    <section className="cmmc-score-line" aria-label="Official CMMC score" title={score.blockers.join(" ")}>
-      <span className="eyebrow">SCORE</span>
-      <strong>{score.score}</strong>
-      <small>of {score.maximum_score}{score.complete ? "" : " · provisional"}</small>
-      <span>Not Met {score.deductions.length}</span>
-      <span>Unscored {score.unscored.length}</span>
-      <span>Conditional {score.conditional.eligible ? "Eligible" : "Not eligible"}</span>
-    </section>
-  );
 }
 
 export function RequirementWorkspace({
@@ -192,6 +169,9 @@ export function RequirementWorkspace({
           </div>
           <div className="requirement-head-actions">
             <StatusPill status={detail.determination.status} derived />
+            {detail.determination.status === "Met" && recordStates[detail.record.record_id]?.verification === "evidence_pending" && (
+              <span className="evidence-pending-tag" title="Met without current evidence or a documented interview/observation. Excluded from the verified score.">Evidence pending</span>
+            )}
             <div className="mode-toggle" role="group" aria-label="Assessment view">
               <button type="button" aria-pressed={mode === "requirement"} className={mode === "requirement" ? "selected" : ""} onClick={() => setMode("requirement")}>Requirement view</button>
               <button type="button" aria-pressed={mode === "interview"} className={mode === "interview" ? "selected" : ""} onClick={() => setMode("interview")}>Interview view</button>
@@ -254,6 +234,7 @@ export function RequirementWorkspace({
               expanded={expanded.has(objective.record_id)}
               objectiveDetail={objectiveDetails[objective.record_id]}
               evidenceCount={objectiveDetails[objective.record_id]?.evidence.length ?? recordStates[objective.record_id]?.evidence_count ?? 0}
+              verification={recordStates[objective.record_id]?.verification ?? objective.determination?.verification ?? null}
               rowRef={(element) => {
                 if (element) rowRefs.current.set(objective.record_id, element);
                 else rowRefs.current.delete(objective.record_id);
@@ -349,6 +330,7 @@ function ObjectiveRow({
   expanded,
   objectiveDetail,
   evidenceCount,
+  verification,
   rowRef,
   onFocus,
   onToggle,
@@ -365,6 +347,8 @@ function ObjectiveRow({
   expanded: boolean;
   objectiveDetail: RecordDetail | undefined;
   evidenceCount: number;
+  /** Server-derived; trusted only while the shown status is the saved Met. */
+  verification: Verification;
   rowRef: (element: HTMLLIElement | null) => void;
   onFocus: () => void;
   onToggle: () => void;
@@ -405,17 +389,27 @@ function ObjectiveRow({
 
   // A refused save shows the last saved status, not the attempted one (#140).
   const shownStatus = state === "failed" ? saved.status : form.status;
+  // Evidence pending (#141): Met with no current evidence and no documented
+  // interview/observation. Shown, not refused; excluded from the verified score.
+  const evidencePending = shownStatus === "Met" && saved.status === "Met" && verification === "evidence_pending";
   const open = expanded || interview;
   return (
     <li
       ref={rowRef}
-      className={`objective-item ${focused ? "focused" : ""} ${interview && !focused ? "interview-hidden" : ""} ${state === "failed" ? "failed" : ""}`}
+      className={`objective-item ${focused ? "focused" : ""} ${interview && !focused ? "interview-hidden" : ""} ${state === "failed" ? "failed" : ""} ${evidencePending ? "evidence-pending" : ""}`}
       aria-current={focused ? "true" : undefined}
       aria-label={`Objective ${objective.citation}`}
     >
       <div className="objective-line" onClick={onFocus}>
         <span className="objective-citation">{objective.citation}</span>
-        <span className="objective-text">{objective.regulation_text}</span>
+        <span className="objective-text">
+          {objective.regulation_text}
+          {evidencePending && (
+            <span className="evidence-pending-tag" title="Met without current evidence or a documented interview/observation. Excluded from the verified score; blocks close and issue until verified.">
+              Evidence pending
+            </span>
+          )}
+        </span>
         <span
           className={`objective-evidence ${evidenceCount > 0 ? "has-evidence" : ""}`}
           title={evidenceCount > 0 ? `${evidenceCount} evidence mapping(s)` : "No evidence mapped"}
@@ -423,12 +417,13 @@ function ObjectiveRow({
         >
           <FileCheck2 size={13} />{evidenceCount > 0 ? evidenceCount : ""}
         </span>
+
         <div className="objective-buttons" role="group" aria-label={`Determination for ${objective.citation}`}>
           {statuses.map((status) => (
             <button
               key={status}
               type="button"
-              className={`det-${statusSlug(status)} ${shownStatus === status ? "selected" : ""} ${state === "failed" && form.status === status && saved.status !== status ? "attempted" : ""}`}
+              className={`det-${statusSlug(status)} ${shownStatus === status ? "selected" : ""} ${state === "failed" && form.status === status && saved.status !== status ? "attempted" : ""} ${status === "Met" && evidencePending ? "unverified" : ""}`}
               aria-pressed={shownStatus === status}
               onClick={() => {
                 onFocus();
@@ -473,7 +468,7 @@ function ObjectiveRow({
             <p className="muted">Loading notes…</p>
           )}
           <label className="observation-field">
-            Documented interview or observation <small>supports Met without mapped evidence</small>
+            Documented interview or observation <small>verifies a Met without mapped evidence</small>
             <textarea
               aria-label={`Interview or observation record for ${objective.citation}`}
               rows={2}
