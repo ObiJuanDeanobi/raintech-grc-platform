@@ -733,7 +733,12 @@ for an issue. Each names who has to answer it.
   on compliance changes that affect them. Johnathan's HIPAA POA&M workbook
   format is recorded (structure only) in
   `docs/research/2026-10-competitor-ux/hipaa-poam-reference.md`, and the
-  yearly report's structure in `hipaa-report-reference.md` (same folder). See
+  yearly report's structure in `hipaa-report-reference.md` (same folder).
+  Second research pass validating the redesign against proven tools:
+  `docs/research/2026-10-competitor-ux/validation/README.md` (nothing
+  contradicted except turning RMM/PSA data into assessment answers; verified
+  score must be the headline; asset/CUI inventory and ESP inheritance missing;
+  V2 integrations need an ADR on external-service-provider scope first). See
   `docs/research/2026-10-competitor-ux/README.md`.
   Mockup (six screens: Home, Assess, Overview, Deliver, monthly service cycle,
   compliance-change log): https://claude.ai/artifact/AzqferR2ShcVqp2B1aox8p
