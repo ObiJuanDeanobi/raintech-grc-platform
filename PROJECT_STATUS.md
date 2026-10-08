@@ -710,6 +710,16 @@ list above is unchanged.
 Live but undecided. Not settled enough for `docs/decisions/`, not scoped enough
 for an issue. Each names who has to answer it.
 
+- **Decided October 8, 2026 (Johnathan): "agreed on all CMMC bits".** Covers
+  D1 (reshape the workflow layer, keep the engine), D2 (evidence at issue, with
+  verified score as headline and projected secondary), D4 (gap-assessment
+  package with NOT MET items), and the validation adjustments: expired evidence
+  returns verified MET to evidence pending; one-click NOT MET → POA&M plus an
+  "unplanned NOT MET" count; issue checklist warns, never blocks; add asset and
+  CUI inventories and ESP inheritance; track 32 CFR 170.22 affirmations. HIPAA
+  executive summary switches from "% compliant" to counts by status. D3 (one
+  Profile approval and one review-and-issue step) is read as included. These
+  still need the spec amendment drafted and approved before BUILD.
 - **Product rethink decisions D1–D6 — Johnathan.** See
   `docs/research/2026-10-competitor-ux/README.md`. D1 repair vs reshape the
   workflow layer; D2 evidence at issue rather than at each Met click (#130);
