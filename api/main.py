@@ -65,6 +65,14 @@ class PoamClose(BaseModel):
 
 
 class PoamItemCreate(BaseModel):
+    title: str = ""
+    description: str = ""
+    # One-click draft (#143): the server prefills title and description from the
+    # requirement finding, starts the item as Draft, and refuses a duplicate.
+    draft: bool = False
+
+
+class PoamItemEdit(BaseModel):
     title: str
     description: str = ""
 
@@ -3028,6 +3036,25 @@ def create_app(
             ).fetchone()
             walkthrough_rows = _walkthrough_records(connection, assessment["framework_version_id"])
             reopening = reopening_for(connection, assessment["id"])
+            framework_declarations = json.loads(framework["declarations_json"])
+            record_states = _record_states(
+                connection, assessment, walkthrough_rows, framework_declarations["rollup_rule"]
+            )
+            # CMMC only (#143): NOT MET requirements not on any open POA&M item.
+            not_met_without_poam = (
+                cmmc.not_met_without_poam(
+                    connection,
+                    project_id,
+                    [
+                        row["record_id"]
+                        for row in walkthrough_rows
+                        if row["parent_id"] is None
+                        and record_states[row["record_id"]]["status"] == "Not Met"
+                    ],
+                )
+                if framework_declarations.get("findings_rule") == "requirement_level"
+                else None
+            )
             work_list = [
                 {
                     **_row(row),
@@ -3096,12 +3123,8 @@ def create_app(
                 "record_index": record_index,
                 "reopening": _row(reopening) if reopening else None,
                 "revalidation_items": revalidation_items(connection, assessment["id"]),
-                "record_states": _record_states(
-                    connection,
-                    assessment,
-                    walkthrough_rows,
-                    json.loads(framework["declarations_json"])["rollup_rule"],
-                ),
+                "record_states": record_states,
+                "not_met_without_poam": not_met_without_poam,
             }
 
     @app.get("/api/projects/{project_id}/assessments/{assessment_id}/records/{record_id}")
@@ -3481,28 +3504,98 @@ def create_app(
         with database.connect() as connection:
             assessment, _ = cmmc_context(connection, project_id, assessment_id)
             requirement_or_404(connection, assessment, record_id)
-            if not payload.title.strip():
+            if not payload.draft and not payload.title.strip():
                 raise HTTPException(422, "A POA&M item needs a title")
             finding = cmmc.requirement_finding(
                 connection, project_id, assessment, record_id, _derived_status
             )
+            # Pending requirements never qualify: no POA&M item from Pending (AC-005).
             if finding is None or finding["requirement_status"] != "Not Met":
                 raise HTTPException(
                     409, "POA&M items attach only to a requirement that is currently Not Met"
                 )
+            if payload.draft:
+                existing = [
+                    item
+                    for item in finding["poam_items"]
+                    if item["status"] not in cmmc.TERMINAL_POAM_STATUSES
+                ]
+                if existing:
+                    raise HTTPException(
+                        409,
+                        f"{record_id} is already on POA&M item \"{existing[0]['title']}\" "
+                        f"({existing[0]['status']})",
+                    )
+                requirement = connection.execute(
+                    "SELECT title FROM framework_records "
+                    "WHERE framework_version_id = ? AND record_id = ?",
+                    (assessment["framework_version_id"], record_id),
+                ).fetchone()
+                title, description = cmmc.poam_draft(finding, record_id, requirement["title"])
+                status = "Draft"
+            else:
+                title, description = payload.title.strip(), payload.description.strip()
+                status = "Open"
             action_id = cmmc.add_poam_item(
-                connection,
-                project_id,
-                finding["finding"]["id"],
-                payload.title.strip(),
-                payload.description.strip(),
+                connection, project_id, finding["finding"]["id"], title, description, status
             )
             _audit(
                 connection,
                 "cmmc.poam_item_created",
                 "corrective_action",
                 action_id,
-                {"finding_id": finding["finding"]["id"], "record_id": record_id},
+                {
+                    "finding_id": finding["finding"]["id"],
+                    "record_id": record_id,
+                    "assessment_id": assessment_id,
+                    "status": status,
+                    "prefilled_from_finding": payload.draft,
+                },
+            )
+            return cmmc.requirement_finding(
+                connection, project_id, assessment, record_id, _derived_status
+            )
+
+    @app.put(
+        "/api/projects/{project_id}/assessments/{assessment_id}"
+        "/requirements/{record_id}/poam/{action_id}"
+    )
+    def edit_poam_item(
+        project_id: str,
+        assessment_id: str,
+        record_id: str,
+        action_id: str,
+        payload: PoamItemEdit,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any] | None:
+        """Edit a POA&M item's title and description, for example a prefilled draft (#143)."""
+        with database.connect() as connection:
+            assessment, _ = cmmc_context(connection, project_id, assessment_id)
+            requirement_or_404(connection, assessment, record_id)
+            if not payload.title.strip():
+                raise HTTPException(422, "A POA&M item needs a title")
+            action = connection.execute(
+                """SELECT a.id, a.status FROM corrective_actions a
+                   JOIN requirement_findings f
+                     ON f.finding_id = a.finding_id AND f.project_id = a.project_id
+                   WHERE a.id = ? AND f.project_id = ? AND f.record_id = ?""",
+                (action_id, project_id, record_id),
+            ).fetchone()
+            if action is None:
+                raise HTTPException(404, "POA&M item not found")
+            if action["status"] in cmmc.TERMINAL_POAM_STATUSES:
+                raise HTTPException(409, f"A {action['status']} POA&M item cannot be edited")
+            connection.execute(
+                """UPDATE corrective_actions SET title = ?, description = ?, updated_at = ?
+                   WHERE id = ? AND project_id = ?""",
+                (payload.title.strip(), payload.description.strip(), now(), action_id, project_id),
+            )
+            _audit(
+                connection,
+                "cmmc.poam_item_edited",
+                "corrective_action",
+                action_id,
+                {"record_id": record_id, "assessment_id": assessment_id},
             )
             return cmmc.requirement_finding(
                 connection, project_id, assessment, record_id, _derived_status

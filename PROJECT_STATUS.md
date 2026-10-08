@@ -752,6 +752,13 @@ for an issue. Each names who has to answer it.
   Johnathan: an unassessed requirement now deducts its weight in both scores
   (an empty assessment shows −203, not 110); HIPAA keeps refusing Met without
   evidence at the click. Next: #142 extends `api/verification.CURRENT_MAPPING`.
+  #143 (one-click POA&M draft from a NOT MET requirement; "NOT MET not on a
+  POA&M" count in the assessment header and in the score API for Overview)
+  is built on `main` after #141, in parallel with #142, and awaiting review;
+  see `docs/evidence/issue-143/VERIFICATION.md`. Open for Johnathan: the
+  manual "Add POA&M item" form was replaced by the one-click draft (the API
+  path still accepts a typed title); Draft items have no Draft → Open control
+  yet (owners/assignment are a later ticket).
 - **Pinned primary sources (October 8, 2026):** `docs/sources/` holds official
   copies (eCFR, Federal Register, NIST, DoW CIO, HHS via archive captures where
   hhs.gov blocks cloud IPs) with SHA-256 manifest. Cite these, not secondary

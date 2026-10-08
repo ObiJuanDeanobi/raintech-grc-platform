@@ -1875,7 +1875,9 @@ test("CMMC shows the official score and the requirement finding with POA&M items
   expect(await within(finding).findByText(/List is stale/)).toBeVisible();
   expect(finding).toHaveTextContent("Evidence: users.txt");
   expect(finding).toHaveTextContent("Rebuild the authorized user list");
-  expect(within(finding).getByRole("button", { name: "Add POA&M item" })).toBeVisible();
+  // Already on an open POA&M item: no second draft (#143).
+  expect(within(finding).getByRole("button", { name: "Create POA&M draft" })).toBeDisabled();
+  expect(finding).toHaveTextContent("Already on POA&M item “Rebuild the authorized user list” (Open).");
 
   // The Overview carries the same two scores and the 32 CFR 170.21 checks (#141).
   await userEvent.setup().click(screen.getAllByRole("button", { name: "Overview" })[0]);
@@ -2005,7 +2007,6 @@ test("closes a CMMC POA&M item only after the requirement derives Met", async ()
     poam_items: [{ id: "act-1", title: "Rebuild the list", description: "", status, validation_state: "Not Ready" }],
     history: [],
   });
-  vi.spyOn(window, "prompt").mockReturnValue("List rebuilt and reviewed.");
   mockApi(async (input, init) => {
     const url = String(input);
     if (init?.method === "POST") posts.push(url);
@@ -2018,7 +2019,13 @@ test("closes a CMMC POA&M item only after the requirement derives Met", async ()
   });
   render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
   const panel = await screen.findByRole("region", { name: "Requirement finding" });
-  await userEvent.setup().click(await within(panel).findByRole("button", { name: "Close item" }));
+  const user = userEvent.setup();
+  // The verification rationale is written inline, not in a browser prompt (#143).
+  await user.click(await within(panel).findByRole("button", { name: "Close item" }));
+  const close = within(panel).getByRole("button", { name: "Close POA&M item" });
+  expect(close).toBeDisabled();
+  await user.type(within(panel).getByLabelText(/How was the remediation verified/), "List rebuilt and reviewed.");
+  await user.click(close);
   await waitFor(() => expect(posts.some((url) => url.endsWith("/requirements/AC.L2-3.1.1/poam/act-1/close"))).toBe(true));
   expect(await within(panel).findByText(/Rebuild the list · Closed/)).toBeVisible();
   expect(within(panel).queryByRole("button", { name: "Close item" })).not.toBeInTheDocument();

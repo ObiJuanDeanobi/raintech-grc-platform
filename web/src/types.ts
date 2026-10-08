@@ -88,6 +88,14 @@ export interface Assessment {
   revalidation_items?: RevalidationItem[];
   /** Per-record status and markers for the requirement list (#140). */
   record_states?: Record<string, RecordState>;
+  /** CMMC only: NOT MET requirements not on any open POA&M item (#143). */
+  not_met_without_poam?: NotMetWithoutPoam | null;
+}
+
+/** Derived on read; Closed and Withdrawn POA&M items do not count as planned (#143). */
+export interface NotMetWithoutPoam {
+  count: number;
+  requirement_ids: string[];
 }
 
 /** Met is verified (current evidence or interview/observation) or evidence pending (#141). */
@@ -542,6 +550,8 @@ export interface CmmcScore {
   partial_implementations: Record<string, { implementation: "partial" | "none"; rationale: string }>;
   follow_up: { record_id: string; requirement_id: string; kind: string }[];
   conditional: { source: string; score_ratio: number; minimum_score: number; eligible: boolean; checks: ConditionalCheck[] };
+  /** The same figure the assessment view shows, for the Overview (#143). */
+  not_met_without_poam?: NotMetWithoutPoam;
 }
 
 export interface RequirementFinding {

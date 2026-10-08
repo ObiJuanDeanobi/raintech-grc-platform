@@ -26,12 +26,14 @@ import { Setup, WorkspaceCreator } from "./views/Setup";
 import { DeterminationPanel, EvidencePanel, NotMetReconciliation, PromptCard, RecordNotes } from "./views/assessment/RecordPanels";
 import { RequirementList } from "./views/assessment/RequirementList";
 import { CmmcScoreLine, CmmcScorePanel } from "./views/assessment/CmmcScore";
+import { UnplannedNotMet } from "./views/assessment/PoamSection";
 import { RequirementWorkspace } from "./views/assessment/RequirementWorkspace";
 import { BackupControl, CloseReadinessPanel, PackageGenerationPanel, RevalidationPanel } from "./views/close/ClosePanels";
 import type {
   Artifact,
   Assessment,
   Client,
+  NotMetWithoutPoam,
   ProfileReadiness,
   RecordDetail,
   RecordState,
@@ -72,6 +74,9 @@ export function Workspace({
   const [recordId, setRecordId] = useState("");
   const [focusObjectiveId, setFocusObjectiveId] = useState("");
   const [recordStates, setRecordStates] = useState<Record<string, RecordState>>({});
+  // NOT MET requirements not on any open POA&M item, and whether the list shows only them (#143).
+  const [unplanned, setUnplanned] = useState<NotMetWithoutPoam | null>(null);
+  const [unplannedOnly, setUnplannedOnly] = useState(false);
   const [expandedFamilies, setExpandedFamilies] = useState<Map<string, boolean>>(() => new Map());
   const [returnRecordId, setReturnRecordId] = useState("");
   const [detail, setDetail] = useState<RecordDetail | null>(null);
@@ -118,6 +123,8 @@ export function Workspace({
     setLoadedProjectId(targetProjectId);
     setProgress(next?.progress ?? null);
     setRecordStates(next?.record_states ?? {});
+    setUnplanned(next?.not_met_without_poam ?? null);
+    setUnplannedOnly(false);
     setFocusObjectiveId("");
     setRecordId(openingRecordId(next));
   }, [projectId]);
@@ -153,6 +160,7 @@ export function Workspace({
     const next = await request<Assessment>(`/api/projects/${targetProjectId}/assessment`);
     if (assessmentRequestSequenceRef.current !== requestSequence || projectTargetRef.current !== targetProjectId) return;
     setRecordStates(next.record_states ?? {});
+    setUnplanned(next.not_met_without_poam ?? null);
     if (next.id !== targetAssessmentId) {
       setDetail(null);
       detailLoadedTargetRef.current = { assessmentId: "", recordId: "" };
@@ -506,6 +514,7 @@ export function Workspace({
             expanded={expandedFamilies}
             onExpandedChange={setExpandedFamilies}
             onSelect={(requirementId) => changeRecord(requirementId)}
+            onlyIds={unplannedOnly && unplanned ? new Set(unplanned.requirement_ids) : null}
           />
         ) : (
           <div className="record-list">
@@ -539,6 +548,7 @@ export function Workspace({
               {assessment.framework.declarations.scoring && (
                 <CmmcScoreLine projectId={assessment.project.id} assessmentId={assessment.id} refreshKey={`${scoreTick}:${progress.resolved_determination_count}`} />
               )}
+              {unplanned && <UnplannedNotMet summary={unplanned} active={unplannedOnly} onToggle={() => setUnplannedOnly((only) => !only)} />}
             </div>
             <div className="previous-next">
               <button aria-label="Previous requirement" title="Previous requirement (K or [)" disabled={!previousRequirementId} onClick={() => previousRequirementId && changeRecord(previousRequirementId)}>

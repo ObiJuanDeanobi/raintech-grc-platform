@@ -10,9 +10,11 @@ import { ApiError, request } from "../../api";
 import { RoutineSaveStatus } from "../../components/RoutineSaveStatus";
 import { StatusPill } from "../../components/StatusPill";
 import { RoutineRecordSaveCoordinator, RoutineSaveReporter, useRoutineAutosave } from "../../components/routineSave";
+import { PoamEligibility, PoamSection } from "./PoamSection";
 import type {
   Artifact,
   Assessment,
+  CmmcScore,
   FrameworkDeclarations,
   RequirementFinding,
   SspView,
@@ -252,8 +254,8 @@ export function RequirementFindingPanel({
 }) {
   const base = `/api/projects/${projectId}/assessments/${assessmentId}/requirements/${encodeURIComponent(requirementId)}`;
   const [finding, setFinding] = useState<RequirementFinding | null>(null);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [eligibility, setEligibility] = useState<PoamEligibility | null>(null);
+  const [eligibilityTick, setEligibilityTick] = useState(0);
   const [implementation, setImplementation] = useState<"partial" | "none">("partial");
   const [rationale, setRationale] = useState("");
   const [error, setError] = useState("");
@@ -265,35 +267,28 @@ export function RequirementFindingPanel({
     return () => controller.abort();
   }, [base, status]);
 
-  async function addPoam(event: FormEvent) {
-    event.preventDefault();
-    setError("");
-    try {
-      setFinding(await request<RequirementFinding>(`${base}/poam`, { method: "POST", body: JSON.stringify({ title, description }) }));
-      setTitle("");
-      setDescription("");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not add the POA&M item.");
+  // 32 CFR 170.21 POA&M eligibility comes from this requirement's score line (#141, #143).
+  useEffect(() => {
+    if (status !== "Not Met") {
+      setEligibility(null);
+      return;
     }
-  }
-
-  async function closePoam(actionId: string) {
-    const rationale = window.prompt("How was the remediation verified?");
-    if (!rationale?.trim()) return;
-    setError("");
-    try {
-      setFinding(await request<RequirementFinding>(`${base}/poam/${actionId}/close`, { method: "POST", body: JSON.stringify({ rationale }) }));
-      onChanged();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not close the POA&M item.");
-    }
-  }
+    const controller = new AbortController();
+    request<CmmcScore | null>(`/api/projects/${projectId}/assessments/${assessmentId}/cmmc-score`, { signal: controller.signal })
+      .then((score) => {
+        const line = score?.deductions?.find((deduction) => deduction.record_id === requirementId);
+        setEligibility(line ? { allowed: line.conditional_poam_allowed, reason: line.poam_reason } : null);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [projectId, assessmentId, requirementId, status, eligibilityTick]);
 
   async function savePartial(event: FormEvent) {
     event.preventDefault();
     setError("");
     try {
       await request(`${base}/partial-implementation`, { method: "PUT", body: JSON.stringify({ implementation, rationale }) });
+      setEligibilityTick((tick) => tick + 1);
       onChanged();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save the implementation level.");
@@ -328,24 +323,7 @@ export function RequirementFindingPanel({
               </li>
             ))}
           </ul>
-          <strong>POA&amp;M items</strong>
-          {finding.poam_items.length === 0 ? <p className="muted">None yet.</p> : (
-            <ul className="finding-objectives">{finding.poam_items.map((item) => (
-              <li key={item.id}>
-                {item.title} · {item.status}
-                {item.status !== "Closed" && finding.requirement_status === "Met" && (
-                  <button type="button" className="text-button" onClick={() => void closePoam(item.id)}>Close item</button>
-                )}
-              </li>
-            ))}</ul>
-          )}
-          {finding.requirement_status === "Not Met" && (
-            <form className="reconciliation-form" onSubmit={addPoam}>
-              <label>POA&amp;M item title<input value={title} onChange={(e) => setTitle(e.target.value)} required /></label>
-              <label>Description<textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} /></label>
-              <button className="small-button" type="submit">Add POA&amp;M item</button>
-            </form>
-          )}
+          <PoamSection base={base} finding={finding} eligibility={eligibility} onFinding={setFinding} onChanged={onChanged} />
           <details className="reconciliation-history"><summary>Finding history</summary><ul>{finding.history.map((entry) => <li key={`${entry.event}:${entry.created_at}`}>{entry.event.replaceAll("_", " ")} · {entry.failed_objectives.join(", ") || "none"} · {new Date(entry.created_at).toLocaleString()}</li>)}</ul></details>
         </>
       )}
