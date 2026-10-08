@@ -45,6 +45,33 @@ recorded here; no report content is committed.**
   Impact + Compliance + Gap Score = Risk Score, banded Low / Medium Low /
   Medium / Medium High / High, with definition tables for each factor
 
+## Client version (November 2025) and how it differs
+
+A client report from November 2025, read the same way (structure only), is the
+newer, client-facing form of the same template. Differences from the RainTech
+internal version above:
+
+- **Annual Review Certification** page after the executive summary: assessor
+  certifies the assessment was done under 164.308(a)(1)(ii)(A), with signature.
+- **Executive summary, compliance table** by rule (Security Rule, Breach
+  Notification Rule, Privacy Rule) with Fully / Partially / Non-Compliant /
+  Total / % columns, instead of by safeguard domain with an N/A column.
+- **Executive summary, risk table** counting POA&M findings by risk level
+  (High / Moderate / Low) and by sheet (HIPAA Controls, Control Enhancements,
+  Site Controls), instead of the five-factor organizational risk score.
+- **Appendix B is "Control Implementation Statements"** (about 140 pages): for
+  every citation (Security Rule standards, Breach Notification and Privacy Rule
+  paragraphs), the client's implementation narrative with policy references,
+  Domain, Level, Score and Yes/No. In effect a HIPAA system security plan.
+- **No Appendix D** (organizational risk calculation).
+- Privacy Rule in scope (covered entity), so about 135 citations in total.
+
+## Template principle (Johnathan, October 8, 2026)
+
+Keep the overall template. Change it only where there is a good reason, such as
+an accuracy or consistency problem below. The tool generates this report; it
+does not redesign it.
+
 ## What the tool must produce
 
 The yearly HIPAA deliverable is this report plus the POA&M workbook,
@@ -59,6 +86,30 @@ New record types this implies beyond the current spec:
 - Documentation-reviewed list and physical-site list on the Profile
 
 ## Problems in the source to fix in the generated version
+
+Items 1, 4 and the risk-method point below also appear in the November 2025
+client version. That version adds these consistency problems, which a generator
+working from one set of records would prevent:
+
+- **Appendix B and the POA&M disagree.** Facility Access Controls
+  (164.310(a)(1)) is scored 1 / 1, "Yes", and its narrative says the client
+  "partially complies" with no contingency plan for facility operations; the
+  POA&M carries a High finding against 164.310(a)(2)(i) for the same gap.
+- **Executive summary and Appendix B disagree.** The summary shows Security
+  Rule 18 compliant, 0 partial, 4 non-compliant of 22. Appendix B scores only
+  one standard 0 / 1 (Contingency Plan, 164.308(a)(7)) and one N/A (Group
+  Health Plans, 0 / 0). The four POA&M items are implementation specifications
+  under two standards, so they are counted at a different level than the table.
+  "Partially compliant" is never used even where the narrative says partial.
+- **N/A counted as compliant.** Three Privacy Rule rows are scored 0 / 0, Not
+  Applicable, yet the summary shows Privacy Rule 94 of 94 fully compliant.
+- **Findings without a home.** The risk table counts 4 Site Controls findings;
+  the POA&M workbook shared with it has no Site Controls sheet.
+- **Numbering.** Section 3.0's subsections are numbered 4.1–4.3, then 4.0
+  follows.
+- **Citation format.** "164.308(a)(1)(II)(A)" should be (ii)(A).
+
+Earlier findings from the RainTech internal version:
 
 Found while reading; these are the kind of errors that become findings when a
 client's auditor or OCR reads the report.
