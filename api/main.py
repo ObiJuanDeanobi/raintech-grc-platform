@@ -888,6 +888,11 @@ def _derived_status(connection: Any, assessment_id: str, parent_id: str) -> str:
     if not statuses:
         return ""
     rule = _framework_declarations(connection, assessment_id)["rollup_rule"]
+    return _rollup_status(statuses, rule)
+
+
+def _rollup_status(statuses: list[str], rule: dict[str, Any]) -> str:
+    """Apply the framework's declared rollup to direct-child statuses."""
     for status in rule["precedence"]:
         if status in statuses:
             return cast(str, status)
@@ -897,6 +902,63 @@ def _derived_status(connection: Any, assessment_id: str, parent_id: str) -> str:
     if all(status in set(rule["satisfied_child_statuses"]) for status in statuses):
         return cast(str, rule["satisfied_rollup_status"])
     return blank_status
+
+
+def _record_states(
+    connection: Any, assessment: Any, records: list[Any], rule: dict[str, Any]
+) -> dict[str, dict[str, Any]]:
+    """Per-record status, evidence count and open POA&M count for the work list.
+
+    A read-only projection for the requirement list (#140). Derived statuses use
+    the same rollup as ``_derived_status`` over direct children.
+    """
+    stored = {
+        row["record_id"]: row["status"] or ""
+        for row in connection.execute(
+            "SELECT record_id, status FROM determinations WHERE assessment_id = ?",
+            (assessment["id"],),
+        )
+    }
+    evidence = {
+        row["record_id"]: row["count"]
+        for row in connection.execute(
+            """SELECT record_id, COUNT(*) AS count FROM evidence_mappings
+               WHERE target_type = 'assessment_record' AND assessment_id = ?
+               GROUP BY record_id""",
+            (assessment["id"],),
+        )
+    }
+    poam = {
+        row["record_id"]: row["count"]
+        for row in connection.execute(
+            """SELECT f.record_id, COUNT(a.id) AS count FROM requirement_findings f
+               JOIN corrective_actions a
+                 ON a.finding_id = f.finding_id AND a.project_id = f.project_id
+               WHERE f.project_id = ? AND a.status NOT IN ('Closed', 'Withdrawn')
+               GROUP BY f.record_id""",
+            (assessment["project_id"],),
+        )
+    }
+    children: dict[str, list[str]] = {}
+    for record in records:
+        if record["parent_id"]:
+            children.setdefault(record["parent_id"], []).append(
+                stored.get(record["record_id"], "")
+            )
+    states: dict[str, dict[str, Any]] = {}
+    for record in records:
+        record_id = record["record_id"]
+        if record["carries_determination"]:
+            status = stored.get(record_id, "")
+        else:
+            child_statuses = children.get(record_id, [])
+            status = _rollup_status(child_statuses, rule) if child_statuses else ""
+        states[record_id] = {
+            "status": status,
+            "evidence_count": evidence.get(record_id, 0),
+            "open_poam_count": poam.get(record_id, 0),
+        }
+    return states
 
 
 def _determination(connection: Any, assessment_id: str, record: Any) -> dict[str, Any]:
@@ -3009,6 +3071,12 @@ def create_app(
                 "record_index": record_index,
                 "reopening": _row(reopening) if reopening else None,
                 "revalidation_items": revalidation_items(connection, assessment["id"]),
+                "record_states": _record_states(
+                    connection,
+                    assessment,
+                    walkthrough_rows,
+                    json.loads(framework["declarations_json"])["rollup_rule"],
+                ),
             }
 
     @app.get("/api/projects/{project_id}/assessments/{assessment_id}/records/{record_id}")

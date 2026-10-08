@@ -52,6 +52,10 @@ export function useRoutineAutosave<T>(
 ) {
   const [draft, setDraft] = useState(initialDraft);
   const [state, setState] = useState<RoutineSaveState>("saved");
+  // The API's reason for the latest refused write, and the last value the API
+  // accepted. A refused save must not look like it took effect (#140).
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(initialDraft);
   const draftRef = useRef(initialDraft);
   const persistedRef = useRef(initialDraft);
   const initialDraftRef = useRef(initialDraft);
@@ -87,6 +91,8 @@ export function useRoutineAutosave<T>(
       await coordinateSaveRef.current(savingRecordKey, () => save(savingDraft));
       if (keyGenerationRef.current !== savingGeneration) return;
       persistedRef.current = savingDraft;
+      setSaved(savingDraft);
+      setError("");
       if (queuedVersionRef.current !== null && queuedVersionRef.current > savingVersion) {
         runningRef.current = false;
         void processQueue();
@@ -100,8 +106,9 @@ export function useRoutineAutosave<T>(
       } else {
         setState("saving");
       }
-    } catch {
+    } catch (caught) {
       if (keyGenerationRef.current !== savingGeneration) return;
+      setError(caught instanceof Error && caught.message ? caught.message : "The workspace could not save this change.");
       if (queuedVersionRef.current !== null && queuedVersionRef.current > savingVersion) {
         runningRef.current = false;
         void processQueue();
@@ -156,6 +163,8 @@ export function useRoutineAutosave<T>(
     queuedVersionRef.current = null;
     runningRef.current = false;
     setDraft(resetDraft);
+    setSaved(resetDraft);
+    setError("");
     setState("saved");
   }, [key]);
 
@@ -169,5 +178,5 @@ export function useRoutineAutosave<T>(
 
   useEffect(() => () => report(key, null), [key, report]);
 
-  return { draft, state, stage, save, retry };
+  return { draft, state, stage, save, retry, error, saved };
 }

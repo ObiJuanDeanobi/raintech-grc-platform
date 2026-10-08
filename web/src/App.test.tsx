@@ -1210,6 +1210,34 @@ test("autosaves a determination through the API", async () => {
   expect(await screen.findByText("Saved")).toBeInTheDocument();
 });
 
+test("a refused HIPAA determination shows the API reason and keeps the last saved status (#140)", async () => {
+  let attempts = 0;
+  mockApi(async (input, init) => {
+    const url = String(input);
+    if (url.includes("/determinations/child-1") && init?.method === "PUT") {
+      attempts += 1;
+      return attempts === 1
+        ? Response.json({ detail: "Met requires mapped evidence or a documented interview/observation" }, { status: 422 })
+        : Response.json({ ...detail.determination, status: "Met" });
+    }
+    if (url === "/api/projects/project-1/assessment") return Response.json(assessment);
+    if (url.includes("/records/child-1")) return Response.json(detail);
+    if (url.includes("/evidence")) return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
+  await screen.findByRole("heading", { level: 1, name: "Risk analysis" });
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Met" }));
+
+  expect(await screen.findByText(/Met requires mapped evidence or a documented interview\/observation/)).toBeVisible();
+  const decision = screen.getByRole("heading", { name: "Determination" }).closest("section")!;
+  expect(within(decision).getByText("Blank")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Retry determination" }));
+  await waitFor(() => expect(attempts).toBe(2));
+  expect(await within(decision).findByText("Met", { selector: ".status-pill" })).toBeVisible();
+});
+
 test("refreshes assessment progress after the final determination save succeeds", async () => {
   let assessmentReads = 0;
   let detailReads = 0;
@@ -1693,7 +1721,7 @@ function cmmcFixtures() {
   return { workList, cmmc, requirementDetail };
 }
 
-test("CMMC shows each requirement with its objectives and nests only the active requirement's objectives", async () => {
+test("CMMC shows each requirement with every objective decidable on one view and lists only requirements", async () => {
   const { cmmc, requirementDetail } = cmmcFixtures();
   mockApi(async (input) => {
     const url = String(input);
@@ -1707,16 +1735,21 @@ test("CMMC shows each requirement with its objectives and nests only the active 
   const objectives = await screen.findByRole("region", { name: "Assessment objectives" });
   expect(objectives).toHaveTextContent("authorized users are identified;");
   expect(objectives).toHaveTextContent("processes acting on behalf of authorized users are identified;");
-  expect(objectives).toHaveTextContent("Derived · Not Met");
-  // The rail lists both requirements but only the open requirement's objectives.
-  expect(screen.getByRole("button", { name: /Transaction & Function Control/ })).toBeVisible();
-  expect(screen.getAllByRole("button", { name: /Objective \[a\]/ })).toHaveLength(1);
+  expect(screen.getByText("Derived · Not Met")).toBeVisible();
+  // Every objective carries its own one-click determination on this view (#140).
+  for (const citation of ["AC.L2-3.1.1[a]", "AC.L2-3.1.1[b]"]) {
+    const group = within(objectives).getByRole("group", { name: `Determination for ${citation}` });
+    expect(within(group).getAllByRole("button").map((button) => button.textContent)).toEqual(["Met", "Not Met", "Pending"]);
+  }
+  // The rail lists requirements by family; objectives are not rail rows.
+  const rail = screen.getByRole("navigation", { name: "Requirements by family" });
+  expect(within(rail).getByRole("button", { name: /Transaction & Function Control/ })).toBeVisible();
+  expect(within(rail).queryByRole("button", { name: /Objective \[a\]/ })).not.toBeInTheDocument();
   expect(screen.getByRole("option", { name: "Access Control" })).toBeInTheDocument();
   expect(screen.queryByRole("option", { name: "Breach notification" })).not.toBeInTheDocument();
   // Close, packages, and HIPAA-shaped Not Met reconciliation are not offered for CMMC yet.
   expect(screen.queryByText("Assessment package")).not.toBeInTheDocument();
   expect(screen.queryByText("Not Met corrective work")).not.toBeInTheDocument();
-  expect(screen.getByText("Derived requirement status")).toBeVisible();
   const guidance = screen.getByRole("region", { name: "RainTech practitioner guidance" });
   expect(guidance).toHaveTextContent("NOT DOD OR NIST TEXT");
   expect(guidance).toHaveTextContent("Access control lists and RBAC exports.");
@@ -1913,7 +1946,7 @@ test("offers the latest evidence version explicitly and manages the recycle bin"
   await waitFor(() => expect(calls).toContain("POST /api/projects/project-1/evidence/art-9/restore"));
 });
 
-test("CMMC SSP panel edits the open requirement's statement and approves", async () => {
+test("CMMC implementation statement saves one SSP version on request and the SSP panel approves", async () => {
   const { cmmc, requirementDetail } = cmmcFixtures();
   const scored = { ...cmmc, framework: { ...cmmc.framework, declarations: { ...cmmc.framework.declarations, scoring: { authority: "32 CFR 170.24", requirements: {} } } } };
   const sent: { method: string; url: string; body?: string }[] = [];
@@ -1939,14 +1972,20 @@ test("CMMC SSP panel edits the open requirement's statement and approves", async
     return Response.json({ detail: "not found" }, { status: 404 });
   });
   render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} />);
-  const panel = await screen.findByRole("region", { name: "System Security Plan" });
-  const statement = await within(panel).findByLabelText("Implementation statement for AC.L2-3.1.1");
+  const statementSection = await screen.findByRole("region", { name: "Implementation statement" });
+  const statement = await within(statementSection).findByLabelText("Implementation statement for AC.L2-3.1.1");
   expect(statement).toHaveValue("Drafted from notes.");
   const user = userEvent.setup();
   await user.clear(statement);
   await user.type(statement, "Accounts reviewed quarterly.");
-  await user.click(within(panel).getByRole("button", { name: "Save new version" }));
-  await waitFor(() => expect(sent.some((c) => c.method === "PUT" && c.body?.includes("Accounts reviewed quarterly."))).toBe(true));
+  // Typing never writes an SSP version; the explicit save writes exactly one.
+  expect(sent.filter((c) => c.method === "PUT")).toHaveLength(0);
+  await user.click(within(statementSection).getByRole("button", { name: "Save to SSP draft" }));
+  await waitFor(() => expect(sent.filter((c) => c.method === "PUT" && c.body?.includes("Accounts reviewed quarterly."))).toHaveLength(1));
+  // The full SSP panel is folded away below the requirement work.
+  await user.click(screen.getByText("System Security Plan"));
+  const panel = await screen.findByRole("region", { name: "System Security Plan" });
+  expect(within(panel).queryByLabelText("Implementation statement for AC.L2-3.1.1")).not.toBeInTheDocument();
   await user.click(within(panel).getByRole("button", { name: "Approve and freeze" }));
   expect(await within(panel).findByText(/approved and frozen/)).toBeVisible();
   expect(within(panel).queryByRole("button", { name: "Save new version" })).not.toBeInTheDocument();

@@ -734,6 +734,9 @@ for an issue. Each names who has to answer it.
   **approved by Johnathan on October 8, 2026.** Tickets #139–#156 cut from it
   (#127–#133 closed as superseded). #139 (split `web/src/App.tsx` into
   per-view modules, no behaviour change) is the first; then #140.
+  #140 (requirement-centred CMMC assessment view, one-click objective
+  determinations, save-failure reason) is built on top of #139 and awaiting
+  review; see `docs/evidence/issue-140/VERIFICATION.md`. Next: #141.
 - **Pinned primary sources (October 8, 2026):** `docs/sources/` holds official
   copies (eCFR, Federal Register, NIST, DoW CIO, HHS via archive captures where
   hhs.gov blocks cloud IPs) with SHA-256 manifest. Cite these, not secondary
