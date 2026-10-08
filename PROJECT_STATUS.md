@@ -47,12 +47,29 @@ CI passed.
 
 ## Active ticket
 
-**On hold, October 8, 2026: product rethink.** Johnathan asked to step back
-before building more. Competitor research and a measured review of our own
-app are in `docs/research/2026-10-competitor-ux/README.md`. It recommends
-reshaping the workflow layer (keep the engine) and asks for decisions D1–D6.
-**Do not start #128 or any #127 ticket until Johnathan answers D1.** The
-#127 plan below is kept as history.
+**Workflow redesign (ADR 0019), tickets #139–#156.** Approved October 8,
+2026; #127–#133 are closed as superseded and the #127 notes below are history.
+
+- **Merged:** #139 (App.tsx split), #140 (requirement-centred CMMC view),
+  #141 (evidence pending; verified/projected SPRS; 32 CFR 170.21 checks),
+  #142 (evidence library; staleness; migration 0021), #143 (one-click POA&M
+  draft; unplanned NOT MET count). Next migration number: **0022**.
+- **Surface checkpoint 1:** Windows packages for x64 and native ARM64 build and
+  verify automatically on every push to `main`
+  (`.github/workflows/windows-package.yml`); download from the run's
+  Artifacts. Johnathan is testing #140–#143 on the Surface; his feedback
+  shapes the rest of Phase A.
+- **Next (frontier):** #144 Overview dashboard (blocked by #141, #143: both
+  done), #145 drafts any time + one review-and-issue + Profile approved once
+  (unblocked), #147 CMMC scoping records (unblocked), #150 HIPAA record types
+  (unblocked). Then #146 gap-assessment package (needs #145).
+- **Known follow-up:** a Withdrawn POA&M item still blocks CMMC readiness
+  close (`api/close.py`, `poam_closed`); fix with #145 or separately.
+- **Working pattern that worked:** one build agent per ticket in an isolated
+  worktree, two in parallel when their files barely overlap; the integrating
+  session cherry-picks onto `main`, re-runs every check itself, reviews
+  scoring and gate logic line by line against `docs/sources/`, then opens and
+  merges the PR on green.
 
 **Usability overhaul, #127.** Johnathan used the Surface build on October 6,
 2026 and called the tool "really not usable". A competitor review (HHS SRA
@@ -860,9 +877,13 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-- **Now:** Johnathan reads `docs/research/2026-10-competitor-ux/README.md`
-  and answers D1–D6. If D6 is yes, the next work is a clickable prototype of
-  the Assess workspace (PLAN/prototype, not production BUILD).
+- **Now:** collect Johnathan's Surface feedback on #140–#143, then build #144
+  and #145 (in parallel), then #146. See Active ticket for the frontier.
+- Advise Johnathan to produce Clinica's 2026 HIPAA report the existing way,
+  with the template fixes in
+  `docs/research/2026-10-competitor-ux/hipaa-report-reference.md`; the
+  generator (#152) is later and its first real test is a side-by-side with
+  that report.
 - The items below predate the October 8 rethink.
 
 - #104 and #106 are merged. Session `013nM5in…` has #105 in review. Session
