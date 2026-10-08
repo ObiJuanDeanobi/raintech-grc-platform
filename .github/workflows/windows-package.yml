@@ -1,0 +1,67 @@
+name: Windows package
+
+# Builds the portable Windows packages described in packaging/windows/README.md
+# so Johnathan can download a build for the Surface instead of building it
+# locally. PyInstaller does not cross-compile, so each architecture builds on a
+# matching runner. The x64 package also runs on Windows on ARM under emulation;
+# the native ARM64 job depends on GitHub's ARM64 Windows runner being available
+# to this repository, so it is allowed to fail without blocking the x64 build.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  package:
+    name: Windows ${{ matrix.architecture }}
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: ${{ matrix.optional }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x64
+            runner: windows-latest
+            python-architecture: x64
+            optional: false
+          - architecture: arm64
+            runner: windows-11-arm
+            python-architecture: arm64
+            optional: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: ${{ matrix.python-architecture }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install web dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        shell: pwsh
+        run: .\packaging\windows\build.ps1 -Architecture ${{ matrix.architecture }} -Python python -Clean
+
+      - name: Verify package
+        shell: pwsh
+        run: .\packaging\windows\verify.ps1 -Package .\dist\windows\RainTechGRC-windows-${{ matrix.architecture }}.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RainTechGRC-windows-${{ matrix.architecture }}
+          path: |
+            dist/windows/RainTechGRC-windows-${{ matrix.architecture }}.zip
+            dist/windows/RainTechGRC-windows-${{ matrix.architecture }}.zip.sha256
+          retention-days: 30
