@@ -305,6 +305,13 @@ Given after reviewing the mockup. These are direction, not yet spec changes.
     mock assessment.
   - HIPAA: monthly maintenance; yearly a report deliverable to the client with
     the POA&M.
+  - Every month: a client meeting to agree that month's focus points, and
+    updates to the client on compliance changes that affect them (for example
+    the July 2026 CMMC Phase 2 suspension, or the HIPAA Security Rule NPRM).
+  - Design consequence: a monthly meeting record whose focus points become
+    tracked work items; a regulatory change log where each change is tagged to
+    the frameworks (and later profile facts) it affects, shows which clients
+    it touches, and records when each client was told.
   - Design consequence: a client record spans years; monthly focus items and
     the yearly assessment are scheduled work on the Home queue; the yearly
     assessment carries last year's answers forward for revalidation.

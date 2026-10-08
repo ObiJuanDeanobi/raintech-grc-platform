@@ -725,7 +725,8 @@ for an issue. Each names who has to answer it.
   and suggested-vs-confirmed on profile facts and answers; client access V3; no
   other frameworks. Service cadence: one monthly maintenance focus plus a
   yearly gap analysis / mock assessment (CMMC) or yearly report with POA&M
-  (HIPAA). Waiting on: a sanitized example HIPAA yearly report from Johnathan
+  (HIPAA), with a monthly client meeting for focus points and client updates
+  on compliance changes that affect them. Waiting on: a sanitized example HIPAA yearly report from Johnathan
   to define the report's structure. See
   `docs/research/2026-10-competitor-ux/README.md`.
   Mockup: https://claude.ai/artifact/AzqferR2ShcVqp2B1aox8p (private to
