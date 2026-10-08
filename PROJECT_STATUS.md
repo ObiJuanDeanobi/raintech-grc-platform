@@ -15,6 +15,12 @@ Session `01PT2ki4…` (#80/#81/#100/#30/#31) and session `013nM5in…` (#104 on
 `claude/dreamy-gauss-nwm40t`) collided once on #30; the split is recorded on
 issue #104. Check open PRs and issue comments before starting a ticket.
 
+October 8, 2026: Claude work moved from Johnathan's personal Claude account to
+his RainTech work account. Sessions on the personal account are being retired;
+their work is all on `main` (no unmerged content on
+`claude/dreamy-gauss-nwm40t`). Codex stays in the rotation under the same
+handoff rules.
+
 ## Current objective
 
 CMMC Level 2 delivery. The catalog (#30, PR #110, plus page-header reporting
@@ -808,6 +814,11 @@ touching any of these:
 ## Deferred decisions and their triggers
 
 Recorded so they resurface on their own rather than when someone remembers.
+
+- **Transfer the repository to a RainTech GitHub organization.** Trigger:
+  **a working V1.** Until then it stays at `ObiJuanDeanobi/raintech-grc-platform`
+  (Johnathan, October 8, 2026). Transfer with no PRs open, then give agent
+  sessions access to the new location.
 
 - **Narrow the V1 boundary — split the required and optional halves of Slices 2, 5
   and 7.** Trigger: **completion of the first real engagement.** This is the single
