@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<DIV8 N="252.204-7025" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-48/section-252.204-7025&quot;,&quot;citation&quot;:&quot;48 CFR 252.204-7025&quot;,&quot;alternate_reference&quot;:&quot;DFARS 252.204-7025&quot;}">
+<HEAD>252.204-7025 Notice of Cybersecurity Maturity Model Certification Level Requirements.</HEAD>
+<P>As prescribed in 204.7504(b), use the following provision:</P>
+<HD1>Notice of Cybersecurity Maturity Model Certification Level Requirements (NOV 2025)
+</HD1>
+<P>(a) <I>Definitions.</I> As used in this provision, <I>controlled unclassified information (CUI), current,</I> <I>Cybersecurity Maturity Model Certification (CMMC) status, Cybersecurity Maturity Model Certification unique identifier (CMMC UID),</I> <I>Federal contract information (FCI),</I> and <I>Plan of action and milestones</I> have the meaning given in the Defense Federal Acquisition Regulation Supplement 252.204-7021, Contractor Compliance With the Cybersecurity Maturity Model Certification Level Requirements, clause of this solicitation.</P>
+<P>(b)(1) <I>Cybersecurity Maturity Model Certification (CMMC) level.</I> The CMMC level required by this solicitation is: ___<I>[Contracting Officer insert: CMMC Level 1 (Self); CMMC Level 2 (Self); CMMC Level 2 (C3PAO); or CMMC Level 3 (DIBCAC)].</I> This CMMC level, or higher (see 32 CFR part 170), is required prior to award for each contractor information system that will process, store, or transmit Federal contract information (FCI) or controlled unclassified information (CUI) during performance of the contract.</P>
+<P>(2) The Offeror will not be eligible for award of a contract, task order, or delivery order resulting from this solicitation if the Offeror does not have, for each of the contractor information systems that will process, store, or transmit FCI or CUI and that will be used in performance of a contract resulting from this solicitation—</P>
+<P>(i) The current CMMC status entered in the Supplier Performance Risk System (SPRS) (<I>https://piee.eb.mil</I>) at the CMMC level required by paragraph (b)(1) of this provision; and</P>
+<P>(ii) A current affirmation of continuous compliance with the security requirements identified at 32 CFR part 170 in SPRS.</P>
+<P>(c) <I>Plan of action and milestones.</I> If the Offeror has a CMMC Status of Conditional, the Offeror shall successfully close out a valid plan of action and milestones (32 CFR 170.21) to achieve a CMMC Status of Final.</P>
+<P>(d) <I>CMMC unique identifiers.</I> The Offeror shall provide, in the proposal, the CMMC unique identifier(s) (CMMC UIDs) issued by SPRS for each contractor information system that will process, store, or transmit FCI or CUI during performance of a contract, task order, or delivery order resulting from this solicitation. The Offeror also shall update the list when new CMMC UIDs are generated in SPRS. The CMMC UIDs are provided in SPRS after the Offeror enters the results of self-assessment(s) for each such information system.</P>
+<HD3>(End of provision)
+</HD3>
+<CITA TYPE="N">[90 FR 43577, Sept. 10, 2025]
+</CITA>
+</DIV8>

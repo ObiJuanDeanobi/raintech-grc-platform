@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<DIV8 N="252.204-7019" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-48/section-252.204-7019&quot;,&quot;citation&quot;:&quot;48 CFR 252.204-7019&quot;,&quot;alternate_reference&quot;:&quot;DFARS 252.204-7019&quot;}">
+<HEAD>252.204-7019 Notice of NIST SP 800-171 DoD Assessment Requirements.</HEAD>
+<P>As prescribed in 204.7304(d), use the following provision:</P>
+<EXTRACT>
+<HD1>NOTICE OF NIST SP 800-171 DOD ASSESSMENT REQUIREMENTS (NOV 2023)
+</HD1>
+<P>(a) <I>Definitions.</I></P>
+<P><I>Basic Assessment, Medium</I> Assessment, and <I>High Assessment</I> have the meaning given in the clause 252.204-7020, NIST SP 800-171 DoD Assessments.</P>
+<P><I>Covered contractor information system</I> has the meaning given in the clause 252.204-7012, Safeguarding Covered Defense Information and Cyber Incident Reporting, of this solicitation.</P>
+<P>(b) <I>Requirement.</I> In order to be considered for award, if the Offeror is required to implement NIST SP 800-171, the Offeror shall have a current assessment (<I>i.e.,</I> not more than 3 years old unless a lesser time is specified in the solicitation) (see 252.204-7020) for each covered contractor information system that is relevant to the offer, contract, task order, or delivery order. The Basic, Medium, and High NIST SP 800-171 DoD Assessments are described in the NIST SP 800-171 DoD Assessment Methodology located at <I>https://www.acq.osd.mil/asda/dpc/cp/cyber/docs/safeguarding/NIST-SP-800-171-Assessment-Methodology-Version-1.2.1-6.24.2020.pdf</I></P>
+<P>(c) <I>Procedures.</I> (1) The Offeror shall verify that summary level scores of a current NIST SP 800-171 DoD Assessment (<I>i.e.,</I> not more than 3 years old unless a lesser time is specified in the solicitation) are posted in the Supplier Performance Risk System (SPRS) (<I>https://www.sprs.csd.disa.mil/</I>) for all covered contractor information systems relevant to the offer.</P>
+<P>(2) If the Offeror does not have summary level scores of a current NIST SP 800-171 DoD Assessment (<I>i.e.,</I> not more than 3 years old unless a lesser time is specified in the solicitation) posted in SPRS, the Offeror may conduct and submit a Basic Assessment to <I>webptsmh@navy.mil</I> for posting to SPRS in the format identified in paragraph (d) of this provision.</P>
+<P>(d) <I>Summary level scores.</I> Summary level scores for all assessments will be posted 30 days post-assessment in SPRS to provide DoD Components visibility into the summary level scores of strategic assessments.</P>
+<P>(1) <I>Basic Assessments.</I> An Offeror may follow the procedures in paragraph (c)(2) of this provision for posting Basic Assessments to SPRS.</P>
+<P>(i) The email shall include the following information:</P>
+<P>(A) Cybersecurity standard assessed (<I>e.g.,</I> NIST SP 800-171 Rev 1).</P>
+<P>(B) Organization conducting the assessment (<I>e.g.,</I> Contractor self-assessment).</P>
+<P>(C) For each system security plan (security requirement 3.12.4) supporting the performance of a DoD contract—</P>
+<P>(<I>1</I>) All industry Commercial and Government Entity (CAGE) code(s) associated with the information system(s) addressed by the system security plan; and</P>
+<P>(<I>2</I>) A brief description of the system security plan architecture, if more than one plan exists.</P>
+<P>(D) Date the assessment was completed.</P>
+<P>(E) Summary level score (<I>e.g.,</I> 95 out of 110, NOT the individual value for each requirement).</P>
+<P>(F) Date that all requirements are expected to be implemented (<I>i.e.,</I> a score of 110 is expected to be achieved) based on information gathered from associated plan(s) of action developed in accordance with NIST SP 800-171.</P>
+<P>(ii) If multiple system security plans are addressed in the email described at paragraph (d)(1)(i) of this section, the Offeror shall use the following format for the report:</P>
+<DIV width="100%"><DIV class="gpotbl_div">
+<TABLE border="1" cellpadding="1" cellspacing="1" class="gpo_table" frame="void" width="100%">
+<THEAD>
+<TR>
+<TH class="center border-top-single border-bottom-single border-right-single">System security plan</TH>
+<TH class="center border-top-single border-bottom-single border-right-single">CAGE codes supported by this plan</TH>
+<TH class="center border-top-single border-bottom-single border-right-single">Brief description of the plan architecture</TH>
+<TH class="center border-top-single border-bottom-single border-right-single">Date of<br></br>assessment</TH>
+<TH class="center border-top-single border-bottom-single border-right-single">Total score</TH>
+<TH class="center border-top-single border-bottom-single">Date score of 110 will achieved</TH>
+</TR>
+</THEAD>
+<TBODY>
+<TR>
+<TD class="left border-bottom-single border-right-single"> </TD>
+<TD class="left border-bottom-single border-right-single"></TD>
+<TD class="left border-bottom-single border-right-single"></TD>
+<TD class="left border-bottom-single border-right-single"></TD>
+<TD class="left border-bottom-single border-right-single"></TD>
+<TD class="left border-bottom-single"></TD>
+</TR>
+<TR>
+<TD class="left border-bottom-single border-right-single"> </TD>
+<TD class="left border-bottom-single border-right-single"></TD>
+<TD class="left border-bottom-single border-right-single"></TD>
+<TD class="left border-bottom-single border-right-single"></TD>
+<TD class="left border-bottom-single border-right-single"></TD>
+<TD class="left border-bottom-single"></TD>
+</TR>
+<TR>
+<TD class="left border-bottom-single border-right-single"> </TD>
+<TD class="left border-bottom-single border-right-single"></TD>
+<TD class="left border-bottom-single border-right-single"></TD>
+<TD class="left border-bottom-single border-right-single"></TD>
+<TD class="left border-bottom-single border-right-single"></TD>
+<TD class="left border-bottom-single"></TD>
+</TR>
+</TBODY>
+</TABLE>
+</DIV></DIV>
+<P>(2) <I>Medium and High Assessments.</I> DoD will post the following Medium and/or High Assessment summary level scores to SPRS for each system assessed:</P>
+<P>(i) The standard assessed (<I>e.g.,</I> NIST SP 800-171 Rev 1).</P>
+<P>(ii) Organization conducting the assessment, <I>e.g.,</I> DCMA, or a specific organization (identified by Department of Defense Activity Address Code (DoDAAC)).</P>
+<P>(iii) All industry CAGE code(s) associated with the information system(s) addressed by the system security plan.</P>
+<P>(iv) A brief description of the system security plan architecture, if more than one system security plan exists.</P>
+<P>(v) Date and level of the assessment, <I>i.e.,</I> medium or high.</P>
+<P>(vi) Summary level score (<I>e.g.,</I> 105 out of 110, not the individual value assigned for each requirement).</P>
+<P>(vii) Date that all requirements are expected to be implemented (<I>i.e.,</I> a score of 110 is expected to be achieved) based on information gathered from associated plan(s) of action developed in accordance with NIST SP 800-171.</P>
+<P>(3) <I>Accessibility.</I> (i) Assessment summary level scores posted in SPRS are available to DoD personnel, and are protected, in accordance with the standards set forth in DoD Instruction 5000.79, Defense-wide Sharing and Use of Supplier and Product Performance Information (PI).</P>
+<P>(ii) Authorized representatives of the Offeror for which the assessment was conducted may access SPRS to view their own summary level scores, in accordance with the SPRS Software User's Guide for Awardees/Contractors available at <I>https://www.sprs.csd.disa.mil/pdf/SPRS_Awardee.pdf.</I></P>
+<P>(iii) A High NIST SP 800-171 DoD Assessment may result in documentation in addition to that listed in this section. DoD will retain and protect any such documentation as “Controlled Unclassified Information (CUI)” and intended for internal DoD use only. The information will be protected against unauthorized use and release, including through the exercise of applicable exemptions under the Freedom of Information Act (<I>e.g.,</I> Exemption 4 covers trade secrets and commercial or financial information obtained from a contractor that is privileged or confidential).</P></EXTRACT>
+<FP-1>(End of provision)
+</FP-1>
+<CITA TYPE="N">[85 FR 61520, Sept. 29, 2020, as amended at 87 FR 15818, Mar. 18, 2022; 88 FR 80466, Nov. 17, 2023]
+</CITA>
+</DIV8>

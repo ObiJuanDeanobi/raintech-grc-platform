@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<DIV6 N="204.73" TYPE="SUBPART" VOLUME="3" hierarchy_metadata="{&amp;quot;path&amp;quot;:&amp;quot;/on/_SUBSTITUTE_DATE_/title-48/part-204/subpart-204.73&amp;quot;,&amp;quot;citation&amp;quot;:&amp;quot;48 CFR Part 204 Subpart 204.73&amp;quot;,&amp;quot;alternate_reference&amp;quot;:&amp;quot;DFARS Part 204 Subpart 204.73&amp;quot;}">
+<HEAD>Subpart 204.73&#x2014;Safeguarding Covered Defense Information and Cyber Incident Reporting</HEAD>
+<SOURCE>
+<HED>Source:</HED><PSPACE>78 FR 69279, Nov. 18, 2013, unless otherwise noted.
+</PSPACE></SOURCE>
+<DIV8 N="204.7300" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-48/section-204.7300&quot;,&quot;citation&quot;:&quot;48 CFR 204.7300&quot;,&quot;alternate_reference&quot;:&quot;DFARS 204.7300&quot;}">
+<HEAD>204.7300 Scope.</HEAD>
+<P>(a) This subpart applies to contracts and subcontracts requiring contractors and subcontractors to safeguard covered defense information that resides in or transits through covered contractor information systems by applying specified network security requirements. It also requires reporting of cyber incidents.</P>
+<P>(b) This subpart does not abrogate any other requirements regarding contractor physical, personnel, information, technical, or general administrative security operations governing the protection of unclassified information, nor does it affect requirements of the National Industrial Security Program.</P>
+<CITA TYPE="N">[80 FR 51742, Aug. 26, 2015, as amended at 81 FR 72998, Oct. 21, 2016]
+</CITA>
+</DIV8>
+
+<DIV8 N="204.7301" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-48/section-204.7301&quot;,&quot;citation&quot;:&quot;48 CFR 204.7301&quot;,&quot;alternate_reference&quot;:&quot;DFARS 204.7301&quot;}">
+<HEAD>204.7301 Definitions.</HEAD>
+<P>As used in this subpart&#x2014;</P>
+<P><I>Adequate security</I> means protective measures that are commensurate with the consequences and probability of loss, misuse, or unauthorized access to, or modification of information.</P>
+<P><I>Contractor attributional/proprietary information</I> means information that identifies the contractor(s), whether directly or indirectly, by the grouping of information that can be traced back to the contractor(s) (<I>e.g.,</I> program description, facility locations), personally identifiable information, as well as trade secrets, commercial or financial information, or other commercially sensitive information that is not customarily shared outside of the company.</P>
+<P><I>Controlled technical information</I> means technical information with military or space application that is subject to controls on the access, use, reproduction, modification, performance, display, release, disclosure, or dissemination. Controlled technical information would meet the criteria, if disseminated, for distribution statements B through F using the criteria set forth in DoD Instruction 5230.24, Distribution Statements on Technical Documents. The term does not include information that is lawfully publicly available without restrictions.</P>
+<P><I>Covered contractor information system</I> means an unclassified information system that is owned, or operated by or for, a contractor and that processes, stores, or transmits covered defense information.</P>
+<P><I>Covered defense information</I> means unclassified controlled technical information or other information (as described in the Controlled Unclassified Information (CUI) Registry at <I>http://www.archives.gov/cui/registry/category-list.html</I>) that requires safeguarding or dissemination controls pursuant to and consistent with law, regulations, and Governmentwide policies, and is&#x2014;</P>
+<P>(1) Marked or otherwise identified in the contract, task order, or delivery order and provided to the contractor by or on behalf of DoD in support of the performance of the contract; or</P>
+<P>(2) Collected, developed, received, transmitted, used, or stored by or on behalf of the contractor in support of the performance of the contract.</P>
+<P><I>Information system</I> means a discrete set of information resources organized for the collection, processing, maintenance, use, sharing, dissemination, or disposition of information.</P>
+<P><I>Media</I> means physical devices or writing surfaces including, but not limited to, magnetic tapes, optical disks, magnetic disks, large-scale integration memory chips, and printouts onto which covered defense information is recorded, stored, or printed within a covered contractor information system.</P>
+<P><I>Rapidly report</I> means within 72 hours of discovery of any cyber incident.</P>
+<P><I>Technical information</I> means technical data or computer software, as those terms are defined in the clause at DFARS 252.227-7013, Rights in Technical Data&#x2014;Other Than Commercial Products and Commercial Services, regardless of whether or not the clause is incorporated in the solicitation or contract. Examples of technical information include research and engineering data, engineering drawings, and associated lists, specifications, standards, process sheets, manuals, technical reports, technical orders, catalog-item identifications, data sets, studies and analyses and related information, and computer software executable code and source code.</P>
+<CITA TYPE="N">[78 FR 69279, Nov. 18, 2013, as amended at 80 FR 51742, Aug. 26, 2015; 81 FR 72998, Oct. 21, 2016; 88 FR 6580, Jan. 31, 2023]
+</CITA>
+</DIV8>
+
+<DIV8 N="204.7302" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-48/section-204.7302&quot;,&quot;citation&quot;:&quot;48 CFR 204.7302&quot;,&quot;alternate_reference&quot;:&quot;DFARS 204.7302&quot;}">
+<HEAD>204.7302 Policy.</HEAD>
+<P>(a)(1) Contractors and subcontractors are required to provide adequate security on all covered contractor information systems.</P>
+<P>(2) Contractors required to implement NIST SP 800-171, in accordance with the clause at 252.204-7012, Safeguarding Covered Defense Information and Cyber incident Reporting, are required at time of award to have at least a Basic NIST SP 800-171 DoD Assessment that is current (<I>i.e.,</I> not more than 3 years old unless a lesser time is specified in the solicitation) (see 252.204-7019).</P>
+<P>(3) The NIST SP 800-171 DoD Assessment Methodology is located at <I>https://www.acq.osd.mil/asda/dpc/cp/cyber/safeguarding.html#nistSP800171.</I></P>
+<P>(4) High NIST SP 800-171 DoD Assessments will be conducted by Government personnel using NIST SP 800-171A, &#x201C;Assessing Security Requirements for Controlled Unclassified Information.&#x201D;</P>
+<P>(5) The NIST SP 800-171 DoD Assessment will not duplicate efforts from any other DoD assessment or the Cybersecurity Maturity Model Certification (CMMC) (see subpart 204.75), except for rare circumstances when a re-assessment may be necessary, such as, but not limited to, when cybersecurity risks, threats, or awareness have changed, requiring a re-assessment to ensure current compliance.</P>
+<P>(b) Contractors and subcontractors are required to rapidly report cyber incidents directly to DoD at <I>http://dibnet.dod.mil.</I> Subcontractors provide the incident report number automatically assigned by DoD to the prime contractor. Lower-tier subcontractors likewise report the incident report number automatically assigned by DoD to their higher-tier subcontractor, until the prime contractor is reached.</P>
+<P>(1) If a cyber incident occurs, contractors and subcontractors submit to DoD&#x2014;</P>
+<P>(i) A cyber incident report;</P>
+<P>(ii) Malicious software, if detected and isolated; and</P>
+<P>(iii) Media (or access to covered contractor information systems and equipment) upon request.</P>
+<P>(2) Contracting officers shall refer to PGI 204.7303-4(c) for instructions on contractor submissions of media and malicious software.</P>
+<P>(c) Information shared by the contractor may include contractor attributional/proprietary information that is not customarily shared outside of the company, and that the unauthorized use or disclosure of such information could cause substantial competitive harm to the contractor that reported the information. The Government shall protect against the unauthorized use or release of information that includes contractor attributional/proprietary information.</P>
+<P>(d) A cyber incident that is reported by a contractor or subcontractor shall not, by itself, be interpreted as evidence that the contractor or subcontractor has failed to provide adequate security on their covered contractor information systems, or has otherwise failed to meet the requirements of the clause at 252.204-7012, Safeguarding Covered Defense Information and Cyber Incident Reporting. When a cyber incident is reported, the contracting officer shall consult with the DoD component Chief Information Officer/cyber security office prior to assessing contractor compliance (see PGI 204.7303-3(a)(3)). The contracting officer shall consider such cyber incidents in the context of an overall assessment of a contractor's compliance with the requirements of the clause at 252.204-7012.</P>
+<P>(e) Support services contractors directly supporting Government activities related to safeguarding covered defense information and cyber incident reporting (<I>e.g.,</I> forensic analysis, damage assessment,, or other services that require access to data from another contractor) are subject to restrictions on use and disclosure of reported information.</P>
+<CITA TYPE="N">[80 FR 51742, Aug. 26, 2015, as amended at 81 FR 72998, Oct. 21, 2016; 85 FR 61519, Sept. 29, 2020; 87 FR 15817, Mar. 18, 2022]
+</CITA>
+</DIV8>
+
+<DIV8 N="204.7303" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-48/section-204.7303&quot;,&quot;citation&quot;:&quot;48 CFR 204.7303&quot;,&quot;alternate_reference&quot;:&quot;DFARS 204.7303&quot;}">
+<HEAD>204.7303 Procedures.</HEAD>
+<P>(a) Follow the procedures relating to safeguarding covered defense information at PGI 204.7303.</P>
+<P>(b) The contracting officer shall verify that the summary level score of a current NIST SP 800-171 DoD Assessment (<I>i.e.,</I> not more than 3 years old, unless a lesser time is specified in the solicitation) (see 252.204-7019) for each covered contractor information system that is relevant to an offer, contract, task order, or delivery order are posted in Supplier Performance Risk System (SPRS) (<I>https://www.sprs.csd.disa.mil/</I>), prior to&#x2014;</P>
+<P>(1) Awarding a contract, task order, or delivery order to an offeror or contractor that is required to implement NIST SP 800-171 in accordance with the clause at 252.204-7012; or</P>
+<P>(2) Exercising an option period or extending the period of performance on a contract, task order, or delivery order with a contractor that is that is required to implement the NIST SP 800-171 in accordance with the clause at 252.204-7012.</P>
+<CITA TYPE="N">[85 FR 61519, Sept. 29, 2020]
+</CITA>
+</DIV8>
+
+<DIV8 N="204.7304" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-48/section-204.7304&quot;,&quot;citation&quot;:&quot;48 CFR 204.7304&quot;,&quot;alternate_reference&quot;:&quot;DFARS 204.7304&quot;}">
+<HEAD>204.7304 Solicitation provisions and contract clauses.</HEAD>
+<P>(a) Use the provision at 252.204-7008, Compliance with Safeguarding Covered Defense Information Controls, in all solicitations, including solicitations using FAR part 12 procedures for the acquisition of commercial products and commercial services, except for solicitations solely for the acquisition of commercially available off-the-shelf (COTS) items.</P>
+<P>(b) Use the clause at 252.204-7009, Limitations on the Use or Disclosure of Third-Party Contractor Reported Cyber Incident Information, in all solicitations and contracts, including solicitations and contracts using FAR part 12 procedures for the acquisition of commercial products and commercial services, for services that include support for the Government's activities related to safeguarding covered defense information and cyber incident reporting.</P>
+<P>(c) Use the clause at 252.204-7012, Safeguarding Covered Defense Information and Cyber Incident Reporting, in all solicitations and contracts, including solicitations and contracts using FAR part 12 procedures for the acquisition of commercial products and commercial services, except for solicitations and contracts solely for the acquisition of COTS items.</P>
+<P>(d) Use the provision at 252.204-7019, Notice of NIST SP 800-171 DoD Assessment Requirements, in all solicitations, including solicitations using FAR part 12 procedures for the acquisition of commercial products and commercial services, except for solicitations solely for the acquisition of commercially available off-the-shelf (COTS) items.</P>
+<P>(e) Use the clause at 252.204-7020, NIST SP 800-171 DoD Assessment Requirements, in all solicitations and contracts, task orders, or delivery orders, including those using FAR part 12 procedures for the acquisition of commercial products and commercial services, except for those that are solely for the acquisition of COTS items.</P>
+<CITA TYPE="N">[80 FR 51743, Aug. 26, 2015, as amended at 80 FR 56929, Sept. 21, 2015; 81 FR 72999, Oct. 21, 2016; 82 FR 61480, Dec. 28, 2017; 85 FR 61519, Sept. 29, 2020; 88 FR 6581, Jan. 31, 2023]
+</CITA>
+</DIV8>
+
+</DIV6>

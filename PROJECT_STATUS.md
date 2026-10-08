@@ -722,6 +722,11 @@ for an issue. Each names who has to answer it.
   still need the spec amendment drafted and approved before BUILD. Drafted as
   ADR 0019 plus *[Amendment 2026-10]* edits in `docs/specification.md`; awaiting
   Johnathan's approval of the text.
+- **Pinned primary sources (October 8, 2026):** `docs/sources/` holds official
+  copies (eCFR, Federal Register, NIST, DoW CIO, HHS via archive captures where
+  hhs.gov blocks cloud IPs) with SHA-256 manifest. Cite these, not secondary
+  summaries. hhs.gov, www.war.gov, Reddit and G2 refuse this environment's IP;
+  dowcio.war.gov (DoD CIO) works directly.
 - **Product rethink decisions D1–D6 — Johnathan.** See
   `docs/research/2026-10-competitor-ux/README.md`. D1 repair vs reshape the
   workflow layer; D2 evidence at issue rather than at each Met click (#130);
