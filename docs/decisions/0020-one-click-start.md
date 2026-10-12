@@ -2,14 +2,12 @@
 
 ## Status
 
-Accepted as built, **pending Johnathan's confirmation** of one point. The change
-is within the engineering delegation of October 8, 2026 (`AGENTS.md`, "Current
-delegation") except that it relaxes one sentence of the approved specification
-(`docs/specification.md`, Profile readiness: "`Intake complete` means every
-required field has a known value or explicit `Unknown / To Determine`"). Changing
-the meaning of the specification is Johnathan's call, so the specification text is
-not edited here and the question is open until he confirms it. Behaviour he asked
-for: remove the Profile detour before the first requirement.
+Accepted. Approved by Johnathan on October 12, 2026 ("yes that's fine"), after the
+change was built and reviewed. It relaxes one sentence of the approved
+specification (Profile readiness: "`Intake complete` means every required field has
+a known value or explicit `Unknown / To Determine`"); `docs/specification.md` is
+amended to match (*[Amendment 2026-10, ADR 0020]*). Behaviour he asked for: remove
+the Profile detour before the first requirement.
 
 ## Context
 

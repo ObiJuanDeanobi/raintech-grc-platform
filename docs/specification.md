@@ -62,8 +62,9 @@ context, risks, and outputs.
    carried-forward item, and preserving the prior issued assessment unchanged.
 
 Discovery, quote, onboarding, assessment, remediation, reassessment, and close
-operate over one progressive Project Profile. `Intake complete` means every
-required field has a known value or explicit `Unknown / To Determine`; assessment
+operate over one progressive Project Profile. `Intake complete` is recorded when
+the consultant starts the assessment (*[Amendment 2026-10, ADR 0020]*); it does not
+require any Profile field to be reviewed, and the recorded note says so. Assessment
 may start in that state. `Profile complete` means no unknown remains. Gap analysis
 and scope-dependent final artifacts cannot complete until the Profile is complete.
 

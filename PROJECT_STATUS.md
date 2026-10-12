@@ -62,11 +62,10 @@ CI passed.
   (sign-off acts to issue: HIPAA 9 to 2, CMMC 10 to 3). Next migration number
   after it: **0023**. If it is not on `main`, the work is on branch
   `build-c` / PR; check GitHub first.
-- **Open decision for Johnathan:** ADR 0020 relaxes one sentence of the
-  approved specification (Intake complete = every required field known or
-  Unknown). The Start click now records intake; Profile complete is still
-  required before issue and unresolved Profile unknowns block issue. Marked
-  "pending Johnathan's confirmation" in the ADR.
+- **Decided October 12, 2026 (Johnathan): "yes that's fine".** ADR 0020: the
+  Start click records Intake complete (note says no Profile fields were
+  reviewed); Profile complete is still required before issue and unresolved
+  Profile unknowns block issue. `docs/specification.md` amended to match.
 - **Surface checkpoint 2 pending:** Johnathan said the tool was "almost
   untestable" because of the Profile detour and the long Overview; both are
   fixed on `main`. Build a fresh Windows package from the
