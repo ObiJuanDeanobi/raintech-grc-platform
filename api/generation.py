@@ -13,7 +13,7 @@ from typing import Any
 from uuid import uuid4
 
 from api import cmmc, ssp
-from api.close import fieldwork_ready
+from api.close import GAP_ASSESSMENT, READINESS_CLOSE, fieldwork_ready
 from api.database import active_assessment_by_id
 from api.renderers import cmmc as cmmc_renderer
 from api.renderers.draftmark import DRAFT_PREFIX
@@ -56,7 +56,18 @@ RENDERED_COMPONENT_KINDS: dict[str, frozenset[str]] = {
 }
 
 
-def package_component_kinds(version: str) -> set[str]:
+# What a gap package's SSP says for a requirement recorded Met with nothing yet to verify it.
+SSP_EVIDENCE_PENDING = "Evidence pending (recorded as Met, not yet verified)"
+
+# The gap-assessment package (#146) adds the verified SPRS worksheet to the same four.
+GAP_COMPONENT_KINDS = frozenset(
+    {"assessment_report", "sprs_worksheet", "ssp", "poam", "evidence_index"}
+)
+
+
+def package_component_kinds(version: str, package_type: str | None = None) -> set[str]:
+    if package_type == GAP_ASSESSMENT:
+        return set(GAP_COMPONENT_KINDS)
     if version in RENDERED_COMPONENT_KINDS:
         return set(RENDERED_COMPONENT_KINDS[version])
     return {kind for kind, _ in TEMPLATE_VERSIONS[version][1]}
@@ -67,6 +78,16 @@ def package_template_version(declarations: dict[str, Any]) -> str:
     return str(declarations.get("package_template_version", CURRENT_TEMPLATE_VERSION))
 
 
+def stored_package_type(source: dict[str, Any]) -> str | None:
+    """The CMMC package type a stored source snapshot was built for.
+
+    Packages generated before #146 carry no ``package_type``; they are the
+    self-assessment (internal readiness close), which is also what ``None`` means
+    to every caller. HIPAA sources have none either.
+    """
+    return GAP_ASSESSMENT if source.get("package_type") == GAP_ASSESSMENT else None
+
+
 def _cmmc_source(
     c: sqlite3.Connection,
     project_id: str,
@@ -74,12 +95,22 @@ def _cmmc_source(
     declarations: dict[str, Any],
     draft_profile_id: str | None = None,
     root: Path | None = None,
+    package_type: str | None = None,
 ) -> dict[str, Any]:
     # Imported here: api.main imports this module, and owns the shared rollup.
     from api.main import _derived_status
 
-    if draft_profile_id is not None and root is not None:
-        approved_ssp: dict[str, Any] | None = ssp.draft_snapshot(
+    approved_ssp: dict[str, Any] | None
+    if package_type == GAP_ASSESSMENT:
+        # The gap package carries the SSP as it stands (approved, else the latest
+        # draft, else built now) and says so; it never needs an approved one.
+        if draft_profile_id is None or root is None:
+            raise ValueError("A Profile and the template folder are needed for the SSP draft")
+        approved_ssp = ssp.draft_snapshot(
+            c, root, project_id, assessment, draft_profile_id, _derived_status
+        )
+    elif draft_profile_id is not None and root is not None:
+        approved_ssp = ssp.draft_snapshot(
             c, root, project_id, assessment, draft_profile_id, _derived_status
         )
     else:
@@ -140,12 +171,36 @@ def _cmmc_source(
                 "history": detail["history"],
             }
         )
-    return {
-        "score": cmmc.score(c, assessment, declarations["scoring"], _derived_status),
+    score = cmmc.score(c, assessment, declarations["scoring"], _derived_status)
+    result: dict[str, Any] = {
+        "score": score,
         "requirements": requirements,
         "findings": findings,
         "ssp": approved_ssp,
     }
+    if package_type == GAP_ASSESSMENT:
+        # The SSP must not say Implemented where the report says the Met is unverified.
+        # Only this package's copy changes; the approved SSP and the readiness close
+        # keep the template's own mapping (Met reads Implemented).
+        pending = set(score["evidence_pending"])
+        result["ssp"] = {
+            **approved_ssp,
+            "source": {
+                **approved_ssp["source"],
+                "requirements": [
+                    {**item, "status": SSP_EVIDENCE_PENDING}
+                    if item["record_id"] in pending
+                    else item
+                    for item in approved_ssp["source"]["requirements"]
+                ],
+            },
+        }
+        # Only the verified score may leave the workspace (ADR 0019 decision 3), so the
+        # projected figure is not carried into a gap package's source at all.
+        score.pop("projected", None)
+        result["gap"] = cmmc.gap_detail(c, assessment, score)
+        result["not_met_without_poam"] = score["not_met_without_poam"]["requirement_ids"]
+    return result
 
 
 def template_files(root: Path, version: str) -> list[tuple[str, Path]]:
@@ -181,6 +236,31 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _source_readiness(decision: dict[str, Any]) -> dict[str, Any]:
+    """The readiness a source snapshot records.
+
+    Readiness-close and HIPAA decisions are stored as they always were, so packages
+    issued before #146 hash identically. The gap package stores codes and counts only,
+    never the wording of blocker details, so rewording a message cannot read as drift.
+    """
+    if decision.get("package_type") != GAP_ASSESSMENT:
+        return decision
+
+    def counts(items: list[dict[str, Any]]) -> dict[str, int]:
+        result: dict[str, int] = {}
+        for item in items:
+            result[item["code"]] = result.get(item["code"], 0) + 1
+        return dict(sorted(result.items()))
+
+    return {
+        "package_type": GAP_ASSESSMENT,
+        "status": decision["status"],
+        "ready": decision["ready"],
+        "blocking": counts(decision["blockers"]),
+        "deferred": counts(decision["deferred"]),
+    }
+
+
 def _decision_is_ready(decision: dict[str, Any]) -> bool:
     return decision.get("ready") is True and decision.get("status") == "Ready"
 
@@ -201,6 +281,7 @@ def _snapshot(
     assessment: sqlite3.Row,
     draft: bool = False,
     root: Path | None = None,
+    package_type: str | None = None,
 ) -> tuple[dict[str, Any], str, sqlite3.Row]:
     """The source snapshot a package is rendered from.
 
@@ -351,15 +432,27 @@ def _snapshot(
         "readiness": (
             {"status": "Draft", "ready": False}
             if draft
-            else fieldwork_ready(c, project_id, assessment_id)
+            else _source_readiness(
+                fieldwork_ready(
+                    c, project_id, assessment_id, package_type=package_type or READINESS_CLOSE
+                )
+            )
         ),
     }
+    if package_type == GAP_ASSESSMENT:
+        source["package_type"] = GAP_ASSESSMENT
     errors: list[str] = []
     if declarations.get("scoring"):
         source["cmmc"] = _cmmc_source(
-            c, project_id, assessment, declarations, profile["id"] if draft else None, root
+            c,
+            project_id,
+            assessment,
+            declarations,
+            profile["id"] if draft or package_type == GAP_ASSESSMENT else None,
+            root,
+            package_type,
         )
-        if not draft and not source["cmmc"]["score"]["complete"]:
+        if not draft and package_type != GAP_ASSESSMENT and not source["cmmc"]["score"]["complete"]:
             errors = ["CMMC score is not complete"]
     elif not draft:
         errors = validate_snapshot(source)
@@ -376,6 +469,7 @@ def generate_package(
     project_id: str,
     assessment_id: str,
     staging_root: Path | None = None,
+    package_type: str | None = None,
 ) -> dict[str, Any]:
     active_assessment = active_assessment_by_id(connection, assessment_id)
     if active_assessment is None or active_assessment["project_id"] != project_id:
@@ -393,9 +487,14 @@ def generate_package(
     ).fetchone()
     if assessment is None:
         raise ValueError("Assessment does not belong to project")
-    if not _decision_is_ready(fieldwork_ready(connection, project_id, assessment_id)):
+    decision = fieldwork_ready(
+        connection, project_id, assessment_id, package_type=package_type or READINESS_CLOSE
+    )
+    if not _decision_is_ready(decision):
         raise ValueError("Assessment is not ready for generation")
-    source, source_hash, profile = _snapshot(connection, project_id, assessment_id, assessment)
+    source, source_hash, profile = _snapshot(
+        connection, project_id, assessment_id, assessment, root=root, package_type=package_type
+    )
     snapshot_id = source["snapshot_id"]
     connection.execute(
         "INSERT INTO source_snapshots VALUES (?,?,?,?,?,?,?,?,?)",
@@ -441,7 +540,11 @@ def _render_template_file(
 
 
 def render_draft(
-    connection: sqlite3.Connection, root: Path, project_id: str, assessment_id: str
+    connection: sqlite3.Connection,
+    root: Path,
+    project_id: str,
+    assessment_id: str,
+    package_type: str | None = None,
 ) -> tuple[str, bytes]:
     """A watermarked draft of the package as a ZIP, from the data as it is now.
 
@@ -462,7 +565,13 @@ def render_draft(
     if assessment is None:
         raise ValueError("This assessment could not be found for this project.")
     source, _, _ = _snapshot(
-        connection, project_id, assessment_id, assessment, draft=True, root=root
+        connection,
+        project_id,
+        assessment_id,
+        assessment,
+        draft=True,
+        root=root,
+        package_type=package_type,
     )
     version = package_template_version(source["framework"]["declarations"])
     rendered_source = {**source, "template_version": version}

@@ -738,7 +738,7 @@ export function EvidencePanel({
                 {review === "stale" && (
                   <>
                     <span className="evidence-overdue">Review overdue since {mapping.review_date}</span>
-                    <span className="evidence-overdue">Stale: no longer verifies a Met</span>
+                    <span className="evidence-overdue">Expired: no longer verifies a Met</span>
                   </>
                 )}
                 {review === "due_soon" && (

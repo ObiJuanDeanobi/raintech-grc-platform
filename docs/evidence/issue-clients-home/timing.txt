@@ -1,0 +1,13 @@
+GET /api/home through the in-process test client, 10 runs each, median (range), milliseconds.
+Target: under 300 ms. Reproduce: PYTHONPATH=. python docs/evidence/issue-clients-home/time_home.py
+
+                                                  before fix   after fix
+A  20 mixed projects (2/3 CMMC, 1/3 HIPAA)           32           25 (21-30)
+B  100 CMMC, all Pending, last objective Met        567          165 (155-207)
+C  100 CMMC, all Not Met, last objective Met        242          184 (158-220)
+D  100 CMMC, nothing decided (no score computed)    156           10 (8-13)
+
+"Before fix" ran cmmc.score with its per-Pending-requirement follow-up lookup and a per-project
+objective list read, and scored projects with no decisions. The fix passes include_follow_up=False
+and the objective map once, and shows no score until the first decision.
+Live server, 5 projects, earlier run: 23 ms.

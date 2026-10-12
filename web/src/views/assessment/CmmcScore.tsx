@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronRight, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Minus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { request } from "../../api";
@@ -77,13 +77,47 @@ function Arithmetic({ label, figure, secondary }: { label: string; figure: Score
   );
 }
 
+const NOT_EVALUATED = "Not yet evaluated";
+const NOT_EVALUATED_NOTE = "Evaluated once every requirement is decided.";
+
 function ConditionalChecks({ score, compact = false }: { score: CmmcScore; compact?: boolean }) {
+  // Until every requirement is decided a check is neutral, unless decided work has
+  // already made it impossible to pass; then it says which decided item did.
+  if (!score.all_decided) {
+    const failed = score.conditional.checks.filter((check) => score.check_flags?.[check.key]?.state === "failed");
+    return (
+      <section className="conditional-checks not-evaluated" aria-label="32 CFR 170.21 Conditional status checks">
+        <p className="eyebrow">32 CFR 170.21 CONDITIONAL LEVEL 2 · ON THE VERIFIED SCORE</p>
+        <p className={`conditional-verdict ${failed.length > 0 ? "fail" : "neutral"}`}>
+          Conditional status: <strong>{failed.length > 0 ? "Not eligible" : NOT_EVALUATED}</strong>
+          <span> · {failed.length > 0 ? "decided work already fails a check" : NOT_EVALUATED_NOTE}</span>
+        </p>
+        <ul>
+          {score.conditional.checks.map((check) => {
+            const flag = score.check_flags?.[check.key];
+            const isFailed = flag?.state === "failed";
+            return (
+              <li key={check.key} className={isFailed ? "fail" : "neutral"}>
+                <div className="check-line">
+                  {isFailed ? <X size={14} aria-hidden="true" /> : <Minus size={14} aria-hidden="true" />}
+                  <strong>{CHECK_TITLES[check.key]}</strong>
+                  <span className="check-result">{isFailed ? "Fail" : NOT_EVALUATED}</span>
+                  <small>{check.source}</small>
+                </div>
+                {isFailed && <p>{flag.reason}</p>}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    );
+  }
   return (
     <section className="conditional-checks" aria-label="32 CFR 170.21 Conditional status checks">
       <p className="eyebrow">32 CFR 170.21 CONDITIONAL LEVEL 2 · ON THE VERIFIED SCORE</p>
       <p className={`conditional-verdict ${score.conditional.eligible ? "pass" : "fail"}`}>
         Conditional status: <strong>{score.conditional.eligible ? "Eligible" : "Not eligible"}</strong>
-        {!score.complete && <span> · assessment not complete</span>}
+        {!score.complete && <span> · {score.hints.length > 0 ? score.hints.join(" ") : "assessment not complete"}</span>}
       </p>
       <ul>
         {score.conditional.checks.map((check) => {
@@ -129,18 +163,32 @@ function ConditionalChecks({ score, compact = false }: { score: CmmcScore; compa
 export function CmmcScoreDetails({ score }: { score: CmmcScore }) {
   return (
     <div className="cmmc-score-details">
-      <Arithmetic label={`Verified SPRS score ${signed(score.verified.value)}`} figure={score.verified} />
-      <Arithmetic label={`Projected score ${signed(score.projected.value)} · counts Met awaiting evidence`} figure={score.projected} secondary />
-      <p className="muted-small">
-        Only the verified score may appear in an issued self-assessment, SPRS figure or client deliverable.
-        Point values: {score.methodology}.
-      </p>
+      {score.started && (
+        <>
+          <Arithmetic label={`Verified SPRS score ${signed(score.verified.value)}`} figure={score.verified} />
+          <Arithmetic label={`Projected score ${signed(score.projected.value)} · counts Met awaiting evidence`} figure={score.projected} secondary />
+          <p className="muted-small">
+            Only the verified score may appear in a final self-assessment, SPRS figure or client deliverable.
+            Point values: {score.methodology}.
+          </p>
+        </>
+      )}
       <ConditionalChecks score={score} />
     </div>
   );
 }
 
 function Figures({ score, projectedLabel = PROJECTED_LABEL }: { score: CmmcScore; projectedLabel?: string }) {
+  if (!score.started) {
+    // A blank assessment would print the worst possible score; say nothing has started instead.
+    return (
+      <span className="score-verified not-started">
+        <span className="eyebrow">VERIFIED SPRS</span>
+        <strong>Not started</strong>
+        <small>Your score appears once you record the first decision.</small>
+      </span>
+    );
+  }
   return (
     <>
       <span className="score-verified">
@@ -161,11 +209,15 @@ export function CmmcScoreLine({ projectId, assessmentId, refreshKey }: { project
   const [open, setOpen] = useState(false);
   if (!score) return null;
   return (
-    <section className="cmmc-score-line" aria-label="Official CMMC score" title={score.blockers.join(" ")}>
+    <section className="cmmc-score-line" aria-label="Official CMMC score">
       <Figures score={score} />
-      <span className={`score-conditional ${score.conditional.eligible ? "pass" : "fail"}`}>
-        Conditional {score.conditional.eligible ? "Eligible" : "Not eligible"}
-      </span>
+      {score.all_decided || Object.values(score.check_flags ?? {}).some((flag) => flag.state === "failed") ? (
+        <span className={`score-conditional ${score.all_decided && score.conditional.eligible ? "pass" : "fail"}`}>
+          Conditional {score.all_decided && score.conditional.eligible ? "Eligible" : "Not eligible"}
+        </span>
+      ) : (
+        <span className="score-conditional neutral">Conditional {NOT_EVALUATED.toLowerCase()}</span>
+      )}
       <button type="button" className="score-toggle" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
         {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />} Arithmetic and 170.21 checks
       </button>
@@ -187,13 +239,15 @@ export function CmmcScorePanel({ projectId, assessmentId, refreshKey }: { projec
       <div className="cmmc-score-head">
         <Figures score={score} projectedLabel={PROJECTED_LABEL} />
       </div>
-      {score.blockers.length > 0 && <ul className="cmmc-score-blockers">{score.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul>}
-      <details>
-        <summary><ChevronRight size={13} /> Show the arithmetic</summary>
-        <Arithmetic label={`Verified SPRS score ${signed(score.verified.value)}`} figure={score.verified} />
-        <Arithmetic label={`Projected score ${signed(score.projected.value)} · counts Met awaiting evidence`} figure={score.projected} secondary />
-        <p className="muted-small">Only the verified score may appear in an issued self-assessment, SPRS figure or client deliverable. Point values: {score.methodology}.</p>
-      </details>
+      {score.hints.length > 0 && <ul className="score-hints">{score.hints.map((hint) => <li key={hint}>{hint}</li>)}</ul>}
+      {score.started && (
+        <details>
+          <summary><ChevronRight size={13} /> Show the arithmetic</summary>
+          <Arithmetic label={`Verified SPRS score ${signed(score.verified.value)}`} figure={score.verified} />
+          <Arithmetic label={`Projected score ${signed(score.projected.value)} · counts Met awaiting evidence`} figure={score.projected} secondary />
+          <p className="muted-small">Only the verified score may appear in a final self-assessment, SPRS figure or client deliverable. Point values: {score.methodology}.</p>
+        </details>
+      )}
       <ConditionalChecks score={score} compact />
     </section>
   );

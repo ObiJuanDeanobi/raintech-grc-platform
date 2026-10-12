@@ -55,29 +55,57 @@ CI passed.
   #142 (evidence library; staleness; migration 0021), #143 (one-click POA&M
   draft; unplanned NOT MET count), one-click start (ADR 0020; PR #164, also
   fixes Withdrawn POA&M blocking CMMC close and the favicon 404), #144
-  Overview dashboard with grouped blockers and a Reports tab (PR #165).
-- **Built, verified, awaiting merge when this was written:** #145 drafts any
-  time (DRAFT watermark, never stored), one review-and-issue act with automatic
-  pre-issuance backup, Profile approved once, migration **0022**, ADR 0021
-  (sign-off acts to issue: HIPAA 9 to 2, CMMC 10 to 3). Next migration number
-  after it: **0023**. If it is not on `main`, the work is on branch
-  `build-c` / PR; check GitHub first.
+  Overview dashboard with a Reports tab (PR #165), #145 drafts any time
+  (DRAFT watermark, never stored), one review-and-issue act with automatic
+  pre-issuance backup, Profile approved once, migration 0022, ADR 0021 (PR #166;
+  sign-off acts to issue: HIPAA 9 to 2, CMMC 10 to 3).
+- **Flow alignment (ADR 0022), decided October 12, 2026 (Johnathan: "all yes"):**
+  after comparing shipped GRC platforms
+  (`docs/research/2026-10-competitor-ux/flow-alignment.md`), the product rule is
+  that blockers appear only when finalizing deliverables; while working, screens
+  show progress and next work. All seven decisions approved: Overview shows
+  progress (no "left before issue"); Profile approval moves into Finalize (NOT
+  YET BUILT); screen words Finalize / Final / Replaced / Deliverables (stored
+  states unchanged); 170.21 checks grey until every requirement is decided;
+  CMMC finalize defaults to the gap-assessment package; Clients home and POA&M
+  view before more CaaS work; ADR 0020 confirmed. Lead refinement awaiting
+  Johnathan's acknowledgement: a 170.21 check that decided work has already made
+  impossible to pass shows red with the reason, instead of grey.
+- **Built and verified together (wave 1 of ADR 0022), merging as one PR:**
+  progress-only Overview with a neutral blank state and the early-failed check
+  rule; Finalize/Deliverables wording; Evidence "Used by N", coverage filter and
+  "Expired"; POA&M view (corrective actions for HIPAA); Clients home
+  (`GET /api/home`); #146 CMMC gap-assessment package as the default finalize
+  (ADR 0023: undecided objectives block, Not Met allowed, only the VERIFIED
+  score appears in any artifact, `readiness_close` is the 110-of-110 option).
+  Checked: 409 Python tests, 164 frontend tests, mypy, ruff, lint, build.
+  Opus reviewed every piece and found issues that were fixed: snapshot hash
+  compatibility for versions finalized before the change (twice), POA&M count
+  consistency, Clients home accessibility and blank-score handling.
 - **Decided October 12, 2026 (Johnathan): "yes that's fine".** ADR 0020: the
   Start click records Intake complete (note says no Profile fields were
   reviewed); Profile complete is still required before issue and unresolved
   Profile unknowns block issue. `docs/specification.md` amended to match.
-- **Surface checkpoint 2 pending:** Johnathan said the tool was "almost
-  untestable" because of the Profile detour and the long Overview; both are
-  fixed on `main`. Build a fresh Windows package from the
-  `windows-package.yml` run on `main` and have him re-test.
-- **Next (frontier):** #147 CMMC scoping records and #150 HIPAA record types
-  (unblocked), then #146 gap-assessment package (needs #145). Johnathan's
-  Surface feedback comes first.
+- **Surface checkpoint 3 pending:** build from the `windows-package.yml` run on
+  `main` after the wave-1 PR merges. Johnathan's earlier blocker-wall
+  screenshot was the OLD build (an old copy was still running; the new app
+  shares port 18432 and silently reopens a running old copy). Remind him to
+  end any running RainTech GRC process before testing.
+- **Next (in order):** (1) Profile approval inside Finalize (readiness pill
+  leaves the working toolbar; Profile page shows completeness); (2) Deliverables
+  page: a draft per document, Final versions history, row-menu corrections;
+  (3) POA&M owner, due date and completion date columns (needs migration
+  **0023**; the POA&M view reports these fields missing); (4) #147 CMMC scoping
+  records and #150 HIPAA record types; (5) the real CMMC self-assessment
+  package from the spec (SPRS entry; not the readiness close); (6) CaaS service
+  year, meetings, change log. Johnathan's Surface feedback comes first.
 - **Known follow-ups:** the POA&M close endpoint still lets a Withdrawn item be
   closed (`api/main.py`); a deliberate re-issue within 60 seconds of an issue is
   refused as a double submit; "Reissue" of an unchanged source renders the same
   content (presentation correction only); a Profile whose recorded unknowns
-  cannot be resolved needs a new version approved.
+  cannot be resolved needs a new version approved; the Clients home counts
+  "Final vN" from issuance snapshots (including corrections); cards always open
+  the Overview, not the last view.
 - **Model routing (Johnathan, October 12):** Opus plans, makes design calls and
   reviews finished work; Sonnet builds; Haiku searches, reads and does simple
   lookups. Planning and review go to Opus sub-agents even when the main session
@@ -894,8 +922,8 @@ for an issue. Each names who has to answer it.
 
 ## Next recommended action
 
-- **Now:** Johnathan re-tests on the Surface (checkpoint 2), then #147 and #150,
-  then #146. See Active ticket for the frontier.
+- **Now:** Johnathan re-tests on the Surface (checkpoint 3), then the Next list
+  in Active ticket (Profile approval inside Finalize first).
 - Advise Johnathan to produce Clinica's 2026 HIPAA report the existing way,
   with the template fixes in
   `docs/research/2026-10-competitor-ux/hipaa-report-reference.md`; the

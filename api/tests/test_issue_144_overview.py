@@ -41,8 +41,13 @@ def test_new_cmmc_project_has_four_steps_and_all_fourteen_families(tmp_path: Pat
             assert family["decided"] == 0 and family["total"] > 0 and family["not_met"] == 0
         assert body["not_met"] == []
         assert body["resume"] is None
-        assert body["left_before_issue"]["count"] > 300
-        assert body["left_before_issue"]["groups"]
+        # Progress only (ADR 0022): the blocker groups are not part of the page body.
+        assert "left_before_issue" not in body
+        steps = {step["label"]: step["figure"] for step in body["steps"]}
+        assert steps["Assess"] == "0 of 320 decided"
+        assert steps["Deliver"] == "Draft available"
+        assert "left before issue" not in " ".join(steps.values())
+        assert "not approved" not in " ".join(steps.values())
         assert client.get(f"/api/projects/{project}/assessments/nope/overview").status_code == 404
 
 
@@ -145,11 +150,11 @@ def test_step_figures_use_singular_and_plural_correctly(tmp_path: Path) -> None:
         assessment = create_assessment(client, project)
         _requirement(client, project, assessment, "AC.L2-3.1.1", "Not Met")
         steps = {s["label"]: s["figure"] for s in _overview(client, project, assessment)["steps"]}
-        assert steps["Remediate"] == "0 open POA&M items · 1 gap without a plan"
-        assert steps["Assess"].endswith("objectives decided")
+        assert steps["Remediate"] == "1 gap needs a POA&M · 0 POA&M items open"
+        assert steps["Assess"].endswith("decided")
         _draft(client, project, assessment, "AC.L2-3.1.1")
         steps = {s["label"]: s["figure"] for s in _overview(client, project, assessment)["steps"]}
-        assert steps["Remediate"] == "1 open POA&M item · 0 gaps without a plan"
+        assert steps["Remediate"] == "0 gaps need a POA&M · 1 POA&M item open"
 
 
 def test_withdrawn_poam_item_is_not_open_on_the_overview_or_in_the_close_check(
@@ -162,7 +167,7 @@ def test_withdrawn_poam_item_is_not_open_on_the_overview_or_in_the_close_check(
         item = _draft(client, project, assessment, "AC.L2-3.1.1").json()["poam_items"][0]
         before = _overview(client, project, assessment)
         assert "poam_open" in {b["code"] for b in _close_blockers(client, project, assessment)}
-        assert "poam_open" in {g["key"] for g in before["left_before_issue"]["groups"]}
+        assert "left_before_issue" not in before
 
         withdrawn = client.put(
             f"/api/projects/{project}/corrective-actions/{item['id']}",
@@ -171,10 +176,10 @@ def test_withdrawn_poam_item_is_not_open_on_the_overview_or_in_the_close_check(
         assert withdrawn.status_code == 200, withdrawn.text
         body = _overview(client, project, assessment)
         steps = {s["label"]: s["figure"] for s in body["steps"]}
-        assert steps["Remediate"] == "0 open POA&M items · 1 gap without a plan"
+        assert steps["Remediate"] == "1 gap needs a POA&M · 0 POA&M items open"
         assert [(n["record_id"], n["poam_state"]) for n in body["not_met"]] == [
             ("AC.L2-3.1.1", "none")
         ]
-        assert "poam_open" not in {g["key"] for g in body["left_before_issue"]["groups"]}
+        assert "left_before_issue" not in body
         # The Overview and the close check must agree.
         assert "poam_open" not in {b["code"] for b in _close_blockers(client, project, assessment)}

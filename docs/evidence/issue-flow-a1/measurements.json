@@ -1,0 +1,34 @@
+{
+  "new_cmmc": {
+    "document": 1222,
+    "overviewPanel": 1059,
+    "viewport": 900
+  },
+  "new_cmmc_banned_words": [],
+  "new_cmmc_step_rail": "1 Scope Profile: no facts recorded yet 2 Assess 0 of 320 decided 3 Remediate 0 gaps need a POA&M · 0 POA&M items open 4 Deliver Draft available",
+  "new_cmmc_score_panel": "VERIFIED SPRS Not started Your score appears once you record the first decision. 32 CFR 170.21 CONDITIONAL LEVEL 2 · ON THE VERIFIED SCORE Conditional status: Not yet evaluated · Evaluated once every requirement is decided. Minimum score NOT YET EVALUATED 32 CFR 170.21(a)(2)(i) Every requirement not verified Met is POA&M-eligible NOT YET EVALUATED 32 CFR 170.21(a)(2)(ii) Requirements never allowed",
+  "new_cmmc_red_elements": 0,
+  "finalize_dialog": "DELIVERABLES Finalize deliverables Locks your data as it is now. Fix before finalizing 1 · Profile not approved 320 · Objectives not decided 1 · SSP not approved What will be locked Profile version 1 The assessment, as it is now The documents made from them REVIEWER Johnathan DATE October 12, 2026 Note optional Finalize Cancel",
+  "half_cmmc": {
+    "document": 900,
+    "overviewPanel": 1411,
+    "viewport": 900
+  },
+  "half_cmmc_banned_words": [
+    "FAIL"
+  ],
+  "half_cmmc_step_rail": "1 Scope Profile: no facts recorded yet 2 Assess 108 of 320 decided 3 Remediate 3 gaps need a POA&M · 2 POA&M items open 4 Deliver Draft available",
+  "half_cmmc_score_panel": "VERIFIED SPRS −132 of 110 · provisional −132 Projected (includes Met awaiting evidence) Show the arithmetic 32 CFR 170.21 CONDITIONAL LEVEL 2 · ON THE VERIFIED SCORE Conditional status: Not eligible · decided work already fails a check Minimum score NOT YET EVALUATED 32 CFR 170.21(a)(2)(i) Every requirement not verified Met is POA&M-eligible FAIL 32 CFR 170.21(a)(2)(ii) Fails: AC.L2-3.1.5 is decid",
+  "figure_clicked": "108 of 320 decided",
+  "chip": "Showing: Not decided yet (212) · Show all",
+  "filtered_requirement_rows": 76,
+  "evidence_filters": "All 0 Current 0 Due soon 0 Expired 0 Requirements with no evidence 110",
+  "hipaa": {
+    "document": 900,
+    "overviewPanel": 842,
+    "viewport": 900
+  },
+  "hipaa_banned_words": [],
+  "hipaa_step_rail": "1 Scope Profile: no facts recorded yet 2 Assess 10 of 149 decided 3 Remediate 10 Not Met need a corrective action · 0 corrective actions open 4 Deliver Draft available",
+  "hipaa_finalize": "DELIVERABLES Finalize deliverables Locks your data as it is now. Fix before finalizing 1 · Profile not approved 10 · Gaps without a plan 139 · Specifications not decided 2 · Security Risk Analysis incomplete What will be locked Profile version 1 The assessment, as it is now The documents made from them REVIEWER Johnathan DATE October 12, 2026 Note optional Finalize Cancel"
+}

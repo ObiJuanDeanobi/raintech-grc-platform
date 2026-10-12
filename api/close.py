@@ -12,6 +12,24 @@ from api.database import active_assessment_by_id, active_assessment_for_project
 from api.evidence_integrity import evidence_blockers, verify_assessment_evidence
 
 TARGET = "fieldwork_ready_for_generation"
+
+# CMMC package choice (GitHub issue #146, ADR 0023). The self-assessment package is the
+# internal readiness close and keeps every gate; the gap-assessment package may be issued
+# with NOT MET requirements. Only the codes below stop being gates for the gap package.
+GAP_ASSESSMENT = "gap_assessment"
+READINESS_CLOSE = "readiness_close"
+PACKAGE_TYPES = (GAP_ASSESSMENT, READINESS_CLOSE)
+GAP_DEFERRED_CODES = frozenset(
+    {
+        # Met without current evidence is unverified: reported, never counted as Met.
+        "met_evidence_pending",
+        "not_met_unreconciled",
+        # POA&M items are listed with their status, open or not.
+        "poam_open",
+        # The package carries the SSP as a draft and says so.
+        "ssp_not_approved",
+    }
+)
 _CHECKS = {
     "approved_profile_complete": "profile",
     "determinations_final": "determinations",
@@ -21,6 +39,42 @@ _CHECKS = {
     "ssp_approved": "ssp",
     "evidence_verified": "evidence",
 }
+
+
+def _gap_defers(blocker: dict[str, Any]) -> bool:
+    """Whether a blocker is only reported, not a gate, for the gap package.
+
+    A Not Met objective is what the report is about (AC-025). A blank or Pending
+    objective is not: it is undecided work or an evidence request, so it blocks.
+    """
+    if blocker["code"] == "determination_not_final":
+        return blocker.get("status") == "Not Met"
+    return blocker["code"] in GAP_DEFERRED_CODES
+
+
+def resolve_package_type(connection: Any, project_id: str, requested: str | None) -> str | None:
+    """The package a CMMC finalize or draft means; ``None`` for frameworks with no choice.
+
+    CMMC defaults to the gap-assessment package (ADR 0019 decision 5, ADR 0023); the
+    final self-assessment, the internal readiness close, is the explicit second option.
+    Asking for a choice on a framework that has none is refused, not ignored.
+    """
+    row = connection.execute(
+        """SELECT f.declarations_json FROM projects p
+           JOIN framework_versions f ON f.id = p.framework_version_id WHERE p.id = ?""",
+        (project_id,),
+    ).fetchone()
+    if row is None:
+        raise ValueError("Project not found")
+    if not json.loads(row["declarations_json"]).get("scoring"):
+        if requested:
+            raise ValueError("The package choice applies to CMMC projects only.")
+        return None
+    if requested is None:
+        return GAP_ASSESSMENT
+    if requested not in PACKAGE_TYPES:
+        raise ValueError("Choose Gap assessment or Final self-assessment.")
+    return requested
 
 
 # Blocker code -> (group key, plain-English label, where the group opens).
@@ -57,8 +111,17 @@ def _record_id(blocker: dict[str, Any]) -> str | None:
     return str(href.split("/records/", 1)[1].split("/", 1)[0])
 
 
-def _groups(blockers: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Blockers counted by plain-English group. Counts always sum to len(blockers).
+# One Profile is one thing to fix, however many of its checks fail.
+_COUNTED_ONCE = {"profile"}
+
+
+def _groups(blockers: list[dict[str, Any]], unit: str = "Objectives") -> list[dict[str, Any]]:
+    """Blockers counted by plain-English group.
+
+    Counts sum to len(blockers), except that the Profile group counts once however
+    many of its checks fail (profile_not_complete and profile_not_approved are the
+    same Profile). ``unit`` names what is decided: CMMC objectives, HIPAA
+    specifications.
 
     A group's ``record_ids`` lists the records its blockers are about (objective
     or requirement ids, without repeats); groups about the profile, SSP or
@@ -67,13 +130,16 @@ def _groups(blockers: list[dict[str, Any]]) -> list[dict[str, Any]]:
     grouped: dict[str, dict[str, Any]] = {}
     for blocker in blockers:
         key, label, target = _GROUPS.get(str(blocker["code"]), _OTHER_GROUP)
+        if key == "undecided":
+            label = f"{unit} not decided"
         if blocker["code"] == "determination_not_final" and blocker.get("status") == "Not Met":
             # Decided, but the internal close needs every objective Met.
-            key, label = "not_met", "Objectives still Not Met"
+            key, label = "not_met", f"{unit} still Not Met"
         group = grouped.setdefault(
             key, {"key": key, "label": label, "count": 0, "record_ids": [], "target": target}
         )
-        group["count"] += 1
+        if key not in _COUNTED_ONCE or group["count"] == 0:
+            group["count"] += 1
         record_id = _record_id(blocker)
         if record_id and record_id not in group["record_ids"]:
             group["record_ids"].append(record_id)
@@ -167,7 +233,16 @@ def fieldwork_ready(
     project_id: str,
     assessment_id: str | None = None,
     storage_root: Path | None = None,
+    package_type: str = READINESS_CLOSE,
 ) -> dict[str, Any]:
+    """Close readiness for one package type.
+
+    ``package_type`` is ``readiness_close`` (every gate; the only behaviour before
+    #146) or ``gap_assessment`` (CMMC only): the conditions in ``GAP_DEFERRED_CODES``
+    no longer block and are returned under ``deferred`` for the checklist to report.
+    """
+    if package_type not in PACKAGE_TYPES:
+        raise HTTPException(status_code=422, detail="Unknown package type")
     project = connection.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -184,6 +259,10 @@ def fieldwork_ready(
     if framework is None:
         raise HTTPException(status_code=409, detail="Framework declaration not found")
     declarations = json.loads(framework["declarations_json"])
+    if package_type == GAP_ASSESSMENT and not declarations.get("scoring"):
+        raise HTTPException(
+            status_code=409, detail="The gap assessment package is a CMMC package only"
+        )
     close_decl = declarations.get("close_readiness", {}).get(TARGET)
     if not isinstance(close_decl, dict):
         raise HTTPException(
@@ -469,9 +548,27 @@ def fieldwork_ready(
             "sra",
             f"/projects/{project_id}/risks",
         )
-    return _result(
-        blockers, validator_names, project_id, assessment_id, close_decl, framework["id"]
+    unit = (
+        "Objectives"
+        if declarations.get("presentation_mode") == "requirement_with_objectives"
+        else "Specifications"
     )
+    deferred: list[dict[str, Any]] = []
+    if package_type == GAP_ASSESSMENT:
+        deferred = [b for b in blockers if _gap_defers(b)]
+        blockers = [b for b in blockers if not _gap_defers(b)]
+    result = _result(
+        blockers, validator_names, project_id, assessment_id, close_decl, framework["id"], unit
+    )
+    if package_type == GAP_ASSESSMENT:
+        # Only the gap package carries these, so the readiness of every other package
+        # (and every package issued before #146) keeps exactly its earlier shape.
+        result["package_type"] = package_type
+        result["deferred"] = deferred
+        for group in result["groups"]:
+            if group["key"] == "undecided":
+                group["label"] = "Objectives not yet decided"
+    return result
 
 
 def _cmmc_checks(
@@ -527,6 +624,7 @@ def _result(
     assessment_id: str | None,
     close_decl: dict[str, Any],
     framework_id: str,
+    unit: str = "Objectives",
 ) -> dict[str, Any]:
     checks = []
     for name in validator_names:
@@ -556,7 +654,7 @@ def _result(
         "ready": not blockers,
         "checks": checks,
         "blockers": blockers,
-        "groups": _groups(blockers),
+        "groups": _groups(blockers, unit=unit),
         "links": links,
         "framework_version_id": framework_id,
         "project_id": project_id,

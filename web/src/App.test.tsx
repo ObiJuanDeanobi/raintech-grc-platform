@@ -272,7 +272,7 @@ const issueChecklist = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-test("Review and issue lists what must be fixed, and each group opens its filtered list", async () => {
+test("Finalize lists what must be fixed, and each group opens its filtered list", async () => {
   const calls: string[] = [];
   vi.mocked(fetch).mockImplementation(async (input) => {
     const url = String(input); calls.push(url);
@@ -290,13 +290,13 @@ test("Review and issue lists what must be fixed, and each group opens its filter
   });
   render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="reports" />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "Review and issue…" }));
-  const dialog = await screen.findByRole("dialog", { name: "Review and issue" });
-  expect(within(dialog).getByText("Must be fixed before issue")).toBeVisible();
-  expect(within(dialog).getByText("Worth checking")).toBeVisible();
+  await user.click(await screen.findByRole("button", { name: "Finalize…" }));
+  const dialog = await screen.findByRole("dialog", { name: "Finalize deliverables" });
+  expect(within(dialog).getByText("Fix before finalizing")).toBeVisible();
+  expect(within(dialog).getByText("Worth a look")).toBeVisible();
   expect(within(dialog).getByText(/Evidence due for review soon/)).toBeVisible();
   // Hard gates stop the issue; warnings never do.
-  expect(within(dialog).getByRole("button", { name: "Issue" })).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Finalize" })).toBeDisabled();
   expect(calls.some((url) => url.endsWith("/issue-checklist"))).toBe(true);
   await user.click(within(dialog).getByRole("button", { name: "2 · Objectives not decided" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -305,7 +305,7 @@ test("Review and issue lists what must be fixed, and each group opens its filter
   expect(await screen.findByText(/Objectives not decided/)).toBeVisible();
 });
 
-test("Reports lists only issued versions, offers a draft, and no longer offers generation or review steps", async () => {
+test("Deliverables lists only final versions, offers a draft, and no longer offers generation or review steps", async () => {
   vi.mocked(fetch).mockImplementation(async (input) => {
     const url = String(input);
     if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
@@ -321,7 +321,7 @@ test("Reports lists only issued versions, offers a draft, and no longer offers g
   });
   render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="reports" />);
   expect(await screen.findByText("report.docx")).toBeVisible();
-  expect(screen.getByText(/Issued version · /)).toBeVisible();
+  expect(screen.getByText(/Final v1 · /)).toBeVisible();
   expect(screen.getByText("Current")).toBeVisible();
   expect(screen.getByText(/Reviewed by Johnathan · October report\./)).toBeVisible();
   expect(screen.getByText("report.docx")).toBeVisible();
@@ -353,12 +353,12 @@ test("issuing is one act: one request with the account and note, no backup or re
   });
   render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="reports" />);
   const user = userEvent.setup();
-  expect(await screen.findByText("Nothing has been issued yet.")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Review and issue…" }));
-  const dialog = await screen.findByRole("dialog", { name: "Review and issue" });
+  expect(await screen.findByText("Nothing has been finalized yet.")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Finalize…" }));
+  const dialog = await screen.findByRole("dialog", { name: "Finalize deliverables" });
   await user.type(within(dialog).getByLabelText(/Note/), "Reviewed for October.");
-  await user.click(await within(dialog).findByRole("button", { name: "Issue" }));
-  expect(await screen.findByText(/Issued\. Reviewed by Johnathan/)).toBeVisible();
+  await user.click(await within(dialog).findByRole("button", { name: "Finalize" }));
+  expect(await screen.findByText(/Finalized\. Reviewed by Johnathan/)).toBeVisible();
   expect(await screen.findByText("report.docx")).toBeVisible();
   expect(calls).toEqual([
     { url: "/api/projects/project-1/assessments/assessment-1/issue", method: "POST", body: { actor_id: "johnathan", note: "Reviewed for October." } },
@@ -390,14 +390,15 @@ test("a reissue with new wording is one act on the current issue and keeps the o
   });
   render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="reports" />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "Reissue with new wording or layout…" }));
+  await user.click(await screen.findByRole("button", { name: "Change this version…" }));
+  await user.click(await screen.findByRole("button", { name: "Correct wording (same findings)…" }));
   // No attestation checkboxes: reissuing is only ever offered on the same findings.
   expect(screen.queryByLabelText(/changes presentation only|are unchanged/)).not.toBeInTheDocument();
   await user.type(screen.getByLabelText(/Note/), "Fix cover date format.");
-  await user.click(screen.getByRole("button", { name: "Issue" }));
-  expect(await screen.findByText(/It replaces the earlier issued version/)).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Finalize correction" }));
+  expect(await screen.findByText(/It replaces the earlier final version/)).toBeVisible();
   expect(screen.getAllByText("Replaced")).toHaveLength(1);
-  expect(screen.getByText(/Replaced by a later issued version/)).toBeVisible();
+  expect(screen.getByText(/Replaced by a later final version/)).toBeVisible();
   expect(posts).toEqual([{ url: "/api/projects/project-1/packages/pkg-old/issue-now", body: { actor_id: "johnathan", note: "Fix cover date format." } }]);
 });
 
@@ -431,21 +432,22 @@ test("substantive reopening requires selected records and revalidation before th
   });
   render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="reports" />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "Reopen for substantive correction…" }));
-  const submit = screen.getByRole("button", { name: "Reopen assessment" });
+  await user.click(await screen.findByRole("button", { name: "Change this version…" }));
+  await user.click(await screen.findByRole("button", { name: "Change findings (new version)…" }));
+  const submit = screen.getByRole("button", { name: "Start new version" });
   expect(submit).toBeDisabled();
   await user.click(screen.getByLabelText("This correction changes assessment content"));
   await user.click(screen.getByLabelText(/Risk analysis/));
-  await user.type(screen.getByLabelText("Reason for reopening"), "Evidence was superseded.");
+  await user.type(screen.getByLabelText("Reason for the change"), "Evidence was superseded.");
   expect(submit).toBeEnabled();
   await user.click(submit);
   expect(await screen.findByText("Needs Revalidation")).toBeVisible();
   expect(screen.getByText("1 of 1 remaining")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Reports" }));
-  await user.click(await screen.findByRole("button", { name: "Review and issue…" }));
-  const dialog = await screen.findByRole("dialog", { name: "Review and issue" });
+  await user.click(screen.getByRole("button", { name: "Deliverables" }));
+  await user.click(await screen.findByRole("button", { name: "Finalize…" }));
+  const dialog = await screen.findByRole("dialog", { name: "Finalize deliverables" });
   expect(await within(dialog).findByText("1 · Records to recheck")).toBeVisible();
-  expect(within(dialog).getByRole("button", { name: "Issue" })).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Finalize" })).toBeDisabled();
   await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
   await user.click(screen.getByRole("button", { name: "Assessments" }));
   await user.type(screen.getByLabelText("Revalidation note"), "Re-examined.");
@@ -912,11 +914,36 @@ test("switching projects never displays another project's prompt answer", async 
     if (url.includes("/projects/project-2/") && url.includes("/records/child-1")) {
       return Response.json(projectBDetail);
     }
+    if (url === "/api/home") {
+      return Response.json({
+        projects: ["A", "B"].map((letter, index) => ({
+          project_id: `project-${index + 1}`,
+          project_name: `HIPAA ${letter}`,
+          client_id: "client-1",
+          client_name: "Northwind Health",
+          framework_name: "HIPAA 45 CFR Part 164",
+          variant: "hipaa",
+          assessment_started: true,
+          progress: { decided: 0, total: 1, percent: 0 },
+          verified_sprs: null,
+          status_counts: {},
+          final: null,
+          evidence_expiring: 0,
+          evidence_expired: 0,
+          evidence_lead_days: 30,
+          open_actions: 0,
+          last_worked_at: "2026-10-12T00:00:00+00:00",
+        })),
+      });
+    }
     if (url.endsWith("/evidence")) return Response.json([]);
     return Response.json({ detail: "not found" }, { status: 404 });
   });
   const user = userEvent.setup();
   render(<App />);
+  // Two projects: the app opens on the Clients home. Open project A, then its assessment.
+  await user.click(await screen.findByRole("button", { name: /Northwind Health.*HIPAA A/ }));
+  await user.click(await screen.findByRole("button", { name: "Assessments" }));
 
   expect(
     await screen.findByRole("textbox", { name: "Answer: Has all ePHI been identified?" }),
@@ -1303,7 +1330,6 @@ test("serializes prompt autosaves without acknowledging a newer draft early", as
     }
     if (url === "/api/clients") return Response.json([
       { id: "client-1", name: "Northwind Health", projects: [{ id: "project-1", name: "HIPAA 2026", framework_version_id: "hipaa-45cfr164-2026-07-01" }] },
-      { id: "client-2", name: "Contoso Health", projects: [{ id: "project-2", name: "HIPAA 2026", framework_version_id: "hipaa-45cfr164-2026-07-01" }] },
     ]);
     if (url === "/api/projects/project-1/assessment") return Response.json(assessment);
     if (url.includes("/records/child-1")) return Response.json(detail);
@@ -1492,6 +1518,41 @@ test("warns on failed-save navigation and retries the existing note without dupl
   expect(clientReads).toBe(1);
   expect(note).toHaveValue("Retry this record only");
   expect(await screen.findByText("Saved")).toBeInTheDocument();
+});
+
+test("the logo and the Clients link warn about an unsaved edit before leaving for the home", async () => {
+  mockApi(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.includes("/records/child-1/note") && init?.method === "PUT") {
+      return Response.json({ detail: "offline" }, { status: 503 });
+    }
+    if (url === "/api/clients") {
+      return Response.json([{ id: "client-1", name: "Northwind Health", projects: [{ id: "project-1", name: "HIPAA 2026", framework_version_id: "hipaa-45cfr164-2026-07-01" }] }]);
+    }
+    if (url === "/api/home") return Response.json({ projects: [] });
+    if (url === "/api/projects/project-1/assessment") return Response.json(assessment);
+    if (url.includes("/records/child-1")) return Response.json(detail);
+    if (url === "/api/projects/project-1/evidence") return Response.json([]);
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  const user = userEvent.setup();
+  render(<App />);
+  const note = await screen.findByRole("textbox", { name: "Record notes" });
+  await user.type(note, "Not saved yet");
+  fireEvent.blur(note);
+  await screen.findByText("Save failed");
+
+  await user.click(screen.getByRole("button", { name: /back to all clients/ }));
+  expect(confirm).toHaveBeenCalledTimes(1);
+  await user.click(screen.getByRole("button", { name: "Clients" }));
+  expect(confirm).toHaveBeenCalledTimes(2);
+  expect(screen.getByRole("textbox", { name: "Record notes" })).toBeVisible();
+  expect(screen.queryByRole("heading", { level: 1, name: "Clients" })).not.toBeInTheDocument();
+
+  confirm.mockReturnValue(true);
+  await user.click(screen.getByRole("button", { name: "Clients" }));
+  expect(await screen.findByRole("heading", { level: 1, name: "Clients" })).toBeVisible();
 });
 
 test("serializes prompt, note, and determination autosaves for the same assessment record", async () => {
@@ -1869,7 +1930,8 @@ test("CMMC shows the official score and the requirement finding with POA&M items
   const score = await screen.findByRole("region", { name: "Official CMMC score" });
   expect(score).toHaveTextContent("105");
   expect(score).toHaveTextContent("of 110 · provisional");
-  expect(score).toHaveTextContent("Not eligible");
+  // A decided 5-point Not Met already makes the POA&M points check impossible to pass.
+  expect(score).toHaveTextContent("Conditional Not eligible");
   const finding = await screen.findByRole("region", { name: "Requirement finding" });
   expect(finding).toHaveTextContent("5 points if Not Met");
   expect(finding).toHaveTextContent("32 CFR 170.24(c)(2)(i)(B)(1)");
@@ -1885,7 +1947,14 @@ test("CMMC shows the official score and the requirement finding with POA&M items
   const overview = await screen.findByRole("region", { name: "CMMC score and Conditional status" });
   expect(overview).toHaveTextContent("VERIFIED SPRS105of 110 · provisional");
   expect(overview).toHaveTextContent("105 Projected (includes Met awaiting evidence)");
-  expect(within(overview).getByRole("region", { name: "32 CFR 170.21 Conditional status checks" })).toHaveTextContent("Not eligible");
+  const checks = within(overview).getByRole("region", { name: "32 CFR 170.21 Conditional status checks" });
+  // Not every requirement is decided: the check that decided work already fails names the item;
+  // the other two stay grey.
+  expect(checks).toHaveTextContent("Fails: AC.L2-3.1.1 is decided Not Met and is worth 5 points");
+  expect(checks).toHaveTextContent("Not yet evaluated");
+  expect(checks.querySelectorAll("li.fail")).toHaveLength(1);
+  // The bullet list of blocker text is gone from the Overview.
+  expect(overview).not.toHaveTextContent("not yet Met or Not Met");
 });
 
 test("shows a persistent backup warning and backs up on request", async () => {

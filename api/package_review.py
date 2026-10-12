@@ -9,7 +9,12 @@ from typing import Any, cast
 from uuid import uuid4
 
 from api.database import active_assessment_by_id
-from api.generation import TEMPLATE_VERSIONS, _snapshot, package_component_kinds
+from api.generation import (
+    TEMPLATE_VERSIONS,
+    _snapshot,
+    package_component_kinds,
+    stored_package_type,
+)
 from api.generation import template_hashes as _template_hashes
 
 # Stored states. Only "Ready to issue" is written now; the other three exist in
@@ -68,16 +73,12 @@ def _binding(
     # Each package binds to its own template version, so a newer version cannot
     # disturb an older package's review.
     template_hashes = _template_hashes(root, version) if known else {}
-    expected_kinds_for_version = package_component_kinds(version) if known else set()
     drift: list[str] = []
     if package["state"] != "promoted":
         blockers.append("Only promoted complete candidates can be reviewed")
-    expected_kinds = expected_kinds_for_version
     manifest_hashes = {
         item.get("kind"): item.get("sha256") for item in manifest.get("components", [])
     }
-    if set(component_hashes) != expected_kinds or component_hashes != manifest_hashes:
-        blockers.append("Package component binding is incomplete")
     resolved_storage = storage_root.resolve()
     for row in component_rows:
         path = (storage_root / row["relative_path"]).resolve()
@@ -94,6 +95,12 @@ def _binding(
         stored_source: dict[str, Any] = {}
     else:
         stored_source = json.loads(source["source_json"])
+    # The CMMC package type is part of the stored source, so each package is rebuilt
+    # and checked as the kind it was generated as (#146).
+    package_type = stored_package_type(stored_source)
+    expected_kinds = package_component_kinds(version, package_type) if known else set()
+    if set(component_hashes) != expected_kinds or component_hashes != manifest_hashes:
+        blockers.append("Package component binding is incomplete")
     if template_hashes != manifest.get("template_hashes", {}):
         drift.append("Approved template bytes changed")
     attempt = connection.execute(
@@ -121,7 +128,12 @@ def _binding(
     elif stored_source:
         try:
             current_source, _, _ = _snapshot(
-                connection, package["project_id"], package["assessment_id"], assessment
+                connection,
+                package["project_id"],
+                package["assessment_id"],
+                assessment,
+                root=root,
+                package_type=package_type,
             )
             if _content_hash(current_source) != _content_hash(stored_source):
                 drift.append("Assessment source changed after generation")

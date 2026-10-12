@@ -15,8 +15,8 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
-from api import evidence_library, evidence_lifecycle
-from api.close import fieldwork_ready
+from api import cmmc, evidence_library, evidence_lifecycle
+from api.close import GAP_ASSESSMENT, READINESS_CLOSE, fieldwork_ready, resolve_package_type
 from api.cmmc import TERMINAL_POAM_STATUSES
 from api.correction import (
     PRESENTATION_ONLY,
@@ -29,11 +29,35 @@ from api.correction import (
 )
 from api.database import active_assessment_by_id
 from api.evidence_integrity import evidence_blockers, verify_assessment_evidence
-from api.generation import generate_package
+from api.generation import generate_package, stored_package_type
 from api.package_review import get_review, record_ready_to_issue
 from api.storage import FileStorage
 
 _operation_lock = threading.RLock()
+
+
+_PACKAGE_LABELS = {
+    GAP_ASSESSMENT: "a gap assessment",
+    READINESS_CLOSE: "a final self-assessment",
+}
+
+
+def _held_package_type(
+    connection: sqlite3.Connection, project_id: str, package_id: str
+) -> str | None:
+    """The CMMC package type an existing package was generated as (``None``: HIPAA)."""
+    row = connection.execute(
+        """SELECT s.source_json FROM generated_packages p
+           JOIN source_snapshots s ON s.id = p.source_snapshot_id
+           WHERE p.id = ? AND p.project_id = ?""",
+        (package_id, project_id),
+    ).fetchone()
+    if row is None:
+        return None
+    source = json.loads(row["source_json"])
+    if "cmmc" not in source:
+        return None
+    return stored_package_type(source) or READINESS_CLOSE
 
 
 class IssueBlocked(Exception):
@@ -222,7 +246,18 @@ def issue_readiness(
     blockers = list(review["blockers"]) + list(review["drift"])
     if review["state"] != "Ready to issue" or event is None:
         blockers.append("The exact package has not been reviewed and signed off")
-    if fieldwork_ready(connection, project_id, package["assessment_id"]).get("status") != "Ready":
+    stored = connection.execute(
+        "SELECT source_json FROM source_snapshots WHERE id=? AND project_id=?",
+        (package["source_snapshot_id"], project_id),
+    ).fetchone()
+    package_type = stored_package_type(json.loads(stored["source_json"])) if stored else None
+    decision = fieldwork_ready(
+        connection,
+        project_id,
+        package["assessment_id"],
+        package_type=package_type or READINESS_CLOSE,
+    )
+    if decision.get("status") != "Ready":
         blockers.append("Assessment source is no longer ready")
     blockers.extend(issuance_blockers(connection, project_id, package_id))
     evidence_index = verify_assessment_evidence(
@@ -628,15 +663,116 @@ Audit = Callable[[str, str, str, dict[str, Any]], None]
 DOUBLE_SUBMIT_SECONDS = 60
 
 
+def _gap_warnings(
+    connection: sqlite3.Connection, project_id: str, assessment_id: str, decision: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """What a gap-assessment issue reports instead of blocking on (ADR 0023)."""
+    deferred = decision["deferred"]
+    evidence_pending = [b for b in deferred if b["code"] == "met_evidence_pending"]
+    warnings: list[dict[str, Any]] = []
+    if evidence_pending:
+        warnings.append(
+            {
+                "key": "met_no_evidence",
+                "label": "Met, evidence still needed",
+                "count": len(evidence_pending),
+                "detail": "Not counted as verified Met. The report lists them as evidence pending.",
+                "target": "assessments",
+            }
+        )
+    # Imported here: api.main imports this module and owns the shared rollup.
+    from api.main import _derived_status
+
+    assessment = active_assessment_by_id(connection, assessment_id)
+    if assessment is not None:
+        not_met = [
+            row["record_id"]
+            for row in cmmc.requirement_rows(connection, assessment["framework_version_id"])
+            if _derived_status(connection, assessment_id, row["record_id"]) == "Not Met"
+        ]
+        unplanned = cmmc.not_met_without_poam(connection, project_id, not_met)["count"]
+        if unplanned:
+            warnings.append(
+                {
+                    "key": "gaps_no_poam",
+                    "label": "Gaps without a POA&M item",
+                    "count": unplanned,
+                    "detail": "The report lists each one as having no POA&M item yet.",
+                    "target": "poam",
+                }
+            )
+    open_items = connection.execute(
+        """SELECT COUNT(*) AS total, COALESCE(SUM(status = 'Draft'), 0) AS drafts
+           FROM corrective_actions WHERE project_id=? AND status NOT IN ({})""".format(
+            ", ".join("?" for _ in TERMINAL_POAM_STATUSES)
+        ),
+        (project_id, *TERMINAL_POAM_STATUSES),
+    ).fetchone()
+    if open_items["total"]:
+        warnings.append(
+            {
+                "key": "poam_open",
+                "label": "POA&M items still open",
+                "count": open_items["total"],
+                "detail": f"{open_items['drafts']} of them are drafts. The POA&M file lists "
+                "every item with its status.",
+                "target": "poam",
+            }
+        )
+    if assessment is not None:
+        scoring = json.loads(
+            connection.execute(
+                "SELECT declarations_json FROM framework_versions WHERE id=?",
+                (assessment["framework_version_id"],),
+            ).fetchone()["declarations_json"]
+        )["scoring"]
+        score = cmmc.score(connection, assessment, scoring, _derived_status)
+        failing = [c for c in score["conditional"]["checks"] if not c["passed"]]
+        if failing:
+            warnings.append(
+                {
+                    "key": "conditional_checks",
+                    "label": "32 CFR 170.21 conditional status checks failing",
+                    "count": len(failing),
+                    "detail": "Reported with each reason in the gap report; they do not stop it.",
+                    "target": "assessments",
+                }
+            )
+    if any(b["code"] == "ssp_not_approved" for b in deferred):
+        warnings.append(
+            {
+                "key": "ssp_draft",
+                "label": "System Security Plan not approved",
+                "count": 1,
+                "detail": "It goes into the package marked as a draft.",
+                "target": "ssp",
+            }
+        )
+    return warnings
+
+
 def issue_checklist(
-    connection: sqlite3.Connection, project_id: str, assessment_id: str, managed_root: Path
+    connection: sqlite3.Connection,
+    project_id: str,
+    assessment_id: str,
+    managed_root: Path,
+    package_type: str | None = None,
 ) -> dict[str, Any]:
     """What the review-and-issue dialog shows (GitHub issue #145), read-only.
 
     ``groups`` are the hard gates, each of which stops the issue. ``warnings`` are
-    things worth a look that never stop it; nothing needs ticking.
+    things worth a look that never stop it; nothing needs ticking. ``package_type``
+    is ``gap_assessment`` or ``readiness_close`` for CMMC (default: gap), ``None`` for
+    HIPAA (ticket #146).
     """
-    decision = fieldwork_ready(connection, project_id, assessment_id, storage_root=managed_root)
+    package_type = resolve_package_type(connection, project_id, package_type)
+    decision = fieldwork_ready(
+        connection,
+        project_id,
+        assessment_id,
+        storage_root=managed_root,
+        package_type=package_type or READINESS_CLOSE,
+    )
     framework = connection.execute(
         """SELECT declarations_json FROM framework_versions
            WHERE id = (SELECT framework_version_id FROM projects WHERE id=?)""",
@@ -648,7 +784,11 @@ def issue_checklist(
         .get("fieldwork_ready_for_generation", {})
         .get("validators", [])
     )
-    warnings: list[dict[str, Any]] = []
+    warnings: list[dict[str, Any]] = (
+        _gap_warnings(connection, project_id, assessment_id, decision)
+        if package_type == GAP_ASSESSMENT
+        else []
+    )
     if "poam_closed" not in close_validators:
         open_actions = connection.execute(
             """SELECT COUNT(*) FROM corrective_actions
@@ -693,12 +833,19 @@ def issue_checklist(
             )
     current = current_issuance(connection, project_id)
     return {
+        "package_type": package_type,
         "ready": bool(decision["ready"]),
         "groups": decision["groups"],
         "blockers": decision["blockers"],
         "warnings": warnings,
         "current_issue": (
-            {"package_id": current["package_id"], "issued_at": current["issued_at"]}
+            {
+                "package_id": current["package_id"],
+                "issued_at": current["issued_at"],
+                "assessment_id": current["assessment_id"],
+                # What the current issue was generated as, so a plain reissue can follow it.
+                "package_type": _held_package_type(connection, project_id, current["package_id"]),
+            }
             if current is not None
             else None
         ),
@@ -720,6 +867,7 @@ def review_and_issue(
     audit: Audit,
     staging_root: Path | None = None,
     correct_package_id: str | None = None,
+    package_type: str | None = None,
 ) -> dict[str, Any]:
     """The one review-and-issue act (GitHub issue #145, ADR 0021).
 
@@ -740,8 +888,22 @@ def review_and_issue(
             connection.commit()
 
         try:
+            if correct_package_id is not None:
+                # A correction is always of the same kind as the issue it replaces.
+                package_type = resolve_package_type(
+                    connection,
+                    project_id,
+                    _held_package_type(connection, project_id, correct_package_id)
+                    or (READINESS_CLOSE if package_type else None),
+                )
+            else:
+                package_type = resolve_package_type(connection, project_id, package_type)
             decision = fieldwork_ready(
-                connection, project_id, assessment_id, storage_root=managed_root
+                connection,
+                project_id,
+                assessment_id,
+                storage_root=managed_root,
+                package_type=package_type or READINESS_CLOSE,
             )
             if decision["status"] != "Ready":
                 connection.rollback()
@@ -749,7 +911,7 @@ def review_and_issue(
                     "package.issue_blocked",
                     "assessment",
                     assessment_id,
-                    {"groups": decision["groups"]},
+                    {"groups": decision["groups"], "package_type": package_type},
                 )
                 raise IssueBlocked(decision["groups"], decision["blockers"])
             stage = "package"
@@ -768,6 +930,19 @@ def review_and_issue(
                 if current is not None and current["assessment_id"] == assessment_id
                 else None
             )
+            if (
+                reissue_of is not None
+                and correct_package_id is None
+                and package_type is not None
+                and (_held_package_type(connection, project_id, reissue_of) or READINESS_CLOSE)
+                != package_type
+            ):
+                held = _held_package_type(connection, project_id, reissue_of) or READINESS_CLOSE
+                raise ValueError(
+                    f"This assessment was issued as {_PACKAGE_LABELS[held]}. To issue it as "
+                    f"{_PACKAGE_LABELS[package_type]} instead, reopen the assessment and "
+                    "issue from the reopened one."
+                )
             if reissue_of is not None:
                 try:
                     created = create_correction(
@@ -799,7 +974,13 @@ def review_and_issue(
                 )
             else:
                 package = generate_package(
-                    connection, storage, root, project_id, assessment_id, staging_root
+                    connection,
+                    storage,
+                    root,
+                    project_id,
+                    assessment_id,
+                    staging_root,
+                    package_type,
                 )
             audit(
                 "hipaa_package_generated",
@@ -808,6 +989,7 @@ def review_and_issue(
                 {
                     "project_id": project_id,
                     "assessment_id": assessment_id,
+                    "package_type": package_type,
                     "source_snapshot_sha256": package["manifest"]["source_snapshot_sha256"],
                 },
             )

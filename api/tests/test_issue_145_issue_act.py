@@ -157,7 +157,7 @@ def test_a_failing_hard_gate_returns_groups_and_writes_nothing(tmp_path: Path) -
         detail = response.json()["detail"]
         assert detail["message"] == "Fix these before issuing."
         groups = {g["key"]: g for g in detail["groups"]}
-        assert groups["undecided"]["label"] == "Objectives not decided"
+        assert groups["undecided"]["label"] == "Specifications not decided"
         assert groups["undecided"]["count"] >= 1
         assert groups["undecided"]["target"] == "assessments"
         assert detail["blockers"]

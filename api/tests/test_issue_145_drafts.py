@@ -46,8 +46,11 @@ def _hipaa_unapproved(client: TestClient, suffix: str) -> tuple[str, str]:
     return project, started.json()["assessment"]["id"]
 
 
-def _draft(client: TestClient, project: str, assessment: str) -> Response:
-    return client.get(f"/api/projects/{project}/assessments/{assessment}/draft")
+def _draft(
+    client: TestClient, project: str, assessment: str, package: str | None = None
+) -> Response:
+    query = f"?package={package}" if package else ""
+    return client.get(f"/api/projects/{project}/assessments/{assessment}/draft{query}")
 
 
 def _zip(response: Response) -> zipfile.ZipFile:
@@ -206,7 +209,8 @@ def test_cmmc_draft_marks_every_output_and_shows_undecided(tmp_path: Path) -> No
     with client:
         project, assessment = cmmc_project(client, "cmmc-draft")
         before_files = _tree(files)
-        archive = _zip(_draft(client, project, assessment))
+        # The final self-assessment draft (the default CMMC draft is the gap assessment).
+        archive = _zip(_draft(client, project, assessment, "readiness_close"))
         names = sorted(archive.namelist())
         assert names == [
             "DRAFT_CMMC_L2_Assessment_Report.docx",
@@ -238,7 +242,9 @@ def test_cmmc_draft_with_an_unapproved_profile(tmp_path: Path) -> None:
         ).json()["id"]
         started = client.post(f"/api/projects/{project}/start-assessment")
         assert started.status_code == 201, started.text
-        archive = _zip(_draft(client, project, started.json()["assessment"]["id"]))
+        archive = _zip(
+            _draft(client, project, started.json()["assessment"]["id"], "readiness_close")
+        )
         report = _assert_docx_is_draft(archive.read("DRAFT_CMMC_L2_Assessment_Report.docx"))
         assert "Not yet decided" in report
         ssp = archive.read("DRAFT_System_Security_Plan.docx")

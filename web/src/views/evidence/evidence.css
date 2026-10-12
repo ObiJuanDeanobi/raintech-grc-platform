@@ -4,7 +4,7 @@
 .evidence-view .overview-heading p:not(.eyebrow) { max-width: 720px; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .evidence-view .evidence-upload { min-width: 170px; padding: 0 14px; font-size: 12px; font-weight: 600; }
 .evidence-toolbar { display: flex; margin: 22px 0 12px; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.evidence-filters { display: inline-flex; padding: 3px; gap: 2px; border-radius: 7px; background: #e8ecf1; }
+.evidence-filters { display: inline-flex; flex-wrap: wrap; padding: 3px; gap: 2px; border-radius: 7px; background: #e8ecf1; }
 .evidence-filters button { height: 28px; padding: 0 12px; border: 0; border-radius: 5px; color: #5d6979; background: transparent; font-size: 12px; font-weight: 600; }
 .evidence-filters button.selected { color: var(--ink); background: white; box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
 .evidence-filters button.review-stale.selected { color: var(--red); }
@@ -99,3 +99,4 @@
 }
 .linked-evidence .link-evidence-open { width: calc(100% - 28px); margin: 10px 14px 0; }
 .linked-evidence .link-evidence { margin: 10px 14px 0; }
+.evidence-coverage ul { display: grid; margin: 8px 0 0; padding: 0; gap: 4px; list-style: none; }

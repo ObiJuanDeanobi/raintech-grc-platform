@@ -1,0 +1,111 @@
+/* Clients home (flow-alignment item 9) and the brand button that returns to it. */
+.brand-button {
+  height: 100%;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.brand-button:hover span { text-decoration: underline; }
+.topbar nav button.clients-link { color: #c3ccd9; }
+
+.clients-home-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 82% 12%, rgba(22, 136, 121, .09), transparent 30%),
+    #f3f5f8;
+}
+.clients-home-shell .topbar { height: 58px; }
+.clients-home { width: min(1180px, calc(100% - 64px)); margin: 0 auto; padding: 32px 0 64px; }
+.clients-home-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.clients-home-heading h1 { margin: 3px 0 6px; font: 700 30px "Segoe UI", sans-serif; }
+.clients-home-heading p { margin: 0; }
+.clients-home-heading .primary-button { width: auto; min-height: 42px; flex: none; }
+.clients-home-heading > div > p:last-child { color: var(--muted); }
+.clients-home-search {
+  display: flex;
+  width: min(420px, 100%);
+  margin: 22px 0 6px;
+  padding: 0 12px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  color: var(--muted);
+}
+.clients-home-search input, .clients-home-search input:focus { flex: 1; min-width: 0; padding: 10px 0; border: 0; outline: 0; box-shadow: none; background: transparent; font-size: 13px; }
+.clients-home-search:focus-within { border-color: var(--teal); }
+.clients-home-count { margin: 10px 0 12px; color: var(--muted); font-size: 12px; }
+.clients-home-note {
+  display: flex;
+  margin-top: 22px;
+  padding: 18px 20px;
+  align-items: center;
+  gap: 10px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: white;
+  color: var(--muted);
+}
+
+.home-grid { display: grid; margin: 0; padding: 0; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; list-style: none; }
+.home-card {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  padding: 18px;
+  align-content: start;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.home-card:hover, .home-card:focus-visible { border-color: var(--teal); box-shadow: 0 2px 14px rgba(12, 23, 38, .08); }
+.home-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.home-card-names { display: grid; gap: 2px; }
+.home-card-names strong { font-size: 16px; }
+.home-card-names span { color: var(--muted); font-size: 13px; }
+.home-framework {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+}
+.home-progress { display: grid; gap: 6px; }
+.home-progress-text { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; font-weight: 600; }
+.home-bar { display: block; height: 8px; overflow: hidden; border-radius: 999px; background: #e6eaf0; }
+.home-bar > span { display: block; height: 100%; border-radius: 999px; background: var(--teal); }
+.home-not-started { color: var(--muted); font-size: 13px; }
+.home-headline { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.home-headline-label { color: var(--muted); font-size: 12px; font-weight: 600; }
+.home-headline-value { font-size: 26px; font-weight: 700; }
+.home-headline-value small { color: var(--muted); font-size: 12px; font-weight: 600; }
+.home-counts { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 12px; }
+.home-counts strong { color: var(--ink); font-size: 14px; }
+.home-final { color: var(--muted); font-size: 12px; font-weight: 600; }
+.home-final.has-final { color: var(--teal); }
+.home-indicators { display: flex; flex-wrap: wrap; gap: 6px; }
+.home-indicators > span {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: var(--muted);
+  font-size: 11px;
+}
+.home-indicators > span strong { color: var(--ink); }
+.home-indicators > span.attention { background: var(--amber-soft); color: var(--amber); }
+.home-indicators > span.attention strong { color: var(--amber); }
+
+@media (max-width: 760px) {
+  .clients-home { width: calc(100% - 32px); }
+  .clients-home-heading { flex-direction: column; align-items: stretch; }
+}
+.home-headline-none { color: var(--muted); font-size: 16px; }

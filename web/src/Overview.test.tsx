@@ -7,9 +7,10 @@ import { clientProjectsFixture, cmmcScoreFixture } from "./activeAssessmentFixtu
 import { OverviewView } from "./views/overview/OverviewView";
 
 /**
- * Issue #144: the Overview shows where the engagement stands as counts. Grouped
- * "left before issue" counts open the matching filtered list; no blocker is
- * listed one by one; package generation lives under Reports.
+ * Issue #144, ADR 0022: the Overview shows where the engagement stands as progress
+ * and the next piece of work. Each progress figure opens the matching filtered list.
+ * It never shows blockers ("left before issue", "not approved", FAIL); those appear
+ * only in the Finalize dialog under Deliverables.
  */
 
 const requirements = [
@@ -38,13 +39,22 @@ const readiness = {
   current_details: { unresolved_required_fields: [], follow_up_work: "", reviewed_by: "", approval_evidence: "" },
 };
 
+const group = (key: string, label: string, count: number, record_ids: string[], target = "assessments") => ({ key, label, count, record_ids, target });
+
 const cmmcOverview = {
   variant: "cmmc",
   steps: [
-    { label: "Scope", figure: "Profile approved", target: "profile" },
-    { label: "Assess", figure: "4 of 6 objectives decided", target: "assessments" },
-    { label: "Remediate", figure: "1 open POA&M items · 1 gaps without a plan", target: "assessments" },
-    { label: "Deliver", figure: "323 items left before issue", target: "reports" },
+    { label: "Scope", figure: "Profile: 14 of 20 facts known · 2 to follow up", parts: [{ text: "Profile: 14 of 20 facts known · 2 to follow up", group: null }], target: "profile" },
+    { label: "Assess", figure: "4 of 6 decided", parts: [{ text: "4 of 6 decided", group: group("undecided", "Not decided yet", 2, ["AU.L2-3.3.1b"]) }], target: "assessments" },
+    {
+      label: "Remediate", figure: "1 gap needs a POA&M · 0 POA&M items open",
+      parts: [
+        { text: "1 gap needs a POA&M", group: group("gaps_no_plan", "NOT MET without a POA&M", 1, ["AC.L2-3.1.3"]) },
+        { text: "0 POA&M items open", group: null },
+      ],
+      target: "assessments",
+    },
+    { label: "Deliver", figure: "Draft available", parts: [{ text: "Draft available", group: null }], target: "reports" },
   ],
   families: [
     { name: "AC", decided: 3, total: 4, not_met: 1 },
@@ -54,23 +64,33 @@ const cmmcOverview = {
   not_met_without_poam: { count: 1, requirement_ids: ["AC.L2-3.1.3"] },
   resume: { record_id: "AU.L2-3.3.1", citation: "AU.L2-3.3.1", title: "System Auditing", updated_at: "2026-10-12T10:00:00Z" },
   status_counts: null,
-  left_before_issue: {
-    ready: false,
-    count: 323,
-    groups: [
-      { key: "undecided", label: "Objectives not decided", count: 320, record_ids: ["AU.L2-3.3.1b"], target: "assessments" },
-      { key: "met_no_evidence", label: "Met, evidence still needed", count: 2, record_ids: ["AC.L2-3.1.1a", "AC.L2-3.1.1b"], target: "assessments" },
-      { key: "ssp", label: "SSP not approved", count: 1, record_ids: [], target: "ssp" },
-      { key: "recheck", label: "Records to recheck", count: 1, record_ids: ["AU.L2-3.3.1a"], target: "assessments" },
-      { key: "profile", label: "Profile not approved", count: 2, record_ids: [], target: "profile" },
-      { key: "other", label: "Other items", count: 1, record_ids: [], target: "overview" },
-    ],
-  },
+  evidence_progress: { text: "2 Met awaiting evidence", group: group("met_no_evidence", "Met, evidence still needed", 2, ["AC.L2-3.1.1a", "AC.L2-3.1.1b"]) },
+};
+
+/** A brand-new project: nothing decided, nothing to follow up. */
+const newCmmcOverview = {
+  ...cmmcOverview,
+  steps: [
+    { label: "Scope", figure: "Profile: 1 of 1 facts known", parts: [{ text: "Profile: 1 of 1 facts known", group: null }], target: "profile" },
+    { label: "Assess", figure: "0 of 320 decided", parts: [{ text: "0 of 320 decided", group: group("undecided", "Not decided yet", 320, ["AU.L2-3.3.1b"]) }], target: "assessments" },
+    { label: "Remediate", figure: "0 gaps need a POA&M · 0 POA&M items open", parts: [{ text: "0 gaps need a POA&M", group: null }, { text: "0 POA&M items open", group: null }], target: "assessments" },
+    { label: "Deliver", figure: "Draft available", parts: [{ text: "Draft available", group: null }], target: "reports" },
+  ],
+  families: cmmcOverview.families.map((family) => ({ ...family, decided: 0, not_met: 0 })),
+  not_met: [],
+  not_met_without_poam: { count: 0, requirement_ids: [] },
+  resume: null,
+  evidence_progress: null,
 };
 
 const hipaaOverview = {
   variant: "hipaa",
-  steps: cmmcOverview.steps.map((step) => ({ ...step })),
+  steps: [
+    { label: "Scope", figure: "Profile: 1 of 1 facts known", parts: [{ text: "Profile: 1 of 1 facts known", group: null }], target: "profile" },
+    { label: "Assess", figure: "0 of 149 decided", parts: [{ text: "0 of 149 decided", group: group("undecided", "Not decided yet", 149, []) }], target: "assessments" },
+    { label: "Remediate", figure: "0 corrective actions open", parts: [{ text: "0 corrective actions open", group: null }], target: "assessments" },
+    { label: "Deliver", figure: "Final v2 · 12 Oct 2026", parts: [{ text: "Final v2 · 12 Oct 2026", group: null }], target: "reports" },
+  ],
   families: [],
   not_met: [],
   not_met_without_poam: null,
@@ -79,7 +99,7 @@ const hipaaOverview = {
     { rule: "security", total: 10, counts: { Met: 4, "Not Met": 2, Pending: 1, "N/A": 0, Blank: 3 } },
     { rule: "privacy", total: 5, counts: { Met: 1, "Not Met": 0, Pending: 0, "N/A": 1, Blank: 3 } },
   ],
-  left_before_issue: { ready: false, count: 12, groups: [{ key: "undecided", label: "Objectives not decided", count: 12, record_ids: [], target: "assessments" }] },
+  evidence_progress: null,
 };
 
 function cmmcAssessment() {
@@ -102,11 +122,18 @@ function cmmcAssessment() {
     progress: { resolved_determination_count: 4, determination_record_count: 6 },
     work_list: workList, record_index: workList,
     record_states: Object.fromEntries(workList.map((record) => [record.record_id, { status: "", evidence_count: 0, open_poam_count: 0, verification: null }])),
-    not_met_without_poam: { count: 0, requirement_ids: [] },
+    not_met_without_poam: { count: 1, requirement_ids: ["AC.L2-3.1.3"] },
   };
 }
 
-function mockCmmcServer(overview: unknown = cmmcOverview) {
+interface ServerOptions {
+  overview?: unknown;
+  score?: unknown;
+  checklistGroups?: unknown[];
+}
+
+function mockCmmcServer(options: ServerOptions = {}) {
+  const overview = options.overview ?? cmmcOverview;
   const calls: string[] = [];
   vi.mocked(fetch).mockImplementation(async (input) => {
     const url = String(input);
@@ -127,10 +154,10 @@ function mockCmmcServer(overview: unknown = cmmcOverview) {
       });
     }
     if (url.endsWith("/finding")) return Response.json(null);
-    if (url.endsWith("/cmmc-score")) return Response.json({ ...cmmcScoreFixture([{ record_id: "AC.L2-3.1.3", title: "Control CUI Flow", points: 5, state: "not_met" }]), not_met_without_poam: { count: 1, requirement_ids: [] } });
-    if (url.includes("close-readiness")) return Response.json({ status: "Blocked", blockers: [], checks: [] });
+    if (url.endsWith("/cmmc-score")) return Response.json(options.score ?? { ...cmmcScoreFixture([{ record_id: "AC.L2-3.1.3", title: "Control CUI Flow", points: 5, state: "not_met" }]), not_met_without_poam: { count: 1, requirement_ids: ["AC.L2-3.1.3"] } });
     if (url.endsWith("/packages")) return Response.json([]);
-    if (url.endsWith("/issue-checklist")) return Response.json({ ready: false, groups: [], warnings: [], current_issue: null });
+    if (url.endsWith("/profile")) return Response.json({ active_version_id: "pv-1", versions: [{ id: "pv-1", version_number: 1 }] });
+    if (url.includes("/issue-checklist")) return Response.json({ ready: false, groups: options.checklistGroups ?? [], warnings: [], current_issue: null });
     if (url.endsWith("/ssp")) return Response.json(null);
     if (url.includes("/evidence")) return Response.json([]);
     if (url === "/api/backups") return Response.json({ warning: null, backups: [] });
@@ -149,19 +176,49 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn());
 });
 
-test("the step rail shows Scope, Assess, Remediate and Deliver with one figure each", async () => {
+/** Every phrase that would make the Overview read as a list of blockers. */
+const BLOCKER_PHRASES = [/left before issue/i, /not approved/i, /\bFAIL\b/, /Final determination required/i, /Show every item/i, /Must be fixed/i, /blocker/i];
+
+function expectNoBlockerText(root: HTMLElement) {
+  for (const phrase of BLOCKER_PHRASES) expect(root).not.toHaveTextContent(phrase);
+}
+
+test("the step rail shows progress and next work for Scope, Assess, Remediate and Deliver", async () => {
   mockCmmcServer();
   renderOverview();
   const rail = await screen.findByRole("navigation", { name: "Engagement steps" });
-  const steps = within(rail).getAllByRole("button");
+  const steps = Array.from(rail.querySelectorAll(".step"));
   expect(steps.map((step) => step.querySelector("strong")?.textContent)).toEqual(["Scope", "Assess", "Remediate", "Deliver"]);
-  expect(steps[0]).toHaveTextContent("Profile approved");
-  expect(steps[1]).toHaveTextContent("4 of 6 objectives decided");
-  expect(steps[2]).toHaveTextContent("1 open POA&M items · 1 gaps without a plan");
-  expect(steps[3]).toHaveTextContent("323 items left before issue");
+  expect(steps[0]).toHaveTextContent("Profile: 14 of 20 facts known · 2 to follow up");
+  expect(steps[1]).toHaveTextContent("4 of 6 decided");
+  expect(steps[2]).toHaveTextContent("1 gap needs a POA&M · 0 POA&M items open");
+  expect(steps[3]).toHaveTextContent("Draft available");
+  // Progress, never a verdict or an item count.
+  expectNoBlockerText(rail);
+  expect(rail).not.toHaveTextContent(/items? left/i);
 });
 
-test("shows the score, the family table and the NOT MET list, without the old blocks or any one-by-one blockers", async () => {
+test("a final version reads 'Final v2 · 12 Oct 2026' on the Deliver step", async () => {
+  mockCmmcServer({ overview: { ...cmmcOverview, steps: cmmcOverview.steps.map((step) => (step.label === "Deliver" ? { ...step, figure: "Final v2 · 12 Oct 2026", parts: [{ text: "Final v2 · 12 Oct 2026", group: null }] } : step)) } });
+  renderOverview();
+  const rail = await screen.findByRole("navigation", { name: "Engagement steps" });
+  expect(within(rail).getByRole("button", { name: "Final v2 · 12 Oct 2026" })).toBeVisible();
+  expect(rail).not.toHaveTextContent("Draft available");
+});
+
+test("a figure with no list behind it opens its step", async () => {
+  mockCmmcServer();
+  renderOverview();
+  const user = userEvent.setup();
+  const rail = await screen.findByRole("navigation", { name: "Engagement steps" });
+  await user.click(within(rail).getByRole("button", { name: "Profile: 14 of 20 facts known · 2 to follow up" }));
+  expect(screen.getByRole("button", { name: "Profile" })).toHaveClass("active");
+  await user.click(screen.getByRole("button", { name: "Overview" }));
+  await user.click(within(await screen.findByRole("navigation", { name: "Engagement steps" })).getByRole("button", { name: "Draft available" }));
+  expect(screen.getByRole("button", { name: "Deliverables" })).toHaveClass("active");
+});
+
+test("shows the score, the family table and the NOT MET list, without the old blocks or any blockers", async () => {
   mockCmmcServer();
   renderOverview();
   const score = await screen.findByRole("region", { name: "CMMC score and Conditional status" });
@@ -181,18 +238,18 @@ test("shows the score, the family table and the NOT MET list, without the old bl
   expect(screen.queryByText("PROFILE READINESS")).not.toBeInTheDocument();
   expect(screen.queryByText("Fieldwork ready for generation")).not.toBeInTheDocument();
   expect(screen.queryByText("Assessment package")).not.toBeInTheDocument();
-  // Grouped counts, never one line per blocker.
-  const left = screen.getByRole("region", { name: "Left before issue" });
-  expect(within(left).getAllByRole("listitem")).toHaveLength(6);
+  expect(screen.queryByRole("region", { name: "Left before issue" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Show every item/ })).not.toBeInTheDocument();
   expect(screen.getByRole("region", { name: "Continue where you left off" })).toHaveTextContent("System Auditing");
 });
 
-test("a grouped count opens Assessments filtered to its records and the chip clears it", async () => {
+test("a progress figure opens Assessments filtered to its records and the chip clears it", async () => {
   mockCmmcServer();
   renderOverview();
   const user = userEvent.setup();
-  const left = await screen.findByRole("region", { name: "Left before issue" });
-  await user.click(within(left).getByRole("button", { name: "Met, evidence still needed: 2" }));
+  const progress = await screen.findByLabelText("Evidence progress");
+  expect(progress).toHaveTextContent("Evidence: 2 Met awaiting evidence");
+  await user.click(within(progress).getByRole("button", { name: "2 Met awaiting evidence" }));
 
   const chip = await screen.findByRole("status");
   expect(chip).toHaveTextContent("Showing: Met, evidence still needed (2) · Show all");
@@ -211,46 +268,151 @@ test("a grouped count opens Assessments filtered to its records and the chip cle
   expect(within(all).getByRole("button", { name: /System Auditing/ })).toBeVisible();
 });
 
-test("Show every item lists the flat blockers only on request", async () => {
-  const calls = mockCmmcServer();
-  renderOverview();
-  const user = userEvent.setup();
-  await screen.findByRole("region", { name: "Left before issue" });
-  expect(calls.some((url) => url.includes("close-readiness"))).toBe(false);
-  await user.click(screen.getByRole("button", { name: "Show every item" }));
-  expect(await screen.findByRole("button", { name: "Hide every item" })).toBeVisible();
-  expect(calls.some((url) => url.includes("close-readiness"))).toBe(true);
-});
-
-test("drafting and review-and-issue are reachable from Reports", async () => {
+test("the Assess figure opens the not-decided list", async () => {
   mockCmmcServer();
   renderOverview();
   const user = userEvent.setup();
-  await screen.findByRole("region", { name: "Left before issue" });
-  await user.click(screen.getByRole("button", { name: "Reports" }));
-  expect(await screen.findByRole("button", { name: "Download draft" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "Review and issue…" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "Reports" })).toHaveClass("active");
-  expect(screen.queryByRole("region", { name: "Left before issue" })).not.toBeInTheDocument();
+  const rail = await screen.findByRole("navigation", { name: "Engagement steps" });
+  await user.click(within(rail).getByRole("button", { name: "4 of 6 decided" }));
+  expect(await screen.findByRole("status")).toHaveTextContent("Showing: Not decided yet (2) · Show all");
+  const list = screen.getByRole("navigation", { name: "Requirements by family" });
+  expect(within(list).getByRole("button", { name: /System Auditing/ })).toBeVisible();
+  expect(within(list).queryByRole("button", { name: /Authorized Access Control/ })).not.toBeInTheDocument();
 });
 
-test("HIPAA shows counts by status per rule, grouped counts and no score", async () => {
+test("the Remediate figure opens the gaps that need a POA&M", async () => {
+  mockCmmcServer();
+  renderOverview();
+  const user = userEvent.setup();
+  const rail = await screen.findByRole("navigation", { name: "Engagement steps" });
+  await user.click(within(rail).getByRole("button", { name: "1 gap needs a POA&M" }));
+  expect(await screen.findByRole("status")).toHaveTextContent("Showing: NOT MET without a POA&M");
+  const list = screen.getByRole("navigation", { name: "Requirements by family" });
+  expect(within(list).getByRole("button", { name: /Control CUI Flow/ })).toBeVisible();
+});
+
+test("the Overview never reads the close check or lists blockers; that happens only on Finalize", async () => {
+  const calls = mockCmmcServer();
+  renderOverview();
+  const dashboard = (await screen.findByRole("navigation", { name: "Engagement steps" })).closest("main")!;
+  await screen.findByRole("region", { name: "CMMC score and Conditional status" });
+  expectNoBlockerText(dashboard);
+  expect(calls.some((url) => url.includes("close-readiness") || url.includes("issue-checklist"))).toBe(false);
+});
+
+test("a new CMMC project shows no blocker text: not started, checks not yet evaluated, nothing red", async () => {
+  const blank = cmmcScoreFixture(
+    [{ record_id: "AC.L2-3.1.1", title: "Authorized Access Control", points: 5, state: "not_assessed" }],
+    { complete: false, started: false, allDecided: false, blockers: ["320 requirement(s) are not yet Met or Not Met."] },
+  );
+  mockCmmcServer({ overview: newCmmcOverview, score: blank });
+  renderOverview();
+  const score = await screen.findByRole("region", { name: "CMMC score and Conditional status" });
+  expect(score).toHaveTextContent("Not started");
+  // The worst possible score is never printed on a blank project.
+  expect(score).not.toHaveTextContent(/[−-]\d{2,3}/);
+  expect(score).not.toHaveTextContent("Projected");
+  const checks = within(score).getByRole("region", { name: "32 CFR 170.21 Conditional status checks" });
+  expect(checks).toHaveTextContent("Not yet evaluated");
+  expect(checks).toHaveTextContent("Evaluated once every requirement is decided");
+  expect(checks.querySelector(".fail")).toBeNull();
+  expect(checks.querySelector(".pass")).toBeNull();
+  expect(within(checks).getAllByText("Not yet evaluated").length).toBeGreaterThanOrEqual(3);
+  // The old bullet list of score blockers is gone.
+  expect(score).not.toHaveTextContent("not yet Met or Not Met");
+  const dashboard = score.closest("main")!;
+  expectNoBlockerText(dashboard);
+  expect(dashboard).toHaveTextContent("Nothing decided yet");
+});
+
+test("the score reads normally once started, and a check shows red only when every requirement is decided and it fails", async () => {
+  mockCmmcServer({ score: cmmcScoreFixture([{ record_id: "AC.L2-3.1.3", title: "Control CUI Flow", points: 5, state: "not_met" }], { started: true, allDecided: true }) });
+  renderOverview();
+  const score = await screen.findByRole("region", { name: "CMMC score and Conditional status" });
+  expect(score).toHaveTextContent("VERIFIED SPRS105of 110");
+  const checks = within(score).getByRole("region", { name: "32 CFR 170.21 Conditional status checks" });
+  expect(checks).toHaveTextContent("Not eligible");
+  expect(checks.querySelector("li.fail")).not.toBeNull();
+  expect(checks).not.toHaveTextContent("Not yet evaluated");
+});
+
+test("started but not fully decided: the verified score shows, undecided checks stay grey and only a check already failed by decided work is red", async () => {
+  mockCmmcServer({ score: cmmcScoreFixture([{ record_id: "AC.L2-3.1.3", title: "Control CUI Flow", points: 5, state: "not_met" }], { complete: false, started: true, allDecided: false }) });
+  renderOverview();
+  const score = await screen.findByRole("region", { name: "CMMC score and Conditional status" });
+  expect(score).toHaveTextContent("VERIFIED SPRS105of 110 · provisional");
+  const checks = within(score).getByRole("region", { name: "32 CFR 170.21 Conditional status checks" });
+  expect(checks.querySelectorAll("li.fail")).toHaveLength(1);
+  expect(checks).toHaveTextContent("Fails: AC.L2-3.1.3 is decided Not Met and is worth 5 points");
+  expect(checks.querySelectorAll("li.neutral")).toHaveLength(2);
+  expect(checks).toHaveTextContent("Not yet evaluated");
+});
+
+test("with only evidence-pending Met or one-point gaps decided, every check stays grey", async () => {
+  mockCmmcServer({ score: cmmcScoreFixture([{ record_id: "AC.L2-3.1.1", title: "Authorized Access Control", points: 5, state: "evidence_pending" }], { complete: false, started: true, allDecided: false }) });
+  renderOverview();
+  const score = await screen.findByRole("region", { name: "CMMC score and Conditional status" });
+  const checks = within(score).getByRole("region", { name: "32 CFR 170.21 Conditional status checks" });
+  expect(checks.querySelector("li.fail")).toBeNull();
+  expect(checks).not.toHaveTextContent("Fails:");
+  expect(within(checks).getAllByText("Not yet evaluated").length).toBeGreaterThanOrEqual(3);
+});
+
+test("next-work hints show on the score panel as plain progress text", async () => {
+  mockCmmcServer({ score: cmmcScoreFixture([{ record_id: "AC.L2-3.1.1", title: "x", points: 5, state: "pending" }], { complete: false, started: true, allDecided: false, hints: ["Record partial or no implementation for IA.L2-3.5.3 / SC.L2-3.13.11.", "An up-to-date SSP is needed to complete the assessment."] }) });
+  renderOverview();
+  const score = await screen.findByRole("region", { name: "CMMC score and Conditional status" });
+  expect(score).toHaveTextContent("Record partial or no implementation for IA.L2-3.5.3 / SC.L2-3.13.11.");
+  expect(score).toHaveTextContent("An up-to-date SSP is needed to complete the assessment.");
+  expect(score).not.toHaveTextContent(/blocker/i);
+});
+
+test("once everything is decided but the assessment is incomplete, the reason replaces a bare 'not complete'", async () => {
+  mockCmmcServer({ score: cmmcScoreFixture([{ record_id: "CA.L2-3.12.4", title: "SSP", points: 0, state: "not_met" }], { complete: false, started: true, allDecided: true, hints: ["An up-to-date SSP is needed to complete the assessment."] }) });
+  renderOverview();
+  const score = await screen.findByRole("region", { name: "CMMC score and Conditional status" });
+  const checks = within(score).getByRole("region", { name: "32 CFR 170.21 Conditional status checks" });
+  expect(checks).toHaveTextContent("An up-to-date SSP is needed to complete the assessment.");
+  expect(checks).not.toHaveTextContent("assessment not complete");
+});
+
+test("drafting and Finalize are reachable from Deliverables", async () => {
+  mockCmmcServer();
+  renderOverview();
+  const user = userEvent.setup();
+  await screen.findByRole("navigation", { name: "Engagement steps" });
+  await user.click(screen.getByRole("button", { name: "Deliverables" }));
+  expect(await screen.findByRole("button", { name: "Download draft" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Finalize…" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Deliverables" })).toHaveClass("active");
+  expect(screen.queryByRole("navigation", { name: "Engagement steps" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Reports" })).not.toBeInTheDocument();
+});
+
+function renderHipaaOverview(overview: unknown) {
   vi.mocked(fetch).mockImplementation(async (input) => {
     const url = String(input);
-    if (url.endsWith("/overview")) return Response.json(hipaaOverview);
+    if (url.endsWith("/overview")) return Response.json(overview);
     return Response.json({ detail: "not found" }, { status: 404 });
   });
-  render(
+  return render(
     <OverviewView
       projectId="project-1" assessmentId="assessment-1" projectName="HIPAA 2026" clientName="Northwind Health"
       frameworkName="HIPAA 45 CFR Part 164" scored={false} refreshKey={0}
       onOpenStep={vi.fn()} onOpenGroup={vi.fn()} onOpenRecord={vi.fn()}
     />,
   );
+}
+
+test("HIPAA shows counts by status per rule and progress, no blockers, no score", async () => {
+  renderHipaaOverview(hipaaOverview);
   const table = await screen.findByRole("region", { name: "Status by rule" });
   expect(within(table).getByRole("row", { name: /Security Rule 4 2 1 0 3/ })).toBeVisible();
   expect(within(table).getByRole("row", { name: /Privacy Rule/ })).toBeVisible();
-  expect(screen.getByRole("region", { name: "Left before issue" })).toHaveTextContent("Objectives not decided");
+  const rail = screen.getByRole("navigation", { name: "Engagement steps" });
+  expect(rail).toHaveTextContent("0 of 149 decided");
+  expect(rail).toHaveTextContent("Final v2 · 12 Oct 2026");
+  expectNoBlockerText(rail.closest("main")!);
   expect(screen.queryByText(/SPRS/)).not.toBeInTheDocument();
   expect(screen.queryByText(/Projected/)).not.toBeInTheDocument();
   expect(screen.queryByRole("region", { name: "CMMC score and Conditional status" })).not.toBeInTheDocument();
@@ -258,40 +420,47 @@ test("HIPAA shows counts by status per rule, grouped counts and no score", async
   expect(screen.queryByText(/%/)).not.toBeInTheDocument();
 });
 
-test("Records to recheck opens the filtered list", async () => {
-  mockCmmcServer();
-  renderOverview();
-  const user = userEvent.setup();
-  const left = await screen.findByRole("region", { name: "Left before issue" });
-  await user.click(within(left).getByRole("button", { name: "Records to recheck: 1" }));
-  expect(await screen.findByRole("status")).toHaveTextContent("Showing: Records to recheck (1) · Show all");
-  const list = screen.getByRole("navigation", { name: "Requirements by family" });
-  expect(within(list).getByRole("button", { name: /System Auditing/ })).toBeVisible();
-  expect(within(list).queryByRole("button", { name: /Authorized Access Control/ })).not.toBeInTheDocument();
+test("a new HIPAA project shows no blocker text and no 'Objectives' wording", async () => {
+  renderHipaaOverview({ ...hipaaOverview, steps: hipaaOverview.steps.map((step) => (step.label === "Deliver" ? { ...step, figure: "Draft available", parts: [{ text: "Draft available", group: null }] } : step)) });
+  const rail = await screen.findByRole("navigation", { name: "Engagement steps" });
+  const page = rail.closest("main")!;
+  expectNoBlockerText(page);
+  expect(page).not.toHaveTextContent(/objectives/i);
+  expect(rail).toHaveTextContent("Draft available");
 });
 
-test("SSP not approved opens the requirement view where the SSP is edited, never a dead end", async () => {
-  mockCmmcServer();
+test("Finalize is where blockers appear: its groups open the Profile, the SSP and Deliverables", async () => {
+  mockCmmcServer({
+    checklistGroups: [
+      group("profile", "Profile not approved", 1, [], "profile"),
+      group("ssp", "SSP not approved", 1, [], "ssp"),
+      group("other", "Other items", 1, [], "overview"),
+    ],
+  });
   renderOverview();
   const user = userEvent.setup();
-  const left = await screen.findByRole("region", { name: "Left before issue" });
-  await user.click(within(left).getByRole("button", { name: "SSP not approved: 1" }));
+  async function openFinalize() {
+    await user.click(screen.getByRole("button", { name: "Deliverables" }));
+    await user.click(await screen.findByRole("button", { name: "Finalize…" }));
+    return screen.findByRole("dialog", { name: "Finalize deliverables" });
+  }
+  await screen.findByRole("navigation", { name: "Engagement steps" });
+
+  // SSP not approved opens the requirement view where the SSP is edited, never a dead end.
+  let dialog = await openFinalize();
+  await user.click(await within(dialog).findByRole("button", { name: "1 · SSP not approved" }));
   expect(screen.getByRole("button", { name: "Assessments" })).toHaveClass("active");
   expect(screen.queryByRole("status")).not.toBeInTheDocument();
   expect(await screen.findByRole("heading", { level: 1, name: "Authorized Access Control" })).toBeVisible();
   expect(await screen.findByText("System Security Plan")).toBeVisible();
-});
 
-test("Profile not approved opens Profile and Other items opens Reports", async () => {
-  mockCmmcServer();
-  renderOverview();
-  const user = userEvent.setup();
-  const left = await screen.findByRole("region", { name: "Left before issue" });
-  await user.click(within(left).getByRole("button", { name: "Other items: 1" }));
-  expect(screen.getByRole("button", { name: "Reports" })).toHaveClass("active");
-  await user.click(screen.getByRole("button", { name: "Overview" }));
-  await user.click(await within(await screen.findByRole("region", { name: "Left before issue" })).findByRole("button", { name: "Profile not approved: 2" }));
+  dialog = await openFinalize();
+  await user.click(await within(dialog).findByRole("button", { name: "1 · Profile not approved" }));
   expect(screen.getByRole("button", { name: "Profile" })).toHaveClass("active");
+
+  dialog = await openFinalize();
+  await user.click(await within(dialog).findByRole("button", { name: "1 · Other items" }));
+  expect(screen.getByRole("button", { name: "Deliverables" })).toHaveClass("active");
 });
 
 test("other client projects stay one click away and switch the project", async () => {
@@ -307,23 +476,37 @@ test("other client projects stay one click away and switch the project", async (
   expect(onProjectChange).toHaveBeenCalledWith("project-2");
 });
 
-test("a grouped-count filter stays live as the work changes", async () => {
-  let loads = 0;
+test("a progress-figure filter stays live: it is recomputed from the Overview as the work changes", async () => {
+  // The first Overview read says 2; by the time the list opens, the server sees one already fixed.
+  let reads = 0;
   mockCmmcServer();
   const base = vi.mocked(fetch).getMockImplementation()!;
   vi.mocked(fetch).mockImplementation(async (input, init) => {
     if (String(input).endsWith("/overview")) {
-      loads += 1;
-      // The Overview loads once; later loads see one record already fixed.
-      const record_ids = loads === 1 ? ["AC.L2-3.1.1a", "AC.L2-3.1.1b"] : ["AC.L2-3.1.1b"];
-      const groups = cmmcOverview.left_before_issue.groups.map((group) => (group.key === "met_no_evidence" ? { ...group, count: record_ids.length, record_ids } : group));
-      return Response.json({ ...cmmcOverview, left_before_issue: { ...cmmcOverview.left_before_issue, groups } });
+      reads += 1;
+      const fixed = group("met_no_evidence", "Met, evidence still needed", 1, ["AC.L2-3.1.1b"]);
+      return Response.json(reads === 1 ? cmmcOverview : { ...cmmcOverview, evidence_progress: { text: "1 Met awaiting evidence", group: fixed } });
     }
     return base(input, init);
   });
   renderOverview();
   const user = userEvent.setup();
-  const left = await screen.findByRole("region", { name: "Left before issue" });
-  await user.click(within(left).getByRole("button", { name: "Met, evidence still needed: 2" }));
+  const progress = await screen.findByLabelText("Evidence progress");
+  await user.click(within(progress).getByRole("button", { name: "2 Met awaiting evidence" }));
   await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Showing: Met, evidence still needed (1) · Show all"));
+});
+
+test("next-work figures after a reopen and for HIPAA are plain progress that open their lists", async () => {
+  const steps = [
+    { label: "Scope", figure: "Profile: 3 facts recorded", parts: [{ text: "Profile: 3 facts recorded", group: null }], target: "profile" },
+    { label: "Assess", figure: "x", parts: [{ text: "10 of 149 decided", group: group("undecided", "Not decided yet", 139, []) }, { text: "2 N/A answers need a reason", group: group("na_reason", "N/A answers that need a reason", 2, ["a", "b"]) }, { text: "1 record to recheck", group: group("recheck", "Records to recheck", 1, ["c"]) }], target: "assessments" },
+    { label: "Remediate", figure: "x", parts: [{ text: "3 Not Met need a corrective action", group: group("gaps_no_action", "Not Met without a corrective action", 3, ["d"]) }, { text: "0 corrective actions open", group: null }], target: "assessments" },
+    { label: "Deliver", figure: "Final v2 · new version in progress", parts: [{ text: "Final v2 · new version in progress", group: null }], target: "reports" },
+  ];
+  renderHipaaOverview({ ...hipaaOverview, steps });
+  const rail = await screen.findByRole("navigation", { name: "Engagement steps" });
+  for (const text of ["2 N/A answers need a reason", "1 record to recheck", "3 Not Met need a corrective action", "Final v2 · new version in progress"]) {
+    expect(within(rail).getByRole("button", { name: text })).toBeVisible();
+  }
+  expectNoBlockerText(rail.closest("main")!);
 });
