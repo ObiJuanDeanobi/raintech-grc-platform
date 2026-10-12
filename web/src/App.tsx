@@ -25,20 +25,42 @@ import { ReadinessPanel, StartAssessmentCard } from "./views/ReadinessPanel";
 import { Setup, WorkspaceCreator } from "./views/Setup";
 import { DeterminationPanel, EvidencePanel, NotMetReconciliation, PromptCard, RecordNotes } from "./views/assessment/RecordPanels";
 import { RequirementList } from "./views/assessment/RequirementList";
-import { CmmcScoreLine, CmmcScorePanel } from "./views/assessment/CmmcScore";
+import { CmmcScoreLine } from "./views/assessment/CmmcScore";
 import { UnplannedNotMet } from "./views/assessment/PoamSection";
 import { RequirementWorkspace } from "./views/assessment/RequirementWorkspace";
-import { BackupControl, CloseReadinessPanel, PackageGenerationPanel, RevalidationPanel } from "./views/close/ClosePanels";
+import { BackupControl, RevalidationPanel } from "./views/close/ClosePanels";
 import { EvidenceLibraryView } from "./views/evidence/EvidenceLibraryView";
+import { OverviewView } from "./views/overview/OverviewView";
+import { ReportsView } from "./views/reports/ReportsView";
 import type {
   Artifact,
   Assessment,
+  BlockerGroup,
   Client,
+  OverviewData,
   NotMetWithoutPoam,
   ProfileReadiness,
   RecordDetail,
   RecordState,
 } from "./types";
+
+type WorkspaceView = "assessment" | "overview" | "profile" | "sra" | "evidence" | "reports";
+
+/**
+ * A list narrowed to some records, with the words the chip shows (#143, #144).
+ * `ids` are requirement ids for CMMC and record ids for HIPAA; `count` is the
+ * figure the user pressed, which can differ from the number of ids. A filter
+ * opened from a grouped count carries its `groupKey` and is recomputed from
+ * the server as work changes, so the chip never goes stale.
+ */
+export interface RecordFilter {
+  label: string;
+  ids: string[];
+  count?: number;
+  groupKey?: string;
+}
+
+const UNPLANNED_LABEL = "NOT MET without a POA&M";
 
 function isRequirementCentred(assessment: Assessment | null | undefined): boolean {
   return assessment?.framework?.declarations?.presentation_mode === "requirement_with_objectives";
@@ -64,7 +86,7 @@ export function Workspace({
   projectId: string;
   onProjectChange: (id: string) => void;
   onWorkspaceCreated: (id: string) => void;
-  initialView?: "assessment" | "overview" | "profile";
+  initialView?: "assessment" | "overview" | "profile" | "reports";
 }) {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loadedProjectId, setLoadedProjectId] = useState("");
@@ -78,7 +100,7 @@ export function Workspace({
   const [recordStates, setRecordStates] = useState<Record<string, RecordState>>({});
   // NOT MET requirements not on any open POA&M item, and whether the list shows only them (#143).
   const [unplanned, setUnplanned] = useState<NotMetWithoutPoam | null>(null);
-  const [unplannedOnly, setUnplannedOnly] = useState(false);
+  const [listFilter, setListFilter] = useState<RecordFilter | null>(null);
   const [expandedFamilies, setExpandedFamilies] = useState<Map<string, boolean>>(() => new Map());
   const [returnRecordId, setReturnRecordId] = useState("");
   const [detail, setDetail] = useState<RecordDetail | null>(null);
@@ -92,7 +114,7 @@ export function Workspace({
   const [loading, setLoading] = useState(true);
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const [profileDirty, setProfileDirty] = useState(false);
-  const [view, setView] = useState<"assessment" | "overview" | "profile" | "sra" | "evidence">(initialView);
+  const [view, setView] = useState<WorkspaceView>(initialView);
   const detailTargetRef = useRef({ assessmentId: "", recordId: "" });
   const detailRequestSequenceRef = useRef(0);
   const assessmentRequestSequenceRef = useRef(0);
@@ -126,7 +148,7 @@ export function Workspace({
     setProgress(next?.progress ?? null);
     setRecordStates(next?.record_states ?? {});
     setUnplanned(next?.not_met_without_poam ?? null);
-    setUnplannedOnly(false);
+    setListFilter(null);
     setFocusObjectiveId("");
     setRecordId(openingRecordId(next));
   }, [projectId]);
@@ -316,7 +338,7 @@ export function Workspace({
     return true;
   }, [confirmRoutineNavigation, onProjectChange, projectId]);
 
-  const changeView = useCallback((nextView: "assessment" | "overview" | "profile" | "sra" | "evidence") => {
+  const changeView = useCallback((nextView: WorkspaceView) => {
     if (nextView === view || !confirmRoutineNavigation()) return;
     setView(nextView);
   }, [confirmRoutineNavigation, view]);
@@ -331,17 +353,91 @@ export function Workspace({
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
   }, [hasUnsavedRoutineEdit, profileDirty]);
 
+  // The "without a POA&M" filter follows the live count as drafts are created.
+  const activeFilter = useMemo<RecordFilter | null>(
+    () => (listFilter?.label === UNPLANNED_LABEL && unplanned
+      ? { label: UNPLANNED_LABEL, ids: unplanned.requirement_ids }
+      : listFilter),
+    [listFilter, unplanned],
+  );
+
   const filtered = useMemo(() => {
     if (!assessment || objectiveMode) return [];
     const term = search.toLowerCase();
+    const only = activeFilter ? new Set(activeFilter.ids) : null;
     return assessment.work_list.filter(
       (record) =>
+        (!only || only.has(record.record_id)) &&
         (area === "all" || record.work_area === area) &&
         (!term ||
           record.title.toLowerCase().includes(term) ||
           record.citation.toLowerCase().includes(term)),
     );
-  }, [assessment, search, area, objectiveMode]);
+  }, [assessment, search, area, objectiveMode, activeFilter]);
+
+  // CMMC objectives are worked on their requirement, so objective ids map to the parent.
+  const mapFilterIds = useCallback((recordIds: string[]) => {
+    if (!assessment) return [];
+    const parentOf = new Map(assessment.work_list.map((record) => [record.record_id, record.parent_id]));
+    return [...new Set(recordIds.map((id) => (objectiveMode ? parentOf.get(id) ?? id : id)))];
+  }, [assessment, objectiveMode]);
+
+  // Every grouped count on the Overview opens Assessments narrowed to its records (#144).
+  const openGroup = useCallback((group: BlockerGroup) => {
+    const target = group.target;
+    if (target === "profile") return changeView("profile");
+    if (target === "sra") return changeView("sra");
+    if (target === "evidence") return changeView("evidence");
+    if (target === "overview") return changeView("reports");
+    if (!assessment || !confirmRoutineNavigation()) return;
+    if (target === "ssp") {
+      // The SSP is edited in the requirement view, under "System Security Plan".
+      const first = assessment.work_list.find((record) => !record.parent_id)?.record_id ?? "";
+      setListFilter(null);
+      setView("assessment");
+      if (first && first !== recordId) {
+        setFocusObjectiveId("");
+        setReturnRecordId("");
+        setRecordId(first);
+      }
+      return;
+    }
+    const ids = mapFilterIds(group.record_ids);
+    setListFilter({ label: group.label, ids, count: group.count, groupKey: group.key });
+    setView("assessment");
+    if (ids.length > 0 && !ids.includes(recordId)) {
+      setFocusObjectiveId("");
+      setReturnRecordId("");
+      setRecordId(ids[0]);
+    }
+  }, [assessment, changeView, confirmRoutineNavigation, mapFilterIds, recordId]);
+
+  // Keep a grouped-count filter live: recompute it as determinations, evidence and records change.
+  const filterGroupKey = listFilter?.groupKey;
+  const filterProjectId = assessment?.project.id;
+  const filterAssessmentId = assessment?.id;
+  const filterProgress = progress?.resolved_determination_count;
+  useEffect(() => {
+    if (!filterGroupKey || !filterProjectId || !filterAssessmentId) return;
+    const controller = new AbortController();
+    request<OverviewData>(`/api/projects/${filterProjectId}/assessments/${filterAssessmentId}/overview`, { signal: controller.signal })
+      .then((next) => {
+        const group = next.left_before_issue?.groups?.find((candidate) => candidate.key === filterGroupKey);
+        setListFilter((current) => (
+          current?.groupKey === filterGroupKey
+            ? { ...current, ids: mapFilterIds(group?.record_ids ?? []), count: group?.count ?? 0 }
+            : current
+        ));
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [filterGroupKey, filterProjectId, filterAssessmentId, filterProgress, scoreTick, evidenceTick, revalidationTick, mapFilterIds]);
+
+  const openStep = useCallback((target: string) => {
+    if (target === "profile") changeView("profile");
+    else if (target === "reports") changeView("reports");
+    else changeView("assessment");
+  }, [changeView]);
 
   const requirementIds = useMemo(
     () => (assessment && objectiveMode ? assessment.work_list.filter((record) => !record.parent_id).map((record) => record.record_id) : []),
@@ -454,6 +550,7 @@ export function Workspace({
             <button className={view === "sra" ? "active" : ""} onClick={() => changeView("sra")}>{assessment.framework.declarations.sra.work_area}</button>
           )}
           <button className={view === "evidence" ? "active" : ""} onClick={() => changeView("evidence")}>Evidence</button>
+          <button className={view === "reports" ? "active" : ""} onClick={() => changeView("reports")}>Reports</button>
         </nav>
         <div className="topbar-utility">
           <span className={`save-state ${visibleSaveState}`} title={visibleSaveMessage} aria-live="polite">
@@ -506,6 +603,13 @@ export function Workspace({
               </>
             )}
           </select></label>
+          {activeFilter && (
+            <div className="list-filter-chip" role="status">
+              <span>{`Showing: ${activeFilter.label} (${activeFilter.count ?? activeFilter.ids.length}) ·`}</span>
+              {" "}
+              <button type="button" className="text-button" onClick={() => setListFilter(null)}>Show all</button>
+            </div>
+          )}
         </div>
         {objectiveMode ? (
           <RequirementList
@@ -517,7 +621,7 @@ export function Workspace({
             expanded={expandedFamilies}
             onExpandedChange={setExpandedFamilies}
             onSelect={(requirementId) => changeRecord(requirementId)}
-            onlyIds={unplannedOnly && unplanned ? new Set(unplanned.requirement_ids) : null}
+            onlyIds={activeFilter ? new Set(activeFilter.ids) : null}
           />
         ) : (
           <div className="record-list">
@@ -551,7 +655,15 @@ export function Workspace({
               {assessment.framework.declarations.scoring && (
                 <CmmcScoreLine projectId={assessment.project.id} assessmentId={assessment.id} refreshKey={`${scoreTick}:${progress.resolved_determination_count}`} />
               )}
-              {unplanned && <UnplannedNotMet summary={unplanned} active={unplannedOnly} onToggle={() => setUnplannedOnly((only) => !only)} />}
+              {unplanned && (
+                <UnplannedNotMet
+                  summary={unplanned}
+                  active={listFilter?.label === UNPLANNED_LABEL}
+                  onToggle={() => setListFilter((current) => (
+                    current?.label === UNPLANNED_LABEL ? null : { label: UNPLANNED_LABEL, ids: unplanned.requirement_ids }
+                  ))}
+                />
+              )}
             </div>
             <div className="previous-next">
               <button aria-label="Previous requirement" title="Previous requirement (K or [)" disabled={!previousRequirementId} onClick={() => previousRequirementId && changeRecord(previousRequirementId)}>
@@ -757,64 +869,49 @@ export function Workspace({
       </aside>
       )}
       {view === "overview" && (
-        <main className="overview-panel">
-          <div className="overview-heading">
-            <div>
-              <p className="eyebrow">PROJECT OVERVIEW</p>
-              <h1>{assessment.project.client_name} · {assessment.project.name}</h1>
-              <p>{assessment.framework.name} is pinned to {assessment.framework.id}.</p>
-            </div>
-            <button className="small-button" onClick={() => changeView("assessment")}>
-              Continue assessment <ArrowRight size={15} />
-            </button>
-          </div>
-          {assessment.framework.declarations.scoring && (
-            <CmmcScorePanel projectId={assessment.project.id} assessmentId={assessment.id} refreshKey={`${scoreTick}:${progress.resolved_determination_count}:${revalidationTick}`} />
-          )}
-          <div className="overview-metrics">
-            <article><strong>{assessment.framework.determination_record_count}</strong><span>determinations</span></article>
-            <article><strong>{assessment.framework.record_count}</strong><span>cited records</span></article>
-            <article><strong>{assessment.framework.prompt_count}</strong><span>assessor prompts</span></article>
-          </div>
-          <section className="overview-readiness">
-            <div>
-              <p className="eyebrow">PROFILE READINESS</p>
-              <h2>{readiness.state}</h2>
-            </div>
-            {readiness.assessment_entry_blocking_reasons.length > 0 ? (
-              <ul className="blocking-reasons">
-                {readiness.assessment_entry_blocking_reasons.map((reason) => <li key={reason}>{reason}</li>)}
-              </ul>
-            ) : (
-              <p className="readiness-ok">This readiness state permits assessment entry.</p>
-            )}
-            <button className="secondary-button" onClick={() => changeView("profile")}>Review profile gate</button>
-          </section>
-          {assessment.framework.declarations.close_readiness && <CloseReadinessPanel key={`close:${assessment.project.id}:${assessment.id}:${revalidationTick}`} projectId={assessment.project.id} assessmentId={assessment.id} onNavigate={(link) => {
+        <OverviewView
+          key={`overview:${assessment.project.id}:${assessment.id}`}
+          projectId={assessment.project.id}
+          assessmentId={assessment.id}
+          projectName={assessment.project.name}
+          clientName={assessment.project.client_name}
+          frameworkName={assessment.framework.name}
+          scored={Boolean(assessment.framework.declarations.scoring)}
+          refreshKey={`${scoreTick}:${progress.resolved_determination_count}:${revalidationTick}:${evidenceTick}`}
+          otherProjects={projects
+            .filter((project) => project.id !== projectId)
+            .map((project) => ({ id: project.id, name: project.name, clientName: project.clientName, framework: project.framework_version_id }))}
+          onOpenProject={(id) => {
+            if (changeProject(id)) setView("assessment");
+          }}
+          onOpenStep={openStep}
+          onOpenGroup={openGroup}
+          onOpenRecord={(next) => {
+            changeRecord(next);
+            setView("assessment");
+          }}
+        />
+      )}
+      {view === "reports" && (
+        <ReportsView
+          projectId={assessment.project.id}
+          assessmentId={assessment.id}
+          records={assessment.record_index}
+          hasClose={Boolean(assessment.framework.declarations.close_readiness)}
+          refreshKey={revalidationTick}
+          onNavigate={(link) => {
             const target = String(link.target ?? link.view ?? "");
             if (target === "profile" || target === "sra") changeView(target as "profile" | "sra");
             else if (link.record_id || link.recordId) {
               changeRecord(String(link.record_id ?? link.recordId));
               setView("assessment");
             }
-          }} />}
-          {assessment.framework.declarations.close_readiness && <PackageGenerationPanel key={`package:${assessment.project.id}:${assessment.id}:${revalidationTick}`} projectId={assessment.project.id} assessmentId={assessment.id} records={assessment.record_index} onReopened={async () => {
+          }}
+          onReopened={async () => {
             await refreshAssessmentProgress();
             setView("assessment");
-          }} />}
-          <div className="overview-projects">
-            <div className="section-title"><h2>Client projects</h2><span>{projects.length}</span></div>
-            {projects.map((project) => (
-              <button key={project.id} onClick={() => {
-                if (changeProject(project.id)) setView("assessment");
-              }}>
-                <FolderKanban size={18} />
-                <span><strong>{project.clientName}</strong><small>{project.name}</small></span>
-                <ArrowRight size={16} />
-              </button>
-            ))}
-          </div>
-        </main>
+          }}
+        />
       )}
       {view === "evidence" && (
         <EvidenceLibraryView

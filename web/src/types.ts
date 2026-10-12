@@ -626,3 +626,26 @@ export interface SspView {
   missing_for_approval: string[];
   approval: { approver_id: string; approved_at: string } | null;
 }
+
+/** One plain-English group of what is left before issue, from the close check (#144). */
+export interface BlockerGroup {
+  key: string;
+  label: string;
+  count: number;
+  record_ids: string[];
+  target: "assessments" | "profile" | "sra" | "evidence" | "poam" | "ssp" | "overview" | string;
+}
+
+export type PoamState = "none" | "draft" | "open" | "closed";
+
+/** GET /api/projects/{p}/assessments/{a}/overview (#144). */
+export interface OverviewData {
+  variant: "cmmc" | "hipaa";
+  steps: { label: string; figure: string; target: string }[];
+  families: { name: string; decided: number; total: number; not_met: number }[];
+  not_met: { record_id: string; citation: string; title: string; poam_state: PoamState }[];
+  not_met_without_poam: NotMetWithoutPoam | null;
+  resume: { record_id: string; citation: string; title: string; updated_at: string } | null;
+  status_counts: { rule: string; total: number; counts: Record<string, number> }[] | null;
+  left_before_issue: { ready: boolean; count: number; groups: BlockerGroup[] };
+}

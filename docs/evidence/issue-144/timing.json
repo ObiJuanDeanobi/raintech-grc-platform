@@ -1,0 +1,25 @@
+{
+  "evidence_files": 20,
+  "size_mb_each": 2,
+  "records": 430,
+  "no_evidence_median_max_ms": {
+    "overview_ms": [
+      24.300536000055217,
+      25.7717369997863
+    ],
+    "close_readiness_ms": [
+      14.49881300004563,
+      17.446355999936713
+    ]
+  },
+  "with_evidence_median_max_ms": {
+    "overview_ms": [
+      145.7155939999666,
+      182.97230500002115
+    ],
+    "close_readiness_ms": [
+      160.60511399996358,
+      192.85594500001935
+    ]
+  }
+}

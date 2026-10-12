@@ -269,14 +269,14 @@ test("decides every objective with the keyboard only, updates the score, and mov
   await waitFor(() => expect(server.statuses["AC.L2-3.1.1b"]).toBe("Met"));
   expect(await screen.findByText("Derived · Met")).toBeVisible();
   await waitFor(() => expect(server.scoreReads()).toBeGreaterThan(readsBefore));
-  await waitFor(() => expect(score()).toHaveTextContent("110 projected (includes evidence pending)"));
+  await waitFor(() => expect(score()).toHaveTextContent("110 Projected (includes Met awaiting evidence)"));
   expect(score()).toHaveTextContent("VERIFIED SPRS105of 110");
   expect(await within(objectiveRow("AC.L2-3.1.1[b]")).findByText("Evidence pending")).toBeVisible();
   await user.keyboard("n");
   await waitFor(() => expect(server.statuses["AC.L2-3.1.1b"]).toBe("Not Met"));
   // The derived status and both scores follow without a reload.
   expect(await screen.findByText("Derived · Not Met")).toBeVisible();
-  await waitFor(() => expect(score()).toHaveTextContent("105 projected (includes evidence pending)"));
+  await waitFor(() => expect(score()).toHaveTextContent("105 Projected (includes Met awaiting evidence)"));
   expect(within(objectiveRow("AC.L2-3.1.1[b]")).queryByText("Evidence pending")).not.toBeInTheDocument();
   expect(pressed("AC.L2-3.1.1[a]")).toEqual(["Met"]);
   expect(pressed("AC.L2-3.1.1[b]")).toEqual(["Not Met"]);
@@ -369,8 +369,8 @@ test("the score block leads with the verified score, labels projected, and shows
   const score = await screen.findByRole("region", { name: "Official CMMC score" });
   await waitFor(() => expect(score).toHaveTextContent("VERIFIED SPRS95of 110 · provisional"));
   // Projected is secondary and always labelled, next to the verified headline.
-  expect(within(score).getByText(/projected \(includes evidence pending\)/)).toHaveClass("score-projected");
-  expect(score).toHaveTextContent("100 projected (includes evidence pending)");
+  expect(within(score).getByText(/Projected \(includes Met awaiting evidence\)/)).toHaveClass("score-projected");
+  expect(score).toHaveTextContent("100 Projected (includes Met awaiting evidence)");
   expect(score).toHaveTextContent("Conditional Not eligible");
 
   const user = userEvent.setup();

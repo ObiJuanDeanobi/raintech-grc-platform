@@ -21,7 +21,8 @@ const STATE_LABELS: Record<ScoreState, string> = {
   not_assessed: "Not assessed",
 };
 
-const PROJECTED_LABEL = "projected (includes evidence pending)";
+/** One wording everywhere (#144): plain English. */
+const PROJECTED_LABEL = "Projected (includes Met awaiting evidence)";
 
 const CHECK_TITLES: Record<ConditionalCheck["key"], string> = {
   minimum_score: "Minimum score",
@@ -76,7 +77,7 @@ function Arithmetic({ label, figure, secondary }: { label: string; figure: Score
   );
 }
 
-function ConditionalChecks({ score }: { score: CmmcScore }) {
+function ConditionalChecks({ score, compact = false }: { score: CmmcScore; compact?: boolean }) {
   return (
     <section className="conditional-checks" aria-label="32 CFR 170.21 Conditional status checks">
       <p className="eyebrow">32 CFR 170.21 CONDITIONAL LEVEL 2 · ON THE VERIFIED SCORE</p>
@@ -97,18 +98,24 @@ function ConditionalChecks({ score }: { score: CmmcScore }) {
                 <small>{check.source}</small>
               </div>
               <p>{check.detail}</p>
-              {listed.length > 0 && (
-                <ul className="check-items">
-                  {listed.map((item) => (
-                    <li key={item.record_id} className={item.allowed === false || (check.key === "excluded" && item.state !== "met") ? "fail" : "pass"}>
-                      <span>{item.record_id}</span>
-                      <span className={`score-state ${item.state}`}>{STATE_LABELS[item.state]}</span>
-                      {item.points != null && <span>{item.points} pt</span>}
-                      {item.reason && <small>{item.allowed ? "POA&M eligible" : "Not POA&M eligible"}: {item.reason}</small>}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {listed.length > 0 && (() => {
+                const items = (
+                  <ul className="check-items">
+                    {listed.map((item) => (
+                      <li key={item.record_id} className={item.allowed === false || (check.key === "excluded" && item.state !== "met") ? "fail" : "pass"}>
+                        <span>{item.record_id}</span>
+                        <span className={`score-state ${item.state}`}>{STATE_LABELS[item.state]}</span>
+                        {item.points != null && <span>{item.points} pt</span>}
+                        {item.reason && <small>{item.allowed ? "POA&M eligible" : "Not POA&M eligible"}: {item.reason}</small>}
+                      </li>
+                    ))}
+                  </ul>
+                );
+                // On the Overview the requirements behind a check stay one click away (#144).
+                return compact
+                  ? <details className="check-details"><summary>Show the {listed.length} requirement{listed.length === 1 ? "" : "s"} behind this check</summary>{items}</details>
+                  : items;
+              })()}
               {notAssessed > 0 && <p className="muted-small">{notAssessed} not-assessed requirement{notAssessed === 1 ? "" : "s"} also count against this check.</p>}
             </li>
           );
@@ -123,7 +130,7 @@ export function CmmcScoreDetails({ score }: { score: CmmcScore }) {
   return (
     <div className="cmmc-score-details">
       <Arithmetic label={`Verified SPRS score ${signed(score.verified.value)}`} figure={score.verified} />
-      <Arithmetic label={`Projected score ${signed(score.projected.value)} · ${PROJECTED_LABEL}`} figure={score.projected} secondary />
+      <Arithmetic label={`Projected score ${signed(score.projected.value)} · counts Met awaiting evidence`} figure={score.projected} secondary />
       <p className="muted-small">
         Only the verified score may appear in an issued self-assessment, SPRS figure or client deliverable.
         Point values: {score.methodology}.
@@ -133,7 +140,7 @@ export function CmmcScoreDetails({ score }: { score: CmmcScore }) {
   );
 }
 
-function Figures({ score }: { score: CmmcScore }) {
+function Figures({ score, projectedLabel = PROJECTED_LABEL }: { score: CmmcScore; projectedLabel?: string }) {
   return (
     <>
       <span className="score-verified">
@@ -142,7 +149,7 @@ function Figures({ score }: { score: CmmcScore }) {
         <small>of {score.maximum_score}{score.complete ? "" : " · provisional"}</small>
       </span>
       <span className="score-projected" title="Counts evidence-pending Met as Met. Not for SPRS submission.">
-        <b>{signed(score.projected.value)}</b> {PROJECTED_LABEL}
+        <b>{signed(score.projected.value)}</b> {projectedLabel}
       </span>
     </>
   );
@@ -178,16 +185,16 @@ export function CmmcScorePanel({ projectId, assessmentId, refreshKey }: { projec
   return (
     <section className="cmmc-score" aria-label="CMMC score and Conditional status">
       <div className="cmmc-score-head">
-        <Figures score={score} />
+        <Figures score={score} projectedLabel={PROJECTED_LABEL} />
       </div>
       {score.blockers.length > 0 && <ul className="cmmc-score-blockers">{score.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul>}
       <details>
         <summary><ChevronRight size={13} /> Show the arithmetic</summary>
         <Arithmetic label={`Verified SPRS score ${signed(score.verified.value)}`} figure={score.verified} />
-        <Arithmetic label={`Projected score ${signed(score.projected.value)} · ${PROJECTED_LABEL}`} figure={score.projected} secondary />
+        <Arithmetic label={`Projected score ${signed(score.projected.value)} · counts Met awaiting evidence`} figure={score.projected} secondary />
         <p className="muted-small">Only the verified score may appear in an issued self-assessment, SPRS figure or client deliverable. Point values: {score.methodology}.</p>
       </details>
-      <ConditionalChecks score={score} />
+      <ConditionalChecks score={score} compact />
     </section>
   );
 }

@@ -1,0 +1,20 @@
+{
+  "new_cmmc": {
+    "document": 1222,
+    "overviewPanel": 1374,
+    "viewport": 900
+  },
+  "half_cmmc": {
+    "document": 900,
+    "overviewPanel": 1738,
+    "viewport": 900
+  },
+  "grouped_count_clicked": "212 Objectives not decided",
+  "chip": "Showing: Objectives not decided (212) · Show all",
+  "filtered_requirement_rows": 76,
+  "hipaa": {
+    "document": 900,
+    "overviewPanel": 842,
+    "viewport": 900
+  }
+}
