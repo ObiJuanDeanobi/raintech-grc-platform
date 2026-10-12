@@ -1255,6 +1255,147 @@ def _record_detail(connection: Any, assessment_id: str, record_id: str) -> dict[
 BACKUP_CHECK_SECONDS = 15 * 60
 
 
+def _record_readiness_transition(
+    connection: Any,
+    project_id: str,
+    next_state: str,
+    decision_note: str,
+    unresolved_required_fields: list[str],
+    follow_up_work_text: str,
+    reviewed_by: str,
+    approval_evidence: str,
+) -> None:
+    """Validate and append one profile readiness transition, with its audit entry.
+
+    Shared by the readiness endpoint and one-click start so both enforce the same
+    declaration rules and the history stays append-only.
+    """
+    _project_or_404(connection, project_id)
+    declaration = _project_readiness_declaration(connection, project_id)
+    prior_state = cast(
+        str,
+        _latest_profile_readiness_transition(connection, project_id)["next_state"],
+    )
+    if next_state not in set(declaration["states"]):
+        raise HTTPException(status_code=422, detail="Unknown profile readiness state")
+    transitions = cast(dict[str, list[str]], declaration["transitions"])
+    if next_state not in transitions[prior_state]:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Cannot transition from {prior_state} to {next_state}",
+        )
+    unresolved = [value.strip() for value in unresolved_required_fields if value.strip()]
+    if not decision_note.strip():
+        raise HTTPException(status_code=422, detail="Decision note is required")
+    completion = cast(dict[str, Any], declaration["profile_completion"])
+    follow_up_rule = cast(dict[str, Any], declaration["follow_up_work"])
+    follow_up_work = follow_up_work_text.strip()
+    if next_state == completion["state"]:
+        if completion.get("requires_no_unresolved_required_fields") and unresolved:
+            raise HTTPException(
+                status_code=422,
+                detail=completion["unresolved_required_fields_validation_message"],
+            )
+        supplied = {"reviewed_by": reviewed_by, "approval_evidence": approval_evidence}
+        required_fields = cast(
+            dict[str, dict[str, str]],
+            completion["required_fields"],
+        )
+        for field, requirement in required_fields.items():
+            if not supplied[field].strip():
+                raise HTTPException(
+                    status_code=422,
+                    detail=requirement["validation_message"],
+                )
+    if next_state in set(follow_up_rule["required_states"]) and not follow_up_work:
+        raise HTTPException(
+            status_code=422,
+            detail=follow_up_rule["required_state_validation_messages"][next_state],
+        )
+    if (
+        unresolved
+        and follow_up_rule["required_when_unresolved_required_fields"]
+        and not follow_up_work
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail=follow_up_rule["unresolved_required_fields_validation_message"],
+        )
+    transition_id = str(uuid4())
+    created_at = now()
+    connection.execute(
+        """
+        INSERT INTO profile_readiness_transitions(
+            id, project_id, prior_state, next_state, actor_id, decision_note,
+            unresolved_required_fields_json, follow_up_work, reviewed_by,
+            approval_evidence, created_at
+        ) VALUES (?, ?, ?, ?, 'johnathan', ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            transition_id,
+            project_id,
+            prior_state,
+            next_state,
+            decision_note.strip(),
+            json.dumps(unresolved),
+            follow_up_work,
+            reviewed_by.strip(),
+            approval_evidence.strip(),
+            created_at,
+        ),
+    )
+    _audit(
+        connection,
+        "profile.readiness_transitioned",
+        "project",
+        project_id,
+        {
+            "transition_id": transition_id,
+            "prior_state": prior_state,
+            "next_state": next_state,
+            "decision_note": decision_note.strip(),
+        },
+    )
+
+
+def _create_assessment(connection: Any, project: Any) -> dict[str, Any]:
+    """Create the project's first assessment once its readiness state allows entry."""
+    project_id = cast(str, project["id"])
+    readiness = _profile_readiness(connection, project_id)
+    if not readiness["assessment_entry_allowed"]:
+        raise HTTPException(
+            status_code=409,
+            detail=readiness["assessment_entry_blocking_reasons"],
+        )
+    existing = active_assessment_for_project(connection, project_id)
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="Project already has an assessment")
+    assessment = {
+        "id": str(uuid4()),
+        "project_id": project_id,
+        "framework_version_id": project["framework_version_id"],
+        "created_at": now(),
+    }
+    connection.execute(
+        """
+        INSERT INTO assessments(id, project_id, framework_version_id, created_at)
+        VALUES (:id, :project_id, :framework_version_id, :created_at)
+        """,
+        assessment,
+    )
+    _audit(
+        connection,
+        "assessment.created",
+        "assessment",
+        assessment["id"],
+        {
+            "project_id": project_id,
+            "framework_version_id": assessment["framework_version_id"],
+        },
+    )
+    return assessment
+
+
 def create_app(
     database_path: Path | None = None,
     storage_path: Path | None = None,
@@ -1583,9 +1724,7 @@ def create_app(
             )
 
     @app.get("/api/projects/{project_id}/packages/{package_id}/components/{component_id}")
-    @app.get(
-        "/api/projects/{project_id}/packages/{package_id}/components/{component_id}/download"
-    )
+    @app.get("/api/projects/{project_id}/packages/{package_id}/components/{component_id}/download")
     def download_package_component(
         project_id: str,
         package_id: str,
@@ -2820,93 +2959,15 @@ def create_app(
         database: Annotated[Database, Depends(db)],
     ) -> dict[str, Any]:
         with database.connect() as connection:
-            _project_or_404(connection, project_id)
-            declaration = _project_readiness_declaration(connection, project_id)
-            prior_state = cast(
-                str,
-                _latest_profile_readiness_transition(connection, project_id)["next_state"],
-            )
-            next_state = payload.next_state
-            if next_state not in set(declaration["states"]):
-                raise HTTPException(status_code=422, detail="Unknown profile readiness state")
-            transitions = cast(dict[str, list[str]], declaration["transitions"])
-            if next_state not in transitions[prior_state]:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"Cannot transition from {prior_state} to {next_state}",
-                )
-            unresolved = [
-                value.strip() for value in payload.unresolved_required_fields if value.strip()
-            ]
-            if not payload.decision_note.strip():
-                raise HTTPException(status_code=422, detail="Decision note is required")
-            completion = cast(dict[str, Any], declaration["profile_completion"])
-            follow_up_rule = cast(dict[str, Any], declaration["follow_up_work"])
-            follow_up_work = payload.follow_up_work.strip()
-            if next_state == completion["state"]:
-                if completion.get("requires_no_unresolved_required_fields") and unresolved:
-                    raise HTTPException(
-                        status_code=422,
-                        detail=completion["unresolved_required_fields_validation_message"],
-                    )
-                required_fields = cast(
-                    dict[str, dict[str, str]],
-                    completion["required_fields"],
-                )
-                for field, requirement in required_fields.items():
-                    if not cast(str, getattr(payload, field)).strip():
-                        raise HTTPException(
-                            status_code=422,
-                            detail=requirement["validation_message"],
-                        )
-            if next_state in set(follow_up_rule["required_states"]) and not follow_up_work:
-                raise HTTPException(
-                    status_code=422,
-                    detail=follow_up_rule["required_state_validation_messages"][next_state],
-                )
-            if (
-                unresolved
-                and follow_up_rule["required_when_unresolved_required_fields"]
-                and not follow_up_work
-            ):
-                raise HTTPException(
-                    status_code=422,
-                    detail=follow_up_rule["unresolved_required_fields_validation_message"],
-                )
-            transition_id = str(uuid4())
-            created_at = now()
-            connection.execute(
-                """
-                INSERT INTO profile_readiness_transitions(
-                    id, project_id, prior_state, next_state, actor_id, decision_note,
-                    unresolved_required_fields_json, follow_up_work, reviewed_by,
-                    approval_evidence, created_at
-                ) VALUES (?, ?, ?, ?, 'johnathan', ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    transition_id,
-                    project_id,
-                    prior_state,
-                    next_state,
-                    payload.decision_note.strip(),
-                    json.dumps(unresolved),
-                    follow_up_work,
-                    payload.reviewed_by.strip(),
-                    payload.approval_evidence.strip(),
-                    created_at,
-                ),
-            )
-            _audit(
+            _record_readiness_transition(
                 connection,
-                "profile.readiness_transitioned",
-                "project",
                 project_id,
-                {
-                    "transition_id": transition_id,
-                    "prior_state": prior_state,
-                    "next_state": next_state,
-                    "decision_note": payload.decision_note.strip(),
-                },
+                payload.next_state,
+                payload.decision_note,
+                payload.unresolved_required_fields,
+                payload.follow_up_work,
+                payload.reviewed_by,
+                payload.approval_evidence,
             )
             return _profile_readiness(connection, project_id)
 
@@ -2917,39 +2978,38 @@ def create_app(
     ) -> dict[str, Any]:
         with database.connect() as connection:
             project = _project_or_404(connection, project_id)
-            readiness = _profile_readiness(connection, project_id)
-            if not readiness["assessment_entry_allowed"]:
-                raise HTTPException(
-                    status_code=409,
-                    detail=readiness["assessment_entry_blocking_reasons"],
-                )
-            existing = active_assessment_for_project(connection, project_id)
-            if existing is not None:
+            return _create_assessment(connection, project)
+
+    @app.post("/api/projects/{project_id}/start-assessment", status_code=201)
+    def start_assessment(
+        project_id: str,
+        database: Annotated[Database, Depends(db)],
+    ) -> dict[str, Any]:
+        """Record intake as done (if it is not) and create the assessment, in one transaction."""
+        with database.connect() as connection:
+            project = _project_or_404(connection, project_id)
+            if active_assessment_for_project(connection, project_id) is not None:
                 raise HTTPException(status_code=409, detail="Project already has an assessment")
-            assessment = {
-                "id": str(uuid4()),
-                "project_id": project_id,
-                "framework_version_id": project["framework_version_id"],
-                "created_at": now(),
+            declaration = _project_readiness_declaration(connection, project_id)
+            state = _latest_profile_readiness_transition(connection, project_id)["next_state"]
+            if state == declaration["initial_state"]:
+                _record_readiness_transition(
+                    connection,
+                    project_id,
+                    "Intake complete",
+                    "Intake recorded when the assessment was started. No required "
+                    "Profile fields were reviewed at this point; Profile details are "
+                    "filled in during gap analysis.",
+                    [],
+                    "",
+                    "",
+                    "",
+                )
+            assessment = _create_assessment(connection, project)
+            return {
+                "assessment": assessment,
+                "readiness": _profile_readiness(connection, project_id),
             }
-            connection.execute(
-                """
-                INSERT INTO assessments(id, project_id, framework_version_id, created_at)
-                VALUES (:id, :project_id, :framework_version_id, :created_at)
-                """,
-                assessment,
-            )
-            _audit(
-                connection,
-                "assessment.created",
-                "assessment",
-                assessment["id"],
-                {
-                    "project_id": project_id,
-                    "framework_version_id": assessment["framework_version_id"],
-                },
-            )
-            return assessment
 
     @app.post(
         "/api/projects/{project_id}/assessments/{predecessor_id}/successor",
@@ -3436,12 +3496,8 @@ def create_app(
             data = ssp.render_docx(connection, project_id, ssp_id, version_number)
         return Response(
             content=data,
-            media_type=(
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            ),
-            headers={
-                "Content-Disposition": f'attachment; filename="SSP-v{version_number}.docx"'
-            },
+            media_type=("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+            headers={"Content-Disposition": f'attachment; filename="SSP-v{version_number}.docx"'},
         )
 
     @app.get("/api/projects/{project_id}/assessments/{assessment_id}/cmmc-score")
@@ -3552,7 +3608,7 @@ def create_app(
                 if existing:
                     raise HTTPException(
                         409,
-                        f"{record_id} is already on POA&M item \"{existing[0]['title']}\" "
+                        f'{record_id} is already on POA&M item "{existing[0]["title"]}" '
                         f"({existing[0]['status']})",
                     )
                 requirement = connection.execute(
@@ -4857,9 +4913,7 @@ def create_app(
                 and determination["status"] == "Met"
                 and not determination["interview_observation"].strip()
                 and mapping_count == 1
-                and _framework_declarations(connection, assessment_id).get(
-                    "met_without_evidence"
-                )
+                and _framework_declarations(connection, assessment_id).get("met_without_evidence")
                 != "evidence_pending"
             ):
                 raise HTTPException(

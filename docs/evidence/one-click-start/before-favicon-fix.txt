@@ -1,0 +1,11 @@
+Built app WITHOUT web/public/favicon.svg and the <link rel="icon">. Playwright (chromium) loads the app in three states and logs every non-2xx response and console error. 2026-10-12, build-a. The 404 is the browser default /favicon.ico in every state; no API call returned non-2xx.
+
+STATE project-without-assessment: first heading on load = "Ready to begin"; heading at end = "Ready to begin"
+NON-2XX RESPONSES (1):
+  load	console.error	Failed to load resource: the server responded with a status of 404 (Not Found)	http://127.0.0.1:18433/favicon.ico
+STATE cmmc-with-assessment: first heading on load = "Authorized Access Control [CUI Data]"; heading at end = "Authorized Access Control [CUI Data]"
+NON-2XX RESPONSES (1):
+  load	console.error	Failed to load resource: the server responded with a status of 404 (Not Found)	http://127.0.0.1:18434/favicon.ico
+STATE no-projects: first heading on load = "Begin with the work,\nnot the setup."; heading at end = "Begin with the work,\nnot the setup."
+NON-2XX RESPONSES (1):
+  load	console.error	Failed to load resource: the server responded with a status of 404 (Not Found)	http://127.0.0.1:18432/favicon.ico

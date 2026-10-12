@@ -581,11 +581,11 @@ test("shows readiness state and concrete assessment blocking before an assessmen
     if (url === "/api/projects/project-1/profile-readiness") {
       return Response.json({
         ...readiness,
-        state: "Intake started",
+        state: "Needs follow-up",
         assessment_exists: false,
         assessment_entry_allowed: false,
         assessment_entry_blocking_reasons: [
-          "Complete the initial intake before starting a new assessment.",
+          "Resolve the recorded follow-up before starting a new assessment.",
         ],
       });
     }
@@ -603,9 +603,9 @@ test("shows readiness state and concrete assessment blocking before an assessmen
     />,
   );
 
-  expect(await screen.findByText("Intake started")).toBeVisible();
+  expect(await screen.findByRole("heading", { name: "Ready to begin" })).toBeVisible();
   expect(
-    screen.getByText("Complete the initial intake before starting a new assessment."),
+    screen.getByText("Resolve the recorded follow-up before starting a new assessment."),
   ).toBeVisible();
   expect(screen.getByRole("button", { name: "Start assessment" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Profile" })).toBeEnabled();
@@ -1009,7 +1009,7 @@ test("switching between projects without assessments hides the prior readiness i
   vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url === "/api/projects/project-1/profile-readiness") {
-      return Response.json({ ...readiness, state: "Intake started", assessment_exists: false,
+      return Response.json({ ...readiness, state: "Needs follow-up", assessment_exists: false,
         assessment_entry_allowed: false, assessment_entry_blocking_reasons: ["Project A intake is incomplete."], });
     }
     if (url === "/api/projects/project-2/profile-readiness") return nextReadiness;
@@ -1757,22 +1757,22 @@ test("CMMC shows each requirement with every objective decidable on one view and
   expect(screen.getByRole("heading", { level: 1 }).closest("section")).not.toHaveTextContent("RBAC");
 });
 
-test("a new project opens on Profile with the intake decision and starting moves to the assessment", async () => {
+test("a project with no assessment offers one Start button that begins the assessment", async () => {
   let started = false;
-  mockApi(async (input, init) => {
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url === "/api/projects/project-1/profile-readiness") {
       return Response.json({
         ...readiness,
-        state: "Intake complete",
+        state: started ? "Intake complete" : "Intake started",
         assessment_exists: started,
-        assessment_entry_allowed: true,
-        assessment_entry_blocking_reasons: [],
+        assessment_entry_allowed: started,
+        assessment_entry_blocking_reasons: started ? [] : ["Complete the initial intake before starting a new assessment."],
       });
     }
-    if (url === "/api/projects/project-1/assessments" && init?.method === "POST") {
+    if (url === "/api/projects/project-1/start-assessment" && init?.method === "POST") {
       started = true;
-      return Response.json({ id: "assessment-1" }, { status: 201 });
+      return Response.json({ assessment: { id: "assessment-1" }, readiness }, { status: 201 });
     }
     if (url === "/api/projects/project-1/assessment" && !started) {
       return Response.json({ detail: "Assessment not found" }, { status: 404 });
@@ -1786,17 +1786,45 @@ test("a new project opens on Profile with the intake decision and starting moves
       projectId="project-1"
       onProjectChange={vi.fn()}
       onWorkspaceCreated={vi.fn()}
+    />,
+  );
+
+  expect(await screen.findByRole("heading", { name: "Ready to begin" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "+ Client / project" })).toBeVisible();
+  expect(screen.getAllByRole("button", { name: "Start assessment" })).toHaveLength(1);
+  await user.click(screen.getByRole("button", { name: "Start assessment" }));
+  await waitFor(() => expect(
+    vi.mocked(fetch).mock.calls.some(
+      ([input, init]) => String(input).endsWith("/start-assessment") && init?.method === "POST",
+    ),
+  ).toBe(true));
+});
+
+test("the Profile view keeps the readiness decision form in a collapsed advanced section", async () => {
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/projects/project-1/profile-readiness") {
+      return Response.json({ ...readiness, state: "Intake started", assessment_exists: false });
+    }
+    if (url === "/api/projects/project-1/assessment") {
+      return Response.json({ detail: "Assessment not found" }, { status: 404 });
+    }
+    return Response.json({ detail: "not found" }, { status: 404 });
+  });
+  render(
+    <Workspace
+      clients={clients}
+      projectId="project-1"
+      onProjectChange={vi.fn()}
+      onWorkspaceCreated={vi.fn()}
       initialView="profile"
     />,
   );
 
   expect(await screen.findByRole("button", { name: "Profile" })).toHaveClass("active");
-  expect(screen.getByRole("heading", { name: "Assessment readiness" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "+ Client / project" })).toBeVisible();
-  expect(screen.queryByLabelText("Named reviewer")).not.toBeInTheDocument();
-
-  await user.click(screen.getByRole("button", { name: "Start assessment" }));
-  await waitFor(() => expect(screen.getByRole("button", { name: "Assessments" })).toHaveClass("active"));
+  const summary = screen.getByText("Readiness history (advanced)");
+  expect(summary.closest("details")).not.toHaveAttribute("open");
+  expect(screen.queryByRole("button", { name: "Start assessment" })).not.toBeInTheDocument();
 });
 
 test("project creation sends the chosen framework version", async () => {
@@ -1822,7 +1850,7 @@ test("project creation sends the chosen framework version", async () => {
   await user.type(await screen.findByPlaceholderText("e.g. Northwind Health"), "Contoso Defense");
   await user.type(screen.getByPlaceholderText("e.g. CMMC L2 2026"), "CMMC L2 2026");
   await user.selectOptions(await screen.findByLabelText("Framework"), "cmmc-l2-ag-v2.13");
-  await user.click(screen.getByRole("button", { name: /Create workspace/ }));
+  await user.click(screen.getByRole("button", { name: /Create and start/ }));
   await waitFor(() => expect(posted).toHaveLength(1));
   expect(JSON.parse(posted[0])).toMatchObject({ framework_version_id: "cmmc-l2-ag-v2.13" });
 });
