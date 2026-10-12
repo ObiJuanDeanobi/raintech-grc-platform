@@ -236,16 +236,9 @@ def test_ready_without_package_and_reconciled_open_action_passes(tmp_path: Path)
     db = tmp_path / "db.sqlite"
     with TestClient(create_app(database_path=db, storage_path=tmp_path / "files")) as client:
         pid, aid, profile = _setup(client, "close-ready")
-        completed = client.post(
-            f"/api/projects/{pid}/profile-readiness/transitions",
-            json={
-                "next_state": "Profile complete",
-                "decision_note": "All Profile facts resolved.",
-                "reviewed_by": "Reviewer",
-                "approval_evidence": "Approved Profile lifecycle event.",
-            },
-        )
-        assert completed.status_code == 201, completed.text
+        # Approving the Profile (in _setup) already recorded Profile complete.
+        completed = client.get(f"/api/projects/{pid}/profile-readiness")
+        assert completed.json()["state"] == "Profile complete"
         scope = client.get(f"/api/projects/{pid}/sra").json()["scope_items"]
         assert scope
         for item in scope:

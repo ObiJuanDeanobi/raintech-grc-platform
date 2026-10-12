@@ -12,8 +12,9 @@ from api.database import active_assessment_by_id
 from api.generation import TEMPLATE_VERSIONS, _snapshot, package_component_kinds
 from api.generation import template_hashes as _template_hashes
 
+# Stored states. Only "Ready to issue" is written now; the other three exist in
+# history written by the earlier multi-step chain and are all shown as Draft.
 STATES = ("Complete candidate", "In Review", "Reviewed", "Ready to issue")
-TRANSITIONS = {STATES[0]: STATES[1], STATES[1]: STATES[2], STATES[2]: STATES[3]}
 
 
 def _now() -> str:
@@ -172,20 +173,23 @@ def get_review(
     }
 
 
-def transition(
+def record_ready_to_issue(
     connection: sqlite3.Connection,
     project_id: str,
     package_id: str,
-    next_state: str,
     actor_id: str,
     reviewer_name: str,
-    reviewer_role: str,
     note: str,
-    approval: str,
-    confirmations: dict[str, bool],
     root: Path,
     storage_root: Path,
 ) -> dict[str, Any]:
+    """Record the one review-and-issue sign-off for an exact package (GitHub issue #145).
+
+    The reviewer is the signed-in account; there is no role, no per-component tick
+    and no second step. The event still binds the exact package, source snapshot
+    and template hashes, and is append-only. A package left at ``In Review`` or
+    ``Reviewed`` by the earlier chain can be signed off directly.
+    """
     package = _package(connection, project_id, package_id)
     last = connection.execute(
         """SELECT * FROM package_review_events
@@ -193,22 +197,17 @@ def transition(
         (package_id, project_id),
     ).fetchone()
     prior = last["next_state"] if last else STATES[0]
-    if TRANSITIONS.get(prior) != next_state:
-        raise ValueError(f"Invalid transition from {prior} to {next_state}")
-    if not reviewer_name.strip() or not reviewer_role.strip() or not note.strip():
-        raise ValueError("Reviewer name, role, and review note are required")
+    if prior == STATES[3]:
+        raise ValueError("This package has already been signed off")
+    name = reviewer_name.strip()
+    if not name:
+        raise ValueError("A reviewer is required")
     binding = _binding(connection, package, root, storage_root)
     if binding["blockers"] or binding["drift"]:
         raise ValueError(
             "Package review is blocked: " + "; ".join(binding["blockers"] + binding["drift"])
         )
-    required = set(binding["component_hashes"]) | {"__source"}
-    if next_state in {"Reviewed", "Ready to issue"} and not all(
-        confirmations.get(key) is True for key in required
-    ):
-        raise ValueError("Every component, source snapshot, and template must be confirmed")
-    if next_state == "Ready to issue" and not approval.strip():
-        raise ValueError("Sign-off approval is required")
+    created = _now()
     sequence = (last["sequence"] if last else 0) + 1
     connection.execute(
         """INSERT INTO package_review_events(
@@ -225,13 +224,13 @@ def transition(
             package_id,
             sequence,
             prior,
-            next_state,
+            STATES[3],
             actor_id,
-            reviewer_name.strip(),
-            reviewer_role.strip(),
+            name,
+            "",
             note.strip(),
-            approval.strip(),
-            json.dumps(confirmations, sort_keys=True),
+            f"Reviewed for issue by {name} on {created[:10]}.",
+            "{}",
             binding["package_sha256"],
             binding["source_snapshot_id"],
             binding["source_snapshot_sha256"],
@@ -240,7 +239,7 @@ def transition(
             json.dumps(binding["component_hashes"], sort_keys=True),
             json.dumps(binding["template_hashes"], sort_keys=True),
             json.dumps(binding["close_decision"], sort_keys=True),
-            _now(),
+            created,
         ),
     )
     return get_review(connection, project_id, package_id, root, storage_root)

@@ -130,6 +130,7 @@ function mockCmmcServer(overview: unknown = cmmcOverview) {
     if (url.endsWith("/cmmc-score")) return Response.json({ ...cmmcScoreFixture([{ record_id: "AC.L2-3.1.3", title: "Control CUI Flow", points: 5, state: "not_met" }]), not_met_without_poam: { count: 1, requirement_ids: [] } });
     if (url.includes("close-readiness")) return Response.json({ status: "Blocked", blockers: [], checks: [] });
     if (url.endsWith("/packages")) return Response.json([]);
+    if (url.endsWith("/issue-checklist")) return Response.json({ ready: false, groups: [], warnings: [], current_issue: null });
     if (url.endsWith("/ssp")) return Response.json(null);
     if (url.includes("/evidence")) return Response.json([]);
     if (url === "/api/backups") return Response.json({ warning: null, backups: [] });
@@ -221,13 +222,14 @@ test("Show every item lists the flat blockers only on request", async () => {
   expect(calls.some((url) => url.includes("close-readiness"))).toBe(true);
 });
 
-test("package generation is reachable from Reports", async () => {
+test("drafting and review-and-issue are reachable from Reports", async () => {
   mockCmmcServer();
   renderOverview();
   const user = userEvent.setup();
   await screen.findByRole("region", { name: "Left before issue" });
   await user.click(screen.getByRole("button", { name: "Reports" }));
-  expect(await screen.findByRole("heading", { name: "Assessment package" })).toBeVisible();
+  expect(await screen.findByRole("button", { name: "Download draft" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Review and issue…" })).toBeVisible();
   expect(screen.getByRole("button", { name: "Reports" })).toHaveClass("active");
   expect(screen.queryByRole("region", { name: "Left before issue" })).not.toBeInTheDocument();
 });

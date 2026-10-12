@@ -175,7 +175,7 @@ const readinessBase = {
   allowed_next_states: ["Needs follow-up", "Profile complete"],
   follow_up_work_required_states: ["Needs follow-up"],
   follow_up_work_required_when_unresolved_required_fields: true,
-  profile_completion_blocking_reasons: ["Record a named reviewer."],
+  profile_completion_blocking_reasons: ["Approve the Profile version."],
   current_details: { unresolved_required_fields: [], follow_up_work: "", reviewed_by: "", approval_evidence: "" },
 };
 

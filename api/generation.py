@@ -1,9 +1,13 @@
 """Deterministic, project-scoped HIPAA package generation."""
 
 import json
+import re
 import sqlite3
+import tempfile
+import zipfile
 from datetime import UTC, datetime
 from hashlib import sha256
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -12,11 +16,13 @@ from api import cmmc, ssp
 from api.close import fieldwork_ready
 from api.database import active_assessment_by_id
 from api.renderers import cmmc as cmmc_renderer
+from api.renderers.draftmark import DRAFT_PREFIX
 from api.renderers.hipaa import render_poam, render_report, validate_snapshot
 from api.storage import FileStorage
 
 __all__ = [
     "generate_package",
+    "render_draft",
     "list_packages",
     "render_package",
     "render_poam",
@@ -62,12 +68,22 @@ def package_template_version(declarations: dict[str, Any]) -> str:
 
 
 def _cmmc_source(
-    c: sqlite3.Connection, project_id: str, assessment: sqlite3.Row, declarations: dict[str, Any]
+    c: sqlite3.Connection,
+    project_id: str,
+    assessment: sqlite3.Row,
+    declarations: dict[str, Any],
+    draft_profile_id: str | None = None,
+    root: Path | None = None,
 ) -> dict[str, Any]:
     # Imported here: api.main imports this module, and owns the shared rollup.
     from api.main import _derived_status
 
-    approved_ssp = ssp.snapshot_for_package(c, project_id, assessment["id"])
+    if draft_profile_id is not None and root is not None:
+        approved_ssp: dict[str, Any] | None = ssp.draft_snapshot(
+            c, root, project_id, assessment, draft_profile_id, _derived_status
+        )
+    else:
+        approved_ssp = ssp.snapshot_for_package(c, project_id, assessment["id"])
     if approved_ssp is None:
         raise ValueError("An approved System Security Plan is required")
     requirements = []
@@ -183,7 +199,15 @@ def _snapshot(
     project_id: str,
     assessment_id: str,
     assessment: sqlite3.Row,
+    draft: bool = False,
+    root: Path | None = None,
 ) -> tuple[dict[str, Any], str, sqlite3.Row]:
+    """The source snapshot a package is rendered from.
+
+    A draft (``draft=True``) is for reading, never stored or issued: it skips the
+    readiness and completeness checks, and uses the Profile that is approved or,
+    failing that, the latest version, labelled as not yet approved.
+    """
     active_assessment = active_assessment_by_id(c, assessment_id)
     if active_assessment is None or active_assessment["project_id"] != project_id:
         raise ValueError("Assessment is not the active assessment for this project")
@@ -218,6 +242,18 @@ def _snapshot(
             ).fetchone()
             or profile
         )
+    profile_label: str | None = None
+    if profile is None and draft:
+        profile = c.execute(
+            """
+            SELECT pv.*, pv.content_revision AS revision_token
+            FROM profile_versions pv WHERE pv.project_id = ?
+            ORDER BY pv.version_number DESC LIMIT 1
+            """,
+            (project_id,),
+        ).fetchone()
+        if profile is not None:
+            profile_label = f"Profile version {profile['version_number']} (not yet approved)"
     if profile is None:
         raise ValueError("An approved Profile lifecycle snapshot is required")
     names = c.execute(
@@ -298,6 +334,7 @@ def _snapshot(
             **dict(profile),
             "snapshot_id": profile["id"],
             "client_name": names["client_name"],
+            **({"label": profile_label} if profile_label else {}),
         },
         "records": records,
         "risks": _rows(c, "risks", "project_id=?", (project_id,)),
@@ -311,12 +348,20 @@ def _snapshot(
         "reconciliations": _rows(c, "not_met_reconciliations", "project_id=?", (project_id,)),
         "sra_scope": _rows(c, "sra_scope_reviews", "project_id=?", (project_id,)),
         "evidence_versions": _rows(c, "evidence_versions", "project_id=?", (project_id,)),
-        "readiness": fieldwork_ready(c, project_id, assessment_id),
+        "readiness": (
+            {"status": "Draft", "ready": False}
+            if draft
+            else fieldwork_ready(c, project_id, assessment_id)
+        ),
     }
+    errors: list[str] = []
     if declarations.get("scoring"):
-        source["cmmc"] = _cmmc_source(c, project_id, assessment, declarations)
-        errors = [] if source["cmmc"]["score"]["complete"] else ["CMMC score is not complete"]
-    else:
+        source["cmmc"] = _cmmc_source(
+            c, project_id, assessment, declarations, profile["id"] if draft else None, root
+        )
+        if not draft and not source["cmmc"]["score"]["complete"]:
+            errors = ["CMMC score is not complete"]
+    elif not draft:
         errors = validate_snapshot(source)
     if errors:
         raise ValueError("Snapshot is not renderable: " + "; ".join(errors))
@@ -379,6 +424,74 @@ def generate_package(
     )
 
 
+def _render_template_file(
+    kind: str, template: Path, source: dict[str, Any], out: Path, draft: bool = False
+) -> bytes:
+    """One HIPAA template file rendered from a source snapshot, as bytes."""
+    content = template.read_bytes()
+    if kind == "assessment_report":
+        render_report(template, out, source, draft)
+    elif kind == "poam":
+        render_poam(template, out, source, draft)
+    else:
+        return content
+    content = out.read_bytes()
+    out.unlink(missing_ok=True)
+    return content
+
+
+def render_draft(
+    connection: sqlite3.Connection, root: Path, project_id: str, assessment_id: str
+) -> tuple[str, bytes]:
+    """A watermarked draft of the package as a ZIP, from the data as it is now.
+
+    Nothing is stored: no source snapshot, no generated package, no files in
+    managed storage. A draft can never be reviewed or issued.
+    """
+    assessment = connection.execute(
+        """
+        SELECT assessments.*, assessment_revisions.revision_number
+        FROM assessments
+        JOIN assessment_revisions
+          ON assessment_revisions.assessment_id = assessments.id
+         AND assessment_revisions.project_id = assessments.project_id
+        WHERE assessments.id = ? AND assessments.project_id = ?
+        """,
+        (assessment_id, project_id),
+    ).fetchone()
+    if assessment is None:
+        raise ValueError("This assessment could not be found for this project.")
+    source, _, _ = _snapshot(
+        connection, project_id, assessment_id, assessment, draft=True, root=root
+    )
+    version = package_template_version(source["framework"]["declarations"])
+    rendered_source = {**source, "template_version": version}
+    files: list[tuple[str, bytes]] = []
+    if "cmmc" in rendered_source:
+        files = [
+            (name, content)
+            for _, name, content in cmmc_renderer.render_package(rendered_source, draft=True)
+        ]
+    else:
+        with tempfile.TemporaryDirectory(prefix="draft-") as scratch:
+            for kind, template in template_files(root, version):
+                content = _render_template_file(
+                    kind, template, rendered_source, Path(scratch) / template.name, draft=True
+                )
+                files.append((template.name, content))
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
+        for name, content in files:
+            bundle.writestr(DRAFT_PREFIX + name, content)
+    names = connection.execute(
+        """SELECT p.name AS project_name, c.name AS client_name FROM projects p
+           JOIN clients c ON c.id = p.client_id WHERE p.id = ?""",
+        (project_id,),
+    ).fetchone()
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", f"{names['client_name']} {names['project_name']}")
+    return f"{DRAFT_PREFIX}{slug.strip('_')}.zip", archive.getvalue()
+
+
 def render_package(
     connection: sqlite3.Connection,
     storage: FileStorage,
@@ -427,17 +540,9 @@ def render_package(
         for kind, template in [] if rendered else template_files(root, version):
             filename = template.name
             component_id = str(uuid4())
-            content = template.read_bytes()
-            if kind == "assessment_report":
-                out = render_staging / f"{component_id}-{filename}"
-                render_report(template, out, rendered_source)
-                content = out.read_bytes()
-                out.unlink(missing_ok=True)
-            elif kind == "poam":
-                out = render_staging / f"{component_id}-{filename}"
-                render_poam(template, out, rendered_source)
-                content = out.read_bytes()
-                out.unlink(missing_ok=True)
+            content = _render_template_file(
+                kind, template, rendered_source, render_staging / f"{component_id}-{filename}"
+            )
             staged_path, final_path = storage.stage(project_id, component_id, filename, content)
             staged.append((staged_path, final_path))
             components.append(

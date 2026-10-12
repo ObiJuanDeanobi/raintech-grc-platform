@@ -19,6 +19,7 @@ import { ProfilePanel } from "./ProfilePanel";
 import { SraPanel } from "./SraPanel";
 import { StatusPill } from "./components/StatusPill";
 import { RoutineSaveReporter, RoutineSaveState, useRoutineRecordSaveCoordinator } from "./components/routineSave";
+import { ACCOUNT_NAME } from "./lib/account";
 import { GUIDANCE_LABELS } from "./lib/guidance";
 import { firstActionableRequirement } from "./lib/requirements";
 import { ReadinessPanel, StartAssessmentCard } from "./views/ReadinessPanel";
@@ -476,7 +477,7 @@ export function Workspace({
             <button className={view === "overview" ? "active" : ""} onClick={() => changeView("overview")}>Overview</button>
             <button className={view === "profile" ? "active" : ""} onClick={() => changeView("profile")}>Profile</button>
           </nav>
-          <div className="topbar-utility"><span className="account"><UserRound size={16} /> Johnathan</span></div>
+          <div className="topbar-utility"><span className="account"><UserRound size={16} /> {ACCOUNT_NAME}</span></div>
         </header>
         <main className="readiness-main">
           <div className="readiness-project-line">
@@ -560,7 +561,7 @@ export function Workspace({
             {visibleSaveState === "saving" ? "Saving" : visibleSaveState === "saved" ? "Saved" : "Save failed"}
           </span>
           <BackupControl />
-          <span className="account"><UserRound size={16} /> Johnathan</span>
+          <span className="account"><UserRound size={16} /> {ACCOUNT_NAME}</span>
         </div>
       </header>
 
@@ -899,13 +900,10 @@ export function Workspace({
           records={assessment.record_index}
           hasClose={Boolean(assessment.framework.declarations.close_readiness)}
           refreshKey={revalidationTick}
-          onNavigate={(link) => {
-            const target = String(link.target ?? link.view ?? "");
-            if (target === "profile" || target === "sra") changeView(target as "profile" | "sra");
-            else if (link.record_id || link.recordId) {
-              changeRecord(String(link.record_id ?? link.recordId));
-              setView("assessment");
-            }
+          onOpenGroup={openGroup}
+          onOpenTarget={(target) => {
+            if (target === "profile" || target === "evidence") changeView(target);
+            else changeView("assessment");
           }}
           onReopened={async () => {
             await refreshAssessmentProgress();

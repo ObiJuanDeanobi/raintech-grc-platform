@@ -22,6 +22,8 @@ from xml.sax.saxutils import escape
 
 from fastapi import HTTPException
 
+from api.renderers.draftmark import UNDECIDED, mark_docx
+
 TEMPLATE_VERSION = "cmmc-ssp-v1"
 TEMPLATE_PATH = Path("docs/templates/cmmc/ssp-v1/structure.json")
 TEMPLATE_SHA256 = "f55f0006b8f09a37a94e250a8663a99a3878e7ac328c21af84a3687fe21dab6d"
@@ -149,57 +151,9 @@ def generate(
         )
     if blockers:
         raise HTTPException(409, {"blockers": blockers})
-    fields, items = _profile(connection, profile["id"])
-    names = connection.execute(
-        """SELECT p.name AS project_name, c.name AS client_name
-           FROM projects p JOIN clients c ON c.id = p.client_id WHERE p.id = ?""",
-        (project_id,),
-    ).fetchone()
-    source_requirements = []
-    for requirement in requirements:
-        poam = [
-            row["title"]
-            for row in connection.execute(
-                """SELECT a.title FROM corrective_actions a
-                   JOIN requirement_findings f ON f.finding_id = a.finding_id
-                   WHERE f.project_id = ? AND f.record_id = ? ORDER BY a.created_at""",
-                (project_id, requirement["record_id"]),
-            )
-        ]
-        source_requirements.append(
-            {
-                "record_id": requirement["record_id"],
-                "citation": requirement["citation"],
-                "title": requirement["title"],
-                "text": requirement["regulation_text"],
-                "domain": requirement["work_area"],
-                "determination": statuses[requirement["record_id"]],
-                "status": template["requirement_statuses"][statuses[requirement["record_id"]]],
-                "poam_items": poam,
-                "drafted_implementation": _draft_implementation(
-                    connection, assessment["id"], requirement
-                ),
-            }
-        )
-    source = {
-        "project_id": project_id,
-        "assessment_id": assessment["id"],
-        "framework_version_id": assessment["framework_version_id"],
-        "profile_version_id": profile["id"],
-        "client_name": names["client_name"],
-        "project_name": names["project_name"],
-        "profile_fields": fields,
-        "environment_items": items,
-        "requirements": source_requirements,
-    }
-    content = {
-        "system_description": "",
-        "environment_narrative": "",
-        "requirements": {
-            r["record_id"]: {"implementation": r["drafted_implementation"]}
-            for r in source_requirements
-        },
-    }
+    source, content = _build(
+        connection, template, project_id, assessment, profile["id"], requirements, statuses
+    )
     ssp_id, created = str(uuid4()), _now()
     source_json = _canonical(source)
     connection.execute(
@@ -223,6 +177,145 @@ def generate(
         connection, ssp_id, project_id, content, "Generated from the assessment.", actor_id
     )
     return view(connection, project_id, ssp_id)
+
+
+def _build(
+    connection: Any,
+    template: dict[str, Any],
+    project_id: str,
+    assessment: Any,
+    profile_version_id: str,
+    requirements: list[Any],
+    statuses: dict[str, str],
+    draft: bool = False,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The SSP source snapshot and its first content, from the assessment as it is."""
+    fields, items = _profile(connection, profile_version_id)
+    names = connection.execute(
+        """SELECT p.name AS project_name, c.name AS client_name
+           FROM projects p JOIN clients c ON c.id = p.client_id WHERE p.id = ?""",
+        (project_id,),
+    ).fetchone()
+    source_requirements = []
+    for requirement in requirements:
+        poam = [
+            row["title"]
+            for row in connection.execute(
+                """SELECT a.title FROM corrective_actions a
+                   JOIN requirement_findings f ON f.finding_id = a.finding_id
+                   WHERE f.project_id = ? AND f.record_id = ? ORDER BY a.created_at""",
+                (project_id, requirement["record_id"]),
+            )
+        ]
+        status = statuses[requirement["record_id"]]
+        source_requirements.append(
+            {
+                "record_id": requirement["record_id"],
+                "citation": requirement["citation"],
+                "title": requirement["title"],
+                "text": requirement["regulation_text"],
+                "domain": requirement["work_area"],
+                "determination": status,
+                "status": (
+                    template["requirement_statuses"].get(status, UNDECIDED)
+                    if draft
+                    else template["requirement_statuses"][status]
+                ),
+                "poam_items": poam,
+                "drafted_implementation": _draft_implementation(
+                    connection, assessment["id"], requirement
+                ),
+            }
+        )
+    source = {
+        "project_id": project_id,
+        "assessment_id": assessment["id"],
+        "framework_version_id": assessment["framework_version_id"],
+        "profile_version_id": profile_version_id,
+        "client_name": names["client_name"],
+        "project_name": names["project_name"],
+        "profile_fields": fields,
+        "environment_items": items,
+        "requirements": source_requirements,
+    }
+    content = {
+        "system_description": "",
+        "environment_narrative": "",
+        "requirements": {
+            r["record_id"]: {"implementation": r["drafted_implementation"]}
+            for r in source_requirements
+        },
+    }
+    return source, content
+
+
+def draft_snapshot(
+    connection: Any,
+    root: Path,
+    project_id: str,
+    assessment: Any,
+    profile_version_id: str,
+    derive: Derive,
+) -> dict[str, Any]:
+    """The SSP for a draft package: the approved one, else the latest, else built now.
+
+    Nothing is written. Requirements not yet decided show as such; a draft SSP is
+    never presented as approved.
+    """
+    approved = snapshot_for_package(connection, project_id, assessment["id"])
+    if approved is not None:
+        return approved
+    latest = latest_for_project(connection, project_id, assessment["id"])
+    if latest is not None:
+        version = latest["latest"]
+        return {
+            "id": latest["id"],
+            "source": latest["source"],
+            "source_sha256": latest["source_sha256"],
+            "template_version": latest["template_version"],
+            "version_number": version["version_number"],
+            "content": version["content"],
+            "content_sha256": version["content_sha256"],
+            "approved_at": None,
+            "approver_id": None,
+            "changes": [
+                [v["created_at"][:10], v["version_number"], v["note"]] for v in latest["versions"]
+            ],
+        }
+    template = load_template(root)
+    requirements = list(
+        connection.execute(
+            """SELECT record_id, citation, title, regulation_text, work_area FROM framework_records
+               WHERE framework_version_id = ? AND parent_id IS NULL ORDER BY sort_order""",
+            (assessment["framework_version_id"],),
+        )
+    )
+    statuses = {
+        r["record_id"]: derive(connection, assessment["id"], r["record_id"]) for r in requirements
+    }
+    source, content = _build(
+        connection,
+        template,
+        project_id,
+        assessment,
+        profile_version_id,
+        requirements,
+        statuses,
+        True,
+    )
+    canonical = _canonical(source)
+    return {
+        "id": "draft",
+        "source": source,
+        "source_sha256": sha256(canonical.encode()).hexdigest(),
+        "template_version": TEMPLATE_VERSION,
+        "version_number": 0,
+        "content": content,
+        "content_sha256": sha256(_canonical(content).encode()).hexdigest(),
+        "approved_at": None,
+        "approver_id": None,
+        "changes": [],
+    }
 
 
 def _add_version(
@@ -431,7 +524,7 @@ def render_docx(connection: Any, project_id: str, ssp_id: str, version_number: i
     )
 
 
-def ssp_docx(document: dict[str, Any]) -> bytes:
+def ssp_docx(document: dict[str, Any], draft: bool = False) -> bytes:
     """Render one SSP version from plain data; reads nothing live."""
     source, content = document["source"], document["content"]
     approved_at = document.get("approved_at")
@@ -468,11 +561,14 @@ def ssp_docx(document: dict[str, Any]) -> bytes:
     body.append(paragraph("4. Record of Changes", "Heading1"))
     for date, number, note in document["changes"]:
         body.append(paragraph(f"{date} · v{number} · {note}"))
-    return docx_bytes(body)
+    return docx_bytes(body, draft)
 
 
-def docx_bytes(paragraphs: list[str]) -> bytes:
-    """Package pre-built WordprocessingML paragraphs as a deterministic DOCX."""
+def docx_bytes(paragraphs: list[str], draft: bool = False) -> bytes:
+    """Package pre-built WordprocessingML paragraphs as a deterministic DOCX.
+
+    A draft carries the DRAFT header on its section and a prefixed title.
+    """
     document = (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
@@ -500,4 +596,4 @@ def docx_bytes(paragraphs: list[str]) -> bytes:
         for name, data in files.items():
             info = zipfile.ZipInfo(name, date_time=(2026, 1, 1, 0, 0, 0))
             archive.writestr(info, data)
-    return buffer.getvalue()
+    return mark_docx(buffer.getvalue()) if draft else buffer.getvalue()

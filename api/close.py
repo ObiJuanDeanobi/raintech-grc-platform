@@ -34,7 +34,7 @@ _GROUPS: dict[str, tuple[str, str, str]] = {
     "poam_open": ("poam_open", "Open POA&M items", "assessments"),
     "profile_not_complete": ("profile", "Profile not approved", "profile"),
     "profile_not_approved": ("profile", "Profile not approved", "profile"),
-    "profile_unknown": ("profile", "Profile not approved", "profile"),
+    "profile_unknown": ("profile_unknowns", "Profile unknowns to resolve", "profile"),
     "ssp_not_approved": ("ssp", "SSP not approved", "ssp"),
     "evidence_unverified": ("evidence_failed", "Evidence files failed check", "evidence"),
     "needs_revalidation": ("recheck", "Records to recheck", "assessments"),
@@ -249,6 +249,24 @@ def fieldwork_ready(
                 blockers,
                 "profile_unknown",
                 f"Resolve Profile value: {row['field_key']}",
+                "profile",
+                f"/projects/{project_id}/profile",
+            )
+        # Recorded unknowns ("Unknowns & follow-up") keep Profile complete from being true.
+        for row in connection.execute(
+            """SELECT COALESCE(
+                          MAX(CASE WHEN v.field_key = 'name' THEN v.value END), i.client_key
+                      ) AS name
+               FROM profile_items i
+               LEFT JOIN profile_field_values v ON v.profile_item_id = i.id
+               WHERE i.profile_version_id = ? AND i.item_type = 'unknown_follow_up'
+               GROUP BY i.id ORDER BY i.sort_order""",
+            (approved["id"],),
+        ):
+            _block(
+                blockers,
+                "profile_unknown",
+                f"Resolve Profile follow-up: {row['name']}",
                 "profile",
                 f"/projects/{project_id}/profile",
             )

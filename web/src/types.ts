@@ -167,7 +167,13 @@ export interface GeneratedPackage {
   components: GeneratedPackageComponent[];
   manifest?: { components?: GeneratedPackageComponent[]; source_snapshot_sha256?: string; template_version?: string };
   issuance_status?: "Current" | "Superseded" | null;
+  /** Draft until issued, then Issued, then Superseded; derived by the server. */
+  lifecycle?: "Draft" | "Issued" | "Superseded";
+  reviewer?: string | null;
+  review_note?: string | null;
+  reviewed_at?: string | null;
   issued_snapshot_id?: string | null;
+  issued_at?: string | null;
   superseded_by_package_id?: string | null;
   correction?: PackageCorrection | null;
   reopening?: AssessmentReopening | null;
@@ -184,38 +190,33 @@ export interface PackageCorrection {
   created_at: string;
 }
 
-export interface IssueReadiness {
-  target: string;
-  status: string;
-  checks: Array<Record<string, unknown>>;
-  blockers: Array<Record<string, unknown> | string>;
-  package_id?: string;
-  source_snapshot_id?: string;
-  source_sha256?: string;
-  manifest_sha256?: string;
-  backup_id?: string;
-  backup_manifest_sha256?: string;
-  backup_completed_at?: string;
-  issued_snapshot_id?: string;
-  issued_at?: string;
-  issuance_status?: "Current" | "Superseded" | null;
-  superseded_by_package_id?: string | null;
-  correction?: PackageCorrection | null;
-  failure?: { stage?: string; component?: string; reason?: string; attempt_id?: string };
+/** GET /api/projects/{p}/assessments/{a}/issue-checklist (#145). */
+export interface IssueChecklist {
+  ready: boolean;
+  /** Hard gates: each stops the issue until fixed. Same shape as the Overview's groups. */
+  groups: BlockerGroup[];
+  /** Worth a look; never stops the issue and nothing needs ticking. */
+  warnings: IssueWarning[];
+  current_issue: { package_id: string; issued_at: string } | null;
 }
 
-export interface PackageReview {
+export interface IssueWarning {
+  key: string;
+  label: string;
+  count: number;
+  detail: string;
+  target: "profile" | "evidence" | "poam" | string;
+}
+
+/** The 201 body of POST .../issue and .../issue-now. */
+export interface IssueResult {
   package_id: string;
-  state: string;
-  reviewer_name?: string;
-  reviewer_role?: string;
-  note?: string;
-  component_confirmations?: Record<string, boolean>;
-  source_snapshot_sha256?: string;
-  template_version?: string;
-  drift?: string[];
-  blockers?: string[];
-  updated_at?: string;
+  issued_snapshot_id: string;
+  issued_at: string;
+  reviewer: string;
+  note: string;
+  backup_id: string;
+  superseded_package_id: string | null;
 }
 
 export interface ProfileReadiness {

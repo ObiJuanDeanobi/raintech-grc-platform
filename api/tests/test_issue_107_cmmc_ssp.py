@@ -14,7 +14,7 @@ from api.main import create_app
 from api.tests.test_issue_62_versioned_profile import (
     create_project,
     lifecycle_payload,
-    profile_payload,
+    resolved_profile_payload,
 )
 
 OBSERVED = "Synthetic: observed with the administrator."
@@ -34,21 +34,17 @@ def _project(
     assert (
         client.put(
             f"/api/projects/{project}/profile/versions/{draft['id']}",
-            json=profile_payload(draft["content_revision"]),
+            json=resolved_profile_payload(draft["content_revision"]),
         ).status_code
         == 200
     )
-    for status in ("Reviewed", "Approved"):
-        assert (
-            client.post(
-                f"/api/projects/{project}/profile/versions/{draft['id']}/lifecycle",
-                json=lifecycle_payload(client, project, draft["id"], status),
-            ).status_code
-            == 201
-        )
-    client.post(
-        f"/api/projects/{project}/profile-readiness/transitions",
-        json={"next_state": "Intake complete", "decision_note": "ready"},
+    # Approving the Profile is the one act: it also records Profile complete.
+    assert (
+        client.post(
+            f"/api/projects/{project}/profile/versions/{draft['id']}/lifecycle",
+            json=lifecycle_payload(client, project, draft["id"], "Approved"),
+        ).status_code
+        == 201
     )
     assessment = client.post(f"/api/projects/{project}/assessments").json()["id"]
     return project, assessment

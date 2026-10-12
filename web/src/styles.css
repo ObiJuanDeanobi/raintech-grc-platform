@@ -1086,3 +1086,25 @@ li.fail > .check-line svg, li.fail > .check-line .check-result { color: #9b3030;
 .other-projects ul { display: grid; margin: 0; padding: 0; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px; list-style: none; }
 .other-projects button { display: flex; width: 100%; padding: 6px 10px; align-items: baseline; gap: 8px; border: 1px solid var(--line); border-radius: 8px; background: white; text-align: left; font-size: 12px; }
 .other-projects small { margin-left: auto; color: var(--muted); }
+
+/* Review and issue (#145): one dialog, one act. */
+.reports-actions { display: grid; gap: 10px; padding: 16px; border: 1px solid #dbe3e8; border-radius: 9px; background: #fff; }
+.reports-actions p { margin: 0; color: #52606d; font-size: 12px; }
+.reports-actions .package-review-actions { margin-top: 2px; }
+.reports-actions a.secondary-button { display: inline-flex; align-items: center; text-decoration: none; }
+.issued-versions { display: grid; gap: 10px; }
+.issued-versions h2 { margin: 0; font-size: 15px; }
+.review-issue-dialog { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto; }
+.review-issue-dialog h3 { margin: 0 0 6px; font-size: 13px; }
+.review-issue-dialog ul { display: grid; margin: 0; padding: 0; gap: 6px; list-style: none; }
+.issue-must-fix { padding: 12px 14px; border-left: 3px solid #b3261e; background: #fff5f5; }
+.issue-worth-checking { padding: 12px 14px; border-left: 3px solid var(--amber); background: #fffaf0; }
+.issue-worth-checking li { display: grid; gap: 2px; font-size: 12px; }
+.issue-worth-checking li span { color: #52606d; font-size: 11px; }
+.issue-worth-checking li .text-button { justify-self: start; }
+.issue-who { display: flex; gap: 28px; margin: 0; }
+.issue-who dt { color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.issue-who dd { margin: 2px 0 0; font-size: 13px; font-weight: 600; }
+.review-issue-dialog .primary-button { width: auto; min-width: 140px; }
+.profile-reviewer { color: var(--muted); font-size: 11px; }
+.profile-lifecycle .profile-reviewer { align-self: center; }

@@ -202,7 +202,7 @@ const readiness = {
   follow_up_work_required_when_unresolved_required_fields: true,
   assessment_entry_allowed: true,
   assessment_entry_blocking_reasons: [],
-  profile_completion_blocking_reasons: ["Record a named reviewer."],
+  profile_completion_blocking_reasons: ["Approve the Profile version."],
   current_details: {
     unresolved_required_fields: [],
     follow_up_work: "",
@@ -264,189 +264,144 @@ beforeEach(() => {
   );
 });
 
-test("renders close-readiness checks, blockers, later gates, and actionable record link", async () => {
+const issueChecklist = (overrides: Record<string, unknown> = {}) => ({
+  ready: true,
+  groups: [],
+  warnings: [],
+  current_issue: null,
+  ...overrides,
+});
+
+test("Review and issue lists what must be fixed, and each group opens its filtered list", async () => {
   const calls: string[] = [];
   vi.mocked(fetch).mockImplementation(async (input) => {
     const url = String(input); calls.push(url);
     if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
     if (url.endsWith("/assessment")) return Response.json(assessment);
-    if (url.includes("close-readiness")) return Response.json({ target: "fieldwork_ready_for_generation", status: "Blocked", blockers: [{ detail: "Resolve open findings" }], checks: [{ name: "Determinations", status: "pass" }], links: [{ label: "Open risk record", record_id: "child-1" }], informational: { package: "not_applicable" } });
+    if (url.endsWith("/packages")) return Response.json([]);
+    if (url.endsWith("/issue-checklist")) return Response.json(issueChecklist({
+      ready: false,
+      groups: [{ key: "undecided", label: "Objectives not decided", count: 2, record_ids: ["child-1"], target: "assessments" }],
+      warnings: [{ key: "evidence_due_soon", label: "Evidence due for review soon", count: 1, detail: "Worth refreshing before the report goes out.", target: "evidence" }],
+    }));
     if (url.includes("/records/child-1")) return Response.json(detail);
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
   });
-  // The Overview shows grouped counts (#144); the per-check detail lives on Reports.
   render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="reports" />);
-  expect(await screen.findByText("Fieldwork ready for generation")).toBeVisible();
-  expect(screen.getByText("Resolve open findings")).toBeVisible();
-  expect(screen.getByText("Determinations")).toBeVisible();
-  await userEvent.setup().click(screen.getByText("Later gates and metadata"));
-  expect(screen.getByText("package · not_applicable")).toBeVisible();
-  await userEvent.setup().click(screen.getByRole("button", { name: "Open risk record" }));
-  expect(calls.some((url) => url.includes("close-readiness"))).toBe(true);
-  // The record link opens the assessment, where close and package panels are not repeated.
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "Review and issue…" }));
+  const dialog = await screen.findByRole("dialog", { name: "Review and issue" });
+  expect(within(dialog).getByText("Must be fixed before issue")).toBeVisible();
+  expect(within(dialog).getByText("Worth checking")).toBeVisible();
+  expect(within(dialog).getByText(/Evidence due for review soon/)).toBeVisible();
+  // Hard gates stop the issue; warnings never do.
+  expect(within(dialog).getByRole("button", { name: "Issue" })).toBeDisabled();
+  expect(calls.some((url) => url.endsWith("/issue-checklist"))).toBe(true);
+  await user.click(within(dialog).getByRole("button", { name: "2 · Objectives not decided" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  // The group opens Assessments narrowed to its records.
   expect(screen.getByRole("button", { name: "Assessments" })).toHaveClass("active");
-  expect(screen.queryByText("Fieldwork ready for generation")).not.toBeInTheDocument();
+  expect(await screen.findByText(/Objectives not decided/)).toBeVisible();
 });
 
-test("generates and exposes only the promoted two-component package", async () => {
-  const calls: Array<{ url: string; method?: string }> = [];
-  vi.mocked(fetch).mockImplementation(async (input, init) => {
-    const url = String(input); calls.push({ url, method: init?.method });
+test("Reports lists only issued versions, offers a draft, and no longer offers generation or review steps", async () => {
+  vi.mocked(fetch).mockImplementation(async (input) => {
+    const url = String(input);
     if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
     if (url.endsWith("/assessment")) return Response.json(assessment);
-    if (url.includes("close-readiness")) return Response.json({ status: "Ready", blockers: [], checks: [] });
-    if (url.endsWith("/packages") && init?.method === "POST") return Response.json({ id: "pkg-new", state: "promoted" });
     if (url.endsWith("/packages")) return Response.json([
-      { id: "staged", assessment_id: "assessment-1", state: "staged", created_at: "2026-01-01T00:00:00Z", components: [] },
-      { id: "pkg-1", assessment_id: "assessment-1", state: "promoted", created_at: "2026-01-02T00:00:00Z", source_snapshot_id: "snap-1", manifest: { source_snapshot_sha256: "abc", components: [{ id: "report", kind: "assessment_report", filename: "report.docx" }, { id: "poam", kind: "poam", filename: "poam.xlsx" }] } },
+      { id: "staged", assessment_id: "assessment-1", state: "staged", lifecycle: "Draft", created_at: "2026-01-01T00:00:00Z", components: [] },
+      { id: "pkg-draft", assessment_id: "assessment-1", state: "promoted", lifecycle: "Draft", created_at: "2026-01-01T12:00:00Z", components: [{ id: "unissued", kind: "assessment_report", filename: "never-issued.docx" }] },
+      { id: "pkg-1", assessment_id: "assessment-1", state: "promoted", lifecycle: "Issued", issuance_status: "Current", issued_at: "2026-01-02T00:00:00Z", reviewer: "Johnathan", review_note: "October report.", created_at: "2026-01-02T00:00:00Z", source_snapshot_id: "snap-1", manifest: { source_snapshot_sha256: "abc", components: [] }, components: [{ id: "report", kind: "assessment_report", filename: "report.docx" }, { id: "poam", kind: "poam", filename: "poam.xlsx" }] },
     ]);
     if (url.includes("/records/child-1")) return Response.json(detail);
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
   });
   render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="reports" />);
-  expect(await screen.findByText("Complete package")).toBeVisible();
-  expect(screen.queryByText("Package staged")).not.toBeInTheDocument();
+  expect(await screen.findByText("report.docx")).toBeVisible();
+  expect(screen.getByText(/Issued version · /)).toBeVisible();
+  expect(screen.getByText("Current")).toBeVisible();
+  expect(screen.getByText(/Reviewed by Johnathan · October report\./)).toBeVisible();
   expect(screen.getByText("report.docx")).toBeVisible();
   expect(screen.getByText("poam.xlsx")).toBeVisible();
-  await userEvent.setup().click(screen.getByRole("button", { name: "Generate package" }));
-  await waitFor(() => expect(calls.some((call) => call.method === "POST" && call.url.endsWith("/api/projects/project-1/assessments/assessment-1/packages"))).toBe(true));
-  expect(await screen.findByRole("button", { name: "Generate package" })).toBeEnabled();
+  expect(screen.queryByText("never-issued.docx")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Download draft" })).toBeEnabled();
+  for (const gone of ["Generate package", "Start review", "Mark reviewed", "Sign off: Ready to issue", "Create and validate backup", "Issue final deliverables"]) {
+    expect(screen.queryByRole("button", { name: gone })).not.toBeInTheDocument();
+  }
 });
 
-test("reviews and explicitly signs the exact generated package", async () => {
-  const transitions: Array<Record<string, unknown>> = [];
-  let state = "Complete candidate";
-  vi.mocked(fetch).mockImplementation(async (input, init) => {
-    const url = String(input);
-    if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
-    if (url.endsWith("/assessment")) return Response.json(assessment);
-    if (url.includes("close-readiness")) return Response.json({ status: "Ready", blockers: [], checks: [] });
-    if (url.endsWith("/packages")) return Response.json([{ id: "pkg-review", assessment_id: "assessment-1", state: "promoted", created_at: "2026-01-02T00:00:00Z", source_snapshot_id: "snap-review", components: [{ id: "report-review", kind: "assessment_report", filename: "report.docx", sha256: "abc123" }, { id: "poam-review", kind: "poam", filename: "poam.xlsx", sha256: "def456" }] }]);
-    if (url.endsWith("/review/transitions") && init?.method === "POST") {
-      const payload = JSON.parse(String(init.body)) as Record<string, unknown>;
-      transitions.push(payload); state = String(payload.next_state);
-      return Response.json({ package_id: "pkg-review", state, drift: [], blockers: [] });
-    }
-    if (url.endsWith("/review")) return Response.json({ package_id: "pkg-review", state, drift: [], blockers: [] });
-    if (url.endsWith("/issue-readiness")) return Response.json({
-      status: state === "Ready to issue" ? "Ready" : "Blocked",
-      blockers: state === "Ready to issue" ? [] : ["The exact package has not been reviewed and signed off"],
-    });
-    if (url.includes("/records/child-1")) return Response.json(detail);
-    if (url.includes("/evidence")) return Response.json([]);
-    return Response.json({});
-  });
-  render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="reports" />);
-  expect(await screen.findByText("Complete candidate")).toBeVisible();
-  const user = userEvent.setup();
-  await user.type(screen.getByLabelText("Reviewer name"), "Johnathan Dean");
-  await user.type(screen.getByLabelText("Reviewer role"), "Security Assessor");
-  await user.type(screen.getByLabelText("Review note"), "Reviewed both exact outputs.");
-  await user.click(screen.getByRole("button", { name: "Start review" }));
-  expect(await screen.findByText("In Review")).toBeVisible();
-  await user.click(screen.getByLabelText(/Confirm report\.docx/));
-  await user.click(screen.getByLabelText(/Confirm poam\.xlsx/));
-  await user.click(screen.getByLabelText("Confirm source snapshot and template version"));
-  await user.click(screen.getByRole("button", { name: "Mark reviewed" }));
-  expect(await screen.findByText("Reviewed")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Sign off: Ready to issue" }));
-  expect(await screen.findByText("Ready to issue")).toBeVisible();
-  await waitFor(() => expect(screen.getByRole("button", { name: "Create and validate backup" })).toBeEnabled());
-  expect(transitions.map((item) => item.next_state)).toEqual(["In Review", "Reviewed", "Ready to issue"]);
-  expect(transitions.at(-1)).toMatchObject({ actor_id: "johnathan", approval: "I approve this exact package for issuance." });
-});
-
-test("creates the exact recovery set before issuing final deliverables", async () => {
-  const calls: Array<{ url: string; body?: Record<string, unknown> }> = [];
-  let backupId: string | undefined;
+test("issuing is one act: one request with the account and note, no backup or review steps", async () => {
+  const calls: Array<{ url: string; method?: string; body?: Record<string, unknown> }> = [];
   let issued = false;
   vi.mocked(fetch).mockImplementation(async (input, init) => {
     const url = String(input);
+    if (init?.method === "POST") calls.push({ url, method: init.method, body: JSON.parse(String(init.body)) as Record<string, unknown> });
     if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
     if (url.endsWith("/assessment")) return Response.json(assessment);
-    if (url.includes("close-readiness")) return Response.json({ status: "Ready", blockers: [], checks: [] });
-    if (url.endsWith("/packages")) return Response.json([{ id: "pkg-issue", assessment_id: "assessment-1", state: "promoted", created_at: "2026-01-02T00:00:00Z", source_snapshot_id: "snap-issue", components: [{ id: "report-issue", kind: "assessment_report", filename: "report.docx" }, { id: "poam-issue", kind: "poam", filename: "poam.xlsx" }] }]);
-    if (url.endsWith("/review")) return Response.json({ package_id: "pkg-issue", state: "Ready to issue", drift: [], blockers: [] });
-    if (url.endsWith("/issue-readiness")) return Response.json({
-      target: backupId ? "final_issue_ready" : "pre_backup_issue_ready",
-      status: issued ? "Issued" : "Ready",
-      checks: [], blockers: [], backup_id: backupId,
-      backup_manifest_sha256: backupId ? "manifest-123" : undefined,
-      backup_completed_at: backupId ? "2026-01-03T00:00:00Z" : undefined,
-      issued_snapshot_id: issued ? "issued-123" : undefined,
-      issued_at: issued ? "2026-01-03T00:01:00Z" : undefined,
-    });
-    if (url.endsWith("/backups") && init?.method === "POST") {
-      calls.push({ url, body: JSON.parse(String(init.body)) as Record<string, unknown> });
-      backupId = "backup-123";
-      return Response.json({ id: backupId }, { status: 201 });
-    }
-    if (url.endsWith("/issue") && init?.method === "POST") {
-      calls.push({ url, body: JSON.parse(String(init.body)) as Record<string, unknown> });
+    if (url.endsWith("/issue-checklist")) return Response.json(issueChecklist());
+    if (url.endsWith("/assessments/assessment-1/issue") && init?.method === "POST") {
       issued = true;
-      return Response.json({ issued_snapshot_id: "issued-123" }, { status: 201 });
+      return Response.json({ package_id: "pkg-new", issued_snapshot_id: "issued-123", issued_at: "2026-01-03T00:01:00Z", reviewer: "Johnathan", note: "Reviewed for October.", backup_id: "backup-123", superseded_package_id: null }, { status: 201 });
     }
+    if (url.endsWith("/packages")) return Response.json(issued ? [{ id: "pkg-new", assessment_id: "assessment-1", state: "promoted", lifecycle: "Issued", issuance_status: "Current", issued_at: "2026-01-03T00:01:00Z", reviewer: "Johnathan", review_note: "Reviewed for October.", created_at: "2026-01-03T00:00:00Z", components: [{ id: "report-new", kind: "assessment_report", filename: "report.docx" }] }] : []);
     if (url.includes("/records/child-1")) return Response.json(detail);
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
   });
   render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="reports" />);
   const user = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: "Create and validate backup" }));
-  expect(await screen.findByText("backup-123")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Issue final deliverables" }));
-  expect(await screen.findByText("issued-123")).toBeVisible();
+  expect(await screen.findByText("Nothing has been issued yet.")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Review and issue…" }));
+  const dialog = await screen.findByRole("dialog", { name: "Review and issue" });
+  await user.type(within(dialog).getByLabelText(/Note/), "Reviewed for October.");
+  await user.click(await within(dialog).findByRole("button", { name: "Issue" }));
+  expect(await screen.findByText(/Issued\. Reviewed by Johnathan/)).toBeVisible();
+  expect(await screen.findByText("report.docx")).toBeVisible();
   expect(calls).toEqual([
-    { url: "/api/projects/project-1/packages/pkg-issue/backups", body: { actor_id: "johnathan" } },
-    { url: "/api/projects/project-1/packages/pkg-issue/issue", body: { actor_id: "johnathan", backup_id: "backup-123" } },
+    { url: "/api/projects/project-1/assessments/assessment-1/issue", method: "POST", body: { actor_id: "johnathan", note: "Reviewed for October." } },
   ]);
 });
 
-test("presentation-only correction is explicit and keeps the superseded issue visible", async () => {
+test("a reissue with new wording is one act on the current issue and keeps the older version visible", async () => {
   const posts: Array<{ url: string; body: Record<string, unknown> }> = [];
-  let corrected = false;
-  const component = (id: string) => [{ id: `report-${id}`, kind: "assessment_report", filename: "report.docx" }, { id: `poam-${id}`, kind: "poam", filename: "poam.xlsx" }];
+  let reissued = false;
+  const component = (id: string) => [{ id: `report-${id}`, kind: "assessment_report", filename: "report.docx" }];
   vi.mocked(fetch).mockImplementation(async (input, init) => {
     const url = String(input);
     if (url.includes("profile-readiness")) return Response.json({ ...readiness, assessment_exists: true });
     if (url.endsWith("/assessment")) return Response.json(assessment);
-    if (url.includes("close-readiness")) return Response.json({ status: "Ready", blockers: [], checks: [] });
-    if (url.endsWith("/corrections") && init?.method === "POST") {
+    if (url.endsWith("/issue-now") && init?.method === "POST") {
       posts.push({ url, body: JSON.parse(String(init.body)) as Record<string, unknown> });
-      corrected = true;
-      return Response.json({ correction: { id: "corr-1" }, package: { id: "pkg-new" } }, { status: 201 });
+      reissued = true;
+      return Response.json({ package_id: "pkg-new", issued_snapshot_id: "iss-2", issued_at: "2026-01-04T00:00:00Z", reviewer: "Johnathan", note: "Fix cover date format.", backup_id: "b-2", superseded_package_id: "pkg-old" }, { status: 201 });
     }
-    if (url.endsWith("/packages")) return Response.json([
-      ...(corrected ? [{ id: "pkg-new", assessment_id: "assessment-1", state: "promoted", created_at: "2026-01-04T00:00:00Z", source_snapshot_id: "snap-1", components: component("new"), issuance_status: null, correction: { id: "corr-1", classification: "presentation_only", reason: "Fix cover date format.", actor_id: "johnathan", prior_package_id: "pkg-old", prior_issuance_id: "iss-1", result_package_id: "pkg-new", created_at: "2026-01-04T00:00:00Z" } }] : []),
-      { id: "pkg-old", assessment_id: "assessment-1", state: "promoted", created_at: "2026-01-02T00:00:00Z", source_snapshot_id: "snap-1", components: component("old"), issuance_status: "Current", issued_snapshot_id: "iss-1" },
+    if (url.endsWith("/packages")) return Response.json(reissued ? [
+      { id: "pkg-new", assessment_id: "assessment-1", state: "promoted", lifecycle: "Issued", issuance_status: "Current", issued_at: "2026-01-04T00:00:00Z", reviewer: "Johnathan", created_at: "2026-01-04T00:00:00Z", components: component("new"), correction: { id: "corr-1", classification: "presentation_only", reason: "Reissued by Johnathan: Fix cover date format.", actor_id: "johnathan", prior_package_id: "pkg-old", prior_issuance_id: "iss-1", result_package_id: "pkg-new", created_at: "2026-01-04T00:00:00Z" } },
+      { id: "pkg-old", assessment_id: "assessment-1", state: "promoted", lifecycle: "Superseded", issuance_status: "Superseded", issued_at: "2026-01-02T00:00:00Z", created_at: "2026-01-02T00:00:00Z", components: component("old"), superseded_by_package_id: "pkg-new" },
+    ] : [
+      { id: "pkg-old", assessment_id: "assessment-1", state: "promoted", lifecycle: "Issued", issuance_status: "Current", issued_at: "2026-01-02T00:00:00Z", reviewer: "Johnathan", created_at: "2026-01-02T00:00:00Z", components: component("old") },
     ]);
-    if (url.endsWith("/review")) return Response.json({ package_id: "x", state: url.includes("pkg-old") ? "Ready to issue" : "Complete candidate", drift: [], blockers: [] });
-    if (url.includes("pkg-old/issue-readiness")) return Response.json({ status: "Issued", checks: [], blockers: [], issued_snapshot_id: "iss-1", issuance_status: "Current" });
-    if (url.includes("pkg-new/issue-readiness")) return Response.json({ status: "Blocked", checks: [], blockers: ["The exact package has not been reviewed and signed off"], issuance_status: null });
     if (url.includes("/records/child-1")) return Response.json(detail);
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
   });
   render(<Workspace clients={clients} projectId="project-1" onProjectChange={vi.fn()} onWorkspaceCreated={vi.fn()} initialView="reports" />);
   const user = userEvent.setup();
-  const create = await screen.findByRole("button", { name: "Create corrected package" });
-  expect(create).toBeDisabled();
-  await user.type(screen.getByLabelText("Correction reason"), "Fix cover date format.");
-  expect(create).toBeDisabled();
-  await user.click(screen.getByLabelText("This correction changes presentation only"));
-  expect(create).toBeDisabled();
-  await user.click(screen.getByLabelText(/assessment, Profile, evidence, determinations, risks, and remediation are unchanged/));
-  await user.click(create);
-  expect(await screen.findByText(/Corrects issued package pkg-old/)).toBeVisible();
-  expect(screen.getByText("Issued · Current")).toBeVisible();
-  expect(await screen.findByText("The exact package has not been reviewed and signed off")).toBeVisible();
-  expect(screen.getByLabelText("Correction reason")).toHaveValue("");
-  expect(posts).toEqual([{ url: "/api/projects/project-1/packages/pkg-old/corrections", body: { actor_id: "johnathan", classification: "presentation_only", unchanged_source_attested: true, reason: "Fix cover date format." } }]);
+  await user.click(await screen.findByRole("button", { name: "Reissue with new wording or layout…" }));
+  // No attestation checkboxes: reissuing is only ever offered on the same findings.
+  expect(screen.queryByLabelText(/changes presentation only|are unchanged/)).not.toBeInTheDocument();
+  await user.type(screen.getByLabelText(/Note/), "Fix cover date format.");
+  await user.click(screen.getByRole("button", { name: "Issue" }));
+  expect(await screen.findByText(/It replaces the earlier issued version/)).toBeVisible();
+  expect(screen.getAllByText("Replaced")).toHaveLength(1);
+  expect(screen.getByText(/Replaced by a later issued version/)).toBeVisible();
+  expect(posts).toEqual([{ url: "/api/projects/project-1/packages/pkg-old/issue-now", body: { actor_id: "johnathan", note: "Fix cover date format." } }]);
 });
 
-test("substantive reopening requires selected records and revalidation before the next close", async () => {
+test("substantive reopening requires selected records and revalidation before the next issue", async () => {
   const posts: Array<{ url: string; body: Record<string, unknown> }> = [];
   let reopened = false;
   let revalidated = false;
@@ -466,10 +421,10 @@ test("substantive reopening requires selected records and revalidation before th
       revalidated = true;
       return Response.json({ id: "item-1" }, { status: 201 });
     }
-    if (url.includes("close-readiness")) return Response.json(reopened && !revalidated ? { status: "Blocked", blockers: ["Revalidate reopened record: child-1"], checks: [] } : { status: "Ready", blockers: [], checks: [] });
-    if (url.endsWith("/packages")) return Response.json([{ id: "pkg-old", assessment_id: "assessment-1", state: "promoted", created_at: "2026-01-02T00:00:00Z", source_snapshot_id: "snap-1", components: [{ id: "report-old", kind: "assessment_report", filename: "report.docx" }], issuance_status: reopened ? "Current" : "Current", issued_snapshot_id: "iss-1" }]);
-    if (url.endsWith("/review")) return Response.json({ package_id: "pkg-old", state: "Ready to issue", drift: [], blockers: [] });
-    if (url.endsWith("/issue-readiness")) return Response.json({ status: "Issued", checks: [], blockers: [], issued_snapshot_id: "iss-1", issuance_status: "Current" });
+    if (url.endsWith("/issue-checklist")) return Response.json(reopened && !revalidated
+      ? issueChecklist({ ready: false, groups: [{ key: "recheck", label: "Records to recheck", count: 1, record_ids: ["child-1"], target: "assessments" }] })
+      : issueChecklist());
+    if (url.endsWith("/packages")) return Response.json([{ id: "pkg-old", assessment_id: "assessment-1", state: "promoted", lifecycle: "Issued", created_at: "2026-01-02T00:00:00Z", source_snapshot_id: "snap-1", components: [{ id: "report-old", kind: "assessment_report", filename: "report.docx" }], issuance_status: "Current", issued_snapshot_id: "iss-1" }]);
     if (url.includes("/records/child-1")) return Response.json(detail);
     if (url.includes("/evidence")) return Response.json([]);
     return Response.json({});
@@ -487,7 +442,11 @@ test("substantive reopening requires selected records and revalidation before th
   expect(await screen.findByText("Needs Revalidation")).toBeVisible();
   expect(screen.getByText("1 of 1 remaining")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Reports" }));
-  expect(await screen.findByText("Revalidate reopened record: child-1")).toBeVisible();
+  await user.click(await screen.findByRole("button", { name: "Review and issue…" }));
+  const dialog = await screen.findByRole("dialog", { name: "Review and issue" });
+  expect(await within(dialog).findByText("1 · Records to recheck")).toBeVisible();
+  expect(within(dialog).getByRole("button", { name: "Issue" })).toBeDisabled();
+  await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
   await user.click(screen.getByRole("button", { name: "Assessments" }));
   await user.type(screen.getByLabelText("Revalidation note"), "Re-examined.");
   await user.click(screen.getByRole("button", { name: "Mark revalidated" }));
@@ -1826,6 +1785,19 @@ test("the Profile view keeps the readiness decision form in a collapsed advanced
   const summary = screen.getByText("Readiness history (advanced)");
   expect(summary.closest("details")).not.toHaveAttribute("open");
   expect(screen.queryByRole("button", { name: "Start assessment" })).not.toBeInTheDocument();
+});
+
+test("the readiness form has no reviewer or approval-evidence fields and cannot type Profile complete", async () => {
+  const user = userEvent.setup();
+  render(<App />);
+  await screen.findByRole("heading", { level: 1, name: "Risk analysis" });
+  await user.click(screen.getByRole("button", { name: "Profile" }));
+  const next = screen.getByLabelText("Next state");
+  expect(within(next).getAllByRole("option").map((option) => option.textContent)).toEqual(["Needs follow-up"]);
+  expect(screen.queryByLabelText("Named reviewer")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Review / approval evidence")).not.toBeInTheDocument();
+  // Profile complete is recorded by approving the Profile version.
+  expect(screen.queryByRole("option", { name: "Profile complete" })).not.toBeInTheDocument();
 });
 
 test("project creation sends the chosen framework version", async () => {

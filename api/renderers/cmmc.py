@@ -9,10 +9,18 @@ import csv
 import io
 from typing import Any
 
+from api.renderers.draftmark import DRAFT_BANNER, UNDECIDED
 from api.ssp import docx_bytes, paragraph, ssp_docx
 
 
-def _report(source: dict[str, Any]) -> bytes:
+def _shown(status: Any, draft: bool) -> str:
+    """A status for reading; a draft says so where nothing has been decided."""
+    if status in (None, "", "Blank"):
+        return UNDECIDED if draft else "Blank"
+    return str(status)
+
+
+def _report(source: dict[str, Any], draft: bool = False) -> bytes:
     cmmc = source["cmmc"]
     score = cmmc["score"]
     records = {r["record_id"]: r for r in source["records"]}
@@ -27,6 +35,7 @@ def _report(source: dict[str, Any]) -> bytes:
         paragraph(
             f"{score['score']} of {score['maximum_score']} under {score['authority']}. "
             f"Scored only from derived requirement status."
+            + (" Provisional until every requirement is decided." if draft else "")
         ),
         paragraph("Requirements", "Heading1"),
     ]
@@ -36,28 +45,33 @@ def _report(source: dict[str, Any]) -> bytes:
             domain = requirement["domain"]
             body.append(paragraph(domain, "Heading2"))
         body.append(
-            paragraph(f"{requirement['citation']} {requirement['title']} — {requirement['status']}")
+            paragraph(
+                f"{requirement['citation']} {requirement['title']} — "
+                f"{_shown(requirement['status'], draft)}"
+            )
         )
         for objective_id in requirement["objectives"]:
             objective = records[objective_id]
             body.append(
-                paragraph(f"  {objective['citation']}: {objective.get('status') or 'Blank'}")
+                paragraph(f"  {objective['citation']}: {_shown(objective.get('status'), draft)}")
             )
     body.append(paragraph("Findings", "Heading1"))
     if not cmmc["findings"]:
         body.append(paragraph("No requirement-level findings were opened."))
     for finding in cmmc["findings"]:
         body.append(paragraph(f"{finding['record_id']}: {finding['title']}"))
-    return docx_bytes(body)
+    return docx_bytes(body, draft)
 
 
-def _csv(rows: list[list[Any]]) -> bytes:
+def _csv(rows: list[list[Any]], draft: bool = False) -> bytes:
     buffer = io.StringIO()
+    if draft:
+        buffer.write(DRAFT_BANNER + "\n")
     csv.writer(buffer, lineterminator="\n").writerows(rows)
     return buffer.getvalue().encode("utf-8")
 
 
-def _poam_history(source: dict[str, Any]) -> bytes:
+def _poam_history(source: dict[str, Any], draft: bool = False) -> bytes:
     rows: list[list[Any]] = [
         ["Requirement", "Finding", "POA&M item", "Status", "Closed at", "Closure rationale"]
     ]
@@ -84,10 +98,10 @@ def _poam_history(source: dict[str, Any]) -> bytes:
                     "",
                 ]
             )
-    return _csv(rows)
+    return _csv(rows, draft)
 
 
-def _evidence_index(source: dict[str, Any]) -> bytes:
+def _evidence_index(source: dict[str, Any], draft: bool = False) -> bytes:
     rows: list[list[Any]] = [["Evidence version", "Artifact", "Version", "SHA-256"]]
     for version in sorted(
         source["evidence_versions"], key=lambda v: (v["artifact_id"], v["version_number"])
@@ -95,14 +109,14 @@ def _evidence_index(source: dict[str, Any]) -> bytes:
         rows.append(
             [version["id"], version["artifact_id"], version["version_number"], version["sha256"]]
         )
-    return _csv(rows)
+    return _csv(rows, draft)
 
 
-def render_package(source: dict[str, Any]) -> list[tuple[str, str, bytes]]:
+def render_package(source: dict[str, Any], draft: bool = False) -> list[tuple[str, str, bytes]]:
     cmmc = source["cmmc"]
     return [
-        ("assessment_report", "CMMC_L2_Assessment_Report.docx", _report(source)),
-        ("ssp", "System_Security_Plan.docx", ssp_docx(cmmc["ssp"])),
-        ("poam", "CMMC_POAM_History.csv", _poam_history(source)),
-        ("evidence_index", "Evidence_Index.csv", _evidence_index(source)),
+        ("assessment_report", "CMMC_L2_Assessment_Report.docx", _report(source, draft)),
+        ("ssp", "System_Security_Plan.docx", ssp_docx(cmmc["ssp"], draft)),
+        ("poam", "CMMC_POAM_History.csv", _poam_history(source, draft)),
+        ("evidence_index", "Evidence_Index.csv", _evidence_index(source, draft)),
     ]

@@ -206,10 +206,12 @@ def package_issuance(
         "SELECT * FROM assessment_reopenings WHERE project_id=? AND prior_package_id=?",
         (project_id, package_id),
     ).fetchone()
+    status = None if issued is None else ("Superseded" if superseded else "Current")
     return {
-        "issuance_status": (
-            None if issued is None else ("Superseded" if superseded else "Current")
-        ),
+        "issuance_status": status,
+        # Draft, Issued or Superseded: derived, so packages left In Review or
+        # Reviewed by the earlier chain simply read as Draft (GitHub issue #145).
+        "lifecycle": {None: "Draft", "Current": "Issued", "Superseded": "Superseded"}[status],
         "issued_snapshot_id": issued["id"] if issued else None,
         "issued_at": issued["issued_at"] if issued else None,
         "superseded_by_package_id": superseded["result_package_id"] if superseded else None,

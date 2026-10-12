@@ -72,6 +72,25 @@ export async function request<T>(url: string, options?: RequestInit): Promise<T>
 }
 
 
+/** Download a file the API builds on request; an API error becomes a readable message. */
+export async function downloadFile(url: string): Promise<string> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => undefined);
+    throw new ApiError(normalizeErrorDetail(payload) ?? "The file could not be made.", response.status);
+  }
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const name = /filename="([^"]+)"/.exec(disposition)?.[1] ?? "draft.zip";
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(await response.blob());
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
+  return name;
+}
+
 /** Record intake and create the first assessment in one step. */
 export function startAssessment(projectId: string): Promise<unknown> {
   return request(`/api/projects/${projectId}/start-assessment`, { method: "POST" });

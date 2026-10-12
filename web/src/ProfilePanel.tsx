@@ -9,6 +9,7 @@ import {
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { ApiError, request } from "./api";
+import { ACCOUNT_NAME } from "./lib/account";
 import type {
   Artifact,
   ProfileEvidenceMapping,
@@ -199,7 +200,6 @@ export function ProfilePanel({
   const [lifecycleWorking, setLifecycleWorking] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [reviewer, setReviewer] = useState("");
   const [reuseArtifactId, setReuseArtifactId] = useState("");
   const [reuseTarget, setReuseTarget] = useState("");
   const [reuseRationale, setReuseRationale] = useState("");
@@ -453,10 +453,10 @@ export function ProfilePanel({
     }
   }
 
-  async function lifecycle(status: "Reviewed" | "Approved") {
+  async function approve() {
     if (!selectedVersion) return;
     if (dirty) {
-      setError("Save the displayed Profile draft before recording review.");
+      setError("Save the displayed Profile draft before approving it.");
       return;
     }
     const generation = requestSequence.current;
@@ -470,13 +470,15 @@ export function ProfilePanel({
       const result = await request<{
         active_version_id: string | null;
         version: ProfileVersion;
+        profile_complete?: boolean;
+        message?: string;
       }>(
         `/api/projects/${projectId}/profile/versions/${selectedVersion.id}/lifecycle`,
         {
           method: "POST",
+          // Approving is the one act; the reviewer is the signed-in account.
           body: JSON.stringify({
-            status,
-            reviewer,
+            status: "Approved",
             expected_revision: selectedVersion.content_revision,
           }),
         },
@@ -499,7 +501,7 @@ export function ProfilePanel({
       setProfile((current) =>
         current ? { ...current, active_version_id: result.active_version_id } : current
       );
-      setMessage(status === "Reviewed" ? `Reviewed by ${reviewer}` : "Version approved.");
+      setMessage(result.profile_complete === false && result.message ? result.message : "Version approved.");
     } catch (caught) {
       if (requestSequence.current === generation && projectTargetRef.current === targetProjectId) {
         if (caught instanceof ApiError && caught.status === 409) {
@@ -752,24 +754,12 @@ export function ProfilePanel({
             </span>
           </div>
         </div>
-        <label>
-          Lifecycle reviewer
-          <input value={reviewer} onChange={(event) => setReviewer(event.target.value)} />
-        </label>
-        {selectedVersion.status === "Draft" && (
-          <button
-            className="secondary-button"
-            disabled={working || dirty}
-            onClick={() => void lifecycle("Reviewed")}
-          >
-            Record review
-          </button>
-        )}
-        {selectedVersion.status === "Reviewed" && (
+        <span className="profile-reviewer">Reviewer: <strong>{ACCOUNT_NAME}</strong></span>
+        {(selectedVersion.status === "Draft" || selectedVersion.status === "Reviewed") && (
           <button
             className="small-button"
-            disabled={working || !reviewer.trim()}
-            onClick={() => void lifecycle("Approved")}
+            disabled={working || dirty}
+            onClick={() => void approve()}
           >
             Approve version
           </button>

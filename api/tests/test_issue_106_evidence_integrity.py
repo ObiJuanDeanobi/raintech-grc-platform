@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from api.evidence_integrity import _verify_row
 from api.tests.test_issue_m3_hipaa_generation import _ready
 from api.tests.test_issue_m3_hipaa_issue_backup import _app, _backup
-from api.tests.test_issue_m3_hipaa_review import _package, _transition
+from api.tests.test_issue_m3_hipaa_review import _package, _sign_off
 from api.tests.test_workspace_api import mapping_path
 
 
@@ -32,8 +32,7 @@ def _with_evidence(client: TestClient, db: Path, suffix: str) -> tuple[str, dict
     )
     assert mapped.status_code == 201, mapped.text
     package = _package(client, project, assessment)
-    for state in ("In Review", "Reviewed", "Ready to issue"):
-        assert _transition(client, project, package["id"], state).status_code == 201
+    assert _sign_off(client, project, package["id"]).status_code == 201
     with sqlite3.connect(db) as connection:
         version_id, relative = connection.execute(
             "SELECT id, relative_path FROM evidence_versions WHERE artifact_id=?",

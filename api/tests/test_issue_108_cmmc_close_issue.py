@@ -9,8 +9,9 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 from api.main import create_app
+from api.tests.test_issue_62_versioned_profile import lifecycle_payload
 from api.tests.test_issue_107_cmmc_ssp import OBSERVED, _assess_all, _project
-from api.tests.test_issue_m3_hipaa_review import _package, _transition
+from api.tests.test_issue_m3_hipaa_review import _package, _sign_off
 from api.tests.test_issue_m3_presentation_correction import _correct, _issue
 
 FAILING = "AC.L2-3.1.1a"
@@ -29,18 +30,8 @@ def _client(tmp_path: Path) -> TestClient:
 
 
 def _sign(client: TestClient, project: str, package_id: str) -> None:
-    confirmations = {
-        "assessment_report": True,
-        "ssp": True,
-        "poam": True,
-        "evidence_index": True,
-        "__source": True,
-    }
-    for state in ("In Review", "Reviewed", "Ready to issue"):
-        response = _transition(
-            client, project, package_id, state, component_confirmations=confirmations
-        )
-        assert response.status_code == 201, response.text
+    response = _sign_off(client, project, package_id)
+    assert response.status_code == 201, response.text
 
 
 def _readiness(client: TestClient, project: str, assessment: str) -> dict[str, Any]:
@@ -79,6 +70,7 @@ def _ready_project(client: TestClient, suffix: str) -> tuple[str, str, str]:
 def test_each_gate_condition_blocks_independently(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         project, assessment, action = _ready_project(client, "gates")
+        _record_profile_follow_up(client, project)
         base = f"/api/projects/{project}/assessments/{assessment}/requirements/{REQUIREMENT}"
         codes = _codes(_readiness(client, project, assessment))
         assert {"determination_not_final", "poam_open", "ssp_not_approved"} <= codes
@@ -109,17 +101,36 @@ def test_each_gate_condition_blocks_independently(tmp_path: Path) -> None:
         assert connection.execute("SELECT COUNT(*) FROM generated_packages").fetchone()[0] == 0
 
 
-def _complete_profile(client: TestClient, project: str) -> None:
+def _record_profile_follow_up(client: TestClient, project: str) -> None:
     response = client.post(
         f"/api/projects/{project}/profile-readiness/transitions",
         json={
-            "next_state": "Profile complete",
-            "decision_note": "Ready for governed generation.",
-            "reviewed_by": "Reviewer",
-            "approval_evidence": "Approved Profile lifecycle event.",
+            "next_state": "Needs follow-up",
+            "decision_note": "A Profile detail needs confirming.",
+            "follow_up_work": "Confirm the enclave boundary with the client.",
         },
     )
     assert response.status_code == 201, response.text
+
+
+def _complete_profile(client: TestClient, project: str) -> None:
+    """Profile complete is recorded by approving a Profile version, once per version."""
+    if client.get(f"/api/projects/{project}/profile-readiness").json()["state"] == (
+        "Profile complete"
+    ):
+        return
+    overview = client.get(f"/api/projects/{project}/profile").json()
+    created = client.post(
+        f"/api/projects/{project}/profile/versions",
+        json={"base_version_id": overview["active_version_id"]},
+    )
+    assert created.status_code == 201, created.text
+    version = created.json()["id"]
+    approved = client.post(
+        f"/api/projects/{project}/profile/versions/{version}/lifecycle",
+        json=lifecycle_payload(client, project, version, "Approved"),
+    )
+    assert approved.status_code == 201, approved.text
 
 
 def _issuable(client: TestClient, suffix: str) -> tuple[str, str, dict[str, Any]]:
