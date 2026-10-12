@@ -382,6 +382,24 @@ test("the score block leads with the verified score, labels projected, and shows
   expect(checks).toHaveTextContent("32 CFR 170.21(a)(2)(i)");
   expect(checks).toHaveTextContent("32 CFR 170.21(a)(2)(ii)");
   expect(checks).toHaveTextContent("32 CFR 170.21(a)(2)(iii)");
+  // Two requirements are still undecided: only the check that decided work already fails is red.
+  expect(checks).toHaveTextContent("Not yet evaluated");
+  expect(checks).toHaveTextContent("Fails: AC.L2-3.1.2 is decided Not Met and is worth 5 points");
+  expect(checks.querySelectorAll("li.fail")).toHaveLength(1);
+});
+
+test("once every requirement is decided the 170.21 checks are evaluated, listed and shown as failing when they fail", async () => {
+  cmmcServer({ statuses: {
+    "AC.L2-3.1.1a": "Met", "AC.L2-3.1.1b": "Met", "AC.L2-3.1.2a": "Not Met", "AC.L2-3.1.2b": "Met", "AU.L2-3.3.1a": "Met",
+  } });
+  renderWorkspace();
+  const score = await screen.findByRole("region", { name: "Official CMMC score" });
+  await waitFor(() => expect(score).toHaveTextContent("Conditional Not eligible"));
+  const user = userEvent.setup();
+  await user.click(within(score).getByRole("button", { name: /Arithmetic and 170.21 checks/ }));
+  const checks = within(score).getByRole("region", { name: "32 CFR 170.21 Conditional status checks" });
+  expect(checks).not.toHaveTextContent("Not yet evaluated");
+  expect(checks).toHaveTextContent("Fail");
   expect(checks).toHaveTextContent("AC.L2-3.1.1Evidence pending5 pt");
   expect(checks).toHaveTextContent("AC.L2-3.1.2Not Met5 pt");
 });

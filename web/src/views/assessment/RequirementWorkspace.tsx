@@ -435,7 +435,7 @@ function ObjectiveRow({
           )}
           {evidenceReview === "stale" && (
             <span className="evidence-review-tag stale" title="Mapped evidence is past its review date and no longer verifies this objective. Renew it in the Evidence view.">
-              Evidence stale
+              Evidence expired
             </span>
           )}
           {evidenceReview === "due_soon" && (

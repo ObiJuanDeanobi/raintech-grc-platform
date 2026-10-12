@@ -26,7 +26,11 @@ def _assert_groups_match(
     groups = {group["key"]: group for group in body["groups"]}
     assert len(groups) == len(body["groups"])
     assert {key: group["count"] for key, group in groups.items()} == expected
-    assert sum(expected.values()) == len(body["blockers"])
+    # One Profile counts once: its two flat blockers (not complete, not approved) merge.
+    merged = 1 if {"profile_not_complete", "profile_not_approved"} <= {
+        b["code"] for b in body["blockers"]
+    } else 0
+    assert sum(expected.values()) + merged == len(body["blockers"])
     for group in body["groups"]:
         assert group["label"] and group["target"]
     return groups
@@ -37,7 +41,7 @@ def test_new_cmmc_project_groups_sum_to_the_flat_list(tmp_path: Path) -> None:
         project = _project(client, "CMMC new", CMMC_FRAMEWORK_ID)
         create_assessment(client, project)
         body = _close(client, project)
-        groups = _assert_groups_match(body, {"profile": 2, "undecided": 320, "ssp": 1})
+        groups = _assert_groups_match(body, {"profile": 1, "undecided": 320, "ssp": 1})
         flat = [b for b in body["blockers"] if b["code"] == "determination_not_final"]
         undecided = groups["undecided"]
         assert undecided["label"] == "Objectives not decided"
@@ -56,7 +60,7 @@ def test_half_done_cmmc_project_groups_each_kind(tmp_path: Path) -> None:
         _requirement(client, project, assessment, "AC.L2-3.1.3", "Not Met")
         body = _close(client, project)
         groups = _assert_groups_match(
-            body, {"profile": 2, "undecided": 309, "not_met": 5, "ssp": 1}
+            body, {"profile": 1, "undecided": 309, "not_met": 5, "ssp": 1}
         )
         # CMMC's internal close wants every objective Met, so a Not Met objective
         # is still "not decided to final"; the decided Met ones are not listed.
@@ -78,9 +82,22 @@ def test_hipaa_project_groups_sum_to_the_flat_list(tmp_path: Path) -> None:
         ).json()["id"]
         create_assessment(client, project)
         body = _close(client, project)
-        groups = _assert_groups_match(body, {"profile": 2, "undecided": 149, "sra": 2})
-        assert "undecided" in groups
+        groups = _assert_groups_match(body, {"profile": 1, "undecided": 149, "sra": 2})
+        assert groups["undecided"]["label"] == "Specifications not decided"
         assert groups["sra"]["label"] == "Security Risk Analysis incomplete"
+
+
+def test_one_profile_counts_once_in_the_profile_group() -> None:
+    blockers = [
+        {"code": "profile_not_complete", "detail": "a", "check": "profile"},
+        {"code": "profile_not_approved", "detail": "b", "check": "profile"},
+        {"code": "profile_unknown", "detail": "c", "check": "profile"},
+        {"code": "profile_unknown", "detail": "d", "check": "profile"},
+    ]
+    groups = {group["key"]: group for group in _groups(blockers)}
+    assert groups["profile"]["count"] == 1
+    assert groups["profile"]["label"] == "Profile not approved"
+    assert groups["profile_unknowns"]["count"] == 2
 
 
 def test_unknown_codes_go_to_other_and_counts_still_sum() -> None:

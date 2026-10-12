@@ -13,7 +13,7 @@ export function artifactLabel(artifact: { name: string; version_number: number; 
 export const REVIEW_LABELS: Record<EvidenceReview, string> = {
   current: "Current",
   due_soon: "Due soon",
-  stale: "Stale",
+  stale: "Expired",
 };
 
 /** Plain-language review line for one artifact or mapping. */

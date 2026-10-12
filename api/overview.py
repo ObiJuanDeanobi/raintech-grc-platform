@@ -1,27 +1,123 @@
 """Read-only Overview dashboard: where an engagement stands, as counts (#144).
 
 Everything here is derived on read from existing records. Nothing is stored and
-there is no schema change. The page shows grouped counts that open a filtered
-list, never one line per blocker.
+there is no schema change. The page shows progress and the next piece of work
+(ADR 0022); the reasons something cannot be finalized appear only in the
+finalize dialog. Each progress figure may carry a ``group`` that opens the
+matching filtered list.
 """
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from fastapi import HTTPException
 
 from api import cmmc
-from api.close import _approved_profile, fieldwork_ready
+from api.correction import current_issuance
 from api.database import active_assessment_by_id, active_assessment_for_project
 
 _STEP_LABELS = ("Scope", "Assess", "Remediate", "Deliver")
 _BLANK = "Blank"
+# What the list filter says while someone works through a progress figure. The keys
+# match the close check's group keys, so one opened list keeps the same name everywhere.
+_FILTER_LABELS = {
+    "undecided": "Not decided yet",
+    "gaps_no_plan": "NOT MET without a POA&M",
+    "gaps_no_action": "Not Met without a corrective action",
+    "poam_open": "Open POA&M items",
+    "met_no_evidence": "Met, evidence still needed",
+    "recheck": "Records to recheck",
+    "na_reason": "N/A answers that need a reason",
+}
 
 
 def _count(number: int, noun: str) -> str:
     """'1 item', '2 items': counts read right in the step rail."""
     return f"{number} {noun if number == 1 else noun + 's'}"
+
+
+def _profile_progress(connection: Any, project: Any) -> str:
+    """'Profile: 7 facts recorded · 2 to follow up'. Never says approved, never "N of M".
+
+    The neutral Profile form declares no required fields, so there is no honest
+    denominator; saying "N of M" would imply a completeness the form cannot measure.
+    A fact is recorded when it has a value other than Unknown / To Determine (those
+    are counted as follow-up). The auto-filled project name does not count. The newest
+    version is used, because that is the one being worked on.
+    """
+    from api.main import _profile_unknowns
+
+    row = connection.execute(
+        "SELECT id FROM profile_versions WHERE project_id = ? "
+        "ORDER BY version_number DESC LIMIT 1",
+        (project["id"],),
+    ).fetchone()
+    if row is None:
+        return "Profile: no facts recorded yet"
+    version_id = row["id"]
+    recorded = int(
+        connection.execute(
+            """SELECT COUNT(*) FROM profile_field_values v
+               LEFT JOIN profile_items i ON i.id = v.profile_item_id
+               WHERE v.profile_version_id = ?
+                 AND (i.id IS NULL OR i.item_type != 'unknown_follow_up')
+                 AND v.source != 'Project creation'
+                 AND trim(v.value) != ''
+                 AND lower(trim(v.value))
+                     NOT IN ('unknown', 'to determine', 'unknown / to determine')""",
+            (version_id,),
+        ).fetchone()[0]
+    )
+    unknowns = _profile_unknowns(connection, version_id)
+    if recorded == 0 and unknowns == 0:
+        return "Profile: no facts recorded yet"
+    text = f"Profile: {recorded} {'fact' if recorded == 1 else 'facts'} recorded"
+    return f"{text} · {unknowns} to follow up" if unknowns else text
+
+
+def _deliver_figure(connection: Any, project_id: str, assessment_id: str) -> str:
+    """'Draft available', 'Final v2 · 12 Oct 2026', or 'Final v2 · new version in progress'."""
+    current = current_issuance(connection, project_id)
+    if current is None:
+        return "Draft available"
+    version = max(
+        int(
+            connection.execute(
+                "SELECT COUNT(*) FROM issuance_snapshots WHERE project_id = ?", (project_id,)
+            ).fetchone()[0]
+        ),
+        1,
+    )
+    if current["assessment_id"] != assessment_id:
+        # Reopened: the final version stands until the new one is finalized.
+        return f"Final v{version} · new version in progress"
+    issued = datetime.fromisoformat(str(current["issued_at"]))
+    return f"Final v{version} · {issued.day} {issued.strftime('%b %Y')}"
+
+
+def _part(text: str, group: dict[str, Any] | None) -> dict[str, Any]:
+    """One clickable figure. ``group`` opens the matching filtered list when set."""
+    return {"text": text, "group": group}
+
+
+def _group(key: str, record_ids: list[str], count: int | None = None) -> dict[str, Any]:
+    """The filtered list behind a figure, in the shape the app's list filter takes."""
+    return {
+        "key": key,
+        "label": _FILTER_LABELS[key],
+        "count": len(record_ids) if count is None else count,
+        "record_ids": record_ids,
+        "target": "assessments",
+    }
+
+
+def _figure(
+    text: str, key: str, record_ids: list[str], count: int | None = None
+) -> dict[str, Any]:
+    """A figure that opens its list, or plain text when there is nothing behind it."""
+    return _part(text, _group(key, record_ids, count) if record_ids else None)
 
 
 def _poam_states(connection: Any, project_id: str) -> dict[str, str]:
@@ -103,14 +199,48 @@ def overview(
     decided_statuses = {"Met", "Not Met", "N/A"}
     decided = sum(1 for row in deciding if states[row["record_id"]]["status"] in decided_statuses)
 
-    close = fieldwork_ready(connection, project_id, assessment["id"], storage_root)
-    left_count = len(close["blockers"])
     poam_states = _poam_states(connection, project_id)
     open_actions = connection.execute(
         """SELECT COUNT(*) AS count FROM corrective_actions
            WHERE project_id = ? AND status NOT IN ('Closed', 'Withdrawn')""",
         (project_id,),
     ).fetchone()["count"]
+    deciding_ids = [row["record_id"] for row in deciding]
+    undecided_ids = [
+        record_id
+        for record_id in deciding_ids
+        if states[record_id]["status"] not in decided_statuses
+    ]
+    awaiting_evidence_ids = (
+        [
+            record_id
+            for record_id in deciding_ids
+            if states[record_id]["status"] == "Met"
+            and states[record_id]["verification"] == "evidence_pending"
+        ]
+        if declarations.get("met_without_evidence") == "evidence_pending"
+        else []
+    )
+    recheck_ids = [
+        row["record_id"]
+        for row in connection.execute(
+            """SELECT record_id FROM revalidation_items
+               WHERE project_id = ? AND assessment_id = ? AND revalidated_by IS NULL
+               ORDER BY record_id""",
+            (project_id, assessment["id"]),
+        )
+    ]
+    deciding_set = set(deciding_ids)
+    na_reason_ids = [
+        row["record_id"]
+        for row in connection.execute(
+            """SELECT record_id FROM determinations
+               WHERE assessment_id = ? AND status = 'N/A' AND trim(na_rationale) = ''
+               ORDER BY record_id""",
+            (assessment["id"],),
+        )
+        if row["record_id"] in deciding_set
+    ]
 
     result: dict[str, Any] = {
         "variant": "cmmc" if requirement_centred else "hipaa",
@@ -122,11 +252,7 @@ def overview(
         "not_met_without_poam": None,
         "status_counts": None,
         "resume": _resume(connection, assessment, records),
-        "left_before_issue": {
-            "ready": close["ready"],
-            "count": left_count,
-            "groups": close["groups"],
-        },
+        "evidence_progress": None,
     }
 
     if requirement_centred:
@@ -161,11 +287,21 @@ def overview(
         ]
         unplanned = cmmc.not_met_without_poam(connection, project_id, not_met_ids)
         result["not_met_without_poam"] = unplanned
-        remediate = (
-            f"{_count(open_actions, 'open POA&M item')} · "
-            f"{_count(unplanned['count'], 'gap')} without a plan"
-        )
-        assess = f"{decided} of {_count(len(deciding), 'objective')} decided"
+        gaps = unplanned["count"]
+        open_ids = [
+            record_id for record_id, state in poam_states.items() if state in ("draft", "open")
+        ]
+        remediate_parts = [
+            _figure(
+                f"{_count(gaps, 'gap')} need{'s' if gaps == 1 else ''} a POA&M",
+                "gaps_no_plan",
+                unplanned["requirement_ids"],
+                gaps,
+            ),
+            _figure(
+                f"{_count(open_actions, 'POA&M item')} open", "poam_open", open_ids, open_actions
+            ),
+        ]
     else:
         counts: dict[str, dict[str, int]] = {}
         for row in deciding:
@@ -178,19 +314,74 @@ def overview(
             {"rule": rule, "total": sum(per_rule.values()), "counts": per_rule}
             for rule, per_rule in counts.items()
         ]
-        remediate = _count(open_actions, "open corrective action")
-        assess = f"{decided} of {_count(len(deciding), 'record')} decided"
+        reconciled = {
+            row["record_id"]
+            for row in connection.execute(
+                """SELECT record_id FROM not_met_reconciliations
+                   WHERE project_id = ? AND assessment_id = ?
+                     AND finding_id IS NOT NULL AND finding_id != ''
+                     AND corrective_action_id IS NOT NULL AND corrective_action_id != ''""",
+                (project_id, assessment["id"]),
+            )
+        }
+        no_action_ids = [
+            record_id
+            for record_id in deciding_ids
+            if states[record_id]["status"] == "Not Met" and record_id not in reconciled
+        ]
+        remediate_parts = []
+        if no_action_ids:
+            count = len(no_action_ids)
+            remediate_parts.append(
+                _figure(
+                    f"{count} Not Met need{'s' if count == 1 else ''} a corrective action",
+                    "gaps_no_action",
+                    no_action_ids,
+                )
+            )
+        remediate_parts.append(_part(f"{_count(open_actions, 'corrective action')} open", None))
 
-    approved = _approved_profile(connection, project) is not None
-    figures = (
-        "Profile approved" if approved else "Profile not approved",
-        assess,
-        remediate,
-        "Ready to issue" if close["ready"] else f"{_count(left_count, 'item')} left before issue",
+    if awaiting_evidence_ids:
+        result["evidence_progress"] = _figure(
+            f"{len(awaiting_evidence_ids)} Met awaiting evidence",
+            "met_no_evidence",
+            awaiting_evidence_ids,
+        )
+    assess_parts = [_figure(f"{decided} of {len(deciding)} decided", "undecided", undecided_ids)]
+    if na_reason_ids:
+        count = len(na_reason_ids)
+        assess_parts.append(
+            _figure(
+                f"{count} N/A {'answer needs' if count == 1 else 'answers need'} a reason",
+                "na_reason",
+                na_reason_ids,
+            )
+        )
+    if recheck_ids:
+        count = len(recheck_ids)
+        assess_parts.append(
+            _figure(
+                f"{count} {'record' if count == 1 else 'records'} to recheck",
+                "recheck",
+                recheck_ids,
+            )
+        )
+
+    scope_parts = [_part(_profile_progress(connection, project), None)]
+    steps_parts = (
+        scope_parts,
+        assess_parts,
+        remediate_parts,
+        [_part(_deliver_figure(connection, project_id, assessment["id"]), None)],
     )
     targets = ("profile", "assessments", "assessments", "reports")
     result["steps"] = [
-        {"label": label, "figure": figure, "target": target}
-        for label, figure, target in zip(_STEP_LABELS, figures, targets, strict=True)
+        {
+            "label": label,
+            "figure": " · ".join(part["text"] for part in parts),
+            "parts": parts,
+            "target": target,
+        }
+        for label, parts, target in zip(_STEP_LABELS, steps_parts, targets, strict=True)
     ]
     return result

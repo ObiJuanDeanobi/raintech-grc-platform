@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, request } from "./api";
 import { ProfilePanel } from "./ProfilePanel";
 import { SraPanel } from "./SraPanel";
+import { Brand } from "./components/Brand";
 import { StatusPill } from "./components/StatusPill";
 import { RoutineSaveReporter, RoutineSaveState, useRoutineRecordSaveCoordinator } from "./components/routineSave";
 import { ACCOUNT_NAME } from "./lib/account";
@@ -30,22 +31,24 @@ import { CmmcScoreLine } from "./views/assessment/CmmcScore";
 import { UnplannedNotMet } from "./views/assessment/PoamSection";
 import { RequirementWorkspace } from "./views/assessment/RequirementWorkspace";
 import { BackupControl, RevalidationPanel } from "./views/close/ClosePanels";
+import { ClientsHome } from "./views/home/ClientsHome";
 import { EvidenceLibraryView } from "./views/evidence/EvidenceLibraryView";
 import { OverviewView } from "./views/overview/OverviewView";
+import { PoamView } from "./views/poam/PoamView";
 import { ReportsView } from "./views/reports/ReportsView";
 import type {
   Artifact,
   Assessment,
   BlockerGroup,
   Client,
-  OverviewData,
   NotMetWithoutPoam,
+  OverviewData,
   ProfileReadiness,
   RecordDetail,
   RecordState,
 } from "./types";
 
-type WorkspaceView = "assessment" | "overview" | "profile" | "sra" | "evidence" | "reports";
+type WorkspaceView = "assessment" | "overview" | "profile" | "sra" | "evidence" | "poam" | "reports";
 
 /**
  * A list narrowed to some records, with the words the chip shows (#143, #144).
@@ -81,12 +84,15 @@ export function Workspace({
   projectId,
   onProjectChange,
   onWorkspaceCreated,
+  onGoHome,
   initialView = "assessment",
 }: {
   clients: Client[];
   projectId: string;
   onProjectChange: (id: string) => void;
   onWorkspaceCreated: (id: string) => void;
+  /** Return to the Clients home. The logo and the "Clients" link call it. */
+  onGoHome?: () => void;
   initialView?: "assessment" | "overview" | "profile" | "reports";
 }) {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -333,6 +339,10 @@ export function Workspace({
     setRecordId(targetRecordId);
   }, [assessment, confirmRoutineNavigation, objectiveMode, recordId]);
 
+  const goHome = useCallback(() => {
+    if (onGoHome && confirmRoutineNavigation()) onGoHome();
+  }, [confirmRoutineNavigation, onGoHome]);
+
   const changeProject = useCallback((nextProjectId: string) => {
     if (nextProjectId === projectId || !confirmRoutineNavigation()) return false;
     onProjectChange(nextProjectId);
@@ -383,7 +393,7 @@ export function Workspace({
     return [...new Set(recordIds.map((id) => (objectiveMode ? parentOf.get(id) ?? id : id)))];
   }, [assessment, objectiveMode]);
 
-  // Every grouped count on the Overview opens Assessments narrowed to its records (#144).
+  // Every progress figure on the Overview, and every link in the finalize dialog, opens Assessments narrowed to its records (#144).
   const openGroup = useCallback((group: BlockerGroup) => {
     const target = group.target;
     if (target === "profile") return changeView("profile");
@@ -421,9 +431,11 @@ export function Workspace({
   useEffect(() => {
     if (!filterGroupKey || !filterProjectId || !filterAssessmentId) return;
     const controller = new AbortController();
+    // The Overview carries every progress list, so keeping a filter live never runs the close check.
     request<OverviewData>(`/api/projects/${filterProjectId}/assessments/${filterAssessmentId}/overview`, { signal: controller.signal })
       .then((next) => {
-        const group = next.left_before_issue?.groups?.find((candidate) => candidate.key === filterGroupKey);
+        const groups = [...next.steps.flatMap((step) => step.parts.map((part) => part.group)), next.evidence_progress?.group ?? null];
+        const group = groups.find((candidate) => candidate?.key === filterGroupKey);
         setListFilter((current) => (
           current?.groupKey === filterGroupKey
             ? { ...current, ids: mapFilterIds(group?.record_ids ?? []), count: group?.count ?? 0 }
@@ -433,6 +445,20 @@ export function Workspace({
       .catch(() => undefined);
     return () => controller.abort();
   }, [filterGroupKey, filterProjectId, filterAssessmentId, filterProgress, scoreTick, evidenceTick, revalidationTick, mapFilterIds]);
+
+  // The POA&M list's "Not Met without a plan" pill: Assessments narrowed to those records.
+  // No groupKey, so the Overview's live refresh leaves it alone.
+  const openPoamGap = useCallback((label: string, recordIds: string[]) => {
+    if (!assessment || !confirmRoutineNavigation()) return;
+    const ids = mapFilterIds(recordIds);
+    setListFilter({ label, ids, count: ids.length });
+    setView("assessment");
+    if (ids.length > 0 && !ids.includes(recordId)) {
+      setFocusObjectiveId("");
+      setReturnRecordId("");
+      setRecordId(ids[0]);
+    }
+  }, [assessment, confirmRoutineNavigation, mapFilterIds, recordId]);
 
   const openStep = useCallback((target: string) => {
     if (target === "profile") changeView("profile");
@@ -468,11 +494,9 @@ export function Workspace({
     return (
       <div className="readiness-shell">
         <header className="topbar">
-          <div className="topbar-brand">
-            <div className="brand-mark small"><ShieldCheck size={20} /></div>
-            <span>RainTech GRC</span>
-          </div>
+          <Brand onHome={onGoHome ? goHome : undefined} />
           <nav>
+            {onGoHome && <button className="clients-link" onClick={goHome}>Clients</button>}
             <button className={view === "assessment" ? "active" : ""} onClick={() => changeView("assessment")}>Assessments</button>
             <button className={view === "overview" ? "active" : ""} onClick={() => changeView("overview")}>Overview</button>
             <button className={view === "profile" ? "active" : ""} onClick={() => changeView("profile")}>Profile</button>
@@ -539,11 +563,9 @@ export function Workspace({
   return (
     <div className={`app-shell ${objectiveMode ? "requirement-shell" : ""}`}>
       <header className="topbar">
-        <div className="topbar-brand">
-          <div className="brand-mark small"><ShieldCheck size={20} /></div>
-          <span>RainTech GRC</span>
-        </div>
+        <Brand onHome={onGoHome ? goHome : undefined} />
         <nav>
+          {onGoHome && <button className="clients-link" onClick={goHome}>Clients</button>}
           <button className={view === "assessment" ? "active" : ""} onClick={() => changeView("assessment")}>Assessments</button>
           <button className={view === "overview" ? "active" : ""} onClick={() => changeView("overview")}>Overview</button>
           <button className={view === "profile" ? "active" : ""} onClick={() => changeView("profile")}>Profile</button>
@@ -551,7 +573,8 @@ export function Workspace({
             <button className={view === "sra" ? "active" : ""} onClick={() => changeView("sra")}>{assessment.framework.declarations.sra.work_area}</button>
           )}
           <button className={view === "evidence" ? "active" : ""} onClick={() => changeView("evidence")}>Evidence</button>
-          <button className={view === "reports" ? "active" : ""} onClick={() => changeView("reports")}>Reports</button>
+          <button className={view === "poam" ? "active" : ""} onClick={() => changeView("poam")}>{assessment.framework.declarations.scoring ? "POA&M" : "Corrective actions"}</button>
+          <button className={view === "reports" ? "active" : ""} onClick={() => changeView("reports")}>Deliverables</button>
         </nav>
         <div className="topbar-utility">
           <span className={`save-state ${visibleSaveState}`} title={visibleSaveMessage} aria-live="polite">
@@ -899,6 +922,7 @@ export function Workspace({
           assessmentId={assessment.id}
           records={assessment.record_index}
           hasClose={Boolean(assessment.framework.declarations.close_readiness)}
+          hasPackageChoice={Boolean(assessment.framework.declarations.scoring)}
           refreshKey={revalidationTick}
           onOpenGroup={openGroup}
           onOpenTarget={(target) => {
@@ -911,10 +935,23 @@ export function Workspace({
           }}
         />
       )}
+      {view === "poam" && (
+        <PoamView
+          key={`poam:${assessment.project.id}:${assessment.id}`}
+          projectId={assessment.project.id}
+          assessmentId={assessment.id}
+          onOpenGap={openPoamGap}
+          onOpenRecord={(next) => {
+            changeRecord(next);
+            setView("assessment");
+          }}
+        />
+      )}
       {view === "evidence" && (
         <EvidenceLibraryView
           key={`evidence:${projectId}`}
           projectId={assessment.project.id}
+          recordNoun={objectiveMode ? "objective" : "record"}
           onOpenRecord={(next) => {
             const parentId = objectiveMode ? assessment.work_list.find((record) => record.record_id === next)?.parent_id : null;
             if ((parentId ?? next) === recordId) {
@@ -961,13 +998,23 @@ export default function App() {
   const [clients, setClients] = useState<Client[] | null>(null);
   const [projectId, setProjectId] = useState("");
   const [error, setError] = useState("");
+  // The Clients home is the first screen when there is more than one project; with exactly
+  // one the app opens straight into it. The logo and the "Clients" link return here.
+  const [atHome, setAtHome] = useState(false);
+  const [entryView, setEntryView] = useState<"assessment" | "overview">("assessment");
 
   async function loadClients(preferredProjectId = "") {
     try {
       const loaded = await request<Client[]>("/api/clients");
+      const all = loaded.flatMap((client) => client.projects);
       setClients(loaded);
-      const firstProject = loaded.flatMap((client) => client.projects)[0];
-      setProjectId(preferredProjectId || firstProject?.id || "");
+      setProjectId(preferredProjectId || all[0]?.id || "");
+      if (preferredProjectId) {
+        setAtHome(false);
+        setEntryView("assessment");
+      } else {
+        setAtHome(all.length > 1);
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not open the local API.");
     }
@@ -999,13 +1046,31 @@ export default function App() {
       />
     );
   }
+  if (atHome) {
+    return (
+      <ClientsHome
+        clients={clients}
+        onOpenProject={(id) => {
+          setProjectId(id);
+          setEntryView("overview");
+          setAtHome(false);
+        }}
+        onCreated={(id) => void loadClients(id)}
+      />
+    );
+  }
   return (
     <Workspace
       clients={clients}
       projectId={projectId}
       onProjectChange={setProjectId}
       onWorkspaceCreated={(id) => void loadClients(id)}
-      initialView="assessment"
+      onGoHome={() => {
+        // Reload so a project or client added meanwhile is in the list the home hands on.
+        void request<Client[]>("/api/clients").then(setClients, () => undefined);
+        setAtHome(true);
+      }}
+      initialView={entryView}
     />
   );
 }

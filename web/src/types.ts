@@ -142,6 +142,8 @@ export interface CloseReadiness {
   checks: Array<Record<string, unknown>>;
   blockers: Array<Record<string, unknown> | string>;
   links?: Array<Record<string, unknown>>;
+  /** The blockers counted by plain-English group (#144). */
+  groups?: BlockerGroup[];
   informational?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
 }
@@ -192,12 +194,20 @@ export interface PackageCorrection {
 
 /** GET /api/projects/{p}/assessments/{a}/issue-checklist (#145). */
 export interface IssueChecklist {
+  /** CMMC: "gap_assessment" (default) or "readiness_close"; null for HIPAA (#146). */
+  package_type?: "gap_assessment" | "readiness_close" | null;
   ready: boolean;
   /** Hard gates: each stops the issue until fixed. Same shape as the Overview's groups. */
   groups: BlockerGroup[];
   /** Worth a look; never stops the issue and nothing needs ticking. */
   warnings: IssueWarning[];
-  current_issue: { package_id: string; issued_at: string } | null;
+  current_issue: {
+    package_id: string;
+    issued_at: string;
+    /** The assessment the current issue was made from, and the kind of package it is (#146). */
+    assessment_id?: string;
+    package_type?: "gap_assessment" | "readiness_close" | null;
+  } | null;
 }
 
 export interface IssueWarning {
@@ -390,6 +400,8 @@ export interface EvidenceLibrary {
   lead_days: number;
   assessment_id: string | null;
   artifacts: LibraryArtifact[];
+  /** Coverage: requirements with no evidence mapped to them or their objectives. */
+  requirements_without_evidence: { record_id: string; citation: string; title: string }[];
 }
 
 export type ProfileItemType =
@@ -588,6 +600,18 @@ export interface CmmcScore {
   /** Counts evidence-pending Met as Met. Never shown without the verified score. */
   projected: ScoreFigure;
   complete: boolean;
+  /** At least one requirement has been decided. Before that the score reads "Not started". */
+  started: boolean;
+  /** Every requirement is decided. Until then the 170.21 checks are not yet evaluated. */
+  all_decided: boolean;
+  /**
+   * Before every requirement is decided: a check that decided work has already made
+   * impossible to pass is "failed" with the decided item named; the rest are "not_evaluated".
+   * Empty once every requirement is decided.
+   */
+  check_flags: Record<string, { state: "not_evaluated" | "failed"; reason: string }>;
+  /** Plain next-work text (partial-credit input, the SSP). */
+  hints: string[];
   blockers: string[];
   deductions: { record_id: string; citation: string; title: string; points: number | null; state: ScoreState; source: string; conditional_poam_allowed: boolean; poam_reason: string }[];
   evidence_pending: string[];
@@ -628,7 +652,7 @@ export interface SspView {
   approval: { approver_id: string; approved_at: string } | null;
 }
 
-/** One plain-English group of what is left before issue, from the close check (#144). */
+/** One plain-English group from the close check. Shown in the finalize dialog and as a filtered list (#144, ADR 0022). */
 export interface BlockerGroup {
   key: string;
   label: string;
@@ -642,11 +666,25 @@ export type PoamState = "none" | "draft" | "open" | "closed";
 /** GET /api/projects/{p}/assessments/{a}/overview (#144). */
 export interface OverviewData {
   variant: "cmmc" | "hipaa";
-  steps: { label: string; figure: string; target: string }[];
+  steps: OverviewStep[];
   families: { name: string; decided: number; total: number; not_met: number }[];
   not_met: { record_id: string; citation: string; title: string; poam_state: PoamState }[];
   not_met_without_poam: NotMetWithoutPoam | null;
   resume: { record_id: string; citation: string; title: string; updated_at: string } | null;
   status_counts: { rule: string; total: number; counts: Record<string, number> }[] | null;
-  left_before_issue: { ready: boolean; count: number; groups: BlockerGroup[] };
+  /** Met awaiting evidence, as progress. Null when none. */
+  evidence_progress: OverviewFigure | null;
+}
+
+/** One figure on the step rail; `group` opens the matching filtered list when set. */
+export interface OverviewFigure {
+  text: string;
+  group: BlockerGroup | null;
+}
+
+export interface OverviewStep {
+  label: string;
+  figure: string;
+  parts: OverviewFigure[];
+  target: string;
 }

@@ -6,6 +6,7 @@ the artifact's review date and the project's warning lead time; it changes only
 derived verification (``api.verification``), never a determination (AC-024).
 """
 
+import json
 import sqlite3
 from datetime import date
 from typing import Any
@@ -34,6 +35,39 @@ def review_fields(review_date: str | None, lead_days: int, on: date) -> dict[str
         "review_status": evidence_lifecycle.review_status(review_date, lead_days, on),
         "days_until_review": _days_until(review_date, on),
     }
+
+
+def requirements_without_evidence(
+    connection: sqlite3.Connection, assessment: Any, mapped_record_ids: set[str]
+) -> list[dict[str, str]]:
+    """Requirements (CMMC) or deciding records (HIPAA) with no evidence mapped at all.
+
+    A CMMC requirement counts as covered when evidence is mapped to it or to any of
+    its objectives. This is coverage, not verification: it never changes a status.
+    """
+    framework = connection.execute(
+        "SELECT declarations_json FROM framework_versions WHERE id = ?",
+        (assessment["framework_version_id"],),
+    ).fetchone()
+    declarations = json.loads(framework["declarations_json"]) if framework else {}
+    requirement_centred = declarations.get("presentation_mode") == "requirement_with_objectives"
+    rows = connection.execute(
+        """SELECT record_id, parent_id, carries_determination, citation, title
+           FROM framework_records WHERE framework_version_id = ?
+           ORDER BY sort_order, record_id""",
+        (assessment["framework_version_id"],),
+    ).fetchall()
+    covered = set(mapped_record_ids)
+    if requirement_centred:
+        covered |= {row["parent_id"] for row in rows if row["record_id"] in mapped_record_ids}
+        units = [row for row in rows if not row["parent_id"]]
+    else:
+        units = [row for row in rows if row["carries_determination"]]
+    return [
+        {"record_id": row["record_id"], "citation": row["citation"], "title": row["title"]}
+        for row in units
+        if row["record_id"] not in covered
+    ]
 
 
 def library(
@@ -104,6 +138,15 @@ def library(
         "lead_days": lead,
         "assessment_id": assessment["id"] if assessment is not None else None,
         "artifacts": artifacts,
+        "requirements_without_evidence": (
+            requirements_without_evidence(
+                connection,
+                assessment,
+                {use["record_id"] for mappings in uses.values() for use in mappings},
+            )
+            if assessment is not None
+            else []
+        ),
     }
 
 

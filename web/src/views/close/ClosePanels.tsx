@@ -58,17 +58,17 @@ export function ReopenAssessmentForm({ projectId, packageId, records, onReopened
       await onReopened();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Reopening failed."); setWorking(false); }
   }
-  if (!open) return <div className="presentation-correction"><button className="secondary-button" onClick={() => setOpen(true)}>Reopen for substantive correction…</button></div>;
+  if (!open) return <div className="presentation-correction"><button className="secondary-button" onClick={() => setOpen(true)}>Change findings (new version)…</button></div>;
   return <div className="presentation-correction" aria-labelledby="reopen-title">
-    <strong id="reopen-title">Reopen for substantive correction</strong>
-    <p>Creates a new assessment revision. Only the records you select must be revalidated; everything else carries over unchanged. The issued version stays current until you review and issue the new one.</p>
+    <strong id="reopen-title">Change findings (new version)</strong>
+    <p>Creates a new assessment revision. Only the records you select must be revalidated; everything else carries over unchanged. The current final version stays in place until you finalize the new one.</p>
     {error && <p className="package-review-error" role="alert">{error}</p>}
     <label><input type="checkbox" checked={substantive} onChange={(event) => setSubstantive(event.target.checked)} /> This correction changes assessment content</label>
     <label>Find affected records<input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Citation or title…" /></label>
     <div className="reopen-record-list" role="group" aria-label="Affected records">{choices.map((record) => <label key={record.record_id}><input type="checkbox" checked={Boolean(selected[record.record_id])} onChange={(event) => setSelected((all) => ({ ...all, [record.record_id]: event.target.checked }))} /> {record.citation} · {record.title}</label>)}</div>
     <small>{affected.length} record{affected.length === 1 ? "" : "s"} selected</small>
-    <label>Reason for reopening<textarea rows={2} value={rationale} onChange={(event) => setRationale(event.target.value)} /></label>
-    <div className="package-review-actions"><button className="secondary-button" disabled={working} onClick={() => setOpen(false)}>Cancel</button><button className="primary-button" disabled={!ready || working} onClick={() => void submit()}>{working ? "Reopening…" : "Reopen assessment"}</button></div>
+    <label>Reason for the change<textarea rows={2} value={rationale} onChange={(event) => setRationale(event.target.value)} /></label>
+    <div className="package-review-actions"><button className="secondary-button" disabled={working} onClick={() => setOpen(false)}>Cancel</button><button className="primary-button" disabled={!ready || working} onClick={() => void submit()}>{working ? "Starting…" : "Start new version"}</button></div>
   </div>;
 }
 

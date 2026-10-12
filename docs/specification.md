@@ -13,6 +13,10 @@ slice requires an approved ticket and applicable verification.
 The **workflow redesign amendment (ADR 0019)** was approved by Johnathan on
 October 8, 2026. Text it adds or changes is marked *[Amendment 2026-10]*.
 
+The **flow alignment amendment (ADR 0022)** was approved by Johnathan on
+October 12, 2026 ("all yes"). Text it adds or changes is marked
+*[Amendment 2026-10, ADR 0022]*.
+
 ## Problem
 
 RainTech needs one coherent internal workspace for delivering CMMC Level 2 and
@@ -108,6 +112,16 @@ and scope-dependent final artifacts cannot complete until the Profile is complet
 - *[Amendment 2026-10]* The Profile is approved once per version. Approving a
   Profile version is the Profile-complete act; there is no separate review
   record or readiness sign-off for the same Profile.
+- *[Amendment 2026-10, ADR 0022]* The Profile is approved as part of finalizing the deliverables:
+  when the current Profile version has no unknowns, the finalize act approves it
+  in the same transaction, so no separate approval is needed beforehand. An
+  optional "Approve now" stays on the Profile. It is still one approval per
+  version, and recorded unknowns still block finalizing. While the work is in
+  progress the Profile shows the facts recorded and what is to follow up ("7 facts
+  recorded, 2 to follow up"), never "not approved" and never a completeness
+  fraction the neutral form cannot measure. The readiness pill leaves the working
+  toolbar, and readiness history stays under "advanced". *(Implemented in a later
+  change; the first ADR 0022 build does not include it.)*
 
 ### Frameworks and Assessments
 
@@ -280,10 +294,25 @@ and scope-dependent final artifacts cannot complete until the Profile is complet
   and labelled as such. Only the verified score may appear in an issued
   self-assessment, SPRS worksheet, or client deliverable. Each score shows its
   arithmetic (110 minus each deducted weight). Partial credit for 3.5.3 and
-  3.13.11 follows the DoD Assessment Methodology.
+  3.13.11 follows the DoD Assessment Methodology. *[Amendment 2026-10, ADR 0022]* Before the first
+  decision the score reads "Not started" instead of the arithmetic floor of
+  -203; it starts as soon as any objective is decided.
 - *[Amendment 2026-10]* Show the 32 CFR 170.21 Conditional-status checks
   alongside the score: minimum score, which NOT MET requirements may be on a
-  POA&M, and the requirements that never may.
+  POA&M, and the requirements that never may. *[Amendment 2026-10, ADR 0022]* The three checks read
+  "Not yet evaluated" (neutral grey) until every requirement is decided, with one
+  exception: a check that decided work has already made impossible to pass shows
+  red and names the decided item ("Fails: AC.L2-3.1.20 is decided Not Met"). That
+  is a decided Not Met on a requirement that may never be on a POA&M, a decided Not
+  Met worth more than one point (except the SC.L2-3.13.11 exception), or a
+  minimum-score check whose best case (110 minus the decided Not Met deductions) is
+  below 88. Evidence-pending Met never fails a check early. After every
+  requirement is decided each check shows pass or fail on the full rules. The
+  score panel also shows plain next-work hints (record partial or no
+  implementation for IA.L2-3.5.3 / SC.L2-3.13.11; an up-to-date SSP is needed).
+  The score arithmetic and every figure are unchanged. *(Early-failure display is
+  a refinement approved by the lead under the engineering delegation, pending
+  Johnathan's acknowledgement.)*
 - HIPAA quoting remains manual in V1.
 
 ### Findings, POA&M, and Continuous Work
@@ -442,6 +471,20 @@ artifacts remain pinned, and draft regeneration is explicit and previewed.
   optional note, runs the required pre-issuance full backup automatically, and
   freezes the issued version. A failed backup still blocks issue. This replaces
   the separate In Review and Reviewed states and the multi-step package review.
+- *[Amendment 2026-10, ADR 0022]* Blockers appear only when the consultant tries to finalize.
+  While working, every screen shows progress and the next piece of work, and
+  drafts stay available at all times. The finalize dialog ("Finalize
+  deliverables") is the only place hard gates are listed: "Fix before
+  finalizing" (the hard gates, grouped, each opening the matching filtered list),
+  "Worth a look" (warnings that never block), and "What will be locked" (the
+  Profile version, the assessment and the documents), then the button
+  "Finalize". The hard gates themselves are unchanged and are enforced at that
+  moment. On screen the words are Finalize, Final (versions), Replaced and
+  Deliverables; the stored states and the audit trail keep Draft, Issued and
+  Superseded. A presentation-only correction reads "Correct wording (same
+  findings)" and a substantive reopening reads "Change findings (new version)".
+  A Profile counts once in the list of things to fix, and HIPAA counts
+  "specifications not decided", not objectives.
 - Every generated artifact records its engagement, framework version, Profile
   snapshot, applicable template version, relevant source-record versions,
   generation timestamp, and named reviewer or approver so it can be reproduced.
@@ -494,6 +537,12 @@ Not Met items may remain and open corrective work may continue after delivery.
 - **Self-assessment package**, issuable when no Met result is evidence pending:
   requirement results for SPRS entry, verified SPRS worksheet, SSP, and POA&M.
 - **Internal readiness close**, unchanged below.
+
+*[Amendment 2026-10, ADR 0022]* For CMMC, finalizing defaults to the gap-assessment package, so a
+client with gaps always has a deliverable to finalize. The internal readiness
+close (all 110 requirements Met) is an explicit second option, shown as "Final
+self-assessment (all requirements Met)", and is never what a client with open
+gaps is asked to satisfy by default.
 
 RainTech internal CMMC readiness close requires all 110 requirements Met, no
 open POA&M, a complete approved final SSP, verified evidence hashes, a complete
@@ -571,7 +620,13 @@ scope.
 next up, and waiting on client, with each engagement's score and progress, plus
 the regulatory change log. A project shows a step rail of Scope, Assess,
 Remediate and Deliver, each with one progress figure. The views below remain the
-record homes.
+record homes. *[Amendment 2026-10, ADR 0022]* Inside a client the navigation
+includes Overview, Assessments, Profile, POA&M, Evidence and Deliverables (plus
+the Security Risk Analysis tab for HIPAA); tab names and order are not fixed by
+this amendment. A **Clients home**, reached from the logo and showing one card per
+client project with its progress, and a **POA&M view** listing every item across
+requirements with owner, due date, status and 170.21 eligibility, are part of the
+navigation. The tab previously called Reports is shown as Deliverables.
 
 After client and project selection, the workspace uses:
 
@@ -622,9 +677,17 @@ with standards and their implementation specifications.
 
 **Overview shows where the engagement stands.** *[Amendment 2026-10]* Verified
 and projected scores, the 32 CFR 170.21 checks for CMMC, progress by family, NOT
-MET requirements with their POA&M state, and what is left before issue as grouped
-counts that open the matching filtered list. It keeps the phase rail and work
-resumption; it does not list blockers one by one.
+MET requirements with their POA&M state, and progress and next work as figures
+that open the
+matching filtered list *[Amendment 2026-10, ADR 0022; replaces "what is left before
+issue as grouped counts".]* ("4 of 6 decided", "1 gap needs a POA&M", "2 POA&M items
+open", "2 Met awaiting evidence", "3 Not Met need a corrective action", "2 N/A
+answers need a reason", "1 record to recheck", and for Deliver "Draft available",
+"Final v2 · 12 Oct 2026" or "Final v2 · new version in progress"). It keeps the
+phase rail and work resumption. It shows no blocker lists, no counts of items left
+before finalizing, no "not approved" states and no pass/fail verdicts on
+undecided work; those appear only in the finalize act. (A 170.21 check that
+decided items have already failed may show red, naming them.)
 
 **Profile is progressive and additive.** The onboarding baseline stays visible
 beside the current validated state and the required target, each fact carrying a
@@ -852,14 +915,21 @@ production shell is established.
 - AC-024 *[Amendment 2026-10]*: Stale or expired evidence moves an affected
   verified Met to evidence pending and lowers the verified score.
 - AC-025 *[Amendment 2026-10]*: A CMMC gap-assessment package can be issued with
-  NOT MET requirements in one review-and-issue act, showing only the verified
-  score.
+  NOT MET requirements in one finalize act (*[ADR 0022]*; formerly "review-and-issue"),
+  showing only the verified score.
 - AC-026 *[Amendment 2026-10]*: The HIPAA yearly report and POA&M workbook
   reproduce the RainTech template, with executive-summary counts that reconcile
   to the appendix and POA&M.
 - AC-027 *[Amendment 2026-10]*: A monthly meeting's focus points become tracked
   work items, and a regulatory change records which affected clients were told
   and when.
+- AC-028 *[Amendment 2026-10, ADR 0022]*: (a) The CMMC score reads "Not started"
+  until the first decision is made. (b) The 32 CFR 170.21 checks read "Not yet
+  evaluated" until every requirement is decided, unless decided items have already
+  made a check impossible to pass, in which case that check shows red and names the
+  item. (c) Blocker lists and counts of items left before finalizing appear only
+  in the finalize dialog, never on the Overview of a new or in-progress CMMC or
+  HIPAA project, and the hard gates still block there.
 
 ## Success Criteria
 

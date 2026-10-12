@@ -1,13 +1,15 @@
 import { ArrowRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import { request } from "../../api";
-import type { BlockerGroup, CloseReadiness, OverviewData, PoamState } from "../../types";
+import type { BlockerGroup, OverviewData, OverviewFigure, PoamState } from "../../types";
 import { CmmcScorePanel } from "../assessment/CmmcScore";
 
 /**
- * Overview (#144): where the engagement stands, as counts. It never lists
- * blockers one by one; each grouped count opens the matching filtered list.
+ * Overview (#144, ADR 0022): where the engagement stands, as progress and the
+ * next piece of work. It never shows blockers, "left before issue" counts or
+ * pass/fail verdicts; those appear only when the consultant chooses to finalize.
+ * Each progress figure opens the matching filtered list.
  */
 
 const FAMILY_NAMES: Record<string, string> = {
@@ -61,27 +63,8 @@ export interface OverviewProps {
   onOpenProject?: (projectId: string) => void;
 }
 
-function EveryItem({ projectId, assessmentId }: { projectId: string; assessmentId: string }) {
-  const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<string[] | null>(null);
-  useEffect(() => {
-    if (!open || items) return;
-    const controller = new AbortController();
-    request<CloseReadiness>(`/api/projects/${projectId}/assessments/${assessmentId}/close-readiness`, { signal: controller.signal })
-      .then((next) => setItems((next.blockers ?? []).map((blocker) => (typeof blocker === "string" ? blocker : String(blocker.detail ?? "")))))
-      .catch(() => setItems([]));
-    return () => controller.abort();
-  }, [open, items, projectId, assessmentId]);
-  return (
-    <div className="every-item">
-      <button type="button" className="text-button" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-        {open ? "Hide every item" : "Show every item"}
-      </button>
-      {open && (items === null ? <p className="muted-small">Loading…</p> : (
-        <ul className="every-item-list">{items.map((detail, index) => <li key={index}>{detail}</li>)}</ul>
-      ))}
-    </div>
-  );
+function FigureLink({ part, onOpen }: { part: OverviewFigure; onOpen: () => void }) {
+  return <button type="button" onClick={onOpen}>{part.text}</button>;
 }
 
 export function OverviewView(props: OverviewProps) {
@@ -101,7 +84,6 @@ export function OverviewView(props: OverviewProps) {
   }, [projectId, assessmentId, refreshKey]);
 
   const steps = data?.steps ?? [];
-  const groups = data?.left_before_issue?.groups ?? [];
   const notMet = data?.not_met ?? [];
   const hipaa = data?.variant === "hipaa";
 
@@ -119,12 +101,27 @@ export function OverviewView(props: OverviewProps) {
       {steps.length > 0 && (
         <nav className="step-rail" aria-label="Engagement steps">
           {steps.map((step, index) => (
-            <button key={step.label} type="button" onClick={() => props.onOpenStep(step.target)}>
+            <div key={step.label} className="step">
               <span className="step-number" aria-hidden="true">{index + 1}</span>
-              <span className="step-text"><strong>{step.label}</strong><small>{step.figure}</small></span>
-            </button>
+              <span className="step-text">
+                <button type="button" onClick={() => props.onOpenStep(step.target)}><strong>{step.label}</strong></button>
+                <span className="step-figures">
+                  {step.parts.map((part, position) => (
+                    <Fragment key={part.text}>
+                      {position > 0 && " · "}
+                      <FigureLink part={part} onOpen={() => (part.group ? props.onOpenGroup(part.group) : props.onOpenStep(step.target))} />
+                    </Fragment>
+                  ))}
+                </span>
+              </span>
+            </div>
           ))}
         </nav>
+      )}
+      {data?.evidence_progress && (
+        <p className="evidence-progress" aria-label="Evidence progress">
+          Evidence: <FigureLink part={data.evidence_progress} onOpen={() => (data.evidence_progress?.group ? props.onOpenGroup(data.evidence_progress.group) : props.onOpenStep("evidence"))} />
+        </p>
       )}
 
       {props.scored && <CmmcScorePanel projectId={projectId} assessmentId={assessmentId} refreshKey={`${refreshKey}`} />}
@@ -188,28 +185,6 @@ export function OverviewView(props: OverviewProps) {
               {notMet.length > NOT_MET_CAP && <p className="muted-small">Showing the first {NOT_MET_CAP} of {notMet.length}. Open Assessments for the rest.</p>}
             </>
           )}
-        </section>
-      )}
-
-      {data && (
-        <section className="overview-section left-before-issue" aria-label="Left before issue">
-          <div className="section-title"><h2>Left before issue</h2><span>{data.left_before_issue.ready ? "Ready" : `${data.left_before_issue.count} ${data.left_before_issue.count === 1 ? "item" : "items"}`}</span></div>
-          {groups.length === 0 ? (
-            <p className="muted-small">Nothing is left. The assessment is ready to issue.</p>
-          ) : (
-            <ul className="group-counts">
-              {groups.map((group) => (
-                <li key={group.key}>
-                  <button type="button" onClick={() => props.onOpenGroup(group)} aria-label={`${group.label}: ${group.count}`}>
-                    <strong>{group.count}</strong>
-                    <span>{group.label}</span>
-                    <ArrowRight size={14} aria-hidden="true" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <EveryItem projectId={projectId} assessmentId={assessmentId} />
         </section>
       )}
 

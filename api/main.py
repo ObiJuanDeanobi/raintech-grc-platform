@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Annotated, Any, cast
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, field_validator
@@ -22,7 +22,7 @@ from api import (
     verification,
     workspace_backup,
 )
-from api.close import fieldwork_ready
+from api.close import fieldwork_ready, resolve_package_type
 from api.correction import create_correction, package_issuance
 from api.database import (
     Database,
@@ -38,6 +38,7 @@ from api.framework import (
     seed_framework,
 )
 from api.generation import generate_package, list_packages, render_draft
+from api.home import home as clients_home
 from api.issuance import (
     BackupFailure,
     IssueBlocked,
@@ -50,6 +51,7 @@ from api.issuance import (
 )
 from api.overview import overview as overview_dashboard
 from api.package_review import get_review, record_ready_to_issue
+from api.poam_view import poam_items as poam_item_list
 from api.reopening import reopen_assessment, reopening_for, revalidate, revalidation_items
 from api.risk import RiskScore, score_risk
 from api.storage import FileStorage, LocalFileStorage
@@ -244,6 +246,8 @@ class PackageSignOff(BaseModel):
 class IssueAct(BaseModel):
     actor_id: str = "johnathan"
     note: str = Field(default="", max_length=4000)
+    # CMMC only: "gap_assessment" (the default) or "readiness_close" (ticket #146).
+    package: str | None = None
 
 
 class BackupCreate(BaseModel):
@@ -1580,6 +1584,13 @@ def create_app(
                 connection, project_id, assessment_id, storage_root=managed_storage
             )
 
+    @app.get("/api/projects/{project_id}/assessments/{assessment_id}/poam-items")
+    def get_poam_items(
+        project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            return poam_item_list(connection, project_id, assessment_id)
+
     @app.post("/api/projects/{project_id}/assessments/{assessment_id}/packages", status_code=201)
     def create_package(
         project_id: str,
@@ -2038,13 +2049,22 @@ def create_app(
 
     @app.get("/api/projects/{project_id}/assessments/{assessment_id}/draft")
     def download_draft(
-        project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)]
+        project_id: str,
+        assessment_id: str,
+        database: Annotated[Database, Depends(db)],
+        package: Annotated[str | None, Query()] = None,
     ) -> Response:
         """A watermarked draft ZIP from the data as it is now. Never stored, never issued."""
         with database.connect() as connection:
             _assessment_for_project_or_404(connection, project_id, assessment_id)
             try:
-                filename, content = render_draft(connection, root, project_id, assessment_id)
+                package_type = resolve_package_type(connection, project_id, package)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from exc
+            try:
+                filename, content = render_draft(
+                    connection, root, project_id, assessment_id, package_type
+                )
             except ValueError as exc:
                 raise HTTPException(409, str(exc)) from exc
             _audit(
@@ -2052,7 +2072,12 @@ def create_app(
                 "package.draft_generated",
                 "assessment",
                 assessment_id,
-                {"project_id": project_id, "assessment_id": assessment_id, "filename": filename},
+                {
+                    "project_id": project_id,
+                    "assessment_id": assessment_id,
+                    "filename": filename,
+                    "package_type": package_type,
+                },
             )
         return Response(
             content,
@@ -2062,11 +2087,19 @@ def create_app(
 
     @app.get("/api/projects/{project_id}/assessments/{assessment_id}/issue-checklist")
     def get_issue_checklist(
-        project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)]
+        project_id: str,
+        assessment_id: str,
+        database: Annotated[Database, Depends(db)],
+        package: Annotated[str | None, Query()] = None,
     ) -> dict[str, Any]:
         with database.connect() as connection:
             _assessment_for_project_or_404(connection, project_id, assessment_id)
-            return issue_checklist(connection, project_id, assessment_id, managed_storage)
+            try:
+                return issue_checklist(
+                    connection, project_id, assessment_id, managed_storage, package
+                )
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from exc
 
     def run_issue_act(
         connection: Any,
@@ -2077,6 +2110,12 @@ def create_app(
         correct_package_id: str | None = None,
     ) -> dict[str, Any]:
         user = _user_or_422(connection, payload.actor_id)
+        try:
+            # An invalid choice is a 422 here as on the draft and the checklist; only
+            # the business gates are 409.
+            resolve_package_type(connection, project_id, payload.package)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
         try:
             return review_and_issue(
                 connection,
@@ -2095,6 +2134,7 @@ def create_app(
                 ),
                 managed_storage.parent / "generation-staging",
                 correct_package_id,
+                payload.package,
             )
         except IssueBlocked as exc:
             raise HTTPException(
@@ -2196,6 +2236,11 @@ def create_app(
                     )
                 ]
             return clients
+
+    @app.get("/api/home")
+    def get_clients_home(database: Annotated[Database, Depends(db)]) -> dict[str, Any]:
+        with database.connect() as connection:
+            return clients_home(connection)
 
     @app.post("/api/clients", status_code=201)
     def create_client(
@@ -3747,7 +3792,8 @@ def create_app(
     ) -> dict[str, Any]:
         with database.connect() as connection:
             assessment, scoring = cmmc_context(connection, project_id, assessment_id)
-            return cmmc.score(connection, assessment, scoring, _derived_status)
+            result = cmmc.score(connection, assessment, scoring, _derived_status)
+            return {**result, **cmmc.display_flags(connection, assessment, scoring, result)}
 
     @app.put(
         "/api/projects/{project_id}/assessments/{assessment_id}"
@@ -3798,7 +3844,8 @@ def create_app(
                 {"implementation": payload.implementation},
                 actor_id=payload.actor_id,
             )
-            return cmmc.score(connection, assessment, scoring, _derived_status)
+            result = cmmc.score(connection, assessment, scoring, _derived_status)
+            return {**result, **cmmc.display_flags(connection, assessment, scoring, result)}
 
     @app.get(
         "/api/projects/{project_id}/assessments/{assessment_id}/requirements/{record_id}/finding"

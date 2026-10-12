@@ -224,7 +224,13 @@ def _conditional(
 
 
 def score(
-    connection: Any, assessment: Any, scoring: dict[str, Any], derive: Derive
+    connection: Any,
+    assessment: Any,
+    scoring: dict[str, Any],
+    derive: Derive,
+    *,
+    include_follow_up: bool = True,
+    objective_ids: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
     """Verified and projected scores from the official model (GitHub issue #141).
 
@@ -233,11 +239,21 @@ def score(
     be issued. Projected also counts evidence-pending Met as Met. Every other
     requirement deducts its weight in both, so neither is inflated by work not
     yet done.
+
+    ``include_follow_up=False`` skips the per-requirement lookup that builds
+    ``follow_up`` (it comes back empty); no score figure depends on it. The
+    Clients home uses it. The default output is unchanged. ``objective_ids`` lets a
+    caller scoring many assessments of one framework pass the parent-to-objectives
+    map once instead of re-reading it.
     """
     partial = _partial(connection, assessment["id"])
     rules = scoring["conditional_poam"]
     bases = verification.met_bases(connection, assessment["id"])
-    objectives = _objective_ids(connection, assessment["framework_version_id"])
+    objectives = (
+        objective_ids
+        if objective_ids is not None
+        else _objective_ids(connection, assessment["framework_version_id"])
+    )
     lines: list[dict[str, Any]] = []
     states: dict[str, str] = {}
     titles: dict[str, str] = {}
@@ -251,7 +267,7 @@ def score(
         titles[requirement_id] = row["title"]
         status = derive(connection, assessment["id"], requirement_id)
         value = scoring["requirements"][requirement_id]
-        if status == "Pending":
+        if status == "Pending" and include_follow_up:
             follow_up.extend(
                 {
                     "record_id": o["record_id"],
@@ -338,6 +354,102 @@ def score(
         # The same figure the assessment view shows, for the Overview (#143).
         "not_met_without_poam": unplanned,
     }
+
+
+DISPLAY_KEYS = ("started", "all_decided", "check_flags", "hints")
+
+
+def display_flags(
+    connection: Any, assessment: Any, scoring: dict[str, Any], result: dict[str, Any]
+) -> dict[str, Any]:
+    """Display-only flags for the score panel (ADR 0022).
+
+    Kept apart from :func:`score` on purpose: ``score`` is what a package snapshots and
+    hashes, so nothing here may enter it. No figure changes.
+
+    - ``started``: at least one requirement decision exists (any objective Met, Not Met
+      or N/A), so the score reads "Not started" until then.
+    - ``all_decided``: no requirement is undecided; only then are the 170.21 checks
+      evaluated as pass or fail.
+    - ``check_flags``: before that, a check that decided work has already made
+      impossible to pass is ``failed`` with the decided item named; every other check is
+      ``not_evaluated``. Evidence-pending Met is not a decided failure. Empty once all
+      requirements are decided.
+    - ``hints``: plain next-work text (partial credit input, the SSP).
+    """
+    started = (
+        connection.execute(
+            "SELECT 1 FROM determinations WHERE assessment_id = ? "
+            "AND status IN ('Met', 'Not Met', 'N/A') LIMIT 1",
+            (assessment["id"],),
+        ).fetchone()
+        is not None
+    )
+    all_decided = not result["unscored"]
+    rules = scoring["conditional_poam"]
+    excluded = set(rules["excluded"])
+    decided_failures = [line for line in result["deductions"] if line["state"] == "not_met"]
+    flags: dict[str, dict[str, str]] = {}
+    if not all_decided:
+        flags = {
+            check["key"]: {"state": "not_evaluated", "reason": ""}
+            for check in result["conditional"]["checks"]
+        }
+        waiting = set(result["partial_inputs_needed"])
+        too_many = [
+            line
+            for line in decided_failures
+            if line["record_id"] not in excluded
+            and not line["conditional_poam_allowed"]
+            and line["record_id"] not in waiting
+        ]
+        if too_many:
+            first = too_many[0]
+            flags["maximum_points"] = {
+                "state": "failed",
+                "reason": (
+                    f"Fails: {first['record_id']} is decided Not Met and is worth "
+                    f"{first['points']} points; only 1-point requirements may be on a POA&M."
+                ),
+            }
+        never = [line for line in decided_failures if line["record_id"] in excluded]
+        if never:
+            flags["excluded"] = {
+                "state": "failed",
+                "reason": (
+                    f"Fails: {never[0]['record_id']} is decided Not Met, and it may never "
+                    "be on a POA&M."
+                ),
+            }
+        best = int(scoring["maximum_score"])
+        for line in decided_failures:
+            value = scoring["requirements"][line["record_id"]]
+            if value["rule"] == "fixed":
+                best -= int(value["points"])
+            elif value["rule"] == "partial":
+                best -= min(int(points) for points in value["points_by_implementation"].values())
+        minimum = int(result["conditional"]["minimum_score"])
+        if best < minimum:
+            flags["minimum_score"] = {
+                "state": "failed",
+                "reason": (
+                    f"Fails: even if every other requirement is verified Met the score "
+                    f"cannot pass {best} (at least {minimum} is required)."
+                ),
+            }
+    hints: list[str] = []
+    if result["partial_inputs_needed"]:
+        hints.append(
+            "Record partial or no implementation for "
+            + " / ".join(result["partial_inputs_needed"])
+            + "."
+        )
+    if any(
+        scoring["requirements"][line["record_id"]]["rule"] == "ssp_required"
+        for line in decided_failures
+    ):
+        hints.append("An up-to-date SSP is needed to complete the assessment.")
+    return {"started": started, "all_decided": all_decided, "check_flags": flags, "hints": hints}
 
 
 def _event(
@@ -546,3 +658,52 @@ def poam_draft(finding: dict[str, Any], record_id: str, title: str) -> tuple[str
             rationale = f" ({item['rationale']})" if item["rationale"] else ""
             lines.append(f"  Evidence: {item['name']}{rationale}")
     return f"{record_id} {title}", "\n".join(lines)
+
+
+def gap_detail(connection: Any, assessment: Any, score_value: dict[str, Any]) -> dict[str, Any]:
+    """What the gap-assessment report reads beyond the score (GitHub issue #146).
+
+    One entry per requirement: its objectives with status, notes, the documented
+    interview or observation, and what verifies a Met. ``objectives_not_assessed``
+    counts the objectives that are blank or Pending, so the report can say plainly
+    how much of the assessment is still undecided. Read-only and deterministic.
+    """
+    bases = verification.met_bases(connection, assessment["id"])
+    states = {line["record_id"]: line["state"] for line in score_value["deductions"]}
+    requirement_notes = {
+        row["record_id"]: row["note"]
+        for row in connection.execute(
+            "SELECT record_id, note FROM record_notes WHERE assessment_id = ?",
+            (assessment["id"],),
+        )
+    }
+    requirements: dict[str, Any] = {}
+    total = 0
+    not_assessed = 0
+    for row in requirement_rows(connection, assessment["framework_version_id"]):
+        objectives = []
+        for objective in _objectives(connection, assessment["id"], row["record_id"]):
+            total += 1
+            if objective["status"] not in ("Met", "Not Met"):
+                not_assessed += 1
+            objectives.append(
+                {
+                    "record_id": objective["record_id"],
+                    "citation": objective["citation"],
+                    "text": objective["regulation_text"],
+                    "status": objective["status"],
+                    "note": objective["note"].strip(),
+                    "interview_observation": objective["interview_observation"].strip(),
+                    "basis": bases.get(objective["record_id"]),
+                }
+            )
+        requirements[row["record_id"]] = {
+            "note": (requirement_notes.get(row["record_id"]) or "").strip(),
+            "objectives": objectives,
+            "state": states.get(row["record_id"], "met"),
+        }
+    return {
+        "objectives_total": total,
+        "objectives_not_assessed": not_assessed,
+        "requirements": requirements,
+    }

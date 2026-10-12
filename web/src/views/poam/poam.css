@@ -1,0 +1,38 @@
+/* POA&M list (flow-alignment item 8). Kept beside the component so the shared stylesheet is untouched. */
+
+.poam-view .overview-heading p:not(.eyebrow) { max-width: 760px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.poam-progress { display: flex; margin-top: 10px; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; }
+.poam-progress strong { font-size: 15px; }
+.poam-gap { border: 0; padding: 2px 10px; border-radius: 10px; color: #8d5818; background: var(--amber-soft); font-size: 12px; font-weight: 600; }
+.poam-gap.none { color: #126b5f; background: var(--teal-soft); }
+.poam-toolbar { display: flex; margin: 20px 0 12px; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.poam-toolbar label { display: grid; gap: 3px; color: #566375; font-size: 11px; font-weight: 600; }
+.poam-toolbar input, .poam-toolbar select { height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 5px; background: white; font-size: 12px; }
+.poam-toolbar input[type="search"] { width: 240px; }
+.poam-toolbar .poam-shown { margin-left: auto; color: var(--muted); font-size: 12px; }
+.poam-table { width: 100%; border-collapse: separate; border-spacing: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: white; font-size: 12px; }
+.poam-table th { padding: 9px 12px; border-bottom: 1px solid var(--line); color: #7e8a9b; background: #f8fafb; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-align: left; text-transform: uppercase; }
+.poam-table td { padding: 10px 12px; border-bottom: 1px solid #eef1f4; vertical-align: top; }
+.poam-table tbody tr:last-child td { border-bottom: 0; }
+.poam-row { cursor: pointer; }
+.poam-row:hover { background: #f7fbfa; }
+.poam-row.withdrawn { color: #8b95a3; }
+.poam-open { display: block; padding: 0; border: 0; color: var(--blue); background: transparent; font-size: 12px; font-weight: 700; text-align: left; }
+.poam-open:hover { text-decoration: underline; }
+.poam-table td small { display: block; margin-top: 3px; color: #8b95a3; font-size: 11px; line-height: 1.4; }
+.poam-table td strong { display: block; font-weight: 600; }
+.poam-closure { color: #126b5f; }
+.poam-pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; line-height: 18px; white-space: nowrap; }
+.poam-pill.draft { color: #566375; background: #e8ecf1; }
+.poam-pill.open { color: #325d95; background: var(--blue-soft); }
+.poam-pill.ready { color: #8d5818; background: var(--amber-soft); }
+.poam-pill.closed { color: #126b5f; background: var(--teal-soft); }
+.poam-pill.withdrawn { color: #8b95a3; background: #f0f2f5; }
+.poam-elig.eligible { color: #126b5f; font-weight: 700; }
+.poam-elig.not_eligible { color: #8d5818; font-weight: 700; }
+.poam-elig.not_applicable { color: #8b95a3; }
+.poam-empty { padding: 28px; border: 1px dashed var(--line); border-radius: 9px; color: var(--muted); background: white; text-align: center; font-size: 13px; }
+.poam-note { margin-top: 12px; color: var(--muted); font-size: 12px; }
+button.poam-gap { cursor: pointer; }
+button.poam-gap:hover { text-decoration: underline; }
+.poam-row.unlinked { cursor: default; }

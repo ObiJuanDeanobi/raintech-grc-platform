@@ -6,7 +6,7 @@ import { REVIEW_LABELS, reviewDetail, shortHash } from "../../lib/evidence";
 import type { Artifact, EvidenceLibrary, EvidenceReview, LibraryArtifact } from "../../types";
 import "./evidence.css";
 
-type Filter = "all" | EvidenceReview;
+type Filter = "all" | EvidenceReview | "no_evidence";
 
 /**
  * The project's evidence library (#142): every artifact once, with its review
@@ -16,10 +16,13 @@ type Filter = "all" | EvidenceReview;
  */
 export function EvidenceLibraryView({
   projectId,
+  recordNoun = "objective",
   onOpenRecord,
   onChanged,
 }: {
   projectId: string;
+  /** What a mapping points at: CMMC objectives, HIPAA records. */
+  recordNoun?: "objective" | "record";
   /** Opens a mapped objective in the requirement view. */
   onOpenRecord: (recordId: string) => void;
   /** Something that can change verification or mappings was saved. */
@@ -91,7 +94,8 @@ export function EvidenceLibraryView({
 
   const counts = { current: 0, due_soon: 0, stale: 0 } as Record<EvidenceReview, number>;
   for (const artifact of library.artifacts) counts[artifact.review_status] += 1;
-  const shown = library.artifacts.filter((artifact) => filter === "all" || artifact.review_status === filter);
+  const uncovered = library.requirements_without_evidence ?? [];
+  const shown = library.artifacts.filter((artifact) => filter === "all" || filter === "no_evidence" || artifact.review_status === filter);
 
   return (
     <main className="overview-panel evidence-view" aria-label="Evidence library">
@@ -109,7 +113,18 @@ export function EvidenceLibraryView({
 
       <div className="evidence-toolbar">
         <div className="evidence-filters" role="group" aria-label="Filter by review status">
-          {(["all", "current", "due_soon", "stale"] as Filter[]).map((value) => (
+          {(["all", "current", "due_soon", "stale", "no_evidence"] as Filter[]).map((value) => (
+            value === "no_evidence" ? (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={filter === value}
+                className={`${filter === value ? "selected" : ""} review-${value}`}
+                onClick={() => setFilter(value)}
+              >
+                Requirements with no evidence {uncovered.length}
+              </button>
+            ) : (
             <button
               key={value}
               type="button"
@@ -119,6 +134,7 @@ export function EvidenceLibraryView({
             >
               {value === "all" ? `All ${library.artifacts.length}` : `${REVIEW_LABELS[value]} ${counts[value]}`}
             </button>
+            )
           ))}
         </div>
         <form className="lead-time" onSubmit={saveLead}>
@@ -133,7 +149,26 @@ export function EvidenceLibraryView({
 
       {error && <p className="form-error"><CircleAlert size={16} /> {error}</p>}
 
-      {library.artifacts.length === 0 ? (
+      {filter === "no_evidence" ? (
+        uncovered.length === 0 ? (
+          <div className="empty-panel"><FileCheck2 size={22} /><p>Every requirement has evidence linked to it.</p></div>
+        ) : (
+          <section className="evidence-coverage" aria-label="Requirements with no evidence">
+            <p className="muted">These requirements have no evidence linked to them or to their objectives. Open one to link a file.</p>
+            <ul>
+              {uncovered.map((requirement) => (
+                <li key={requirement.record_id}>
+                  <button type="button" className="used-by-link" onClick={() => onOpenRecord(requirement.record_id)}>
+                    <strong>{requirement.citation}</strong>
+                    <span>{requirement.title}</span>
+                    <ArrowRight size={13} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      ) : library.artifacts.length === 0 ? (
         <div className="empty-panel"><FileCheck2 size={22} /><p>No evidence yet. Upload a file to start the library.</p></div>
       ) : (
         <table className="evidence-table">
@@ -154,6 +189,7 @@ export function EvidenceLibraryView({
                 <ArtifactRows
                   key={artifact.id}
                   artifact={artifact}
+                  noun={recordNoun}
                   today={library.today}
                   open={open}
                   renewing={renewing === artifact.id}
@@ -207,6 +243,7 @@ export function EvidenceLibraryView({
 
 function ArtifactRows({
   artifact,
+  noun,
   today,
   open,
   renewing,
@@ -219,6 +256,7 @@ function ArtifactRows({
   onBin,
 }: {
   artifact: LibraryArtifact;
+  noun: string;
   today: string;
   open: boolean;
   renewing: boolean;
@@ -258,10 +296,10 @@ function ArtifactRows({
         </td>
         <td>
           {used === 0 ? (
-            <span className="muted-small">Not linked{artifact.other_use_count ? ` · ${artifact.other_use_count} other use${artifact.other_use_count === 1 ? "" : "s"}` : ""}</span>
+            <span className="muted-small">Used by 0 {noun}s{artifact.other_use_count ? ` · ${artifact.other_use_count} other use${artifact.other_use_count === 1 ? "" : "s"}` : ""}</span>
           ) : (
             <button type="button" className="used-by-toggle" aria-expanded={open} onClick={onToggle}>
-              {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />} Used by {used}
+              {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />} Used by {used} {noun}{used === 1 ? "" : "s"}
             </button>
           )}
         </td>
@@ -355,7 +393,7 @@ function RenewForm({
           Move the {artifact.used_by.length} linked objective{artifact.used_by.length === 1 ? "" : "s"} to the new version
         </label>
       )}
-      {stillStale && <p className="link-evidence-warning"><CircleAlert size={13} /> Without a review date after today this file stays stale.</p>}
+      {stillStale && <p className="link-evidence-warning"><CircleAlert size={13} /> Without a review date after today this file stays expired.</p>}
       <div className="link-evidence-actions">
         <button type="submit" className="small-button" disabled={busy || !file}>Upload version {artifact.version_number + 1}</button>
         <button type="button" className="text-button" onClick={onCancel}>Cancel</button>

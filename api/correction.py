@@ -8,7 +8,7 @@ from typing import Any, cast
 from uuid import uuid4
 
 from api.close import fieldwork_ready
-from api.generation import _snapshot, render_package
+from api.generation import _snapshot, render_package, stored_package_type
 from api.package_review import _content_hash, _package
 from api.storage import FileStorage
 
@@ -106,13 +106,27 @@ def create_correction(
     ).fetchone()
     if stored is None or assessment is None:
         raise ValueError("Prior package source binding is invalid")
-    decision = fieldwork_ready(connection, project_id, prior["assessment_id"])
+    source = json.loads(stored["source_json"])
+    # A correction is always of the same package type as the issue it replaces.
+    package_type = stored_package_type(source)
+    decision = fieldwork_ready(
+        connection,
+        project_id,
+        prior["assessment_id"],
+        package_type=package_type or "readiness_close",
+    )
     if decision.get("status") != "Ready":
         raise ValueError(
             "Assessment is no longer ready; a presentation-only correction is not allowed"
         )
-    source = json.loads(stored["source_json"])
-    live, _, _ = _snapshot(connection, project_id, prior["assessment_id"], assessment)
+    live, _, _ = _snapshot(
+        connection,
+        project_id,
+        prior["assessment_id"],
+        assessment,
+        root=root,
+        package_type=package_type,
+    )
     if _content_hash(live) != _content_hash(source):
         # Anything beyond presentation needs the substantive path, not this one.
         raise ValueError(

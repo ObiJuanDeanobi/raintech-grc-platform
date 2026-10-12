@@ -1049,11 +1049,21 @@ li.fail > .check-line svg, li.fail > .check-line .check-result { color: #9b3030;
 .overview-dashboard .section-title { display: flex; padding: 0 0 10px; align-items: baseline; justify-content: space-between; }
 .overview-dashboard .section-title > span { color: var(--muted); font-size: 11px; font-weight: 700; }
 .step-rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.step-rail button { display: flex; padding: 12px 14px; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 12px; background: white; text-align: left; }
+.step-rail .step { display: flex; padding: 12px 14px; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 12px; background: white; text-align: left; }
+.step-rail .step button { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.step-rail .step-figures { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.step-rail .step-figures button { color: var(--muted); font-size: 11px; text-decoration: underline dotted; text-underline-offset: 2px; }
+.step-rail .step button:hover, .step-rail .step button:focus-visible { color: #126b5f; }
+.evidence-progress { margin: 0; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: white; font-size: 12px; }
+.evidence-progress button { padding: 0; border: 0; background: none; color: #126b5f; font: inherit; font-weight: 700; text-decoration: underline dotted; cursor: pointer; }
+.cmmc-score-head .score-verified.not-started strong { color: #687487; font-size: 22px; }
+.score-conditional.neutral { color: #687487; background: #eef1f5; }
+.conditional-verdict.neutral strong { color: #687487; }
+.conditional-checks.not-evaluated > ul > li { border-left-color: #c8d0da; }
+.conditional-checks.not-evaluated .check-line { color: #687487; }
 .step-rail .step-number { display: grid; width: 26px; height: 26px; flex: none; place-items: center; border-radius: 50%; color: white; background: var(--teal); font-size: 12px; font-weight: 700; }
 .step-rail .step-text { display: grid; gap: 2px; }
 .step-rail strong { font-size: 13px; }
-.step-rail small { color: var(--muted); font-size: 11px; }
 .overview-dashboard .cmmc-score { margin: 0; padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px; background: white; }
 .family-table table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .family-table th, .family-table td { padding: 2px 8px; border-bottom: 1px solid #eef1f5; text-align: left; font-weight: 400; }
@@ -1071,11 +1081,6 @@ li.fail > .check-line svg, li.fail > .check-line .check-result { color: #9b3030;
 .poam-state.draft { color: #5f6a7b; background: #eef1f5; }
 .poam-state.open { color: #8d5818; background: var(--amber-soft); }
 .poam-state.closed { color: #126b5f; background: var(--teal-soft); }
-.group-counts { display: grid; margin: 0; padding: 0; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; list-style: none; }
-.group-counts button { display: grid; width: 100%; padding: 10px 12px; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 9px; background: white; text-align: left; font-size: 12px; }
-.group-counts strong { min-width: 30px; font-size: 20px; }
-.every-item { margin-top: 8px; }
-.every-item-list { max-height: 200px; margin: 6px 0 0; padding-left: 18px; overflow-y: auto; color: var(--muted); font-size: 11px; }
 .resume-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .resume-card .eyebrow { margin: 0 0 4px; }
 .resume-card p { margin: 2px 0 0; }
@@ -1102,9 +1107,22 @@ li.fail > .check-line svg, li.fail > .check-line .check-result { color: #9b3030;
 .issue-worth-checking li { display: grid; gap: 2px; font-size: 12px; }
 .issue-worth-checking li span { color: #52606d; font-size: 11px; }
 .issue-worth-checking li .text-button { justify-self: start; }
+.issue-locked { padding: 12px 14px; border-left: 3px solid var(--teal); background: var(--teal-soft); }
+.issue-locked h3 { margin: 0 0 4px; }
+.issue-locked ul { margin: 0; padding-left: 18px; font-size: 12px; }
+.row-menu { display: grid; gap: 6px; }
+.package-choice { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.package-choice legend { padding: 0; margin-bottom: 6px; color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.package-choice label { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid #dbe3e8; border-radius: 8px; background: #fff; cursor: pointer; }
+.package-choice label.selected { border-color: #0b6e69; background: #f3faf9; }
+.package-choice input { margin-top: 3px; }
+.package-choice span { display: grid; gap: 2px; }
+.package-choice strong { font-size: 13px; }
+.package-choice small { color: #52606d; font-size: 11px; line-height: 1.4; }
 .issue-who { display: flex; gap: 28px; margin: 0; }
 .issue-who dt { color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
 .issue-who dd { margin: 2px 0 0; font-size: 13px; font-weight: 600; }
 .review-issue-dialog .primary-button { width: auto; min-width: 140px; }
 .profile-reviewer { color: var(--muted); font-size: 11px; }
 .profile-lifecycle .profile-reviewer { align-self: center; }
+.score-hints { margin: 0; padding-left: 18px; color: #566375; font-size: 12px; }

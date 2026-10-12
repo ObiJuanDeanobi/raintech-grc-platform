@@ -92,7 +92,7 @@ type ScoreLine = { record_id: string; title?: string; points: number; state: "ev
  * A /cmmc-score response in the #141 shape: verified and projected figures with
  * literal arithmetic and the three 32 CFR 170.21 checks, built from deduction lines.
  */
-export function cmmcScoreFixture(lines: ScoreLine[], options: { complete?: boolean; blockers?: string[] } = {}) {
+export function cmmcScoreFixture(lines: ScoreLine[], options: { complete?: boolean; blockers?: string[]; started?: boolean; allDecided?: boolean; hints?: string[] } = {}) {
   const figure = (included: ScoreLine[]) => {
     const value = 110 - included.reduce((sum, line) => sum + line.points, 0);
     const terms = included.map((line) => ` − ${line.points}`).join("");
@@ -113,6 +113,16 @@ export function cmmcScoreFixture(lines: ScoreLine[], options: { complete?: boole
     reason: reason(line),
   }));
   const complete = options.complete ?? !lines.some((line) => line.state === "pending" || line.state === "not_assessed");
+  const allDecided = options.allDecided ?? complete;
+  // Before every requirement is decided, a decided Not Met worth more than one point already fails the POA&M points check.
+  const tooMany = lines.find((line) => line.state === "not_met" && line.points > 1);
+  const checkFlags: Record<string, { state: "not_evaluated" | "failed"; reason: string }> = allDecided ? {} : {
+    minimum_score: { state: "not_evaluated", reason: "" },
+    maximum_points: tooMany
+      ? { state: "failed", reason: `Fails: ${tooMany.record_id} is decided Not Met and is worth ${tooMany.points} points; only 1-point requirements may be on a POA&M.` }
+      : { state: "not_evaluated", reason: "" },
+    excluded: { state: "not_evaluated", reason: "" },
+  };
   const checks = [
     { key: "minimum_score", source: "32 CFR 170.21(a)(2)(i)", passed: verified.value >= 88, detail: `Verified score ${verified.value} ÷ 110; at least 88 of 110 is required.` },
     { key: "maximum_points", source: "32 CFR 170.21(a)(2)(ii)", passed: items.every((item) => item.allowed), detail: "Only POA&M-eligible requirements may be unverified.", items },
@@ -121,6 +131,7 @@ export function cmmcScoreFixture(lines: ScoreLine[], options: { complete?: boole
   return {
     authority: "32 CFR 170.24 CMMC Scoring Methodology", methodology: "NIST SP 800-171 DoD Assessment Methodology v1.2.1",
     maximum_score: 110, minimum_score: -203, score: verified.value, verified, projected, complete,
+    started: options.started ?? true, all_decided: allDecided, check_flags: checkFlags, hints: options.hints ?? [],
     blockers: options.blockers ?? [],
     deductions: lines.map((line) => ({ record_id: line.record_id, citation: line.record_id, title: line.title ?? line.record_id, points: line.points, state: line.state, source: "32 CFR 170.24", conditional_poam_allowed: line.points <= 1, poam_reason: reason(line) })),
     evidence_pending: lines.filter((line) => line.state === "evidence_pending").map((line) => line.record_id),

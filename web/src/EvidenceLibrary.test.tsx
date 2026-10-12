@@ -29,6 +29,10 @@ const libraryFixture: EvidenceLibrary = {
   today: "2026-10-08",
   lead_days: 30,
   assessment_id: "assessment-1",
+  requirements_without_evidence: [
+    { record_id: "AC.L2-3.1.5", citation: "AC.L2-3.1.5", title: "Least Privilege" },
+    { record_id: "AU.L2-3.3.1", citation: "AU.L2-3.3.1", title: "System Auditing" },
+  ],
   artifacts: [
     artifact({ id: "art-current", name: "network-diagram.png", review_date: "2027-03-01", days_until_review: 144 }),
     artifact({
@@ -74,17 +78,17 @@ test("the Evidence view lists every artifact with its review status, short hash 
   expect(within(rows[0]).getByText("Current")).toBeVisible();
   expect(within(rows[1]).getByText("Due soon")).toBeVisible();
   expect(within(rows[1]).getByText("Review due in 12 days (2026-10-20)")).toBeVisible();
-  expect(within(rows[2]).getByText("Stale")).toBeVisible();
+  expect(within(rows[2]).getByText("Expired")).toBeVisible();
   expect(within(rows[2]).getByText("Review overdue since 2026-09-30")).toBeVisible();
   // Short hash in the label, the full SHA-256 only in the tooltip.
   expect(within(rows[0]).getByText(`SHA-256 ${shortHash(FULL_HASH)}`)).toHaveAttribute("title", `SHA-256 ${FULL_HASH}`);
   expect(screen.queryByText(new RegExp(FULL_HASH))).not.toBeInTheDocument();
-  expect(within(rows[0]).getByText("Not linked")).toBeVisible();
+  expect(within(rows[0]).getByText("Used by 0 objectives")).toBeVisible();
   expect(within(rows[0]).getByRole("button", { name: "Move to bin" })).toBeEnabled();
   expect(within(rows[2]).getByRole("button", { name: "Move to bin" })).toBeDisabled();
 
   const user = userEvent.setup();
-  await user.click(within(rows[2]).getByRole("button", { name: /Used by 2/ }));
+  await user.click(within(rows[2]).getByRole("button", { name: /Used by 2 objectives/ }));
   const uses = screen.getByRole("list", { name: "Objectives using access-policy.pdf" });
   expect(within(uses).getAllByRole("listitem")).toHaveLength(2);
   expect(within(uses).getByText("pinned to v1")).toBeVisible();
@@ -92,9 +96,35 @@ test("the Evidence view lists every artifact with its review status, short hash 
   expect(onOpenRecord).toHaveBeenCalledWith("AC.L2-3.1.2b");
 
   // Status filter.
-  await user.click(screen.getByRole("button", { name: "Stale 1" }));
+  await user.click(screen.getByRole("button", { name: "Expired 1" }));
   expect(within(screen.getByRole("table")).getAllByRole("row")).toHaveLength(2 + 1); // header, row, used-by
   expect(screen.getByRole("region", { name: "Recycle bin" })).toHaveTextContent("old-policy.pdf");
+});
+
+test("HIPAA evidence reads 'records', CMMC reads 'objectives'", async () => {
+  libraryServer();
+  render(<EvidenceLibraryView projectId="project-1" recordNoun="record" onOpenRecord={vi.fn()} onChanged={vi.fn()} />);
+  const table = await screen.findByRole("table");
+  const rows = within(table).getAllByRole("row").slice(1);
+  expect(within(rows[0]).getByText("Used by 0 records")).toBeVisible();
+  expect(within(rows[2]).getByRole("button", { name: /Used by 2 records/ })).toBeVisible();
+  expect(screen.queryByText(/Used by \d+ objectives/)).not.toBeInTheDocument();
+});
+
+test("a coverage filter lists requirements with no evidence and opens one", async () => {
+  libraryServer();
+  const onOpenRecord = vi.fn();
+  render(<EvidenceLibraryView projectId="project-1" onOpenRecord={onOpenRecord} onChanged={vi.fn()} />);
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "Requirements with no evidence 2" }));
+  const coverage = screen.getByRole("region", { name: "Requirements with no evidence" });
+  expect(within(coverage).getAllByRole("listitem")).toHaveLength(2);
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  await user.click(within(coverage).getByRole("button", { name: /Least Privilege/ }));
+  expect(onOpenRecord).toHaveBeenCalledWith("AC.L2-3.1.5");
+  // Back to the files.
+  await user.click(screen.getByRole("button", { name: /^All 3/ }));
+  expect(screen.getByRole("table")).toBeVisible();
 });
 
 test("renewing a stale artifact uploads a version with the next review date and moves its mappings", async () => {
@@ -106,12 +136,12 @@ test("renewing a stale artifact uploads a version with the next review date and 
   const user = userEvent.setup();
   await user.click(within(staleRow).getByRole("button", { name: /Renew/ }));
   const form = screen.getByRole("form", { name: "Replace access-policy.pdf" });
-  expect(within(form).getByText(/stays stale/)).toBeVisible();
+  expect(within(form).getByText(/stays expired/)).toBeVisible();
   const move = within(form).getByRole("checkbox", { name: /Move the 2 linked objectives/ });
   expect(move).toBeChecked();
   await user.upload(within(form).getByLabelText("New version of access-policy.pdf"), new File(["2026"], "access-policy.pdf"));
   fireEvent.change(within(form).getByLabelText("Next review date"), { target: { value: "2027-10-08" } });
-  expect(within(form).queryByText(/stays stale/)).not.toBeInTheDocument();
+  expect(within(form).queryByText(/stays expired/)).not.toBeInTheDocument();
   await user.click(within(form).getByRole("button", { name: "Upload version 3" }));
   await waitFor(() => expect(writes.some((write) => write.url.endsWith("/evidence/art-stale/versions"))).toBe(true));
   const body = writes.find((write) => write.url.endsWith("/evidence/art-stale/versions"))!.body as FormData;
@@ -300,10 +330,10 @@ test("a Met whose evidence went stale shows evidence pending and the stale marke
   await user.click(within(picker).getByRole("button", { name: "Link to 1 objective" }));
 
   const row = screen.getByRole("listitem", { name: "Objective AC.L2-3.1.1[a]" });
-  expect(await within(row).findByText("Evidence stale")).toBeVisible();
+  expect(await within(row).findByText("Evidence expired")).toBeVisible();
   expect(within(row).getByText("Evidence pending")).toBeVisible();
   expect(within(row).getByRole("button", { name: "Met" })).toHaveAttribute("aria-pressed", "true");
   const evidence = screen.getByRole("region", { name: "Linked evidence" });
-  expect(await within(evidence).findByText("Stale: no longer verifies a Met")).toBeVisible();
+  expect(await within(evidence).findByText("Expired: no longer verifies a Met")).toBeVisible();
   expect(within(evidence).getByText(`SHA-256: ${shortHash(FULL_HASH)}`)).toBeVisible();
 });
