@@ -130,6 +130,17 @@ def profile_payload(expected_revision: str = "1") -> dict[str, object]:
     }
 
 
+def resolved_profile_payload(expected_revision: str = "1") -> dict[str, object]:
+    """The standard Profile with its recorded unknown resolved (no follow-up item left)."""
+    payload = profile_payload(expected_revision)
+    payload["items"] = [
+        item
+        for item in payload["items"]  # type: ignore[attr-defined]
+        if item["item_type"] != "unknown_follow_up"
+    ]
+    return payload
+
+
 def lifecycle_payload(
     client: TestClient,
     project_id: str,
@@ -207,11 +218,7 @@ def test_generic_profile_versions_lifecycle_provenance_and_immutability(tmp_path
             + [field for item in payload["items"] for field in item["values"]]
         )
 
-        reviewed = client.post(
-            f"/api/projects/{project_id}/profile/versions/{draft['id']}/lifecycle",
-            json=lifecycle_payload(client, project_id, draft["id"], "Reviewed"),
-        )
-        assert reviewed.status_code == 201
+        # The Profile is approved once: Draft goes straight to Approved (issue #145).
         approved = client.post(
             f"/api/projects/{project_id}/profile/versions/{draft['id']}/lifecycle",
             json=lifecycle_payload(client, project_id, draft["id"], "Approved"),
@@ -221,7 +228,6 @@ def test_generic_profile_versions_lifecycle_provenance_and_immutability(tmp_path
         assert approved.json()["version"]["status"] == "Approved"
         assert [event["status"] for event in approved.json()["version"]["lifecycle"]] == [
             "Draft",
-            "Reviewed",
             "Approved",
         ]
         assert all(

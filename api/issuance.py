@@ -6,19 +6,56 @@ import sqlite3
 import tempfile
 import threading
 import zipfile
+from collections.abc import Callable
 from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Never, cast
 from uuid import uuid4
 
+from fastapi import HTTPException
+
+from api import evidence_library, evidence_lifecycle
 from api.close import fieldwork_ready
-from api.correction import correction_for, issuance_blockers, package_issuance, record_supersession
+from api.cmmc import TERMINAL_POAM_STATUSES
+from api.correction import (
+    PRESENTATION_ONLY,
+    correction_for,
+    create_correction,
+    current_issuance,
+    issuance_blockers,
+    package_issuance,
+    record_supersession,
+)
 from api.database import active_assessment_by_id
 from api.evidence_integrity import evidence_blockers, verify_assessment_evidence
-from api.package_review import get_review
+from api.generation import generate_package
+from api.package_review import get_review, record_ready_to_issue
+from api.storage import FileStorage
 
 _operation_lock = threading.RLock()
+
+
+class IssueBlocked(Exception):
+    """The data is not ready to issue: what must be fixed first, grouped for a person."""
+
+    def __init__(self, groups: list[dict[str, Any]], blockers: list[dict[str, Any]]) -> None:
+        super().__init__("Fix these before issuing")
+        self.groups = groups
+        self.blockers = blockers
+
+
+class IssueFailed(Exception):
+    """An unexpected failure inside the act; the reason is already audited."""
+
+    def __init__(self, message: str, unexpected: bool = False) -> None:
+        super().__init__(message)
+        self.unexpected = unexpected
+
+
+def _reason(exc: BaseException) -> str:
+    text = str(exc).strip() or type(exc).__name__
+    return text if isinstance(exc, ValueError | LookupError) else f"{type(exc).__name__}: {text}"
 
 
 class BackupFailure(RuntimeError):
@@ -312,10 +349,22 @@ def create_backup(
                 stage,
                 "; ".join(readiness["blockers"]),
             )
-        backup_root.mkdir(parents=True, exist_ok=True)
-        # Keep the staging name short for Windows MAX_PATH compatibility; the
-        # published archive still carries the immutable backup identity.
-        staging = Path(tempfile.mkdtemp(prefix="b-", dir=backup_root))
+        try:
+            backup_root.mkdir(parents=True, exist_ok=True)
+            # Keep the staging name short for Windows MAX_PATH compatibility; the
+            # published archive still carries the immutable backup identity.
+            staging = Path(tempfile.mkdtemp(prefix="b-", dir=backup_root))
+        except OSError as exc:
+            # A missing or unwritable backup folder is a failed backup, recorded as one.
+            _fail_backup(
+                connection,
+                identity,
+                backup_id,
+                actor_id,
+                started,
+                "backup_folder",
+                f"The backup folder cannot be used: {exc.strerror or exc}",
+            )
         staged_archive, final_archive = (
             backup_root / "backup.tmp",
             backup_root / f"{backup_id}.zip",
@@ -494,6 +543,8 @@ def issue_package(
                     "Exact backup or package binding is invalid",
                 ),
             )
+            if readiness["blockers"]:
+                raise ValueError("Issuance is blocked: " + "; ".join(readiness["blockers"]))
             raise ValueError("Issuance is blocked: exact backup or package binding is invalid")
         backup = connection.execute(
             "SELECT * FROM backup_records WHERE id=? AND project_id=?", (backup_id, project_id)
@@ -568,3 +619,326 @@ def issue_package(
         return issue_readiness(
             connection, project_id, package_id, root, managed_root, backup_root, backup_id
         )
+
+
+Audit = Callable[[str, str, str, dict[str, Any]], None]
+
+# A second issue of the same assessment inside this window is almost certainly a
+# double click or a retry after a timeout, so it is refused (tests set it to 0).
+DOUBLE_SUBMIT_SECONDS = 60
+
+
+def issue_checklist(
+    connection: sqlite3.Connection, project_id: str, assessment_id: str, managed_root: Path
+) -> dict[str, Any]:
+    """What the review-and-issue dialog shows (GitHub issue #145), read-only.
+
+    ``groups`` are the hard gates, each of which stops the issue. ``warnings`` are
+    things worth a look that never stop it; nothing needs ticking.
+    """
+    decision = fieldwork_ready(connection, project_id, assessment_id, storage_root=managed_root)
+    framework = connection.execute(
+        """SELECT declarations_json FROM framework_versions
+           WHERE id = (SELECT framework_version_id FROM projects WHERE id=?)""",
+        (project_id,),
+    ).fetchone()
+    close_validators = (
+        json.loads(framework["declarations_json"])
+        .get("close_readiness", {})
+        .get("fieldwork_ready_for_generation", {})
+        .get("validators", [])
+    )
+    warnings: list[dict[str, Any]] = []
+    if "poam_closed" not in close_validators:
+        open_actions = connection.execute(
+            """SELECT COUNT(*) FROM corrective_actions
+               WHERE project_id=? AND status NOT IN ({})""".format(
+                ", ".join("?" for _ in TERMINAL_POAM_STATUSES)
+            ),
+            (project_id, *TERMINAL_POAM_STATUSES),
+        ).fetchone()[0]
+        if open_actions:
+            warnings.append(
+                {
+                    "key": "open_corrective_work",
+                    "label": "Corrective work still open",
+                    "count": open_actions,
+                    "detail": "It will be listed as open in the POA&M. Issuing does not close it.",
+                    "target": "poam",
+                }
+            )
+    library = evidence_library.library(connection, project_id)
+    for status, key, label, detail in (
+        (
+            evidence_lifecycle.STALE,
+            "evidence_past_review",
+            "Evidence past its review date",
+            "A Met that relies on it no longer counts as verified.",
+        ),
+        (
+            evidence_lifecycle.DUE_SOON,
+            "evidence_due_soon",
+            "Evidence due for review soon",
+            "Worth refreshing before the report goes out.",
+        ),
+    ):
+        count = sum(
+            1
+            for artifact in library["artifacts"]
+            if artifact["review_status"] == status and artifact["used_by"]
+        )
+        if count:
+            warnings.append(
+                {"key": key, "label": label, "count": count, "detail": detail, "target": "evidence"}
+            )
+    current = current_issuance(connection, project_id)
+    return {
+        "ready": bool(decision["ready"]),
+        "groups": decision["groups"],
+        "blockers": decision["blockers"],
+        "warnings": warnings,
+        "current_issue": (
+            {"package_id": current["package_id"], "issued_at": current["issued_at"]}
+            if current is not None
+            else None
+        ),
+    }
+
+
+def review_and_issue(
+    connection: sqlite3.Connection,
+    storage: FileStorage,
+    database_path: Path,
+    managed_root: Path,
+    root: Path,
+    backup_root: Path,
+    project_id: str,
+    assessment_id: str,
+    actor_id: str,
+    reviewer_name: str,
+    note: str,
+    audit: Audit,
+    staging_root: Path | None = None,
+    correct_package_id: str | None = None,
+) -> dict[str, Any]:
+    """The one review-and-issue act (GitHub issue #145, ADR 0021).
+
+    Hard gates, then a fresh package from the data as it is now, then one
+    sign-off by the reviewer, then the automatic pre-issuance backup, then issue.
+    A failed backup stops the act before anything is issued; the last issued
+    version stays current. Every failure is audited.
+
+    When the project already has a current issue of this assessment, the new
+    package is a presentation-only correction of it, which supersedes it; changed
+    data cannot do that and has to go through reopening, as before.
+    """
+    with _operation_lock:
+        stage = "checks"
+
+        def failed(action: str, entity: str, entity_id: str, details: dict[str, Any]) -> None:
+            audit(action, entity, entity_id, {"project_id": project_id, "stage": stage, **details})
+            connection.commit()
+
+        try:
+            decision = fieldwork_ready(
+                connection, project_id, assessment_id, storage_root=managed_root
+            )
+            if decision["status"] != "Ready":
+                connection.rollback()
+                failed(
+                    "package.issue_blocked",
+                    "assessment",
+                    assessment_id,
+                    {"groups": decision["groups"]},
+                )
+                raise IssueBlocked(decision["groups"], decision["blockers"])
+            stage = "package"
+            current = current_issuance(connection, project_id)
+            if current is not None and current["assessment_id"] == assessment_id:
+                age = (
+                    datetime.now(UTC) - datetime.fromisoformat(current["issued_at"])
+                ).total_seconds()
+                if age < DOUBLE_SUBMIT_SECONDS:
+                    raise ValueError(
+                        "This was just issued a moment ago. Wait a minute before issuing "
+                        "again, or reload to see the issued version."
+                    )
+            reissue_of = correct_package_id or (
+                current["package_id"]
+                if current is not None and current["assessment_id"] == assessment_id
+                else None
+            )
+            if reissue_of is not None:
+                try:
+                    created = create_correction(
+                        connection,
+                        storage,
+                        root,
+                        project_id,
+                        reissue_of,
+                        PRESENTATION_ONLY,
+                        True,
+                        f"Reissued by {reviewer_name.strip()}"
+                        + (f": {note.strip()}" if note.strip() else "."),
+                        actor_id,
+                        staging_root,
+                    )
+                except ValueError as exc:
+                    if "source changed" in str(exc):
+                        raise ValueError(
+                            "Your data has changed since the last issue. Reopen the "
+                            "assessment to issue a new version."
+                        ) from exc
+                    raise
+                package = created["package"]
+                audit(
+                    "hipaa_presentation_correction_created",
+                    "package_correction",
+                    created["correction"]["id"],
+                    {"project_id": project_id, "prior_package_id": reissue_of},
+                )
+            else:
+                package = generate_package(
+                    connection, storage, root, project_id, assessment_id, staging_root
+                )
+            audit(
+                "hipaa_package_generated",
+                "generated_package",
+                package["id"],
+                {
+                    "project_id": project_id,
+                    "assessment_id": assessment_id,
+                    "source_snapshot_sha256": package["manifest"]["source_snapshot_sha256"],
+                },
+            )
+            connection.commit()
+            stage = "review"
+            record_ready_to_issue(
+                connection,
+                project_id,
+                package["id"],
+                actor_id,
+                reviewer_name,
+                note,
+                root,
+                managed_root,
+            )
+            audit(
+                "hipaa_package_review_transition",
+                "generated_package",
+                package["id"],
+                {"project_id": project_id, "next_state": "Ready to issue"},
+            )
+            connection.commit()
+        except IssueBlocked:
+            raise
+        except Exception as exc:
+            if stage == "package":
+                # Keep the failed generation attempt the generator recorded.
+                connection.commit()
+            else:
+                connection.rollback()
+            failed("package.issue_failed", "assessment", assessment_id, {"reason": _reason(exc)})
+            if isinstance(exc, ValueError | LookupError | HTTPException):
+                raise
+            raise IssueFailed(f"Nothing was issued. {_reason(exc)}", unexpected=True) from exc
+        stage = "backup"
+        try:
+            backup = create_backup(
+                connection,
+                database_path,
+                managed_root,
+                root,
+                backup_root,
+                project_id,
+                package["id"],
+                actor_id,
+            )
+        except BackupFailure as exc:
+            details = {
+                "package_id": package["id"],
+                "failed_stage": exc.record["failed_stage"],
+                "reason": str(exc),
+            }
+            audit(
+                "hipaa_preissuance_backup_failed",
+                "backup_record",
+                exc.record["id"],
+                {"project_id": project_id, "stage": stage, **details},
+            )
+            audit(
+                "package.backup_failed",
+                "backup_record",
+                exc.record["id"],
+                {"project_id": project_id, "stage": stage, **details},
+            )
+            failed("package.issue_failed", "generated_package", package["id"], details)
+            raise
+        audit(
+            "hipaa_preissuance_backup_completed",
+            "backup_record",
+            backup["id"],
+            {
+                "project_id": project_id,
+                "package_id": package["id"],
+                "manifest_sha256": backup["manifest_sha256"],
+            },
+        )
+        connection.commit()
+        stage = "issue"
+        try:
+            issued = issue_package(
+                connection,
+                project_id,
+                package["id"],
+                backup["id"],
+                actor_id,
+                root,
+                managed_root,
+                backup_root,
+            )
+        except (ValueError, LookupError, sqlite3.Error) as exc:
+            connection.rollback()
+            reason = _reason(exc)
+            audit(
+                "hipaa_package_issue_failed",
+                "generated_package",
+                package["id"],
+                {
+                    "project_id": project_id,
+                    "stage": stage,
+                    "backup_id": backup["id"],
+                    "reason": reason,
+                },
+            )
+            failed(
+                "package.issue_failed",
+                "generated_package",
+                package["id"],
+                {"backup_id": backup["id"], "reason": reason},
+            )
+            if isinstance(exc, ValueError):
+                raise
+            raise ValueError(
+                f"Nothing was issued. The workspace could not finish the issue ({reason}). "
+                "Try again in a moment."
+            ) from exc
+        superseded = issued["correction"]["prior_package_id"] if issued["correction"] else None
+        audit(
+            "hipaa_package_issued",
+            "issuance_snapshot",
+            issued["issued_snapshot_id"],
+            {
+                "project_id": project_id,
+                "package_id": package["id"],
+                "backup_id": backup["id"],
+                "superseded_package_id": superseded,
+            },
+        )
+        return {
+            **issued,
+            "reviewer": reviewer_name.strip(),
+            "note": note.strip(),
+            "backup_id": backup["id"],
+            "superseded_package_id": superseded,
+        }

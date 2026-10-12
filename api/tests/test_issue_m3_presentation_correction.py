@@ -12,7 +12,7 @@ from httpx import Response
 from api.main import create_app
 from api.tests.test_issue_m3_assessment_revision_contract import migration_config
 from api.tests.test_issue_m3_hipaa_issue_backup import _app, _backup, _issued_candidate
-from api.tests.test_issue_m3_hipaa_review import _transition
+from api.tests.test_issue_m3_hipaa_review import _sign_off
 
 SOURCE_TABLES = (
     "assessments",
@@ -65,8 +65,7 @@ def _correct(client: TestClient, project: str, package_id: str, **changes: Any) 
 
 
 def _sign(client: TestClient, project: str, package_id: str) -> None:
-    for state in ("In Review", "Reviewed", "Ready to issue"):
-        assert _transition(client, project, package_id, state).status_code == 201
+    assert _sign_off(client, project, package_id).status_code == 201
 
 
 def _dump(db: Path, tables: tuple[str, ...]) -> dict[str, list[tuple[Any, ...]]]:

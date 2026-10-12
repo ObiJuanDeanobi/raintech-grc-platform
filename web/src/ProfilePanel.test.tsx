@@ -163,7 +163,7 @@ beforeEach(() => {
         );
       }
       if (url.endsWith("/lifecycle") && init?.method === "POST") {
-        const body = JSON.parse(String(init.body)) as { status: "Reviewed" | "Approved" };
+        const body = JSON.parse(String(init.body)) as { status: "Approved" };
         const lifecycle = [
           ...version.lifecycle,
           {
@@ -226,14 +226,42 @@ test("records lifecycle, preserves prior versions, and creates a later draft", a
   render(<ProfilePanel projectId="project-1" />);
   expect(await screen.findAllByText("Version 1 · Draft")).not.toHaveLength(0);
 
-  await user.type(screen.getByLabelText("Lifecycle reviewer"), "Johnathan");
-  await user.click(screen.getByRole("button", { name: "Record review" }));
-  expect(await screen.findByText("Reviewed by Johnathan")).toBeVisible();
+  // The Profile is approved once: no separate review step, no reviewer to type.
+  expect(screen.queryByRole("button", { name: "Record review" })).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Lifecycle reviewer")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Approve version" }));
   expect(await screen.findByText("Active approved snapshot")).toBeVisible();
+  const approval = vi.mocked(fetch).mock.calls.find(([input]) => String(input).endsWith("/lifecycle"));
+  expect(JSON.parse(String(approval?.[1]?.body))).toEqual({
+    status: "Approved",
+    expected_revision: "revision-1",
+  });
+  expect(screen.queryByRole("button", { name: "Approve version" })).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Create new version" }));
   expect(await screen.findAllByText("Version 2 · Draft")).not.toHaveLength(0);
   expect(screen.getByRole("option", { name: /Version 1 · Approved/ })).toBeInTheDocument();
+});
+
+test("approving a version with unknowns says Profile complete waits for the follow-up", async () => {
+  const message = "Approved. Profile complete is recorded once the follow-up items are resolved.";
+  const base = vi.mocked(fetch).getMockImplementation()!;
+  vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith("/lifecycle") && init?.method === "POST") {
+      return Response.json({
+        active_version_id: version.id,
+        profile_complete: false,
+        message,
+        version: { ...version, status: "Approved", lifecycle: [...version.lifecycle, { id: "e", status: "Approved", actor: { id: "johnathan", display_name: "Johnathan" }, reviewer: "Johnathan", timestamp: "2026-08-26T21:00:00+00:00" }] },
+      }, { status: 201 });
+    }
+    return base(input, init);
+  });
+  const user = userEvent.setup();
+  render(<ProfilePanel projectId="project-1" />);
+  await screen.findAllByText("Version 1 · Draft");
+  await user.click(screen.getByRole("button", { name: "Approve version" }));
+  expect(await screen.findByText(message)).toBeVisible();
+  expect(screen.queryByText("Version approved.")).not.toBeInTheDocument();
 });
 
 test("reuses same-project evidence and shows a new stored-byte upload hash", async () => {
@@ -327,14 +355,14 @@ test("uses the same component for HIPAA and CMMC and ignores a late project resp
   expect(screen.queryByDisplayValue("Synthetic program")).not.toBeInTheDocument();
 });
 
-test("blocks review of dirty displayed content until the draft is saved", async () => {
+test("blocks approval of dirty displayed content until the draft is saved", async () => {
   const user = userEvent.setup();
   render(<ProfilePanel projectId="project-1" />);
   const field = await screen.findByDisplayValue("Synthetic program");
   await user.clear(field);
   await user.type(field, "Unsaved changed program");
   expect(screen.getByText(/Unsaved Profile changes must be saved/i)).toBeVisible();
-  expect(screen.getByRole("button", { name: "Record review" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Approve version" })).toBeDisabled();
   expect(
     vi.mocked(fetch).mock.calls.some(
       ([input]) => String(input).endsWith("/lifecycle"),
@@ -376,13 +404,13 @@ test("an edit made during a delayed save remains visible and dirty", async () =>
 
 test("a delayed lifecycle request locks editing and applies the real server state", async () => {
   const delayedLifecycle = deferredResponse();
-  let serverReviewed = false;
+  let serverApproved = false;
   vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.endsWith("/profile")) {
       return Response.json(
-        serverReviewed
-          ? { ...profile, versions: [{ ...version, status: "Reviewed" }] }
+        serverApproved
+          ? { ...profile, active_version_id: version.id, versions: [{ ...version, status: "Approved" }] }
           : profile,
       );
     }
@@ -396,22 +424,21 @@ test("a delayed lifecycle request locks editing and applies the real server stat
   const user = userEvent.setup();
   const mounted = render(<ProfilePanel projectId="project-1" onDirtyChange={onDirtyChange} />);
   const field = await screen.findByDisplayValue("Synthetic program");
-  await user.type(screen.getByLabelText("Lifecycle reviewer"), "Johnathan");
-  await user.click(screen.getByRole("button", { name: "Record review" }));
+  await user.click(screen.getByRole("button", { name: "Approve version" }));
   expect(field).toBeDisabled();
   expect(screen.getByLabelText("Profile version")).toBeDisabled();
   expect(field).toHaveValue("Synthetic program");
-  serverReviewed = true;
+  serverApproved = true;
   delayedLifecycle.resolve(Response.json({
-    active_version_id: null,
+    active_version_id: version.id,
     version: {
       ...version,
-      status: "Reviewed",
+      status: "Approved",
       lifecycle: [
         ...version.lifecycle,
         {
-          id: "event-reviewed",
-          status: "Reviewed",
+          id: "event-approved",
+          status: "Approved",
           actor: { id: "johnathan", display_name: "Johnathan" },
           reviewer: "Johnathan",
           content_revision: "revision-1",
@@ -421,15 +448,15 @@ test("a delayed lifecycle request locks editing and applies the real server stat
     },
   }));
 
-  expect(await screen.findByText("Reviewed by Johnathan")).toBeVisible();
+  expect(await screen.findByText("Version approved.")).toBeVisible();
   expect(screen.getByDisplayValue("Synthetic program")).toBeDisabled();
-  expect(screen.getAllByText("Version 1 · Reviewed")).not.toHaveLength(0);
+  expect(screen.getAllByText("Version 1 · Approved")).not.toHaveLength(0);
   expect(screen.queryByRole("button", { name: "Save draft" })).not.toBeInTheDocument();
   await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(false));
   mounted.unmount();
   render(<ProfilePanel projectId="project-1" />);
   expect(await screen.findByDisplayValue("Synthetic program")).toBeDisabled();
-  expect(screen.getAllByText("Version 1 · Reviewed")).not.toHaveLength(0);
+  expect(screen.getAllByText("Version 1 · Approved")).not.toHaveLength(0);
 });
 
 test("delayed evidence reuse merges once without overwriting newer local edits", async () => {
@@ -560,8 +587,7 @@ test("sends the displayed revision and reloads after a stale lifecycle conflict"
   const user = userEvent.setup();
   render(<ProfilePanel projectId="project-1" />);
   await screen.findByDisplayValue("Synthetic program");
-  await user.type(screen.getByLabelText("Lifecycle reviewer"), "Johnathan");
-  await user.click(screen.getByRole("button", { name: "Record review" }));
+  await user.click(screen.getByRole("button", { name: "Approve version" }));
 
   expect(await screen.findByDisplayValue("Changed by another operator")).toBeVisible();
   expect(lifecycleBody.expected_revision).toBe("revision-1");
@@ -725,13 +751,12 @@ test("late save and lifecycle responses from Project A never overwrite Project B
 
   rerender(<ProfilePanel projectId="project-1" />);
   await screen.findByDisplayValue("Synthetic program");
-  await user.type(screen.getByLabelText("Lifecycle reviewer"), "Johnathan");
-  await user.click(screen.getByRole("button", { name: "Record review" }));
+  await user.click(screen.getByRole("button", { name: "Approve version" }));
   rerender(<ProfilePanel projectId="project-2" />);
   await screen.findByDisplayValue("Project B remains visible");
   lifecycle.resolve(Response.json({
     active_version_id: null,
-    version: { ...version, status: "Reviewed", values: [
+    version: { ...version, status: "Approved", values: [
       profileValue("project_metadata", "name", "Name", "LEAKED LIFECYCLE"),
     ] },
   }));

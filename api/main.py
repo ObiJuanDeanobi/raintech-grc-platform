@@ -37,11 +37,19 @@ from api.framework import (
     seed_cmmc_catalog,
     seed_framework,
 )
-from api.generation import generate_package, list_packages
-from api.issuance import BackupFailure, create_backup, issue_package, issue_readiness
+from api.generation import generate_package, list_packages, render_draft
+from api.issuance import (
+    BackupFailure,
+    IssueBlocked,
+    IssueFailed,
+    create_backup,
+    issue_checklist,
+    issue_package,
+    issue_readiness,
+    review_and_issue,
+)
 from api.overview import overview as overview_dashboard
-from api.package_review import get_review
-from api.package_review import transition as transition_package_review
+from api.package_review import get_review, record_ready_to_issue
 from api.reopening import reopen_assessment, reopening_for, revalidate, revalidation_items
 from api.risk import RiskScore, score_risk
 from api.storage import FileStorage, LocalFileStorage
@@ -226,14 +234,16 @@ class PromptAnswerSave(BaseModel):
     answer: str
 
 
-class PackageReviewTransition(BaseModel):
+class PackageSignOff(BaseModel):
+    """The reviewer is the account; the note is optional (GitHub issue #145)."""
+
     actor_id: str = "johnathan"
-    next_state: str
-    reviewer_name: str = Field(min_length=1, max_length=200)
-    reviewer_role: str = Field(min_length=1, max_length=200)
-    note: str = Field(min_length=1, max_length=4000)
-    approval: str = Field(default="", max_length=4000)
-    component_confirmations: dict[str, bool] = Field(default_factory=dict)
+    note: str = Field(default="", max_length=4000)
+
+
+class IssueAct(BaseModel):
+    actor_id: str = "johnathan"
+    note: str = Field(default="", max_length=4000)
 
 
 class BackupCreate(BaseModel):
@@ -814,11 +824,11 @@ def _profile_readiness(connection: Any, project_id: str) -> dict[str, Any]:
             completion["unresolved_required_field_blocking_reason"].format(field=field)
             for field in unresolved
         )
-    required_fields = cast(dict[str, dict[str, str]], completion["required_fields"])
-    for field, requirement in required_fields.items():
-        if not cast(str, latest[field]).strip():
-            profile_blockers.append(requirement["blocking_reason"])
     state = cast(str, latest["next_state"])
+    if state != completion["state"]:
+        # The named reviewer and approval evidence are recorded by approving a
+        # Profile version, not typed into the readiness form (GitHub issue #145).
+        profile_blockers.append("Approve the Profile version.")
     assessment_entry = cast(dict[str, Any], declaration["assessment_entry"])
     follow_up_rule = cast(dict[str, Any], declaration["follow_up_work"])
     assessment_exists = active_assessment_for_project(connection, project_id) is not None
@@ -1359,6 +1369,74 @@ def _record_readiness_transition(
     )
 
 
+def _profile_unknowns(connection: Any, version_id: str) -> int:
+    """Recorded unknowns in a Profile version: follow-up items and Unknown values."""
+    return int(
+        connection.execute(
+            """SELECT
+                 (SELECT COUNT(*) FROM profile_items
+                  WHERE profile_version_id = ? AND item_type = 'unknown_follow_up')
+               + (SELECT COUNT(*) FROM profile_field_values
+                  WHERE profile_version_id = ?
+                    AND lower(trim(value)) IN ('unknown', 'to determine', 'unknown / to determine'))
+            """,
+            (version_id, version_id),
+        ).fetchone()[0]
+    )
+
+
+def _record_profile_complete(
+    connection: Any, project_id: str, version_id: str, reviewer: str
+) -> bool:
+    """Approving a Profile version is the Profile-complete act (GitHub issue #145).
+
+    Records the readiness transition through the same validation and history as
+    the readiness endpoint. A project still at ``Intake started`` first records
+    ``Intake complete``. Unresolved required fields recorded on the project still
+    block, with the same message as before.
+
+    Profile complete means no unknown remains (specification, Profile readiness).
+    A version that still records unknowns is approved but does not record Profile
+    complete, and never overrides a recorded ``Needs follow-up``; approving a later
+    version with the unknowns resolved records it, from ``Needs follow-up`` too.
+    Returns whether the project is now at Profile complete.
+    """
+    declaration = _project_readiness_declaration(connection, project_id)
+    completion = cast(dict[str, Any], declaration["profile_completion"])
+    latest = _latest_profile_readiness_transition(connection, project_id)
+    state = cast(str, latest["next_state"])
+    if _profile_unknowns(connection, version_id):
+        return False
+    if state == completion["state"]:
+        return True
+    version = connection.execute(
+        "SELECT version_number FROM profile_versions WHERE id = ?", (version_id,)
+    ).fetchone()
+    unresolved = cast(list[str], json.loads(latest["unresolved_required_fields_json"] or "[]"))
+    if state == declaration["initial_state"]:
+        _record_readiness_transition(
+            connection,
+            project_id,
+            "Intake complete",
+            "Intake recorded when the Profile was approved.",
+            [],
+            "",
+            "",
+            "",
+        )
+    _record_readiness_transition(
+        connection,
+        project_id,
+        completion["state"],
+        f"Profile version {version['version_number']} approved by {reviewer}.",
+        unresolved,
+        "",
+        reviewer,
+        f"Profile version {version['version_number']} approved on {now()[:10]}.",
+    )
+    return True
+
+
 def _create_assessment(connection: Any, project: Any) -> dict[str, Any]:
     """Create the project's first assessment once its readiness state allows entry."""
     project_id = cast(str, project["id"])
@@ -1583,6 +1661,15 @@ def create_app(
                     )
                 ]
                 package.update(package_issuance(connection, project_id, package["id"]))
+                signed = connection.execute(
+                    """SELECT reviewer_name, note, created_at FROM package_review_events
+                       WHERE project_id = ? AND package_id = ? AND next_state = 'Ready to issue'
+                       ORDER BY sequence DESC LIMIT 1""",
+                    (project_id, package["id"]),
+                ).fetchone()
+                package["reviewer"] = signed["reviewer_name"] if signed else None
+                package["review_note"] = signed["note"] if signed else None
+                package["reviewed_at"] = signed["created_at"] if signed else None
             return packages
 
     @app.post("/api/projects/{project_id}/packages/{package_id}/corrections", status_code=201)
@@ -1786,30 +1873,25 @@ def create_app(
             except ValueError as exc:
                 raise HTTPException(409, str(exc)) from exc
 
-    @app.post(
-        "/api/projects/{project_id}/packages/{package_id}/review/transitions", status_code=201
-    )
-    def review_package(
+    @app.post("/api/projects/{project_id}/packages/{package_id}/review/sign-off", status_code=201)
+    def sign_off_package(
         project_id: str,
         package_id: str,
-        payload: PackageReviewTransition,
+        payload: PackageSignOff,
         database: Annotated[Database, Depends(db)],
     ) -> dict[str, Any]:
+        """Building block of the issue act: one sign-off by the selected account."""
         with database.connect() as connection:
             _project_or_404(connection, project_id)
-            _user_or_422(connection, payload.actor_id)
+            user = _user_or_422(connection, payload.actor_id)
             try:
-                result = transition_package_review(
+                result = record_ready_to_issue(
                     connection,
                     project_id,
                     package_id,
-                    payload.next_state,
                     payload.actor_id,
-                    payload.reviewer_name,
-                    payload.reviewer_role,
+                    user["display_name"],
                     payload.note,
-                    payload.approval,
-                    payload.component_confirmations,
                     root,
                     database.managed_storage_root,
                 )
@@ -1824,7 +1906,7 @@ def create_app(
                 package_id,
                 {
                     "project_id": project_id,
-                    "next_state": payload.next_state,
+                    "next_state": "Ready to issue",
                     "sequence": result["events"][-1]["sequence"],
                 },
                 payload.actor_id,
@@ -1953,6 +2035,126 @@ def create_app(
                 payload.actor_id,
             )
             return result
+
+    @app.get("/api/projects/{project_id}/assessments/{assessment_id}/draft")
+    def download_draft(
+        project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)]
+    ) -> Response:
+        """A watermarked draft ZIP from the data as it is now. Never stored, never issued."""
+        with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
+            try:
+                filename, content = render_draft(connection, root, project_id, assessment_id)
+            except ValueError as exc:
+                raise HTTPException(409, str(exc)) from exc
+            _audit(
+                connection,
+                "package.draft_generated",
+                "assessment",
+                assessment_id,
+                {"project_id": project_id, "assessment_id": assessment_id, "filename": filename},
+            )
+        return Response(
+            content,
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    @app.get("/api/projects/{project_id}/assessments/{assessment_id}/issue-checklist")
+    def get_issue_checklist(
+        project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
+            return issue_checklist(connection, project_id, assessment_id, managed_storage)
+
+    def run_issue_act(
+        connection: Any,
+        files: FileStorage,
+        project_id: str,
+        assessment_id: str,
+        payload: IssueAct,
+        correct_package_id: str | None = None,
+    ) -> dict[str, Any]:
+        user = _user_or_422(connection, payload.actor_id)
+        try:
+            return review_and_issue(
+                connection,
+                files,
+                database.path,
+                managed_storage,
+                root,
+                backup_root,
+                project_id,
+                assessment_id,
+                payload.actor_id,
+                user["display_name"],
+                payload.note,
+                lambda action, entity, entity_id, details: _audit(
+                    connection, action, entity, entity_id, details, payload.actor_id
+                ),
+                managed_storage.parent / "generation-staging",
+                correct_package_id,
+            )
+        except IssueBlocked as exc:
+            raise HTTPException(
+                409,
+                {
+                    "message": "Fix these before issuing.",
+                    "groups": exc.groups,
+                    "blockers": exc.blockers,
+                },
+            ) from exc
+        except BackupFailure as exc:
+            current = connection.execute(
+                "SELECT 1 FROM current_issuances WHERE project_id = ?", (project_id,)
+            ).fetchone()
+            raise HTTPException(
+                409,
+                f"Backup failed: {str(exc).strip().rstrip('.')}. Nothing was issued"
+                + ("; the last issued version is still current." if current else "."),
+            ) from exc
+        except LookupError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        except IssueFailed as exc:
+            # Already audited with the real reason; the person gets a plain message.
+            raise HTTPException(500, str(exc)) from exc
+
+    @app.post("/api/projects/{project_id}/assessments/{assessment_id}/issue", status_code=201)
+    def issue_assessment(
+        project_id: str,
+        assessment_id: str,
+        payload: IssueAct,
+        database: Annotated[Database, Depends(db)],
+        files: Annotated[FileStorage, Depends(files)],
+    ) -> dict[str, Any]:
+        """Review and issue in one act, from the data as it is now (ADR 0021)."""
+        with database.connect() as connection:
+            _assessment_for_project_or_404(connection, project_id, assessment_id)
+            return run_issue_act(connection, files, project_id, assessment_id, payload)
+
+    @app.post("/api/projects/{project_id}/packages/{package_id}/issue-now", status_code=201)
+    def issue_correction_now(
+        project_id: str,
+        package_id: str,
+        payload: IssueAct,
+        database: Annotated[Database, Depends(db)],
+        files: Annotated[FileStorage, Depends(files)],
+    ) -> dict[str, Any]:
+        """Issue a presentation-only correction of the current issue in one act."""
+        with database.connect() as connection:
+            _project_or_404(connection, project_id)
+            package = connection.execute(
+                "SELECT assessment_id FROM generated_packages WHERE id=? AND project_id=?",
+                (package_id, project_id),
+            ).fetchone()
+            if package is None:
+                raise HTTPException(404, "Package not found")
+            return run_issue_act(
+                connection, files, project_id, package["assessment_id"], payload, package_id
+            )
 
     @app.get("/api/backups")
     def list_backups(database: Annotated[Database, Depends(db)]) -> dict[str, Any]:
@@ -2289,6 +2491,15 @@ def create_app(
                 "DELETE FROM profile_field_values WHERE profile_version_id = ?",
                 (version_id,),
             )
+            # Inventory items point at their environment, so they go first; a copied
+            # version with scope items could not be re-saved otherwise.
+            connection.execute(
+                """
+                DELETE FROM profile_items
+                WHERE profile_version_id = ? AND environment_item_id IS NOT NULL
+                """,
+                (version_id,),
+            )
             connection.execute(
                 "DELETE FROM profile_items WHERE profile_version_id = ?",
                 (version_id,),
@@ -2415,19 +2626,24 @@ def create_app(
     ) -> dict[str, Any]:
         with database.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            _user_or_422(connection, payload.actor_id)
+            user = _user_or_422(connection, payload.actor_id)
             _profile_version_or_404(connection, project_id, version_id)
             reviewed_revision = _require_profile_revision(
                 connection, version_id, payload.expected_revision
             )
             current = _profile_status(connection, version_id)
-            expected = {"Draft": "Reviewed", "Reviewed": "Approved"}.get(current)
-            if payload.status != expected:
+            # Draft goes straight to Approved. Reviewed is earlier history that can
+            # still be approved; the app no longer offers it as a step.
+            allowed = {"Draft": {"Reviewed", "Approved"}, "Reviewed": {"Approved"}}
+            if payload.status not in allowed.get(current, set()):
                 raise HTTPException(
                     status_code=422,
-                    detail="Profile lifecycle must follow Draft to Reviewed to Approved",
+                    detail="Profile lifecycle must go from Draft to Approved",
                 )
+            # The reviewer is the account unless a name is given.
             reviewer = payload.reviewer.strip()
+            if payload.status == "Approved" and not reviewer:
+                reviewer = cast(str, user["display_name"]).strip()
             if payload.status == "Approved" and not reviewer:
                 raise HTTPException(status_code=422, detail="Approval requires a named reviewer")
             event_id = str(uuid4())
@@ -2476,10 +2692,20 @@ def create_app(
                     },
                     payload.actor_id,
                 )
+            complete = True
+            if payload.status == "Approved":
+                complete = _record_profile_complete(connection, project_id, version_id, reviewer)
             overview = _profile_overview(connection, project_id)
             return {
                 "active_version_id": overview["active_version_id"],
                 "version": _profile_version_detail(connection, project_id, version_id),
+                "profile_complete": complete,
+                "message": (
+                    "Approved."
+                    if complete or payload.status != "Approved"
+                    else "Approved. Profile complete is recorded once the follow-up items "
+                    "are resolved."
+                ),
             }
 
     @app.post(
@@ -2969,6 +3195,11 @@ def create_app(
         database: Annotated[Database, Depends(db)],
     ) -> dict[str, Any]:
         with database.connect() as connection:
+            completion = _project_readiness_declaration(connection, project_id)[
+                "profile_completion"
+            ]
+            if payload.next_state == completion["state"]:
+                raise HTTPException(status_code=422, detail="Approve the Profile version instead.")
             _record_readiness_transition(
                 connection,
                 project_id,

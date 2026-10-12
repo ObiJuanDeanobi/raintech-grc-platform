@@ -18,16 +18,9 @@ from api.tests.test_issue_m3_hipaa_sra import _risk, _setup
 
 def _ready(client: TestClient, db: Path, suffix: str = "generation") -> tuple[str, str]:
     project, assessment, profile = _setup(client, suffix)
-    response = client.post(
-        f"/api/projects/{project}/profile-readiness/transitions",
-        json={
-            "next_state": "Profile complete",
-            "decision_note": "Ready for governed generation.",
-            "reviewed_by": "Reviewer",
-            "approval_evidence": "Approved Profile lifecycle event.",
-        },
-    )
-    assert response.status_code == 201, response.text
+    # Approving the Profile (in _setup) already recorded Profile complete.
+    readiness = client.get(f"/api/projects/{project}/profile-readiness")
+    assert readiness.json()["state"] == "Profile complete"
     for item in client.get(f"/api/projects/{project}/sra").json()["scope_items"]:
         response = client.put(
             f"/api/projects/{project}/sra/scope",

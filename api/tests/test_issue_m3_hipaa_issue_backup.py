@@ -14,7 +14,7 @@ from httpx import Response
 from api.main import create_app
 from api.recovery import recover
 from api.tests.test_issue_m3_hipaa_generation import _ready
-from api.tests.test_issue_m3_hipaa_review import _package, _transition
+from api.tests.test_issue_m3_hipaa_review import _package, _sign_off
 
 
 def _app(tmp_path: Path) -> tuple[TestClient, Path, Path]:
@@ -32,8 +32,7 @@ def _issued_candidate(
 ) -> tuple[str, str, dict[str, Any]]:
     project, assessment = _ready(client, db, suffix)
     package = _package(client, project, assessment)
-    for state in ("In Review", "Reviewed", "Ready to issue"):
-        assert _transition(client, project, package["id"], state).status_code == 201
+    assert _sign_off(client, project, package["id"]).status_code == 201
     return project, assessment, package
 
 
@@ -184,7 +183,7 @@ def test_inactive_and_guessed_packages_are_rejected_without_backup_or_issuance_w
             f"/api/projects/{project}/packages/{package_id}/issue",
             json={"actor_id": "johnathan", "backup_id": "guessed-backup"},
         ).status_code == 404
-        assert _transition(client, project, package_id, "In Review").status_code == 404
+        assert _sign_off(client, project, package_id).status_code == 404
 
         for guessed in ("guessed-package", package_id):
             assert client.get(
@@ -195,7 +194,7 @@ def test_inactive_and_guessed_packages_are_rejected_without_backup_or_issuance_w
         assert connection.execute("SELECT COUNT(*) FROM backup_records").fetchone()[0] == 0
         assert connection.execute("SELECT COUNT(*) FROM issuance_attempts").fetchone()[0] == 0
         assert connection.execute("SELECT COUNT(*) FROM issuance_snapshots").fetchone()[0] == 0
-        assert connection.execute("SELECT COUNT(*) FROM package_review_events").fetchone()[0] == 3
+        assert connection.execute("SELECT COUNT(*) FROM package_review_events").fetchone()[0] == 1
 
 
 def test_backup_and_issue_are_project_scoped_and_restart_safe(tmp_path: Path) -> None:

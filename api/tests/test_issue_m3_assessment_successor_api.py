@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from api.main import create_app
 from api.tests.test_issue_m3_hipaa_generation import _ready
 from api.tests.test_issue_m3_hipaa_issue_backup import _backup
-from api.tests.test_issue_m3_hipaa_review import _package, _transition
+from api.tests.test_issue_m3_hipaa_review import _package, _sign_off
 
 
 def create_project(client: TestClient, client_id: str, name: str) -> str:
@@ -242,9 +242,8 @@ def test_successor_preserves_predecessor_evidence_snapshot_package_signoff_and_i
         assert mapped.status_code == 201, mapped.text
 
         package = _package(client, project_id, predecessor)
-        for state in ("In Review", "Reviewed", "Ready to issue"):
-            signed = _transition(client, project_id, package["id"], state)
-            assert signed.status_code == 201, signed.text
+        signed = _sign_off(client, project_id, package["id"])
+        assert signed.status_code == 201, signed.text
         backup = _backup(client, project_id, package["id"])
         assert backup.status_code in (200, 201), backup.text
         issued = client.post(
@@ -266,7 +265,7 @@ def test_successor_preserves_predecessor_evidence_snapshot_package_signoff_and_i
         assert before["source_snapshots"]
         assert before["generated_packages"]
         assert before["generated_components"]
-        assert len(before["package_review_events"]) == 3
+        assert len(before["package_review_events"]) == 1
         assert before["backup_records"][0][9] == "complete"
         assert before["issuance_snapshots"]
         assert client.post(f"/api/projects/{project_id}/assessments").status_code == 409

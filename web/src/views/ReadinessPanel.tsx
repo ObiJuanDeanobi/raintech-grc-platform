@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { request, startAssessment } from "../api";
 import type {
@@ -71,18 +71,17 @@ export function ReadinessPanel({
   readiness: ProfileReadiness;
   onChanged: () => Promise<void>;
 }) {
-  const [nextState, setNextState] = useState(
-    readiness.allowed_next_states[0] ?? "",
+  // Profile complete is recorded by approving a Profile version, never typed in here.
+  const choices = useMemo(
+    () => readiness.allowed_next_states.filter((state) => state !== "Profile complete"),
+    [readiness.allowed_next_states],
   );
+  const [nextState, setNextState] = useState(choices[0] ?? "");
   const [decisionNote, setDecisionNote] = useState("");
   const [unresolved, setUnresolved] = useState(
     readiness.current_details.unresolved_required_fields.join(", "),
   );
   const [followUp, setFollowUp] = useState(readiness.current_details.follow_up_work);
-  const [reviewedBy, setReviewedBy] = useState(readiness.current_details.reviewed_by);
-  const [approvalEvidence, setApprovalEvidence] = useState(
-    readiness.current_details.approval_evidence,
-  );
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const unresolvedValues = unresolved
@@ -96,12 +95,10 @@ export function ReadinessPanel({
     );
 
   useEffect(() => {
-    setNextState(readiness.allowed_next_states[0] ?? "");
+    setNextState(choices[0] ?? "");
     setUnresolved(readiness.current_details.unresolved_required_fields.join(", "));
     setFollowUp(readiness.current_details.follow_up_work);
-    setReviewedBy(readiness.current_details.reviewed_by);
-    setApprovalEvidence(readiness.current_details.approval_evidence);
-  }, [readiness]);
+  }, [readiness, choices]);
 
   async function saveTransition(event: FormEvent) {
     event.preventDefault();
@@ -115,8 +112,6 @@ export function ReadinessPanel({
           decision_note: decisionNote,
           unresolved_required_fields: unresolvedValues,
           follow_up_work: followUp,
-          reviewed_by: reviewedBy,
-          approval_evidence: approvalEvidence,
         }),
       });
       setDecisionNote("");
@@ -144,7 +139,7 @@ export function ReadinessPanel({
           <label>
             Next state
             <select value={nextState} onChange={(event) => setNextState(event.target.value)}>
-              {readiness.allowed_next_states.map((state) => (
+              {choices.map((state) => (
                 <option key={state}>{state}</option>
               ))}
             </select>
@@ -166,18 +161,6 @@ export function ReadinessPanel({
               onChange={(event) => setFollowUp(event.target.value)}
             />
           </label>
-          {nextState === "Profile complete" && (
-            <>
-              <label>
-                Named reviewer
-                <input value={reviewedBy} onChange={(event) => setReviewedBy(event.target.value)} />
-              </label>
-              <label>
-                Review / approval evidence
-                <textarea rows={2} value={approvalEvidence} onChange={(event) => setApprovalEvidence(event.target.value)} />
-              </label>
-            </>
-          )}
         </div>
         {readiness.profile_completion_blocking_reasons.length > 0 && (
           <div className="profile-blockers">
@@ -190,7 +173,7 @@ export function ReadinessPanel({
           </div>
         )}
         {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="small-button" disabled={working} type="submit">
+        <button className="small-button" disabled={working || !nextState} type="submit">
           Record transition
         </button>
       </form>

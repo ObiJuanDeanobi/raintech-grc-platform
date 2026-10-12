@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from api.main import create_app
+from api.tests.test_issue_62_versioned_profile import lifecycle_payload
 from api.tests.test_workspace_api import migration_config
 
 
@@ -26,6 +27,15 @@ def create_project(client: TestClient, suffix: str) -> str:
 
 def readiness_path(project_id: str) -> str:
     return f"/api/projects/{project_id}/profile-readiness"
+
+
+def approve_profile(client: TestClient, project_id: str) -> Response:
+    """Approving the Profile version is the Profile-complete act (GitHub issue #145)."""
+    version = client.get(f"/api/projects/{project_id}/profile").json()["versions"][0]
+    return client.post(
+        f"/api/projects/{project_id}/profile/versions/{version['id']}/lifecycle",
+        json=lifecycle_payload(client, project_id, version["id"], "Approved"),
+    )
 
 
 def transition(
@@ -91,8 +101,7 @@ def test_readiness_path_gates_new_assessments_and_keeps_existing_assessment_read
         assert intake_complete.json()["assessment_entry_allowed"] is True
         assert intake_complete.json()["profile_completion_blocking_reasons"] == [
             "Resolve required field: Security officer.",
-            "Record a named reviewer.",
-            "Record review or approval evidence.",
+            "Approve the Profile version.",
         ]
 
         created = client.post(f"/api/projects/{project_id}/assessments")
@@ -126,7 +135,17 @@ def test_readiness_path_gates_new_assessments_and_keeps_existing_assessment_read
             == 200
         )
 
-        complete = transition(
+        # Unresolved facts block approval; resolving them returns to Intake complete.
+        assert approve_profile(client, project_id).status_code == 422
+        resolved = transition(
+            client,
+            project_id,
+            "Intake complete",
+            "The named security officer is confirmed.",
+        )
+        assert resolved.status_code == 201
+        # Profile complete is recorded by approving the Profile version, never typed in.
+        manual = transition(
             client,
             project_id,
             "Profile complete",
@@ -134,16 +153,20 @@ def test_readiness_path_gates_new_assessments_and_keeps_existing_assessment_read
             reviewed_by="Johnathan",
             approval_evidence="Review meeting recorded in synthetic engagement notes.",
         )
-        assert complete.status_code == 201
+        assert manual.status_code == 422
+        assert manual.json()["detail"] == "Approve the Profile version instead."
+        assert approve_profile(client, project_id).status_code == 201
+        complete = client.get(readiness_path(project_id))
         assert complete.json()["state"] == "Profile complete"
         assert complete.json()["assessment_entry_allowed"] is True
         assert complete.json()["profile_completion_blocking_reasons"] == []
 
         history = client.get(f"{readiness_path(project_id)}/transitions").json()
-        assert [(item["prior_state"], item["next_state"]) for item in history][-3:] == [
+        assert [(item["prior_state"], item["next_state"]) for item in history][-4:] == [
             ("Intake started", "Intake complete"),
             ("Intake complete", "Needs follow-up"),
-            ("Needs follow-up", "Profile complete"),
+            ("Needs follow-up", "Intake complete"),
+            ("Intake complete", "Profile complete"),
         ]
         assert all(item["actor"]["id"] == "johnathan" for item in history)
         assert all(item["timestamp"] and item["decision_note"] for item in history)
@@ -187,36 +210,48 @@ def test_unknown_follow_up_and_approval_rules_are_enforced(
             ).status_code
             == 201
         )
-        unresolved_complete = transition(
-            client,
-            project_id,
-            "Profile complete",
-            "Attempt completion before resolution.",
-            unresolved_required_fields=["System inventory"],
-            reviewed_by="Johnathan",
-            approval_evidence="Synthetic review record.",
-        )
+        # Approving the Profile is the completion act; unresolved facts still block it.
+        unresolved_complete = approve_profile(client, project_id)
         assert unresolved_complete.status_code == 422
         assert "unresolved required fields" in unresolved_complete.json()["detail"]
 
-        unnamed_review = transition(
-            client,
-            project_id,
-            "Profile complete",
-            "Attempt completion without named review.",
-        )
-        assert unnamed_review.status_code == 422
-        assert "named reviewer" in unnamed_review.json()["detail"]
+        # Typing Profile complete is refused however it is filled in.
+        for reviewed_by, approval_evidence in (
+            ("", ""),
+            ("Johnathan", ""),
+            ("Johnathan", "Synthetic review record."),
+        ):
+            manual = transition(
+                client,
+                project_id,
+                "Profile complete",
+                "Attempt to type completion.",
+                reviewed_by=reviewed_by,
+                approval_evidence=approval_evidence,
+            )
+            assert manual.status_code == 422
+            assert manual.json()["detail"] == "Approve the Profile version instead."
 
-        no_evidence = transition(
-            client,
-            project_id,
-            "Profile complete",
-            "Attempt completion without approval evidence.",
-            reviewed_by="Johnathan",
+        # Resolved, the approval records who approved and what it was for.
+        assert (
+            transition(
+                client,
+                project_id,
+                "Needs follow-up",
+                "Checking the inventory.",
+                follow_up_work="Validate inventory with the system owner.",
+            ).status_code
+            == 201
         )
-        assert no_evidence.status_code == 422
-        assert "approval evidence" in no_evidence.json()["detail"]
+        assert (
+            transition(client, project_id, "Intake complete", "Inventory resolved.").status_code
+            == 201
+        )
+        assert approve_profile(client, project_id).status_code == 201
+        recorded = client.get(f"{readiness_path(project_id)}/transitions").json()[-1]
+        assert recorded["next_state"] == "Profile complete"
+        assert recorded["reviewed_by"] == "Johnathan"
+        assert "approved on" in recorded["approval_evidence"]
 
 
 def test_two_project_isolation_restart_persistence_and_append_only_history(
@@ -326,7 +361,7 @@ def test_readiness_behavior_consumes_the_persisted_framework_declaration(
                     "Profile complete",
                 ],
                 "transitions": {
-                    "Intake started": ["Profile complete"],
+                    "Intake started": ["Needs follow-up"],
                     "Intake complete": [],
                     "Needs follow-up": [],
                     "Profile complete": [],
@@ -334,7 +369,7 @@ def test_readiness_behavior_consumes_the_persisted_framework_declaration(
                 "assessment_entry": {
                     "allowed_states": ["Intake started"],
                     "blocking_reasons": {
-                        "Profile complete": "Custom declaration blocks entry."
+                        "Needs follow-up": "Custom declaration blocks entry."
                     },
                 },
                 "profile_completion": {
@@ -355,12 +390,13 @@ def test_readiness_behavior_consumes_the_persisted_framework_declaration(
 
         initial = client.get(readiness_path(project_id)).json()
         assert initial["assessment_entry_allowed"] is True
-        assert initial["allowed_next_states"] == ["Profile complete"]
+        assert initial["allowed_next_states"] == ["Needs follow-up"]
         completed = transition(
             client,
             project_id,
-            "Profile complete",
-            "Custom declaration allows completion without review fields.",
+            "Needs follow-up",
+            "Custom declaration allows this transition.",
+            follow_up_work="Custom follow-up.",
         )
         assert completed.status_code == 201
         assert completed.json()["assessment_entry_allowed"] is False

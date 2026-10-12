@@ -13,7 +13,7 @@ from api.main import create_app
 from api.tests.test_issue_62_versioned_profile import (
     create_project,
     lifecycle_payload,
-    profile_payload,
+    resolved_profile_payload,
 )
 from api.tests.test_workspace_api import migration_config
 
@@ -23,22 +23,15 @@ def _setup(client: TestClient, suffix: str = "sra") -> tuple[str, str, dict[str,
     draft = client.get(f"/api/projects/{project}/profile").json()["versions"][0]
     saved = client.put(
         f"/api/projects/{project}/profile/versions/{draft['id']}",
-        json=profile_payload(draft["content_revision"]),
+        json=resolved_profile_payload(draft["content_revision"]),
     )
     assert saved.status_code == 200
-    for status in ("Reviewed", "Approved"):
-        response = client.post(
-            f"/api/projects/{project}/profile/versions/{draft['id']}/lifecycle",
-            json=lifecycle_payload(client, project, draft["id"], status),
-        )
-        assert response.status_code == 201
-    assert (
-        client.post(
-            f"/api/projects/{project}/profile-readiness/transitions",
-            json={"next_state": "Intake complete", "decision_note": "ready"},
-        ).status_code
-        == 201
+    # Approving the Profile is the one act: it also records Profile complete.
+    response = client.post(
+        f"/api/projects/{project}/profile/versions/{draft['id']}/lifecycle",
+        json=lifecycle_payload(client, project, draft["id"], "Approved"),
     )
+    assert response.status_code == 201
     assessment = client.post(f"/api/projects/{project}/assessments").json()["id"]
     return project, assessment, saved.json()
 

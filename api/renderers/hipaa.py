@@ -19,6 +19,8 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+from api.renderers.draftmark import UNDECIDED, mark_docx, mark_xlsx
+
 REPORT_SECTIONS = (
     "Assessment Scope",
     "Assessment Method",
@@ -122,8 +124,12 @@ def _records(snapshot: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     return [row for row in records if row.get("carries_determination", True)]
 
 
-def report_values(snapshot: Mapping[str, Any]) -> dict[str, str]:
-    """Create the named-field map used by the approved DOCX template."""
+def report_values(snapshot: Mapping[str, Any], draft: bool = False) -> dict[str, str]:
+    """Create the named-field map used by the approved DOCX template.
+
+    A draft shows ``Not yet decided`` where a determination has not been made;
+    an issued package never does, because issuing requires every decision.
+    """
     s = canonical_snapshot(snapshot)
     assessment = s["assessment"]
     framework = s["framework"]
@@ -136,7 +142,7 @@ def report_values(snapshot: Mapping[str, Any]) -> dict[str, str]:
         "assessment_start_date": _none(assessment.get("start_date")),
         "assessment_end_date": _none(assessment.get("end_date")),
         "assessment_revision": _none(assessment.get("revision")),
-        "profile_snapshot_id": _none(profile.get("snapshot_id")),
+        "profile_snapshot_id": _none(profile.get("label") or profile.get("snapshot_id")),
         "source_snapshot_id": _none(s.get("snapshot_id")),
         "template_version": _none(s.get("template_version", "hipaa-v2")),
         "framework_title": _none(framework.get("title")),
@@ -147,24 +153,31 @@ def report_values(snapshot: Mapping[str, Any]) -> dict[str, str]:
         "met_count": str(statuses.count("Met")),
         "not_met_count": str(statuses.count("Not Met")),
         "not_applicable_count": str(statuses.count("N/A")),
-        "assessment_decision": _none(assessment.get("decision")),
-        "issuance_decision": _none(assessment.get("issuance_decision")),
+        "assessment_decision": _none(
+            assessment.get("decision"), UNDECIDED if draft else "None recorded"
+        ),
+        "issuance_decision": _none(
+            assessment.get("issuance_decision"), UNDECIDED if draft else "None recorded"
+        ),
     }
     rows = [_joined_record(s, row) for row in _records(s)]
 
     # Repeated appendix/table fields are newline-delimited so the same approved
     # template remains useful for one or many framework records.
-    def joined(key: str, *fallback: str) -> str:
+    blank_decision = UNDECIDED if draft else "None recorded"
+
+    def joined(key: str, *fallback: str, blank: str = "None recorded") -> str:
         return (
             "\n".join(
                 _none(
                     next(
                         (row.get(k) for k in (key, *fallback) if row.get(k) not in (None, "")), None
-                    )
+                    ),
+                    blank,
                 )
                 for row in rows
             )
-            or "None recorded"
+            or blank
         )
 
     values.update(
@@ -175,13 +188,13 @@ def report_values(snapshot: Mapping[str, Any]) -> dict[str, str]:
             "designation": joined("designation"),
             "citation": joined("citation", "record_id", "id"),
             "requirement_text": joined("text", "title"),
-            "final_determination": joined("status", "determination"),
+            "final_determination": joined("status", "determination", blank=blank_decision),
             "implementation_statement": joined("implementation_statement", "assessor_note"),
             "scope_context": joined("scope_context", "work_area"),
             "evidence_references": joined("evidence_references", "evidence"),
             "finding_id": joined("finding_id"),
             "action_id": joined("corrective_action_id", "action_id"),
-            "validation_state": joined("validation_state", "status"),
+            "validation_state": joined("validation_state", "status", blank=blank_decision),
             "requirement": joined("requirement", "text", "title"),
             "control_group": joined("control_group", "work_area"),
             "control_description": joined("control_description", "text", "title"),
@@ -215,9 +228,11 @@ def report_values(snapshot: Mapping[str, Any]) -> dict[str, str]:
     return values
 
 
-def render_report(template_path: Path, output_path: Path, snapshot: Mapping[str, Any]) -> str:
+def render_report(
+    template_path: Path, output_path: Path, snapshot: Mapping[str, Any], draft: bool = False
+) -> str:
     """Render named fields into a DOCX while preserving the approved package."""
-    values = report_values(snapshot)
+    values = report_values(snapshot, draft)
     source = BytesIO()
     with (
         zipfile.ZipFile(template_path, "r") as zin,
@@ -229,7 +244,7 @@ def render_report(template_path: Path, output_path: Path, snapshot: Mapping[str,
                 data = _replace_tokens(data.decode("utf-8"), values).encode("utf-8")
             zout.writestr(item, data)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_bytes(source.getvalue())
+    output_path.write_bytes(mark_docx(source.getvalue()) if draft else source.getvalue())
     return snapshot_sha256(snapshot)
 
 
@@ -280,7 +295,9 @@ def _joined_record(snapshot: Mapping[str, Any], row: Mapping[str, Any]) -> dict[
     return result
 
 
-def render_poam(template_path: Path, output_path: Path, snapshot: Mapping[str, Any]) -> str:
+def render_poam(
+    template_path: Path, output_path: Path, snapshot: Mapping[str, Any], draft: bool = False
+) -> str:
     """Populate the approved workbook using inline strings and exact 29-column rows."""
     s = canonical_snapshot(snapshot)
     rows = [
@@ -291,7 +308,7 @@ def render_poam(template_path: Path, output_path: Path, snapshot: Mapping[str, A
     assessment = s.get("assessment", {})
     profile = s.get("profile", {})
     token_values: dict[str, Any] = {
-        **report_values(s),
+        **report_values(s, draft),
         "assessment_id": assessment.get("id"),
         "client_name": profile.get("client_name"),
         "derived_from_assessment": assessment.get("id"),
@@ -380,7 +397,7 @@ def render_poam(template_path: Path, output_path: Path, snapshot: Mapping[str, A
                 data = _replace_tokens(data.decode("utf-8"), token_values).encode("utf-8")
             zout.writestr(item, data)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_bytes(source.getvalue())
+    output_path.write_bytes(mark_xlsx(source.getvalue()) if draft else source.getvalue())
     return str(s["source_sha256"])
 
 
