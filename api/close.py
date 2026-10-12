@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import HTTPException
 
 from api import verification
+from api.cmmc import TERMINAL_POAM_STATUSES
 from api.database import active_assessment_by_id, active_assessment_for_project
 from api.evidence_integrity import evidence_blockers, verify_assessment_evidence
 
@@ -403,8 +404,11 @@ def _cmmc_checks(
         for row in connection.execute(
             """SELECT f.record_id, a.title FROM corrective_actions a
                JOIN requirement_findings f ON f.finding_id = a.finding_id
-               WHERE f.project_id = ? AND a.status != 'Closed' ORDER BY f.record_id""",
-            (project_id,),
+               WHERE f.project_id = ? AND a.status NOT IN ({placeholders})
+               ORDER BY f.record_id""".format(
+                placeholders=", ".join("?" for _ in TERMINAL_POAM_STATUSES)
+            ),
+            (project_id, *TERMINAL_POAM_STATUSES),
         ):
             _block(
                 blockers,

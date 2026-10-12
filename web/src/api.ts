@@ -71,3 +71,8 @@ export async function request<T>(url: string, options?: RequestInit): Promise<T>
   return (await response.json()) as T;
 }
 
+
+/** Record intake and create the first assessment in one step. */
+export function startAssessment(projectId: string): Promise<unknown> {
+  return request(`/api/projects/${projectId}/start-assessment`, { method: "POST" });
+}

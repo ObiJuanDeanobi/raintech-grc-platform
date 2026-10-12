@@ -21,7 +21,7 @@ import { StatusPill } from "./components/StatusPill";
 import { RoutineSaveReporter, RoutineSaveState, useRoutineRecordSaveCoordinator } from "./components/routineSave";
 import { GUIDANCE_LABELS } from "./lib/guidance";
 import { firstActionableRequirement } from "./lib/requirements";
-import { ReadinessPanel } from "./views/ReadinessPanel";
+import { ReadinessPanel, StartAssessmentCard } from "./views/ReadinessPanel";
 import { Setup, WorkspaceCreator } from "./views/Setup";
 import { DeterminationPanel, EvidencePanel, NotMetReconciliation, PromptCard, RecordNotes } from "./views/assessment/RecordPanels";
 import { RequirementList } from "./views/assessment/RequirementList";
@@ -240,7 +240,8 @@ export function Workspace({
         const nextReadiness = await loadReadiness(controller.signal);
         if (nextReadiness?.assessment_exists) await loadAssessment(controller.signal);
       } catch (error) {
-        if (!controller.signal.aborted) throw error;
+        // The screen offers a retry when readiness loaded but the assessment did not.
+        if (!controller.signal.aborted) console.error(error);
       } finally {
         if (!controller.signal.aborted && projectTargetRef.current === projectId) setLoading(false);
       }
@@ -378,7 +379,6 @@ export function Workspace({
             <button className={view === "assessment" ? "active" : ""} onClick={() => changeView("assessment")}>Assessments</button>
             <button className={view === "overview" ? "active" : ""} onClick={() => changeView("overview")}>Overview</button>
             <button className={view === "profile" ? "active" : ""} onClick={() => changeView("profile")}>Profile</button>
-            <button disabled>Actions</button>
           </nav>
           <div className="topbar-utility"><span className="account"><UserRound size={16} /> Johnathan</span></div>
         </header>
@@ -405,21 +405,22 @@ export function Workspace({
           {view === "profile" ? (
             <>
               <ProfilePanel key={projectId} projectId={projectId} onDirtyChange={setProfileDirty} />
-              <ReadinessPanel
-                readiness={readiness}
-                hasAssessment={Boolean(assessment)}
-                onChanged={reloadWorkspace}
-                onStarted={() => setView("assessment")}
-              />
+              <ReadinessPanel readiness={readiness} onChanged={reloadWorkspace} />
             </>
           ) : view === "sra" ? (
             <SraPanel key={`${projectId}:${assessment?.id ?? "none"}`} projectId={projectId} assessmentId={assessment?.id} onDirtyChange={setProfileDirty} />
+          ) : readiness.assessment_exists ? (
+            <section className="start-card" role="alert">
+              <h1>The assessment did not open</h1>
+              <p>It exists, but its records could not be loaded. Nothing was lost.</p>
+              <button className="primary-button" onClick={() => void reloadWorkspace()}>Try again</button>
+            </section>
           ) : (
-            <ReadinessPanel
+            <StartAssessmentCard
               readiness={readiness}
-              hasAssessment={Boolean(assessment)}
               onChanged={reloadWorkspace}
               onStarted={() => setView("assessment")}
+              onOpenProfile={() => setView("profile")}
             />
           )}
         </main>
@@ -429,7 +430,7 @@ export function Workspace({
             onCancel={() => setCreatingWorkspace(false)}
             onCreated={(id) => {
               setCreatingWorkspace(false);
-              setView("profile");
+              setView("assessment");
               onWorkspaceCreated(id);
             }}
           />
@@ -453,7 +454,6 @@ export function Workspace({
             <button className={view === "sra" ? "active" : ""} onClick={() => changeView("sra")}>{assessment.framework.declarations.sra.work_area}</button>
           )}
           <button className={view === "evidence" ? "active" : ""} onClick={() => changeView("evidence")}>Evidence</button>
-          <button disabled>Actions</button>
         </nav>
         <div className="topbar-utility">
           <span className={`save-state ${visibleSaveState}`} title={visibleSaveMessage} aria-live="polite">
@@ -844,11 +844,7 @@ export function Workspace({
       {view === "profile" && (
         <main className="overview-panel">
           <ProfilePanel key={projectId} projectId={projectId} onDirtyChange={setProfileDirty} />
-          <ReadinessPanel
-            readiness={readiness}
-            hasAssessment
-            onChanged={reloadWorkspace}
-          />
+          <ReadinessPanel readiness={readiness} onChanged={reloadWorkspace} />
         </main>
       )}
       {creatingWorkspace && (
@@ -857,7 +853,7 @@ export function Workspace({
           onCancel={() => setCreatingWorkspace(false)}
           onCreated={(id) => {
             setCreatingWorkspace(false);
-            setView("profile");
+            setView("assessment");
             onWorkspaceCreated(id);
           }}
         />
@@ -869,7 +865,6 @@ export function Workspace({
 export default function App() {
   const [clients, setClients] = useState<Client[] | null>(null);
   const [projectId, setProjectId] = useState("");
-  const [openedFromSetup, setOpenedFromSetup] = useState(false);
   const [error, setError] = useState("");
 
   async function loadClients(preferredProjectId = "") {
@@ -904,7 +899,6 @@ export default function App() {
     return (
       <Setup
         onCreated={(id) => {
-          setOpenedFromSetup(true);
           void loadClients(id);
         }}
       />
@@ -916,7 +910,7 @@ export default function App() {
       projectId={projectId}
       onProjectChange={setProjectId}
       onWorkspaceCreated={(id) => void loadClients(id)}
-      initialView={openedFromSetup ? "profile" : "assessment"}
+      initialView="assessment"
     />
   );
 }

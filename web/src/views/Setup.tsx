@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
-import { request } from "../api";
+import { request, startAssessment } from "../api";
+import { setStartError } from "../lib/startError";
 import type {
   Client,
   FrameworkOption,
@@ -56,6 +57,17 @@ function FrameworkSelect({
   );
 }
 
+// The client and project already exist by now. If starting fails the project still opens
+// on the Start card, which shows why (see takeStartError).
+async function startFirstAssessment(projectId: string): Promise<void> {
+  setStartError("");
+  try {
+    await startAssessment(projectId);
+  } catch (caught) {
+    setStartError(caught instanceof Error ? caught.message : "Could not start the assessment.");
+  }
+}
+
 export function Setup({ onCreated }: { onCreated: (projectId: string) => void }) {
   const [clientName, setClientName] = useState("");
   const [projectName, setProjectName] = useState("");
@@ -77,6 +89,7 @@ export function Setup({ onCreated }: { onCreated: (projectId: string) => void })
         method: "POST",
         body: JSON.stringify({ name: projectName, framework_version_id: frameworkId }),
       });
+      await startFirstAssessment(project.id);
       onCreated(project.id);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not create the workspace.");
@@ -134,7 +147,7 @@ export function Setup({ onCreated }: { onCreated: (projectId: string) => void })
         {error && <p className="form-error"><CircleAlert size={16} /> {error}</p>}
         <button className="primary-button" disabled={working} type="submit">
           {working ? <LoaderCircle className="spin" size={18} /> : <ArrowRight size={18} />}
-          Create workspace
+          Create and start
         </button>
       </form>
     </main>
@@ -156,9 +169,12 @@ export function WorkspaceCreator({
   const frameworks = useFrameworks();
   const [frameworkId, setFrameworkId] = useState(DEFAULT_FRAMEWORK.id);
   const [error, setError] = useState("");
+  const [working, setWorking] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (working) return;
+    setWorking(true);
     setError("");
     try {
       let destinationClientId = clientId;
@@ -176,9 +192,12 @@ export function WorkspaceCreator({
           body: JSON.stringify({ name: projectName, framework_version_id: frameworkId }),
         },
       );
+      await startFirstAssessment(project.id);
       onCreated(project.id);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not create the workspace.");
+    } finally {
+      setWorking(false);
     }
   }
 
@@ -209,7 +228,7 @@ export function WorkspaceCreator({
         <FrameworkSelect frameworks={frameworks} value={frameworkId} onChange={setFrameworkId} />
         {error && <p className="form-error"><CircleAlert size={16} /> {error}</p>}
         <div className="modal-actions">
-          <button className="small-button" type="submit">Create and open</button>
+          <button className="small-button" disabled={working} type="submit">Create and start assessment</button>
           <button className="text-button" type="button" onClick={onCancel}>Cancel</button>
         </div>
       </form>
