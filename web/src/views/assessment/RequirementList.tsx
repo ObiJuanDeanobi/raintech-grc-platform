@@ -34,7 +34,7 @@ export function RequirementList({
   expanded: Map<string, boolean>;
   onExpandedChange: Dispatch<SetStateAction<Map<string, boolean>>>;
   onSelect: (requirementId: string) => void;
-  /** When set, only these requirements are listed, with their families open (#143). */
+  /** When set, only these requirements are listed, with their families open (#143, #144). */
   onlyIds?: ReadonlySet<string> | null;
 }) {
   const families = useMemo(() => requirementFamilies(workList, states), [workList, states]);
@@ -54,7 +54,7 @@ export function RequirementList({
 
   return (
     <div ref={listRef} className="requirement-list" role="navigation" aria-label="Requirements by family">
-      {onlyIds && onlyIds.size === 0 && <p className="muted-small requirement-list-empty">Every NOT MET requirement is on an open POA&amp;M item.</p>}
+      {onlyIds && onlyIds.size === 0 && <p className="muted-small requirement-list-empty">Nothing in the list matches this filter.</p>}
       {families
         .filter((family) => area === "all" || family.name === area)
         .map((family) => {

@@ -39,6 +39,7 @@ from api.framework import (
 )
 from api.generation import generate_package, list_packages
 from api.issuance import BackupFailure, create_backup, issue_package, issue_readiness
+from api.overview import overview as overview_dashboard
 from api.package_review import get_review
 from api.package_review import transition as transition_package_review
 from api.reopening import reopen_assessment, reopening_for, revalidate, revalidation_items
@@ -1489,6 +1490,15 @@ def create_app(
             raise HTTPException(422, "Unknown close-readiness target")
         with database.connect() as connection:
             return fieldwork_ready(
+                connection, project_id, assessment_id, storage_root=managed_storage
+            )
+
+    @app.get("/api/projects/{project_id}/assessments/{assessment_id}/overview")
+    def get_overview(
+        project_id: str, assessment_id: str, database: Annotated[Database, Depends(db)]
+    ) -> dict[str, Any]:
+        with database.connect() as connection:
+            return overview_dashboard(
                 connection, project_id, assessment_id, storage_root=managed_storage
             )
 

@@ -23,12 +23,76 @@ _CHECKS = {
 }
 
 
+# Blocker code -> (group key, plain-English label, where the group opens).
+# Targets: "assessments" (filtered list), "profile", "sra", "evidence", "poam", "ssp".
+_GROUPS: dict[str, tuple[str, str, str]] = {
+    "determination_not_final": ("undecided", "Objectives not decided", "assessments"),
+    "assessment_missing": ("undecided", "Objectives not decided", "assessments"),
+    "na_rationale_missing": ("na_reason", "N/A answers missing a reason", "assessments"),
+    "met_evidence_pending": ("met_no_evidence", "Met, evidence still needed", "assessments"),
+    "not_met_unreconciled": ("gaps_no_plan", "Gaps without a plan", "assessments"),
+    "poam_open": ("poam_open", "Open POA&M items", "assessments"),
+    "profile_not_complete": ("profile", "Profile not approved", "profile"),
+    "profile_not_approved": ("profile", "Profile not approved", "profile"),
+    "profile_unknown": ("profile", "Profile not approved", "profile"),
+    "ssp_not_approved": ("ssp", "SSP not approved", "ssp"),
+    "evidence_unverified": ("evidence_failed", "Evidence files failed check", "evidence"),
+    "needs_revalidation": ("recheck", "Records to recheck", "assessments"),
+    "sra_not_declared": ("sra", "Security Risk Analysis incomplete", "sra"),
+    "sra_anchor_missing": ("sra", "Security Risk Analysis incomplete", "sra"),
+    "sra_incomplete": ("sra", "Security Risk Analysis incomplete", "sra"),
+    "sra_exclusion_rationale_missing": ("sra", "Security Risk Analysis incomplete", "sra"),
+    "sra_not_approved": ("sra", "Security Risk Analysis incomplete", "sra"),
+    "risk_incomplete": ("sra", "Security Risk Analysis incomplete", "sra"),
+    "risk_review_missing": ("sra", "Security Risk Analysis incomplete", "sra"),
+}
+_OTHER_GROUP = ("other", "Other items", "overview")
+
+
+def _record_id(blocker: dict[str, Any]) -> str | None:
+    """The record a blocker is about, taken from its link when it has one."""
+    href = blocker.get("link") or ""
+    if "/records/" not in href:
+        return None
+    return str(href.split("/records/", 1)[1].split("/", 1)[0])
+
+
+def _groups(blockers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Blockers counted by plain-English group. Counts always sum to len(blockers).
+
+    A group's ``record_ids`` lists the records its blockers are about (objective
+    or requirement ids, without repeats); groups about the profile, SSP or
+    evidence have none. Codes not listed in ``_GROUPS`` land in "Other items".
+    """
+    grouped: dict[str, dict[str, Any]] = {}
+    for blocker in blockers:
+        key, label, target = _GROUPS.get(str(blocker["code"]), _OTHER_GROUP)
+        if blocker["code"] == "determination_not_final" and blocker.get("status") == "Not Met":
+            # Decided, but the internal close needs every objective Met.
+            key, label = "not_met", "Objectives still Not Met"
+        group = grouped.setdefault(
+            key, {"key": key, "label": label, "count": 0, "record_ids": [], "target": target}
+        )
+        group["count"] += 1
+        record_id = _record_id(blocker)
+        if record_id and record_id not in group["record_ids"]:
+            group["record_ids"].append(record_id)
+    return list(grouped.values())
+
+
 def _block(
-    items: list[dict[str, Any]], code: str, detail: str, check: str, link: str | None = None
+    items: list[dict[str, Any]],
+    code: str,
+    detail: str,
+    check: str,
+    link: str | None = None,
+    status: str | None = None,
 ) -> None:
     item: dict[str, Any] = {"code": code, "detail": detail, "check": check}
     if link:
         item["link"] = link
+    if status:
+        item["status"] = status
     items.append(item)
 
 
@@ -222,6 +286,7 @@ def fieldwork_ready(
                     f"Final determination required: {record_id}",
                     "determinations",
                     link,
+                    status,
                 )
             elif pending_allowed and status == "Met" and bases.get(record_id) is None:
                 _block(
@@ -473,6 +538,7 @@ def _result(
         "ready": not blockers,
         "checks": checks,
         "blockers": blockers,
+        "groups": _groups(blockers),
         "links": links,
         "framework_version_id": framework_id,
         "project_id": project_id,
